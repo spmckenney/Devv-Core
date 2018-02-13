@@ -32,7 +32,9 @@ DCValidationBlock::DCValidationBlock(std::string jsonMsg) {
 		json j = json::parse(jsonMsg);
 		json temp = json::array();
 		for (auto iter = j.begin(); iter != j.end(); ++iter) {
-			std::pair<std::string, std::string> oneSig(iter.key(), iter.value());
+                  std::string key(iter.key());
+                  std::string value = iter.value();
+                  std::pair<std::string, std::string> oneSig(iter.key(), value);
 			sigs.insert(oneSig);
 			temp += json::object({iter.key(), iter.value()});
 		}
