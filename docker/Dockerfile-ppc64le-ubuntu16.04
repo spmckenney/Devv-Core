@@ -1,9 +1,4 @@
-## -*- docker-image-name: "spm-dev" -*-
-
 FROM ppc64le/ubuntu:16.04
-
-RUN groupadd --gid 1002 bcrunner
-RUN useradd -d /home/bcrunner --uid 1002 -m --gid 1002 bcrunner
 
 # System packages
 RUN apt-get update && apt-get install -y \
@@ -20,9 +15,13 @@ RUN apt-get update && apt-get install -y \
     g++ \
     wget \
     clang \
-    aptitude
+    aptitude \
+    cmake \
+    cmake-curses-gui \
+    cmake-extras \
+    extra-cmake-modules
 
-# Bitcoin dependencies
+# Bitcoin/devcash dependencies
 RUN apt-get install -y \
     libdb-dev \
     libdb++-dev \
@@ -48,6 +47,7 @@ RUN apt-get install -y \
     python-secretstorage-doc \
     python-setuptools-doc
 
+# Package management (for Power Repos)
 RUN apt-get install -y \
     software-properties-common
 
@@ -81,14 +81,15 @@ RUN apt-get install -y \
     net-tools \
     iputils-ping
 
-RUN apt-get install -y \
-    cmake \
-    cmake-curses-gui \
-    cmake-extras \
-    extra-cmake-modules
+RUN groupadd --gid 1002 dcrunner
+RUN useradd -d /home/dcrunner --uid 1002 -m --gid 1002 dcrunner
 
-RUN echo "" >> /home/bcrunner/.bashrc
-RUN echo "export WORKON_HOME=/home/bcrunner/py_virtual_env" >> /home/bcrunner/.bashrc
-RUN echo "export VIRTUALENVWRAPPER_PYTHON=`which python3`" >> /home/bcrunner/.bashrc
-RUN echo "source /usr/local/bin/virtualenvwrapper.sh" >> /home/bcrunner/.bashrc
-RUN echo "workon bc-dev" >> /home/bcrunner/.bashrc
+RUN echo "" >> /home/dcrunner/.bashrc
+RUN echo "export WORKON_HOME=/home/dcrunner/py_virtual_env" >> /home/dcrunner/.bashrc
+RUN echo "export VIRTUALENVWRAPPER_PYTHON=`which python3`" >> /home/dcrunner/.bashrc
+RUN echo "source /usr/local/bin/virtualenvwrapper.sh" >> /home/dcrunner/.bashrc
+RUN echo "workon dc-dev" >> /home/dcrunner/.bashrc
+
+# https://denibertovic.com/posts/handling-permissions-with-docker-volumes/
+COPY entrypoint.sh /tmp/entrypoint.sh
+ENTRYPOINT ["/tmp/entrypoint.sh"]
