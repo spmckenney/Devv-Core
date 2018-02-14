@@ -18,6 +18,7 @@
 #include <cctype>
 #include <ctime>
 #include <locale>
+#include <unistd.h>
 
 #if (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__DragonFly__))
 #include <pthread.h>

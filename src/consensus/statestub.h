@@ -8,7 +8,7 @@
 #ifndef SRC_CONSENSUS_STATESTUB_H_
 #define SRC_CONSENSUS_STATESTUB_H_
 
-#include "../primitives/SmartCoin.h"
+#include "../primitives/smartcoin.h"
 #include <map>
 
 class DCState {

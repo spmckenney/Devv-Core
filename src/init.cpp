@@ -10,6 +10,7 @@
 #include <stdio.h>
 #include <string>
 #include <iostream>
+#include <inttypes.h>
 #include "json.hpp"
 using namespace std;
 using json = nlohmann::json;
@@ -704,17 +705,7 @@ bool AppInitSanityChecks()
 		char hash[SHA256_DIGEST_LENGTH*2+1];
 		dcHash(msg, hash);
 
-		/*std::string xfer("\"addr\":0,\"amount\":-10,\"nonce\":1517434459");
-		char tempHash[SHA256_DIGEST_LENGTH*2+1];
-		dcHash(xfer, tempHash);*/
-
 		EC_KEY* loadkey = loadEcKey(ctx, pubKeyStr, pkStr);
-
-		//std::string testSign = sign(loadkey, xfer);
-		//std::cout << testSign << std::endl;
-
-		/*EC_KEY* eckey = genEcKey(ctx, pubKeyStr, pkStr);
-		std::string tempSign = sign(eckey, xfer);*/
 
 		std::string sDer = sign(loadkey, msg);
 		return(verifySig(loadkey, msg, sDer));
@@ -751,13 +742,12 @@ std::string AppInitMain(std::string inStr, std::string mode)
 	CASH_TRY {
 		if (mode == "mine") {
 			LogPrintStr("Miner Mode");
-			json j = json::parse(inStr);
+			json outer = json::parse(inStr);
+			json j;
+			LogPrintStr(std::to_string(outer[TX_TAG].size())+" transactions");
 			int txCnt = 0;
-			if (j.is_object()) {
-				txCnt = 1;
-			} else if (j.is_array()) {
-				txCnt = j.size();
-			}
+			j = outer[TX_TAG];
+			txCnt = j.size();
 			std::vector<DCTransaction> txs;
 			DCValidationBlock vBlock;
 			EVP_MD_CTX *ctx;
@@ -765,19 +755,18 @@ std::string AppInitMain(std::string inStr, std::string mode)
 			if (txCnt < 1) {
 				LogPrintStr("No transactions.  Nothing to do.");
 				return("");
-			} else if (txCnt == 1) {
-				LogPrintStr("Single transaction");
-				DCTransaction* tx = new DCTransaction(inStr);
-				txs.push_back(*tx);
 			} else {
-				LogPrintStr(j[TX_TAG].size()+" transactions");
-				for (auto iter = j[TX_TAG].begin(); iter != j[TX_TAG].end(); ++iter) {
+				std::string toPrint(txCnt+" transactions");
+				LogPrintStr(toPrint);
+				for (auto iter = j.begin(); iter != j.end(); ++iter) {
 					std::string tx = iter.value().dump();
 					DCTransaction* t = new DCTransaction(tx);
 					txs.push_back(*t);
 				}
 			}
 			EC_KEY* eckey = loadEcKey(ctx, pubKeyStr, pkStr);
+
+			int64_t startTime = GetTimeMicros();
 			DCBlock newBlock = DCBlock(txs, vBlock);
 			if (newBlock.validate(eckey)) {
 				newBlock.signBlock(eckey);
@@ -787,6 +776,10 @@ std::string AppInitMain(std::string inStr, std::string mode)
 			} else {
 				LogPrintStr("No valid transactions");
 			}
+			int64_t endTime = GetTimeMicros();
+			std::string timeD("Inner delta: ");
+			timeD+= strprintf("%" PRId64, (endTime-startTime)/1000);
+			LogPrintStr(timeD);
 
 		} else if (mode == "scan") {
 			LogPrintStr("Scanner Mode");
