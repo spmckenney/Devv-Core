@@ -60,6 +60,9 @@ if (OPENSSL_FOUND)
   target_link_libraries (DevCash ${OPENSSL_LIBRARIES})
 endif (OPENSSL_FOUND)
 
+find_package(Threads)
+target_link_libraries(DevCash ${CMAKE_THREAD_LIBS_INIT})
+
 target_include_directories(DevCash PRIVATE ${dcInclude})
 
 #add_test(toDoTest toDo)
