@@ -28,6 +28,8 @@ using json = nlohmann::json;
 
 #ifdef TEST_THREADS
 #include "ctpl.h"
+
+const int N_THREADS = 64;
 #endif
 
 /*#include <boost/algorithm/string/classification.hpp>
@@ -815,7 +817,7 @@ std::string AppInitMain(std::string inStr, std::string mode)
                         }
 
                         // Create pool with N threads
-                        ctpl::thread_pool p(64);
+                        ctpl::thread_pool p(N_THREADS);
                         std::vector<std::future<std::string>> results(blocks.size());
 
                         auto start = NOW;
