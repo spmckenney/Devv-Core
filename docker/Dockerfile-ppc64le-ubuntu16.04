@@ -92,6 +92,8 @@ RUN echo "export VIRTUALENVWRAPPER_PYTHON=`which python3`" >> /home/dcrunner/.ba
 RUN echo "source /usr/local/bin/virtualenvwrapper.sh" >> /home/dcrunner/.bashrc
 RUN echo "workon dc-dev" >> /home/dcrunner/.bashrc
 
+USER root
+
 # https://denibertovic.com/posts/handling-permissions-with-docker-volumes/
 COPY entrypoint.sh /tmp/entrypoint.sh
 ENTRYPOINT ["/tmp/entrypoint.sh"]
