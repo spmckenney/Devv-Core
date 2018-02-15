@@ -10,6 +10,7 @@
 #include <stdio.h>
 #include <string>
 #include <iostream>
+#include <inttypes.h>
 #include "json.hpp"
 using namespace std;
 using json = nlohmann::json;
@@ -23,6 +24,10 @@ using json = nlohmann::json;
 
 #ifndef WIN32
 #include <signal.h>
+#endif
+
+#ifdef TEST_THREADS
+#include "ctpl.h"
 #endif
 
 /*#include <boost/algorithm/string/classification.hpp>
@@ -704,17 +709,7 @@ bool AppInitSanityChecks()
 		char hash[SHA256_DIGEST_LENGTH*2+1];
 		dcHash(msg, hash);
 
-		/*std::string xfer("\"addr\":0,\"amount\":-10,\"nonce\":1517434459");
-		char tempHash[SHA256_DIGEST_LENGTH*2+1];
-		dcHash(xfer, tempHash);*/
-
 		EC_KEY* loadkey = loadEcKey(ctx, pubKeyStr, pkStr);
-
-		//std::string testSign = sign(loadkey, xfer);
-		//std::cout << testSign << std::endl;
-
-		/*EC_KEY* eckey = genEcKey(ctx, pubKeyStr, pkStr);
-		std::string tempSign = sign(eckey, xfer);*/
 
 		std::string sDer = sign(loadkey, msg);
 		return(verifySig(loadkey, msg, sDer));
@@ -745,19 +740,45 @@ static std::string CBOR2hex(std::vector<uint8_t> b) {
 	return(ss.str());
 }
 
+#ifdef TEST_THREADS
+#define NOW std::chrono::high_resolution_clock::now()
+#define MILLI_SINCE(start) std::chrono::duration_cast<std::chrono::milliseconds>(NOW - start).count()
+
+std::string validate_block(DCBlock& newBlock, EC_KEY* eckey)
+{
+  std::string out = "";
+  auto start = NOW;
+  auto valid = newBlock.validate(eckey);
+  std::cout << "validation() took  : " << MILLI_SINCE(start) << " milliseconds\n";
+  if (valid) {
+    auto start1 = NOW;
+    newBlock.signBlock(eckey);
+    std::cout << "signBlock() took   : " << MILLI_SINCE(start1) << " milliseconds\n";
+    start1 = NOW;
+    newBlock.finalize();
+    std::cout << "finalize() took    : " << MILLI_SINCE(start1) << " milliseconds\n";
+    LogPrintStr("Output block");
+    out = newBlock.ToCBOR_str();
+  } else {
+    LogPrintStr("No valid transactions");
+  }
+  std::cout << "Total / block      : " << MILLI_SINCE(start) << " milliseconds\n";
+  return(out);
+}
+#endif
+
 std::string AppInitMain(std::string inStr, std::string mode)
 {
 	std::string out("");
 	CASH_TRY {
 		if (mode == "mine") {
 			LogPrintStr("Miner Mode");
-			json j = json::parse(inStr);
+			json outer = json::parse(inStr);
+			json j;
+			LogPrintStr(std::to_string(outer[TX_TAG].size())+" transactions");
 			int txCnt = 0;
-			if (j.is_object()) {
-				txCnt = 1;
-			} else if (j.is_array()) {
-				txCnt = j.size();
-			}
+			j = outer[TX_TAG];
+			txCnt = j.size();
 			std::vector<DCTransaction> txs;
 			DCValidationBlock vBlock;
 			EVP_MD_CTX *ctx;
@@ -765,19 +786,19 @@ std::string AppInitMain(std::string inStr, std::string mode)
 			if (txCnt < 1) {
 				LogPrintStr("No transactions.  Nothing to do.");
 				return("");
-			} else if (txCnt == 1) {
-				LogPrintStr("Single transaction");
-				DCTransaction* tx = new DCTransaction(inStr);
-				txs.push_back(*tx);
 			} else {
-				LogPrintStr(j[TX_TAG].size()+" transactions");
-				for (auto iter = j[TX_TAG].begin(); iter != j[TX_TAG].end(); ++iter) {
+				std::string toPrint(txCnt+" transactions");
+				LogPrintStr(toPrint);
+				for (auto iter = j.begin(); iter != j.end(); ++iter) {
 					std::string tx = iter.value().dump();
 					DCTransaction* t = new DCTransaction(tx);
 					txs.push_back(*t);
 				}
 			}
 			EC_KEY* eckey = loadEcKey(ctx, pubKeyStr, pkStr);
+
+			int64_t startTime = GetTimeMicros();
+#ifndef TEST_THREADS
 			DCBlock newBlock = DCBlock(txs, vBlock);
 			if (newBlock.validate(eckey)) {
 				newBlock.signBlock(eckey);
@@ -787,6 +808,36 @@ std::string AppInitMain(std::string inStr, std::string mode)
 			} else {
 				LogPrintStr("No valid transactions");
 			}
+#else
+                        std::vector<DCBlock> blocks;
+                        for (int i = 0; i<128; i++) {
+                          blocks.push_back(DCBlock(txs, vBlock));
+                        }
+
+                        // Create pool with N threads
+                        ctpl::thread_pool p(64);
+                        std::vector<std::future<std::string>> results(blocks.size());
+
+                        auto start = NOW;
+                        int jj = 0;
+                        for (auto iter : blocks) {
+                          results[jj] = p.push([&iter, eckey](int){ return(validate_block(iter, eckey)); });
+                          jj++;
+                        }
+
+                        std::vector<std::string> outputs;
+                        for (int i=0; i<jj; i++) {
+                          outputs.push_back(results[i].get());
+                        }
+                        int ttot=MILLI_SINCE(start);
+                        std::cout << "Total ("<<j.size()*jj<< " / " << ttot << ") - "
+                                  <<j.size()*jj/(float(ttot)/1000.0) << " valids/sec\n";
+                        out = outputs[0];
+#endif // TEST_THREADS
+			int64_t endTime = GetTimeMicros();
+			std::string timeD("Inner delta: ");
+			timeD+= strprintf("%" PRId64, (endTime-startTime)/1000);
+			LogPrintStr(timeD);
 
 		} else if (mode == "scan") {
 			LogPrintStr("Scanner Mode");

@@ -47,6 +47,12 @@ add_library(primitives ${primitives_SRC})
 add_library(init init.cpp)
 add_library(util util.cpp utiltime.cpp utilstrencodings.cpp)
 
+option(WITH_THREAD_TESTING "Enable thread testing" OFF)
+
+if(WITH_THREAD_TESTING)
+  add_definitions(-DTEST_THREADS)
+endif()
+
 add_executable(DevCash devcash.cpp ${dcInclude})
 target_link_libraries (DevCash
   init
