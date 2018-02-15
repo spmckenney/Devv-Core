@@ -113,6 +113,29 @@ DCTransaction::DCTransaction(std::string jsonTx) {
 	xfers = nullptr;
 	CASH_TRY {
 		json jsonObj = json::parse(jsonTx);
+                //std::cout << jsonObj << std::endl;
+		std::string opTemp = jsonObj[OPER_TAG];
+		oper = getOpType(opTemp);
+		type = jsonObj[TYPE_TAG];
+		xfers = new std::vector<DCTransfer>(0);
+		for (auto iter = jsonObj[XFER_TAG].begin(); iter != jsonObj[XFER_TAG].end(); ++iter) {
+			std::string xfer = iter.value().dump();
+			DCTransfer* t = new DCTransfer(xfer);
+			xfers->push_back(*t);
+		}
+		hash = ComputeHash();
+		jsonStr = jsonObj.dump();
+	} CASH_CATCH (const std::exception* e) {
+		FormatException(e, "transaction", DCLog::ALL);
+	}
+}
+
+DCTransaction::DCTransaction(json jsonObj) {
+	oper = OpType::Create;
+	type = "SmartCoin";
+	xfers = nullptr;
+	CASH_TRY {
+          //std::cout << jsonObj << std::endl;
 		std::string opTemp = jsonObj[OPER_TAG];
 		oper = getOpType(opTemp);
 		type = jsonObj[TYPE_TAG];
@@ -142,7 +165,7 @@ DCTransaction::DCTransaction(const DCTransaction& tx) : xfers(tx.xfers) {
 	hash = tx.hash;
 }
 
-bool DCTransaction::isValid(EC_KEY* eckey) {
+bool DCTransaction::isValid(EC_KEY* eckey) const {
 	CASH_TRY {
 		long nValueOut = 0;
 		for (std::vector<DCTransfer>::iterator it = xfers->begin(); it != xfers->end(); ++it) {

@@ -46,9 +46,9 @@ public:
     void SetNull() { addr = ""; amount = 0; }
     bool IsNull() const { return ("" == addr); }
     DCTransfer();
-	DCTransfer(std::string json);
-	DCTransfer(const char* cbor);
-	DCTransfer(const DCTransfer &other);
+	explicit DCTransfer(std::string json);
+	explicit DCTransfer(const char* cbor);
+	explicit DCTransfer(const DCTransfer &other);
 	std::string getCanonical();
     friend bool operator==(const DCTransfer& a, const DCTransfer& b)
     {
@@ -87,10 +87,11 @@ public:
 	std::string type;
 	std::vector<DCTransfer>* xfers;
 	DCTransaction();
-	DCTransaction(std::string json);
-	DCTransaction(char* cbor);
+	explicit DCTransaction(std::string jsonTx);
+	explicit DCTransaction(json jsonObj);
+	explicit DCTransaction(char* cbor);
 	DCTransaction(const DCTransaction& tx);
-	bool isValid(EC_KEY* eckey);
+	bool isValid(EC_KEY* eckey) const;
 	std::string ComputeHash() const;
 
 private:
