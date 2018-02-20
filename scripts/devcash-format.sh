@@ -5,6 +5,7 @@ formatfile=$1
 # Check for non-null filename
 if [ "x${formatfile}" = "x" ]; then
     echo "usage: devcash-format.sh FILENAME"
+    exit -1
 fi
 
 # Check that file exists
