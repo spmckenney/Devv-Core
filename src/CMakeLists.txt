@@ -36,16 +36,20 @@ foreach (_headerFile ${dcHeaders})
 endforeach()
 list(REMOVE_DUPLICATES dcInclude)
 
+# Build the primitives objects
 file(GLOB primitives_SRC
     "primitives/*.cpp"
 )
-
-find_package(OpenSSL REQUIRED)
-
 add_library(primitives ${primitives_SRC})
 
+# Build the common module objects
+file(GLOB common_SRC
+    "common/*.cpp"
+)
+add_library(common ${common_SRC})
+
+# Add init.cpp
 add_library(init init.cpp)
-add_library(util util.cpp utiltime.cpp utilstrencodings.cpp)
 
 option(WITH_THREAD_TESTING "Enable thread testing" OFF)
 
@@ -56,11 +60,11 @@ endif()
 add_executable(DevCash devcash.cpp ${dcInclude})
 target_link_libraries (DevCash
   init
-  util
+  common
   primitives
   )
 
-find_package (OpenSSL)
+find_package (OpenSSL REQUIRED)
 if (OPENSSL_FOUND)
   include_directories(${OPENSSL_INCLUDE_DIR})
   target_link_libraries (DevCash ${OPENSSL_LIBRARIES})
