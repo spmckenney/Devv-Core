@@ -15,6 +15,8 @@
 #include <iostream>
 #include <fstream>
 #include "common/json.hpp"
+#include "common/logger.h"
+
 #include "init.h"
 using namespace std;
 using json = nlohmann::json;
@@ -49,27 +51,27 @@ bool AppInit(int argc, char* argv[]) {
 		mode += argv[1];
 
 		if (mode != "mine" && mode != "scan") {
-			LogPrintStr("Invalid mode");
-			return(false);
+                  LOG_FATAL << "Invalid mode";
+                  return(false);
 		}
 
         CASH_TRY
         {
             dCashArgs.ReadConfigFile(argv[2]);
         } CASH_CATCH (const std::exception& e) {
-            fprintf(stderr,"Error reading configuration file: %s\n", e.what());
-            return false;
+          LOG_FATAL << "Error reading configuration file: " << e.what();
+          return false;
         }
 
 		if (!AppInitBasicSetup(dCashArgs)) {
-			LogPrintStr("Basic setup failed");
-			return false;
+                  LOG_FATAL << "Basic setup failed";
+                  return false;
 		}
 		if (!AppInitSanityChecks()) {
-			LogPrintStr("Sanity checks failed");
-			return false;
+                  LOG_FATAL << "Sanity checks failed";
+                  return false;
 		}
-		LogPrintStr("Sanity checks passed");
+		LOG_INFO << "Sanity checks passed";
 		std::string inRaw = ReadFile(argv[3]);
         std::string out = AppInitMain(inRaw, mode);
 
@@ -78,17 +80,17 @@ bool AppInit(int argc, char* argv[]) {
     		outFile << out;
     		outFile.close();
     	} else {
-    		LogPrintStr("Failed to open output.");
-    		return(false);
+          LOG_FATAL << "Failed to open output.";
+          return(false);
     	}
 
-    	LogPrintStr("DevCash Shutting Down");
-		return(true);
+    	LOG_INFO << "DevCash Shutting Down";
+        return(true);
 	} CASH_CATCH (...) {
 		std::exception_ptr p = std::current_exception();
 		std::string err("");
 		err += (p ? p.__cxa_exception_type()->name() : "null");
-		cout << "Error: "+err <<  std::endl;
+		LOG_FATAL << "Error: "+err <<  std::endl;
 		cerr << err << std::endl;
 		return(false);
 	}
@@ -97,7 +99,7 @@ bool AppInit(int argc, char* argv[]) {
 int main(int argc, char* argv[])
 {
 	if (argc != 4) {
-		std::cout << "Usage: DevCash mine|scan configfile input" << std::endl;
+		LOG_INFO << "Usage: DevCash mine|scan configfile input";
 		return(EXIT_FAILURE);
 	}
 

@@ -23,9 +23,7 @@ if (NOT CONFIGURED_ONCE)
         CACHE STRING "Flags used by the compiler during all build types." FORCE)
 endif()
 
-#include_directories(${CMAKE_CURRENT_SOURCE_DIR})
-
-#add_subdirectory()
+include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
 file(GLOB_RECURSE dcSources "*.cpp")
 file(GLOB_RECURSE dcHeaders "*.h*")
@@ -36,16 +34,20 @@ foreach (_headerFile ${dcHeaders})
 endforeach()
 list(REMOVE_DUPLICATES dcInclude)
 
+# Build the primitives objects
 file(GLOB primitives_SRC
     "primitives/*.cpp"
 )
-
-find_package(OpenSSL REQUIRED)
-
 add_library(primitives ${primitives_SRC})
 
+# Build the common module objects
+file(GLOB common_SRC
+    "common/*.cpp"
+)
+add_library(common ${common_SRC})
+
+# Add init.cpp
 add_library(init init.cpp)
-add_library(util util.cpp utiltime.cpp utilstrencodings.cpp)
 
 option(WITH_THREAD_TESTING "Enable thread testing" OFF)
 
@@ -56,11 +58,11 @@ endif()
 add_executable(DevCash devcash.cpp ${dcInclude})
 target_link_libraries (DevCash
   init
-  util
+  common
   primitives
   )
 
-find_package (OpenSSL)
+find_package (OpenSSL REQUIRED)
 if (OPENSSL_FOUND)
   include_directories(${OPENSSL_INCLUDE_DIR})
   target_link_libraries (DevCash ${OPENSSL_LIBRARIES})
@@ -69,10 +71,13 @@ endif (OPENSSL_FOUND)
 find_package(Threads)
 target_link_libraries(DevCash ${CMAKE_THREAD_LIBS_INIT})
 
+find_package(Boost COMPONENTS date_time filesystem system program_options log REQUIRED)
+if(Boost_FOUND)
+  include_directories(${Boost_INCLUDE_DIRS})
+  target_link_libraries(DevCash ${Boost_LIBRARIES})
+endif(Boost_FOUND)
+
 target_include_directories(DevCash PRIVATE ${dcInclude})
-
-#add_test(toDoTest toDo)
-
 
 set(CONFIGURED_ONCE TRUE CACHE INTERNAL
     "A flag showing that CMake has configured at least once.")
