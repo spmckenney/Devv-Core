@@ -1,8 +1,8 @@
 /*
- * transaction.cpp
+ * params.h
  *
  *  Created on: Dec 11, 2017
- *      Author: Nick Williams
+ *  Author: Nick Williams
  */
 
 #ifndef DEVCASH_CONSENSUS_PARAMS_H

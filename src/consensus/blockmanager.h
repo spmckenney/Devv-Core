@@ -2,7 +2,7 @@
  * blockmanager.h
  *
  *  Created on: Dec 22, 2017
- *      Author: Nick Williams
+ *  Author: Nick Williams
  */
 
 #ifndef SRC_CONSENSUS_BLOCKMANAGER_H_

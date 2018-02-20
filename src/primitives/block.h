@@ -2,21 +2,21 @@
  * block.h
  *
  *  Created on: Dec 11, 2017
- *      Author: Nick Williams
+ *  Author: Nick Williams
  *
- *      **Block Structure**
+ *  **Block Structure**
  *
- *      -Headers-
- *		nVersion
- *		previous blockhash
- *		hashMerkleRoot
- *		blocksize (nBits)
- *		timestamp (nTime)
- *		transaction size (bytes)
- *		validation size (bytes)
+ *  -Headers-
+ *  nVersion
+ *  previous blockhash
+ *  hashMerkleRoot
+ *  blocksize (nBits)
+ *  timestamp (nTime)
+ *  transaction size (bytes)
+ *  validation size (bytes)
  *
- *		-Transactions-
- *		-Validations-
+ *  -Transactions-
+ *  -Validations-
  */
 
 #ifndef DEVCASH_PRIMITIVES_BLOCK_H
@@ -51,12 +51,12 @@ public:
 
     DCBlockHeader(std::string hashPrevBlock, std::string hashMerkleRoot, uint32_t nBytes, uint64_t nTime, uint32_t txSize, uint32_t vSize)
     {
-    	this->hashPrevBlock=hashPrevBlock;
-    	this->hashMerkleRoot=hashMerkleRoot;
-    	this->nBytes=nBytes;
-    	this->nTime=nTime;
-    	this->txSize=txSize;
-    	this->vSize=vSize;
+      this->hashPrevBlock=hashPrevBlock;
+      this->hashMerkleRoot=hashMerkleRoot;
+      this->nBytes=nBytes;
+      this->nTime=nTime;
+      this->txSize=txSize;
+      this->vSize=vSize;
     }
 
     void SetNull()

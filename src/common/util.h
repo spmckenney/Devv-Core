@@ -2,7 +2,7 @@
  * util.h
  *
  *  Created on: Dec 27, 2017
- *      Author: Nick Williams
+ *  Author: Nick Williams
  */
 
 /**
@@ -50,7 +50,7 @@ namespace DCLog {
     enum LogFlags : uint32_t {
         NONE        = 0,
         NET         = (1 <<  0),
-		INIT		= (1 <<  1),
+  INIT  = (1 <<  1),
         MEMPOOL     = (1 <<  2),
         HTTP        = (1 <<  3),
         BENCH       = (1 <<  4),

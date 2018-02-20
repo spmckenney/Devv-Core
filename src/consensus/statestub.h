@@ -2,7 +2,7 @@
  * statestub.h
  *
  *  Created on: Jan 12, 2018
- *      Author: Nick Williams
+ *  Author: Nick Williams
  */
 
 #ifndef SRC_CONSENSUS_STATESTUB_H_
@@ -13,16 +13,16 @@
 
 class DCState {
 public:
-	std::map<std::string, std::map<std::string, long>> stateMap;
+  std::map<std::string, std::map<std::string, long>> stateMap;
 
-	DCState();
-	virtual ~DCState();
+  DCState();
+  virtual ~DCState();
 
-	bool addCoin(SmartCoin& coin);
-	long getAmount(std::string type, std::string addr);
-	bool moveCoin(SmartCoin& start, SmartCoin& end);
-	bool delCoin(SmartCoin& coin);
-	bool clear();
+  bool addCoin(SmartCoin& coin);
+  long getAmount(std::string type, std::string addr);
+  bool moveCoin(SmartCoin& start, SmartCoin& end);
+  bool delCoin(SmartCoin& coin);
+  bool clear();
 };
 
 #endif /* SRC_CONSENSUS_STATESTUB_H_ */

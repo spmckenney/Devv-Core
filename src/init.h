@@ -2,7 +2,7 @@
  * init.h
  *
  *  Created on: Dec 10, 2017
- *      Author: Nick Williams
+ *  Author: Nick Williams
  */
 
 #ifndef DEVCASH_INIT_H
@@ -14,8 +14,8 @@
 
 class DevCashContext {
 public:
-	const static char *DEFAULT_PUBKEY;
-	const static char *DEFAULT_PK;
+  const static char *DEFAULT_PUBKEY;
+  const static char *DEFAULT_PK;
 };
 
 void StartShutdown();

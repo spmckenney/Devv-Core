@@ -2,7 +2,7 @@
  * smartcoin.h
  *
  *  Created on: Jan 12, 2018
- *      Author: Nick Williams
+ *  Author: Nick Williams
  */
 
 #ifndef SRC_PRIMITIVES_SMARTCOIN_H_
@@ -18,16 +18,16 @@ inline bool MoneyRange(const long& nValue) { return (nValue >= 0 && nValue <= MA
 
 class SmartCoin {
 public:
-	std::string type;
-	std::string addr;
-	long amount = 0;
+  std::string type;
+  std::string addr;
+  long amount = 0;
 
-	SmartCoin(std::string type, std::string addr, long amount=0) {
-		this->type=type;
-		this->addr=addr;
-		this->amount = amount;
-	}
-	virtual ~SmartCoin();
+  SmartCoin(std::string type, std::string addr, long amount=0) {
+  this->type=type;
+  this->addr=addr;
+  this->amount = amount;
+  }
+  virtual ~SmartCoin();
 };
 
 #endif /* SRC_PRIMITIVES_SMARTCOIN_H_ */

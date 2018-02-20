@@ -2,7 +2,7 @@
  * init.cpp
  *
  *  Created on: Dec 10, 2017
- *      Author: Nick Williams
+ *  Author: Nick Williams
  */
 
 #include "init.h"
@@ -79,12 +79,12 @@ bool ShutdownRequested()
 
 void Shutdown()
 {
-	LogPrintStr("Shutting down DevCash");
+  LogPrintStr("Shutting down DevCash");
 }
 
 void InitError(const std::exception* e)
 {
-	FormatException(e, "main", DCLog::INIT);
+  FormatException(e, "main", DCLog::INIT);
 }
 
 bool AppInitBasicSetup(ArgsManager &args)
@@ -103,59 +103,59 @@ bool AppInitBasicSetup(ArgsManager &args)
 #endif
 
     CASH_TRY {
-		OpenSSL_add_all_algorithms();
-		ERR_load_crypto_strings();
-		pubKeyStr = args.GetArg("PUBKEY", DevCashContext::DEFAULT_PUBKEY);
-		LogPrintStr("Public Key: "+pubKeyStr);
-		//pkStr = args.GetArg("PRIVATE", DevCashContext::DEFAULT_PK);
-		LogPrintStr("Private Key: "+pkStr);
-	} CASH_CATCH (const std::exception& e) {
-		InitError(&e);
-	}
+  OpenSSL_add_all_algorithms();
+  ERR_load_crypto_strings();
+  pubKeyStr = args.GetArg("PUBKEY", DevCashContext::DEFAULT_PUBKEY);
+  LogPrintStr("Public Key: "+pubKeyStr);
+  //pkStr = args.GetArg("PRIVATE", DevCashContext::DEFAULT_PK);
+  LogPrintStr("Private Key: "+pkStr);
+  } CASH_CATCH (const std::exception& e) {
+  InitError(&e);
+  }
 
     return true;
 }
 
 bool AppInitSanityChecks()
 {
-	bool retVal = false;
-	CASH_TRY {
-		EVP_MD_CTX *ctx;
-		if(!(ctx = EVP_MD_CTX_create())) LogPrintStr("Could not create signature context!");
+  bool retVal = false;
+  CASH_TRY {
+  EVP_MD_CTX *ctx;
+  if(!(ctx = EVP_MD_CTX_create())) LogPrintStr("Could not create signature context!");
 
-		std::string msg("hello");
-		char hash[SHA256_DIGEST_LENGTH*2+1];
-		dcHash(msg, hash);
+  std::string msg("hello");
+  char hash[SHA256_DIGEST_LENGTH*2+1];
+  dcHash(msg, hash);
 
-		EC_KEY* loadkey = loadEcKey(ctx, pubKeyStr, pkStr);
+  EC_KEY* loadkey = loadEcKey(ctx, pubKeyStr, pkStr);
 
-		std::string sDer = sign(loadkey, msg);
-		return(verifySig(loadkey, msg, sDer));
-	} CASH_CATCH (const std::exception& e) {
-		InitError(&e);
-	}
+  std::string sDer = sign(loadkey, msg);
+  return(verifySig(loadkey, msg, sDer));
+  } CASH_CATCH (const std::exception& e) {
+  InitError(&e);
+  }
     return(retVal);
 }
 
 static std::vector<uint8_t> hex2CBOR(std::string hex) {
-	int len = hex.length();
-	std::vector<uint8_t> buf(len/2+1);
-	for (int i=0;i<len/2;i++) {
-		buf.at(i) = (uint8_t) char2int(hex.at(i*2))*16+char2int(hex.at(1+i*2));
-	}
-	buf.pop_back(); //remove null terminator
-	return(buf);
+  int len = hex.length();
+  std::vector<uint8_t> buf(len/2+1);
+  for (int i=0;i<len/2;i++) {
+  buf.at(i) = (uint8_t) char2int(hex.at(i*2))*16+char2int(hex.at(1+i*2));
+  }
+  buf.pop_back(); //remove null terminator
+  return(buf);
 }
 
 /*static std::string CBOR2hex(std::vector<uint8_t> b) {
-	int len = b.size();
-	std::stringstream ss;
-	for (int j=0; j<len; j++) {
-		int c = (int) b[j];
-		ss.put(alpha[(c>>4)&0xF]);
-		ss.put(alpha[c&0xF]);
-	}
-	return(ss.str());
+  int len = b.size();
+  std::stringstream ss;
+  for (int j=0; j<len; j++) {
+  int c = (int) b[j];
+  ss.put(alpha[(c>>4)&0xF]);
+  ss.put(alpha[c&0xF]);
+  }
+  return(ss.str());
 }*/
 
 
@@ -186,67 +186,67 @@ std::string validate_block(DCBlock& newBlock, EC_KEY* eckey)
 
 std::string AppInitMain(std::string inStr, std::string mode)
 {
-	std::string out("");
-	CASH_TRY {
-		if (mode == "mine") {
-			LogPrintStr("Miner Mode");
-			json outer = json::parse(inStr);
-			json j;
-			LogPrintStr(std::to_string(outer[TX_TAG].size())+" transactions");
-			int txCnt = 0;
-			j = outer[TX_TAG];
-			txCnt = j.size();
-			std::vector<DCTransaction> txs;
-			DCValidationBlock vBlock;
-			EVP_MD_CTX *ctx;
-			if(!(ctx = EVP_MD_CTX_create())) LogPrintStr("Could not create signature context!");
-			if (txCnt < 1) {
-				LogPrintStr("No transactions.  Nothing to do.");
-				return("");
-			} else {
-				std::string toPrint(txCnt+" transactions");
-				LogPrintStr(toPrint);
-				for (auto iter = j.begin(); iter != j.end(); ++iter) {
-					std::string tx = iter.value().dump();
-					DCTransaction* t = new DCTransaction(tx);
-					txs.push_back(*t);
-				}
-			}
-			EC_KEY* eckey = loadEcKey(ctx, pubKeyStr, pkStr);
-			std::vector<DCBlock> blocks;
-			for (int i = 0; i<128; i++) {
-			  blocks.push_back(DCBlock(txs, vBlock));
-			}
+  std::string out("");
+  CASH_TRY {
+  if (mode == "mine") {
+  LogPrintStr("Miner Mode");
+  json outer = json::parse(inStr);
+  json j;
+  LogPrintStr(std::to_string(outer[TX_TAG].size())+" transactions");
+  int txCnt = 0;
+  j = outer[TX_TAG];
+  txCnt = j.size();
+  std::vector<DCTransaction> txs;
+  DCValidationBlock vBlock;
+  EVP_MD_CTX *ctx;
+  if(!(ctx = EVP_MD_CTX_create())) LogPrintStr("Could not create signature context!");
+  if (txCnt < 1) {
+  LogPrintStr("No transactions.  Nothing to do.");
+  return("");
+  } else {
+  std::string toPrint(txCnt+" transactions");
+  LogPrintStr(toPrint);
+  for (auto iter = j.begin(); iter != j.end(); ++iter) {
+  std::string tx = iter.value().dump();
+  DCTransaction* t = new DCTransaction(tx);
+  txs.push_back(*t);
+  }
+  }
+  EC_KEY* eckey = loadEcKey(ctx, pubKeyStr, pkStr);
+  std::vector<DCBlock> blocks;
+  for (int i = 0; i<128; i++) {
+    blocks.push_back(DCBlock(txs, vBlock));
+  }
 
-			// Create pool with N threads
-			ctpl::thread_pool p(N_THREADS);
-			std::vector<std::future<std::string>> results(blocks.size());
+  // Create pool with N threads
+  ctpl::thread_pool p(N_THREADS);
+  std::vector<std::future<std::string>> results(blocks.size());
 
-			auto start = NOW;
-			int jj = 0;
-			for (auto iter : blocks) {
-			  results[jj] = p.push([&iter, eckey](int){ return(validate_block(iter, eckey)); });
-			  jj++;
-			}
+  auto start = NOW;
+  int jj = 0;
+  for (auto iter : blocks) {
+    results[jj] = p.push([&iter, eckey](int){ return(validate_block(iter, eckey)); });
+    jj++;
+  }
 
-			std::vector<std::string> outputs;
-			for (int i=0; i<jj; i++) {
-			  outputs.push_back(results[i].get());
-			}
-			int ttot=MILLI_SINCE(start);
-			std::cout << "Total ("<<j.size()*jj<< " / " << ttot << ") - "
-					  <<j.size()*jj/(float(ttot)/1000.0) << " valids/sec\n";
-			out = outputs[0];
+  std::vector<std::string> outputs;
+  for (int i=0; i<jj; i++) {
+    outputs.push_back(results[i].get());
+  }
+  int ttot=MILLI_SINCE(start);
+  std::cout << "Total ("<<j.size()*jj<< " / " << ttot << ") - "
+    <<j.size()*jj/(float(ttot)/1000.0) << " valids/sec\n";
+  out = outputs[0];
 
-		} else if (mode == "scan") {
-			LogPrintStr("Scanner Mode");
-			std::vector<uint8_t> buffer = hex2CBOR(out);
-			json j = json::from_cbor(buffer);
-			out = j.dump();
-			out.erase(remove(out.begin(), out.end(), '\\'), out.end()); //remove escape chars
-		}
-	} CASH_CATCH (const std::exception& e) {
-		InitError(&e);
-	}
+  } else if (mode == "scan") {
+  LogPrintStr("Scanner Mode");
+  std::vector<uint8_t> buffer = hex2CBOR(out);
+  json j = json::from_cbor(buffer);
+  out = j.dump();
+  out.erase(remove(out.begin(), out.end(), '\\'), out.end()); //remove escape chars
+  }
+  } CASH_CATCH (const std::exception& e) {
+  InitError(&e);
+  }
     return out;
 }

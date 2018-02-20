@@ -2,7 +2,7 @@
  * util.cpp
  *
  *  Created on: Dec 27, 2017
- *      Author: Nick Williams
+ *  Author: Nick Williams
  */
 
 #include "util.h"
@@ -113,7 +113,7 @@ std::ostream* fileout = &std::cout;
 
 int FileWriteStr(const std::string &str, std::ostream* fout)
 {
-	*fout << str << std::endl;
+  *fout << str << std::endl;
     return sizeof(str);
 }
 
@@ -124,18 +124,18 @@ std::string ReadFile(const std::string& filePath)
     if (!file.is_open()) LogPrintStr("File "+filePath+" could not be opened, check permissions");
 
     std::string output("");
-	for(std::string line; std::getline(file, line);) {
-		output += line;
-	}
-	return(output);
+  for(std::string line; std::getline(file, line);) {
+  output += line;
+  }
+  return(output);
 }
 
 bool OpenDebugLog(std::string logPath)
 {
-	trim(logPath);
-	fileout = new std::ofstream(logPath, std::fstream::app);
-	cout << "Check DevCash logs at "+logPath << std::endl;
-	LogPrintStr("DevCash initializing...");
+  trim(logPath);
+  fileout = new std::ofstream(logPath, std::fstream::app);
+  cout << "Check DevCash logs at "+logPath << std::endl;
+  LogPrintStr("DevCash initializing...");
     return true;
 }
 
@@ -149,7 +149,7 @@ const CLogCategoryDesc LogCategories[] =
 {
     {DCLog::NONE, "0"},
     {DCLog::NONE, "none"},
-	{DCLog::INIT, "init"},
+  {DCLog::INIT, "init"},
     {DCLog::NET, "net"},
     {DCLog::MEMPOOL, "mempool"},
     {DCLog::HTTP, "http"},
@@ -184,9 +184,9 @@ static std::string LogTimestampStr(const std::string &str, std::atomic_bool *fSt
         return str;
 
     if (*fStartedNewLine) {
-    	auto curTime = std::chrono::system_clock::now();
-    	std::time_t timeInt = std::chrono::system_clock::to_time_t(curTime);
-    	strStamped = std::ctime(&timeInt);
+      auto curTime = std::chrono::system_clock::now();
+      std::time_t timeInt = std::chrono::system_clock::to_time_t(curTime);
+      strStamped = std::ctime(&timeInt);
         trim(strStamped);
 
         strStamped += ' ' + str;
@@ -208,7 +208,7 @@ int LogPrintStr(const std::string &str)
         fflush(stdout);
     }
     else if (fPrintToDebugLog)
-    	ret = FileWriteStr(strTimestamped, fileout);
+      ret = FileWriteStr(strTimestamped, fileout);
     return ret;
 }
 
@@ -320,33 +320,33 @@ void ArgsManager::ForceSetArg(const std::string& strArg, const std::string& strV
 
 std::string FormatException(const std::exception* pex, const std::string pszThread, uint32_t catNum)
 {
-	CLogCategoryDesc module = LogCategories[catNum];
-	std::string msg = "";
+  CLogCategoryDesc module = LogCategories[catNum];
+  std::string msg = "";
     if (pex) {
-    	msg += "EXCEPTION[";
-    	msg += pszThread;
-    	msg += "][";
-    	msg += module.category;
-    	msg += "] ";
-    	msg += ": ";
-    	msg += std::string(pex->what());
+      msg += "EXCEPTION[";
+      msg += pszThread;
+      msg += "][";
+      msg += module.category;
+      msg += "] ";
+      msg += ": ";
+      msg += std::string(pex->what());
 
     } else {
-    	msg += "UNKNOWN EXCEPTION[";
-    	msg += pszThread;
-		msg += "][";
-		msg += module.category;
-		msg += "] ";
+      msg += "UNKNOWN EXCEPTION[";
+      msg += pszThread;
+  msg += "][";
+  msg += module.category;
+  msg += "] ";
     }
     LogPrintStr(msg);
     return(msg);
 }
 
 void setRelativePath(std::string arg0) {
-	relativePath = trim(arg0);
+  relativePath = trim(arg0);
 }
 std::string getRelativePath() {
-	return(relativePath);
+  return(relativePath);
 }
 
 void ArgsManager::ReadConfigFile(const std::string& confPath)
@@ -355,16 +355,16 @@ void ArgsManager::ReadConfigFile(const std::string& confPath)
     if (!streamConfig.good()) throw std::runtime_error("Config file could not be found");
     if (!streamConfig.is_open()) throw std::runtime_error("Config file could not be opened, check permissions");
 
-	for(std::string line; std::getline(streamConfig, line);) {
-		string::size_type eq = line.find("=");
-		if (eq != string::npos) {
-			std::string key = line.substr(0, eq);
-			std::string val = line.substr(eq+1);
-			if ("RELPATH" == key) setRelativePath(val);
-			if ("LOGFILE" == key) OpenDebugLog(getRelativePath()+val);
-			mapArgs[key]=val;
-		}
-	}
+  for(std::string line; std::getline(streamConfig, line);) {
+  string::size_type eq = line.find("=");
+  if (eq != string::npos) {
+  std::string key = line.substr(0, eq);
+  std::string val = line.substr(eq+1);
+  if ("RELPATH" == key) setRelativePath(val);
+  if ("LOGFILE" == key) OpenDebugLog(getRelativePath()+val);
+  mapArgs[key]=val;
+  }
+  }
 }
 
 void FileCommit(FILE *file)
@@ -384,17 +384,17 @@ void FileCommit(FILE *file)
 
 //Note that the following functions trim by ref, modifying the original string without copying
 inline void ltrim(std::string &s, const char* t) {
-	s.erase(0, s.find_first_not_of(t));
+  s.erase(0, s.find_first_not_of(t));
 }
 
 inline void rtrim(std::string &s, const char* t) {
-	s.erase(s.find_last_not_of(t) +1);
+  s.erase(s.find_last_not_of(t) +1);
 }
 
 inline std::string trim(std::string &s) {
-	ltrim(s, " \t\n\r\f\v");
-	rtrim(s, " \t\n\r\f\v");
-	return(s);
+  ltrim(s, " \t\n\r\f\v");
+  rtrim(s, " \t\n\r\f\v");
+  return(s);
 }
 
 /**
@@ -467,9 +467,9 @@ void AllocateFileRange(FILE *file, unsigned int offset, unsigned int length) {
 }
 
 void signalHandler(int signum) {
-	StartShutdown();
-	LogPrintStr("Signal ("+std::to_string(signum)+") received.");
-	Shutdown();
+  StartShutdown();
+  LogPrintStr("Signal ("+std::to_string(signum)+") received.");
+  Shutdown();
 }
 
 void SetupEnvironment()

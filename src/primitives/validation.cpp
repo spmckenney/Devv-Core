@@ -2,7 +2,7 @@
  * validation.cpp
  *
  *  Created on: Jan 3, 2018
- *      Author: Nick Williams
+ *  Author: Nick Williams
  */
 
 #include <stdint.h>
@@ -27,31 +27,31 @@ static const std::string VAL_TAG = "val";
 #endif
 
 DCValidationBlock::DCValidationBlock(std::string jsonMsg) {
-	CASH_TRY {
-		json j = json::parse(jsonMsg);
-		json temp = json::array();
-		for (auto iter = j.begin(); iter != j.end(); ++iter) {
+  CASH_TRY {
+  json j = json::parse(jsonMsg);
+  json temp = json::array();
+  for (auto iter = j.begin(); iter != j.end(); ++iter) {
                   std::string key(iter.key());
                   std::string value = iter.value();
                   std::pair<std::string, std::string> oneSig(iter.key(), value);
-			sigs.insert(oneSig);
-			temp += json::object({iter.key(), iter.value()});
-		}
-		hash = ComputeHash();
-		jsonStr = temp.dump();
-	} CASH_CATCH (const std::exception& e) {
-		LogPrintStr("Failed to parse validation json: "+jsonMsg);
-	}
+  sigs.insert(oneSig);
+  temp += json::object({iter.key(), iter.value()});
+  }
+  hash = ComputeHash();
+  jsonStr = temp.dump();
+  } CASH_CATCH (const std::exception& e) {
+  LogPrintStr("Failed to parse validation json: "+jsonMsg);
+  }
 }
 
 DCValidationBlock::DCValidationBlock() {
 }
 
 DCValidationBlock::DCValidationBlock(const char* cbor) {
-	CASH_TRY {
-	} CASH_CATCH (const std::exception& e) {
-		LogPrintStr("Failed to parse validation cbor.");
-	}
+  CASH_TRY {
+  } CASH_CATCH (const std::exception& e) {
+  LogPrintStr("Failed to parse validation cbor.");
+  }
 }
 
 DCValidationBlock::DCValidationBlock(const DCValidationBlock& other) : sigs(other.sigs) {
@@ -59,36 +59,36 @@ DCValidationBlock::DCValidationBlock(const DCValidationBlock& other) : sigs(othe
 }
 
 DCValidationBlock::DCValidationBlock(std::string node, std::string sig) {
-	CASH_TRY {
-		std::pair<std::string, std::string> oneSig(node, sig);
-		sigs.insert(oneSig);
-		hash = ComputeHash();
-		json j = {node, sig};
-		jsonStr = j.dump();
-	} CASH_CATCH (const std::exception& e) {
-		LogPrintStr("Failed to parse validation: "+node+", "+sig);
-	}
+  CASH_TRY {
+  std::pair<std::string, std::string> oneSig(node, sig);
+  sigs.insert(oneSig);
+  hash = ComputeHash();
+  json j = {node, sig};
+  jsonStr = j.dump();
+  } CASH_CATCH (const std::exception& e) {
+  LogPrintStr("Failed to parse validation: "+node+", "+sig);
+  }
 }
 
 DCValidationBlock::DCValidationBlock(vmap sigMap) {
-	CASH_TRY {
-		//sigs(sigMap);
-		hash = ComputeHash();
-	} CASH_CATCH (const std::exception& e) {
-		LogPrintStr("Failed to parse validation map with size "+sigs.size());
-	}
+  CASH_TRY {
+  //sigs(sigMap);
+  hash = ComputeHash();
+  } CASH_CATCH (const std::exception& e) {
+  LogPrintStr("Failed to parse validation map with size "+sigs.size());
+  }
 }
 
 bool DCValidationBlock::addValidation(std::string node, std::string sig) {
-	CASH_TRY {
-		std::pair<std::string, std::string> oneSig(node, sig);
-		sigs.insert(oneSig);
-		hash = ComputeHash();
-		return(true);
-	} CASH_CATCH (const std::exception& e) {
-		LogPrintStr("Failed to parse validation: "+node+", "+sig);
-	}
-	return(false);
+  CASH_TRY {
+  std::pair<std::string, std::string> oneSig(node, sig);
+  sigs.insert(oneSig);
+  hash = ComputeHash();
+  return(true);
+  } CASH_CATCH (const std::exception& e) {
+  LogPrintStr("Failed to parse validation: "+node+", "+sig);
+  }
+  return(false);
 }
 
 unsigned int DCValidationBlock::GetByteSize() const
@@ -103,22 +103,22 @@ unsigned int DCValidationBlock::GetValidationCount() const
 
 std::string DCValidationBlock::ComputeHash() const
 {
-	return strHash(ToJSON());
+  return strHash(ToJSON());
 }
 
 std::string DCValidationBlock::ToJSON() const
 {
-	json j = {};
-	for (auto it : sigs) {
-		json thisSig = {it.first, it.second};
-		j += thisSig;
-	}
-	return(j.dump());
+  json j = {};
+  for (auto it : sigs) {
+  json thisSig = {it.first, it.second};
+  j += thisSig;
+  }
+  return(j.dump());
 }
 
 std::vector<uint8_t> DCValidationBlock::ToCBOR() const
 {
-	return(json::to_cbor(ToJSON()));
+  return(json::to_cbor(ToJSON()));
 }
 
 
