@@ -23,9 +23,7 @@ if (NOT CONFIGURED_ONCE)
         CACHE STRING "Flags used by the compiler during all build types." FORCE)
 endif()
 
-#include_directories(${CMAKE_CURRENT_SOURCE_DIR})
-
-#add_subdirectory()
+include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
 file(GLOB_RECURSE dcSources "*.cpp")
 file(GLOB_RECURSE dcHeaders "*.h*")
@@ -73,10 +71,13 @@ endif (OPENSSL_FOUND)
 find_package(Threads)
 target_link_libraries(DevCash ${CMAKE_THREAD_LIBS_INIT})
 
+find_package(Boost COMPONENTS date_time filesystem system program_options log REQUIRED)
+if(Boost_FOUND)
+  include_directories(${Boost_INCLUDE_DIRS})
+  target_link_libraries(DevCash ${Boost_LIBRARIES})
+endif(Boost_FOUND)
+
 target_include_directories(DevCash PRIVATE ${dcInclude})
-
-#add_test(toDoTest toDo)
-
 
 set(CONFIGURED_ONCE TRUE CACHE INTERNAL
     "A flag showing that CMake has configured at least once.")
