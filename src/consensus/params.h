@@ -1,5 +1,5 @@
 /*
- * params.h
+ * params.h Devcash system parameters
  *
  *  Created on: Dec 11, 2017
  *  Author: Nick Williams
