@@ -1,8 +1,9 @@
+
 /*
- * devcash.cpp
+ * devcash.cpp the main class.  Checks args and hands of to init.
  *
  *  Created on: Dec 8, 2017
- *      Author: Nick Williams
+ *  Author: Nick Williams
  */
 #if defined(HAVE_CONFIG_H)
 #include <DevcashConfig.h>
@@ -13,17 +14,15 @@
 #include <string>
 #include <iostream>
 #include <fstream>
-#include "json.hpp"
+
 #include "init.h"
-using namespace std;
+#include "common/json.hpp"
+#include "common/logger.h"
+
+using namespace Devcash;
 using json = nlohmann::json;
 
-// Application startup time (used for uptime calculation)
-const int64_t nStartupTime = GetTime();
-
-ArgsManager dCashArgs;
-bool fPrintToConsole = false;
-bool fPrintToDebugLog = true;
+ArgsManager dCashArgs; /** stores data parsed from config file */
 
 //toggle exceptions on/off
 #if (defined(__cpp_exceptions) || defined(__EXCEPTIONS) || defined(_CPPUNWIND)) && not defined(DEVCASH_NOEXCEPTION)
@@ -40,68 +39,70 @@ typedef unsigned char byte;
 #define UNUSED(x) ((void)x)
 
 bool AppInit(int argc, char* argv[]) {
-	CASH_TRY {
-		//boost::thread_group threadGroup;
-		//CScheduler scheduler;
-		//bool fRet = false;
+  CASH_TRY {
 
-		setRelativePath(argv[0]);
+    std::string announce("Check DevCash logs at ");
+    announce += LOGFILE;
+    announce += "\n";
+    std::cout << announce;
+    LOG_INFO << "DevCash initializing...";
 
-		std::string mode("");
-		mode += argv[1];
+    setWorkPath(argv[0]);
 
-		if (mode != "mine" && mode != "scan") {
-			LogPrintStr("Invalid mode");
-			return(false);
-		}
+    std::string mode("");
+    mode += argv[1];
 
-        CASH_TRY
-        {
-            dCashArgs.ReadConfigFile(argv[2]);
-        } CASH_CATCH (const std::exception& e) {
-            fprintf(stderr,"Error reading configuration file: %s\n", e.what());
-            return false;
-        }
+    if (mode != "mine" && mode != "scan") {
+      LOG_FATAL << "Invalid mode";
+      return(false);
+    }
 
-		if (!AppInitBasicSetup(dCashArgs)) {
-			LogPrintStr("Basic setup failed");
-			return false;
-		}
-		if (!AppInitSanityChecks()) {
-			LogPrintStr("Sanity checks failed");
-			return false;
-		}
-		LogPrintStr("Sanity checks passed");
-		std::string inRaw = ReadFile(argv[3]);
-        std::string out = AppInitMain(inRaw, mode);
+    CASH_TRY {
+      dCashArgs.ReadConfigFile(argv[2]);
+    } CASH_CATCH (const std::exception& e) {
+      LOG_FATAL << "Error reading configuration file: " << e.what();
+      return false;
+    }
 
-    	std::ofstream outFile(dCashArgs.GetPathArg("OUTPUT"));
-    	if (outFile.is_open()) {
-    		outFile << out;
-    		outFile.close();
-    	} else {
-    		LogPrintStr("Failed to open output.");
-    		return(false);
-    	}
+    if (!AppInitBasicSetup(dCashArgs)) {
+      LOG_FATAL << "Basic setup failed";
+      return false;
+    }
+    if (!AppInitSanityChecks()) {
+      LOG_FATAL << "Sanity checks failed";
+      return false;
+    }
+    LOG_INFO << "Sanity checks passed";
 
-    	LogPrintStr("DevCash Shutting Down");
-		return(true);
-	} CASH_CATCH (...) {
-		std::exception_ptr p = std::current_exception();
-		std::string err("");
-		err += (p ? p.__cxa_exception_type()->name() : "null");
-		cout << "Error: "+err <<  std::endl;
-		cerr << err << std::endl;
-		return(false);
-	}
+    std::string inRaw = ReadFile(argv[3]);
+    std::string out = AppInitMain(inRaw, mode);
+    std::ofstream outFile(dCashArgs.GetPathArg("OUTPUT"));
+    if (outFile.is_open()) {
+      outFile << out;
+      outFile.close();
+    } else {
+      LOG_FATAL << "Failed to open output.";
+      return(false);
+    }
+
+    LOG_INFO << "DevCash Shutting Down";
+    return(true);
+  } CASH_CATCH (...) {
+    std::exception_ptr p = std::current_exception();
+    std::string err("");
+    err += (p ? p.__cxa_exception_type()->name() : "null");
+    LOG_FATAL << "Error: "+err <<  std::endl;
+    std::cerr << err << std::endl;
+    return(false);
+  }
 }
 
 int main(int argc, char* argv[])
 {
-	if (argc != 4) {
-		std::cout << "Usage: DevCash mine|scan configfile input" << std::endl;
-		return(EXIT_FAILURE);
-	}
+  if (argc != 4) {
+    LOG_INFO << "Usage: DevCash mine|scan configfile input";
+    return(EXIT_FAILURE);
+  }
 
-   return(AppInit(argc, argv) ? EXIT_SUCCESS : EXIT_FAILURE);
+  return(AppInit(argc, argv) ? EXIT_SUCCESS : EXIT_FAILURE);
 }

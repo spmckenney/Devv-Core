@@ -15,6 +15,7 @@ RUN apt-get update && apt-get install -y \
     g++ \
     wget \
     clang \
+    clang-format \
     aptitude \
     cmake \
     cmake-curses-gui \
@@ -72,9 +73,6 @@ RUN apt-get install -y \
     libjpeg-dev \
     libopenblas-dev
 
-COPY install_virtualenvwrapper.sh /tmp/
-RUN /bin/bash -c "/tmp/install_virtualenvwrapper.sh"
-
 # Utilities
 RUN apt-get install -y \
     netcat \
@@ -84,11 +82,18 @@ RUN apt-get install -y \
 RUN groupadd --gid 1002 dcrunner
 RUN useradd -d /home/dcrunner --uid 1002 -m --gid 1002 dcrunner
 
+USER dcrunner
+
+COPY install_virtualenvwrapper.sh /tmp/
+RUN /bin/bash -c "/tmp/install_virtualenvwrapper.sh"
+
 RUN echo "" >> /home/dcrunner/.bashrc
 RUN echo "export WORKON_HOME=/home/dcrunner/py_virtual_env" >> /home/dcrunner/.bashrc
 RUN echo "export VIRTUALENVWRAPPER_PYTHON=`which python3`" >> /home/dcrunner/.bashrc
 RUN echo "source /usr/local/bin/virtualenvwrapper.sh" >> /home/dcrunner/.bashrc
 RUN echo "workon dc-dev" >> /home/dcrunner/.bashrc
+
+USER root
 
 # https://denibertovic.com/posts/handling-permissions-with-docker-volumes/
 COPY entrypoint.sh /tmp/entrypoint.sh

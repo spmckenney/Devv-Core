@@ -1,8 +1,8 @@
 /*
- * blockmanager.cpp
+ * blockmanager.cpp implements high-level block operations
  *
  *  Created on: Jan 22, 2018
- *      Author: Silver
+ *  Author: Nick Williams
  */
 
 

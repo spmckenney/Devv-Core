@@ -1,8 +1,8 @@
 /*
- * blockmanager.h
+ * blockmanager.h definies high-level block operations
  *
  *  Created on: Dec 22, 2017
- *      Author: Nick Williams
+ *  Author: Nick Williams
  */
 
 #ifndef SRC_CONSENSUS_BLOCKMANAGER_H_
@@ -14,11 +14,18 @@
 #include "../primitives/transaction.h"
 #include "../primitives/validation.h"
 #include "../primitives/block.h"
-#include "../uint256.h"
 
-DCBlock createBlock(const std::vector<DCTransaction>& txs, const std::vector<DCValidationBlock>& vs);
+namespace Devcash
+{
+
+DCBlock createBlock(const std::vector<DCTransaction>& txs,
+    const std::vector<DCValidationBlock>& vs);
 bool validateBlock(DCBlock& block);
-DCBlock finalizeBlock(const std::vector<DCTransaction>& txs, const std::vector<DCValidationBlock>& vs);
-uint256 computeMerkleRoot(const std::vector<DCTransaction>& txs, const std::vector<DCValidationBlock>& vs);
+DCBlock finalizeBlock(const std::vector<DCTransaction>& txs,
+    const std::vector<DCValidationBlock>& vs);
+std::string computeMerkleRoot(const std::vector<DCTransaction>& txs,
+    const std::vector<DCValidationBlock>& vs);
+
+} //end namespace Devcash
 
 #endif /* SRC_CONSENSUS_BLOCKMANAGER_H_ */

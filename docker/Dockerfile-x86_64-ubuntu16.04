@@ -15,7 +15,12 @@ RUN apt-get update && apt-get install -y \
     g++ \
     wget \
     clang \
-    aptitude
+    clang-format \
+    aptitude \
+    cmake \
+    cmake-curses-gui \
+    cmake-extras \
+    extra-cmake-modules
 
 # Bitcoin dependencies
 RUN apt-get install -y \
@@ -64,12 +69,6 @@ RUN apt-get install -y \
     netcat \
     net-tools \
     iputils-ping
-
-RUN apt-get install -y \
-    cmake \
-    cmake-curses-gui \
-    cmake-extras \
-    extra-cmake-modules
 
 RUN groupadd --gid 1002 dcrunner
 RUN useradd -d /home/dcrunner --uid 1002 -m --gid 1002 dcrunner

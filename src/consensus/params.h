@@ -1,14 +1,13 @@
 /*
- * transaction.cpp
+ * params.h Devcash system parameters
  *
  *  Created on: Dec 11, 2017
- *      Author: Nick Williams
+ *  Author: Nick Williams
  */
 
 #ifndef DEVCASH_CONSENSUS_PARAMS_H
 #define DEVCASH_CONSENSUS_PARAMS_H
 
-#include <uint256.h>
 #include <limits>
 #include <map>
 #include <string>
@@ -24,8 +23,6 @@ enum DeploymentPos
  * Parameters that influence chain consensus.
  */
 struct Params {
-    uint256 hashGenesisBlock;
-    uint256 defaultAssumeValid;
 };
 } // namespace Consensus
 
