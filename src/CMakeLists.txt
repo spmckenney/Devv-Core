@@ -3,9 +3,10 @@ set(CMAKE_LEGACY_CYGWIN_WIN32 0)
 
 project("Devcash")
 
-set (CMAKE_CXX_STANDARD 11)
-set (Devcash_VERSION_MAJOR 0)
-set (Devcash_VERSION_MINOR 1)
+set (CMAKE_CXX_STANDARD 14)
+set (CMAKE_CXX_STANDARD_REQUIRED ON)
+set (DevCash_VERSION_MAJOR 0)
+set (DevCash_VERSION_MINOR 2)
 
 enable_testing()
 
@@ -25,15 +26,34 @@ endif()
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 include_directories(${CMAKE_SOURCE_DIR})
+include_directories(${CMAKE_BINARY_DIR})
+
+file(GLOB_RECURSE dcSources "*.cpp")
+file(GLOB_RECURSE dcHeaders "*.h*")
+set (dcInclude "")
+foreach (_headerFile ${dcHeaders})
+        get_filename_component(_dir ${_headerFile} PATH)
+        list (APPEND dcInclude ${_dir})
+endforeach()
+list(REMOVE_DUPLICATES dcInclude)
+
+# Build the primitives objects
+file(GLOB primitives_SRC
+    "primitives/*.cpp"
 
 # External third-party libraries
+find_library(DOUBLECONV double-conversion)
+find_library(GFLAGS gflags)
+find_library(GLOG glog)
+find_library(PTHREAD pthread)
+find_library(SODIUM sodium)
 find_library(ZMQ zmq)
 
 # Facebook specific libraries
 find_library(FOLLY folly PATHS)
 find_library(ZSTD zstd)
 
-# # # # Begin Thrift
+# Include Thrift
 find_program(THRIFT1 thrift1)
 find_library(THRIFTCPP2 thriftcpp2)
 find_library(THRIFTPROTOCOL thriftprotocol)
@@ -48,22 +68,23 @@ include(${THRIFT_COMPILER_INCLUDE}/thrift/ThriftLibrary.cmake)
 #
 set(THRIFT_DIR ${CMAKE_BINARY_DIR}/thrift)
 file(MAKE_DIRECTORY ${THRIFT_DIR})
-# # # # End Thrift
 
-file(GLOB_RECURSE dcSources "*.cpp")
-file(GLOB_RECURSE dcHeaders "*.h*")
-set (dcInclude "")
-foreach (_headerFile ${dcHeaders})
-        get_filename_component(_dir ${_headerFile} PATH)
-        list (APPEND dcInclude ${_dir})
-endforeach()
-list(REMOVE_DUPLICATES dcInclude)
-
-# Build the primitives objects
-file(GLOB primitives_SRC
-    "primitives/*.cpp"
+thrift_object(
+    "Devcash" #file_name
+    "" #services
+    "cpp2" #language
+    "json,optionals" #options
+    "${CMAKE_SOURCE_DIR}/io" #file_path
+    "${THRIFT_DIR}" #output_path
+    "thrift" #include_prefix
 )
-add_library(primitives ${primitives_SRC})
+file(GLOB_RECURSE devcash_headers "*.h*")
+set (devcash_includes "")
+foreach (_headerFile ${devcash_headers})
+  get_filename_component(_dir ${_headerFile} PATH)
+  list (APPEND devcash_includes ${_dir})
+endforeach()
+list(REMOVE_DUPLICATES devcash_includes)
 
 # Build the common module objects
 file(GLOB common_SRC
@@ -83,6 +104,21 @@ file(GLOB consensus_SRC
 )
 add_library(consensus ${consensus_SRC})
 
+# Build the io module objects
+file(GLOB io_SRC
+    "io/*.cpp"
+)
+add_library(io
+  ${io_SRC}
+  $<TARGET_OBJECTS:Devcash-cpp2-obj>
+  )
+
+# Build the primitives objects
+file(GLOB primitives_SRC
+    "primitives/*.cpp"
+)
+add_library(primitives ${primitives_SRC})
+
 # Add init.cpp
 add_library(init init.cpp)
 
@@ -96,6 +132,7 @@ add_executable(devcash devcash.cpp ${dcInclude})
 target_link_libraries (devcash
   init
   common
+  io
   primitives
   oracles
   consensus
