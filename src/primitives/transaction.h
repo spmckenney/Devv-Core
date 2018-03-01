@@ -104,9 +104,10 @@ class DCTransfer {
 class DCTransaction {
  public:
 
-  eOpType oper_;
   std::string type_;
   std::vector<DCTransfer>* xfers_;
+  long delay_;
+  std::string jsonStr_ = "";
 
 /** Constructors */
   DCTransaction();
@@ -114,6 +115,14 @@ class DCTransaction {
   explicit DCTransaction(json jsonObj);
   explicit DCTransaction(std::vector<uint8_t> cbor);
   DCTransaction(const DCTransaction& tx);
+
+  /** Sets this to a null/invalid transaction. */
+    void setNull() { type_ = ""; }
+
+  /** Checks if this is a null transaction.
+   *  @return true iff this transaction is empty and invalid
+  */
+    bool isNull() const { return ("" == type_); }
 
 /** Checks if this transaction is valid.
  *  Transactions are atomic, so if any portion of the transaction is invalid,
@@ -129,19 +138,26 @@ class DCTransaction {
  * @return the hash of this transaction if it is valid
  * @return an arbitrary string otherwise, empty string by default
 */
-  const std::string& GetHash() const {
+  const std::string& getHash() const {
       return hash_;
   }
 
 /** Returns the quantity of coins affected by this transaction.
  * @return the quantity of coins affected by this transaction.
 */
-  long GetValueOut() const;
+  long getValueOut() const;
+
+/** Returns the delay in seconds until this transaction is final.
+ * @return the delay in seconds until this transaction is final.
+*/
+  long getDelay() const {
+    return delay_;
+  }
 
 /** Returns the transaction size in bytes.
  * @return the transaction size in bytes.
 */
-  unsigned int GetByteSize() const;
+  unsigned int getByteSize() const;
 
 /** Comparison Operators */
   friend bool operator==(const DCTransaction& a, const DCTransaction& b)
@@ -189,10 +205,16 @@ class DCTransaction {
 */
   std::vector<uint8_t> ToCBOR() const;
 
+/** Checks if this transaction has a certain operation type.
+ * @param string, one of "Create", "Modify", "Exchange", "Delete".
+ * @return true iff the transaction is this type
+ * @return false, otherwise
+*/
+  bool isOpType(std::string oper);
 
  private:
 
-  std::string jsonStr_ = "";
+  eOpType oper_;
   std::string hash_ = "";
 
 /** Returns a canonical string representation of this transaction.

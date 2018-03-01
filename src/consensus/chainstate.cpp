@@ -10,6 +10,8 @@
 #include <stdint.h>
 #include <map>
 
+#include "chainstate.h"
+
 #include "../primitives/SmartCoin.h"
 
 namespace Devcash
@@ -19,7 +21,7 @@ using namespace Devcash;
 
 std::map<std::string, std::map<std::string, long>> stateMap_;
 
-bool addCoin(SmartCoin& coin) {
+bool DCState::addCoin(SmartCoin& coin) {
   std::map<std::string, std::map<std::string, long>>::iterator it =
       stateMap_.find(coin.type_);
   if (it != stateMap_.end()) {
@@ -37,7 +39,7 @@ bool addCoin(SmartCoin& coin) {
   return(true);
 }
 
-long getAmount(std::string type, std::string addr) {
+long DCState::getAmount(const std::string type, const std::string addr) {
   std::map<std::string, std::map<std::string, long>>::iterator it =
       stateMap_.find(type);
   if (it != stateMap_.end()) {
@@ -48,7 +50,7 @@ long getAmount(std::string type, std::string addr) {
   return(0);
 }
 
-bool moveCoin(SmartCoin& start, SmartCoin& end) {
+bool DCState::moveCoin(SmartCoin& start, SmartCoin& end) {
   if (start.type_ != end.type_) return(false);
   if (start.amount_ != end.amount_) return(false);
 
@@ -70,7 +72,7 @@ bool moveCoin(SmartCoin& start, SmartCoin& end) {
   return(false);
 }
 
-bool delCoin(SmartCoin& coin) {
+bool DCState::delCoin(SmartCoin& coin) {
   std::map<std::string, std::map<std::string, long>>::iterator it =
       stateMap_.find(coin.type_);
   if (it != stateMap_.end()) {
