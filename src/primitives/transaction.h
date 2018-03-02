@@ -1,5 +1,5 @@
 /*
- * transaction.h
+ * transaction.h defines the structure of the transaction section of a block.
  *
  *  Created on: Dec 11, 2017
  *  Author: Nick Williams
@@ -29,122 +29,201 @@
 #include "../common/ossladapter.h"
 using json = nlohmann::json;
 
-static const std::string TX_TAG = "txs";
+namespace Devcash
+{
 
-enum OpType : char {
+static const std::string kTX_TAG = "txs";
+
+enum eOpType : char {
   Create     = 0x00,
   Modify     = 0x01,
   Exchange   = 0x10,
   Delete     = 0x11};
 
 class DCTransfer {
-public:
-  std::string addr;
-  long amount;
-  uint32_t nonce;
-  std::string sig;
+ public:
 
-    void SetNull() { addr = ""; amount = 0; }
-    bool IsNull() const { return ("" == addr); }
-    DCTransfer();
+  std::string addr_;
+  long amount_;
+  uint32_t nonce_;
+  std::string sig_;
+
+/** Sets this to an empty transfer. */
+  void SetNull() { addr_ = ""; amount_ = 0; }
+
+/** Checks if this is an empty transfer.
+ *  @return true iff this transfer is empty and invalid
+*/
+  bool IsNull() const { return ("" == addr_); }
+
+/** Constructors */
+  DCTransfer();
   explicit DCTransfer(std::string json);
-  explicit DCTransfer(const char* cbor);
+  explicit DCTransfer(std::vector<uint8_t> cbor);
   explicit DCTransfer(const DCTransfer &other);
-  std::string getCanonical();
-    friend bool operator==(const DCTransfer& a, const DCTransfer& b)
-    {
-        return (a.addr == b.addr && a.amount == b.amount && a.nonce == b.nonce);
-    }
 
-    friend bool operator!=(const DCTransfer& a, const DCTransfer& b)
-    {
-      return !(a.addr == b.addr && a.amount == b.amount && a.nonce == b.nonce);
-    }
-    DCTransfer* operator=(DCTransfer&& other)
+/** Gets this transfer in a canonical form.
+ * @return a string defining this transaction in canonical form.
+ */
+  std::string getCanonical();
+
+/** Compare transfers */
+  friend bool operator==(const DCTransfer& a, const DCTransfer& b)
   {
-      if (this != &other) {
-      this->addr = other.addr;
-      this->amount = other.amount;
-      this->nonce = other.nonce;
-      this->sig = other.sig;
-      }
-      return this;
-    }
-    DCTransfer* operator=(const DCTransfer& other)
+      return (a.addr_ == b.addr_ && a.amount_ == b.amount_ && a.nonce_ == b.nonce_);
+  }
+
+  friend bool operator!=(const DCTransfer& a, const DCTransfer& b)
   {
-      if (this != &other) {
-      this->addr = other.addr;
-      this->amount = other.amount;
-      this->nonce = other.nonce;
-      this->sig = other.sig;
-      }
-      return this;
+    return !(a.addr_ == b.addr_ && a.amount_ == b.amount_ && a.nonce_ == b.nonce_);
+  }
+
+/** Assign transfers */
+  DCTransfer* operator=(DCTransfer&& other)
+  {
+    if (this != &other) {
+    this->addr_ = other.addr_;
+    this->amount_ = other.amount_;
+    this->nonce_ = other.nonce_;
+    this->sig_ = other.sig_;
     }
+    return this;
+  }
+  DCTransfer* operator=(const DCTransfer& other)
+  {
+    if (this != &other) {
+    this->addr_ = other.addr_;
+    this->amount_ = other.amount_;
+    this->nonce_ = other.nonce_;
+    this->sig_ = other.sig_;
+    }
+    return this;
+  }
 };
 
 class DCTransaction {
-public:
-  OpType oper;
-  std::string type;
-  std::vector<DCTransfer>* xfers;
+ public:
+
+  std::string type_;
+  std::vector<DCTransfer>* xfers_;
+  long delay_;
+  std::string jsonStr_ = "";
+
+/** Constructors */
   DCTransaction();
   explicit DCTransaction(std::string jsonTx);
   explicit DCTransaction(json jsonObj);
-  explicit DCTransaction(char* cbor);
+  explicit DCTransaction(std::vector<uint8_t> cbor);
   DCTransaction(const DCTransaction& tx);
-  bool isValid(EC_KEY* eckey) const;
+
+  /** Sets this to a null/invalid transaction. */
+    void setNull() { type_ = ""; }
+
+  /** Checks if this is a null transaction.
+   *  @return true iff this transaction is empty and invalid
+  */
+    bool isNull() const { return ("" == type_); }
+
+/** Checks if this transaction is valid.
+ *  Transactions are atomic, so if any portion of the transaction is invalid,
+ *  the entire transaction is also invalid.
+ * @params ecKey the public key to use for signature verification
+ * @return true iff the transaction is valid
+ * @return false otherwise
+ */
+  bool isValid(EC_KEY* ecKey) const;
   std::string ComputeHash() const;
 
-private:
-    std::string hash = "";
-    std::string jsonStr = "";
-    std::string GetCanonical() const;
+/** Returns the hash of this transaction.
+ * @return the hash of this transaction if it is valid
+ * @return an arbitrary string otherwise, empty string by default
+*/
+  const std::string& getHash() const {
+      return hash_;
+  }
 
-public:
-    const std::string& GetHash() const {
-        return hash;
-    }
+/** Returns the quantity of coins affected by this transaction.
+ * @return the quantity of coins affected by this transaction.
+*/
+  long getValueOut() const;
 
-    // Return sum of xfers.
-    long GetValueOut() const;
-    unsigned int GetByteSize() const;
-    friend bool operator==(const DCTransaction& a, const DCTransaction& b)
-    {
-        return a.hash == b.hash;
-    }
+/** Returns the delay in seconds until this transaction is final.
+ * @return the delay in seconds until this transaction is final.
+*/
+  long getDelay() const {
+    return delay_;
+  }
 
-    friend bool operator!=(const DCTransaction& a, const DCTransaction& b)
-    {
-        return a.hash != b.hash;
-    }
-    DCTransaction* operator=(DCTransaction&& other)
+/** Returns the transaction size in bytes.
+ * @return the transaction size in bytes.
+*/
+  unsigned int getByteSize() const;
+
+/** Comparison Operators */
+  friend bool operator==(const DCTransaction& a, const DCTransaction& b)
   {
-      std::cout << "&&TX " << std::endl;
-      if (this != &other) {
-      this->hash = other.hash;
-      this->jsonStr = other.jsonStr;
-      this->oper = other.oper;
-      this->type = other.type;
-      this->xfers = std::move(other.xfers);
-      }
-      return this;
-    }
-    DCTransaction* operator=(const DCTransaction& other)
-  {
-      std::cout << "&TX " << std::endl;
-      if (this != &other) {
-      this->hash = other.hash;
-      this->jsonStr = other.jsonStr;
-      this->oper = other.oper;
-      this->type = other.type;
-      this->xfers = std::move(other.xfers);
-      }
-      return this;
-    }
+    return a.hash_ == b.hash_;
+  }
 
-    std::string ToJSON() const;
-    std::vector<uint8_t> ToCBOR() const;
+  friend bool operator!=(const DCTransaction& a, const DCTransaction& b)
+  {
+    return a.hash_ != b.hash_;
+  }
+
+/** Assignment Operators */
+  DCTransaction* operator=(DCTransaction&& other)
+  {
+    if (this != &other) {
+      this->hash_ = other.hash_;
+      this->jsonStr_ = other.jsonStr_;
+      this->oper_ = other.oper_;
+      this->type_ = other.type_;
+      this->xfers_ = std::move(other.xfers_);
+    }
+    return this;
+  }
+
+  DCTransaction* operator=(const DCTransaction& other)
+  {
+    if (this != &other) {
+      this->hash_ = other.hash_;
+      this->jsonStr_ = other.jsonStr_;
+      this->oper_ = other.oper_;
+      this->type_ = other.type_;
+      this->xfers_ = std::move(other.xfers_);
+    }
+    return this;
+  }
+
+/** Returns a JSON string representing this transaction.
+ * @return a JSON string representing this transaction.
+*/
+  std::string ToJSON() const;
+
+/** Returns a CBOR byte vector representing this transaction.
+ * @return a CBOR byte vector representing this transaction.
+*/
+  std::vector<uint8_t> ToCBOR() const;
+
+/** Checks if this transaction has a certain operation type.
+ * @param string, one of "Create", "Modify", "Exchange", "Delete".
+ * @return true iff the transaction is this type
+ * @return false, otherwise
+*/
+  bool isOpType(std::string oper);
+
+ private:
+
+  eOpType oper_;
+  std::string hash_ = "";
+
+/** Returns a canonical string representation of this transaction.
+ * @return a canonical string representation of this transaction.
+*/
+  std::string GetCanonical() const;
 };
+
+} //end namespace Devcash
 
 #endif // DEVCASH_PRIMITIVES_TRANSACTION_H
 

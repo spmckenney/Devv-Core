@@ -1,6 +1,0 @@
-RELPATH=C:\Users\Silver\eclipse-workspace\DevCash\Debug\
-LOGFILE=log
-PUBKEYFILE=pub.pem
-PRIVKEYFILE=pk.pem
-INPUT=txs
-OUTPUT=out
