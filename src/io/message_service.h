@@ -1,11 +1,9 @@
-/**
- * Copyright 2014-present, Facebook, Inc.
- * All rights reserved.
+/*
+ * message_service.h - Sneding and receiving Devcash messages
  *
- * This source code is licensed under the license found in the
- * LICENSE-examples file in the root directory of this source tree.
+ *  Created on: Mar 3, 2018
+ *  Author: Shawn McKenney
  */
-
 #pragma once
 
 #include <thrift/lib/cpp2/protocol/Serializer.h>
@@ -13,63 +11,64 @@
 #include <fbzmq/async/ZmqEventLoop.h>
 #include <fbzmq/zmq/Zmq.h>
 
+#include "common/types.h"
+
 namespace Devcash {
 namespace io {
 
-class TransactionService final : public fbzmq::ZmqEventLoop {
+class TransactionServer final : public fbzmq::ZmqEventLoop {
  public:
-  TransactionService(
-      fbzmq::Context& zmqContext,
-      const std::string& primitiveCmdUrl,
-      const std::string& stringCmdUrl,
-      const std::string& thriftCmdUrl,
-      const std::string& multipleCmdUrl,
-      const std::string& pubUrl);
+  TransactionServer(
+      fbzmq::Context& context,
+      const std::string& bind_url);
 
   // disable copying
-  TransactionService(const TransactionService&) = delete;
-  TransactionService& operator=(const TransactionService&) = delete;
+  TransactionServer(const TransactionServer&) = delete;
+  TransactionServer& operator=(const TransactionServer&) = delete;
+
+  // Send a message
+  void SendMessage(DevcashMessageSharedPtr message) noexcept;
+
+  //void AttachCallback(
+ private:
+  // Initialize ZMQ sockets
+  void prepare() noexcept;
+
+  // communication urls
+  const std::string bind_url_;
+
+  // publication socket
+  fbzmq::Socket<ZMQ_PUB, fbzmq::ZMQ_SERVER> pub_socket_;
+
+  // used for serialize/deserialize thrift obj
+  apache::thrift::CompactSerializer serializer_;
+
+};
+
+class TransactionClient {
+ public:
+  TransactionClient(
+      fbzmq::Context& context,
+      const std::string& peer_url);
 
  private:
   // Initialize ZMQ sockets
   void prepare() noexcept;
 
-  // process received primitive type command
-  void processPrimitiveCommand() noexcept;
+  // process received message
+  void ProcessIncomingMessage() noexcept;
 
-  // process received string type command
-  void processStringCommand() noexcept;
+  // ZMQ context reference
+  fbzmq::Context& context_;
 
-  // process received thrift type command
-  void processThriftCommand() noexcept;
+  // ZMQ communication urls
+  const std::string peer_url_;
 
-  // process received multiple command
-  void processMultipleCommand() noexcept;
-
-  // communication urls
-  const std::string primitiveCmdUrl_;
-  const std::string stringCmdUrl_;
-  const std::string thriftCmdUrl_;
-  const std::string multipleCmdUrl_;
-  const std::string pubUrl_;
-
-  // command socket for primitive type message
-  fbzmq::Socket<ZMQ_REP, fbzmq::ZMQ_SERVER> primitiveCmdSock_;
-  // command socket for string type message
-  fbzmq::Socket<ZMQ_REP, fbzmq::ZMQ_SERVER> stringCmdSock_;
-  // command socket for thrift type message
-  fbzmq::Socket<ZMQ_REP, fbzmq::ZMQ_SERVER> thriftCmdSock_;
-  // command socket for multiple message
-  fbzmq::Socket<ZMQ_REP, fbzmq::ZMQ_SERVER> multipleCmdSock_;
-
-  // publication socket
-  fbzmq::Socket<ZMQ_PUB, fbzmq::ZMQ_SERVER> pubSock_;
+  // subscriber socket
+  fbzmq::Socket<ZMQ_SUB, fbzmq::ZMQ_CLIENT> sub_socket_;
 
   // used for serialize/deserialize thrift obj
   apache::thrift::CompactSerializer serializer_;
-
-  // key-value store
-  std::unordered_map<std::string, int64_t> kvStore_;
 };
 
 } // namespace io
