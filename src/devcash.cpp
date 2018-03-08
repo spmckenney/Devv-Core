@@ -52,7 +52,7 @@ bool AppInit(int argc, char* argv[]) {
     std::string mode("");
     mode += argv[1];
 
-    if (mode != "mine" && mode != "scan") {
+    if (mode != "mine" && mode != "scan" && mode != "mineT2") {
       LOG_FATAL << "Invalid mode";
       return(false);
     }
@@ -100,7 +100,7 @@ bool AppInit(int argc, char* argv[]) {
 int main(int argc, char* argv[])
 {
   if (argc != 4) {
-    LOG_INFO << "Usage: DevCash mine|scan configfile input";
+    LOG_INFO << "Usage: DevCash mine|scan|mineT2 configfile input";
     return(EXIT_FAILURE);
   }
 

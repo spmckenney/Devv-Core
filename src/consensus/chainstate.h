@@ -33,7 +33,7 @@ public:
  *  @param the address to check
  *  @return the number of this type of coins at this address
 */
-  long getAmount(std::string type, std::string addr);
+  long getAmount(const std::string type, const std::string addr);
 
 /** Moves a coin from one address to another
  *  @param start references where the coins will be removed

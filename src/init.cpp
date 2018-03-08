@@ -30,6 +30,14 @@
 #include "common/json.hpp"
 #include "common/logger.h"
 #include "common/ossladapter.h"
+#include "oracles/api.h"
+#include "oracles/data.h"
+#include "oracles/dcash.h"
+#include "oracles/dnero.h"
+#include "oracles/dneroavailable.h"
+#include "oracles/dnerowallet.h"
+#include "oracles/id.h"
+#include "oracles/vote.h"
 #include "primitives/block.h"
 #include "primitives/transaction.h"
 
@@ -158,6 +166,36 @@ std::string validate_block(DCBlock& newBlock, EC_KEY* eckey)
   return(out);
 }
 
+bool validate_tx_t2(DCTransaction* tx, DCState* context) {
+  if (tx->type_ == "api") {
+    DCapi api;
+    *tx = api.Tier2Process(tx->jsonStr_, *context);
+  } else if (tx->type_ == "data"){
+    DCdata data;
+    *tx = data.Tier2Process(tx->jsonStr_, *context);
+  } else if (tx->type_ == "dcash"){
+    dcash cash;
+    *tx = cash.Tier2Process(tx->jsonStr_, *context);
+  } else if (tx->type_ == "dnero"){
+    dnero nero;
+    *tx = nero.Tier2Process(tx->jsonStr_, *context);
+  } else if (tx->type_ == "dneroavailable"){
+    dneroavailable available;
+    *tx = available.Tier2Process(tx->jsonStr_, *context);
+  } else if (tx->type_ == "dnerowallet"){
+    dnerowallet wallet;
+    *tx = wallet.Tier2Process(tx->jsonStr_, *context);
+  } else if (tx->type_ == "id"){
+    DCid id;
+    *tx = id.Tier2Process(tx->jsonStr_, *context);
+  } else if (tx->type_ == "vote"){
+    DCVote vote;
+    *tx = vote.Tier2Process(tx->jsonStr_, *context);
+  }
+  if (tx->isNull()) return false;
+  return true;
+}
+
 std::string AppInitMain(std::string inStr, std::string mode)
 {
   std::string out("");
@@ -213,7 +251,58 @@ std::string AppInitMain(std::string inStr, std::string mode)
       LOG_INFO << "Total ("<<j.size()*jj<< " / " << ttot << ") - "
         <<j.size()*jj/(float(ttot)/1000.0) << " valids/sec\n";
       out = outputs[0];
+    } else if (mode == "mineT2") {
+      LOG_INFO << "T2 Miner Mode\n";
+      json outer = json::parse(inStr);
+      json j;
+      LOG_INFO << std::to_string(outer[kTX_TAG].size())+" transactions\n";
+      int txCnt = 0;
+      j = outer[kTX_TAG];
+      txCnt = j.size();
+      std::vector<DCTransaction> txs;
+      DCValidationBlock vBlock;
+      EVP_MD_CTX *ctx;
+      if(!(ctx = EVP_MD_CTX_create()))
+        LOG_FATAL << "Could not create signature context!\n";
+      if (txCnt < 1) {
+        LOG_INFO << "No transactions.  Nothing to do.\n";
+        return("");
+      } else {
+        DCState* chainState;
+        std::string toPrint(txCnt+" transactions\n");
+        LOG_INFO << toPrint;
+        for (auto iter = j.begin(); iter != j.end(); ++iter) {
+          std::string tx = iter.value().dump();
+          DCTransaction* t = new DCTransaction(tx);
+          if (validate_tx_t2(t, chainState)) txs.push_back(*t);
+        }
+      }
+      EC_KEY* eckey = loadEcKey(ctx, pubKeyStr, pkStr);
+      std::vector<DCBlock> blocks;
+      for (int i = 0; i<128; i++) {
+        blocks.push_back(DCBlock(txs, vBlock));
+      }
 
+      // Create pool with N threads
+      ctpl::thread_pool p(N_THREADS);
+      std::vector<std::future<std::string>> results(blocks.size());
+
+      auto start = NOW;
+      int jj = 0;
+      for (auto iter : blocks) {
+        results[jj] = p.push([&iter, eckey](int){
+          return(validate_block(iter, eckey)); });
+        jj++;
+      }
+
+      std::vector<std::string> outputs;
+      for (int i=0; i<jj; i++) {
+        outputs.push_back(results[i].get());
+      }
+      int ttot=MILLI_SINCE(start);
+      LOG_INFO << "Total ("<<j.size()*jj<< " / " << ttot << ") - "
+        <<j.size()*jj/(float(ttot)/1000.0) << " valids/sec\n";
+      out = outputs[0];
     } else if (mode == "scan") {
       LOG_INFO << "Scanner Mode";
       std::vector<uint8_t> buffer = hex2CBOR(out);

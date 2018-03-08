@@ -19,8 +19,6 @@ namespace Devcash
 
 using json = nlohmann::json;
 
-static const std::string VAL_TAG = "val";
-
 //exception toggling capability
 #if (defined(__cpp_exceptions) || defined(__EXCEPTIONS) || defined(_CPPUNWIND)) && not defined(DEVCASH_NOEXCEPTION)
     #define CASH_THROW(exception) throw exception
