@@ -1,8 +1,8 @@
 /*
- * message_service.h - Sneding and receiving Devcash messages
+ * message_service.h - Sending and receiving Devcash messages
  *
  *  Created on: Mar 3, 2018
- *  Author: Shawn McKenney
+ *  Created by: Shawn McKenney
  */
 #pragma once
 
@@ -15,6 +15,8 @@
 
 namespace Devcash {
 namespace io {
+
+typedef std::function<void(DevcashMessageSharedPtr)> DevcashMessageCallback;
 
 class TransactionServer final : public fbzmq::ZmqEventLoop {
  public:
@@ -29,7 +31,8 @@ class TransactionServer final : public fbzmq::ZmqEventLoop {
   // Send a message
   void SendMessage(DevcashMessageSharedPtr message) noexcept;
 
-  //void AttachCallback(
+  void AttachCallback(DevcashMessageCallback);
+
  private:
   // Initialize ZMQ sockets
   void prepare() noexcept;
@@ -42,6 +45,9 @@ class TransactionServer final : public fbzmq::ZmqEventLoop {
 
   // used for serialize/deserialize thrift obj
   apache::thrift::CompactSerializer serializer_;
+
+  /// List of callbacks to call when a message arrives
+  std::vector<DevcashMessageCallback> callback_vector_;
 
 };
 

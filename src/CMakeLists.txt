@@ -228,3 +228,33 @@ install (TARGETS boost_spsc_test DESTINATION bin)
 #  ${Boost_LIBRARIES}
 #  )
 #
+
+set(fbzmq_LIBRARIES "")
+
+list(APPEND fbzmq_LIBRARIES
+  fbzmq
+  ${DOUBLECONV}
+  ${ZSTD}
+  ${FOLLY}
+  ${GFLAGS}
+  ${GLOG}
+  ${ZMQ}
+  ${SODIUM}
+  ${PTHREAD}
+  ${THRIFTPROTOCOL}
+  ${PROTOCOL}
+  ${TRANSPORT}
+)
+
+#
+# i/o Tests
+#
+add_executable(io_server_test
+  tests/io/transaction_server.cpp
+  )
+
+target_link_libraries(io_server_test
+  io
+  ${fbzmq_LIBRARIES}
+  ${OPENSSL_LIBRARIES}
+  )

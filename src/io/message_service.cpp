@@ -19,7 +19,9 @@ TransactionServer::TransactionServer(
     fbzmq::Context& context,
     const std::string& bind_url)
     : bind_url_(bind_url),
-      pub_socket_(context) {
+      pub_socket_(context),
+      serializer_(),
+      callback_vector_() {
   prepare();
 }
 
@@ -74,6 +76,10 @@ TransactionServer::prepare() noexcept {
   */
 }
 
+void
+TransactionServer::AttachCallback(DevcashMessageCallback callback) {
+  callback_vector_.push_back(callback);
+}
 
 /*
  * TransactionClient
