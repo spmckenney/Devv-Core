@@ -11,6 +11,8 @@
 #include <fbzmq/async/ZmqEventLoop.h>
 #include <fbzmq/zmq/Zmq.h>
 
+#include <thrift/gen-cpp2/Devcash_types.h>
+
 #include "common/types.h"
 
 namespace Devcash {
@@ -31,8 +33,6 @@ class TransactionServer final : public fbzmq::ZmqEventLoop {
   // Send a message
   void SendMessage(DevcashMessageSharedPtr message) noexcept;
 
-  void AttachCallback(DevcashMessageCallback);
-
  private:
   // Initialize ZMQ sockets
   void prepare() noexcept;
@@ -45,10 +45,6 @@ class TransactionServer final : public fbzmq::ZmqEventLoop {
 
   // used for serialize/deserialize thrift obj
   apache::thrift::CompactSerializer serializer_;
-
-  /// List of callbacks to call when a message arrives
-  std::vector<DevcashMessageCallback> callback_vector_;
-
 };
 
 class TransactionClient {
@@ -56,6 +52,10 @@ class TransactionClient {
   TransactionClient(
       fbzmq::Context& context,
       const std::string& peer_url);
+
+  /// Attach a callback to be called when a DevcashMessage
+  /// arrives on the wire.
+  void AttachCallback(DevcashMessageCallback);
 
  private:
   // Initialize ZMQ sockets
@@ -75,7 +75,35 @@ class TransactionClient {
 
   // used for serialize/deserialize thrift obj
   apache::thrift::CompactSerializer serializer_;
+
+  /// List of callbacks to call when a message arrives
+  std::vector<DevcashMessageCallback> callback_vector_;
 };
+
+  // Create a static enum map
+static std::vector<thrift::MessageType> message_type_to_thrift = {
+  thrift::MessageType::KEY_FINAL_BLOCK,
+  thrift::MessageType::KEY_PROPOSAL_BLOCK,
+  thrift::MessageType::KEY_TRANSACTION_ANNOUNCEMENT,
+  thrift::MessageType::KEY_VALID,
+};
+static std::vector<Devcash::MessageType> message_type_to_devcash = {
+  Devcash::MessageType::eFinalBlock,
+  Devcash::MessageType::eProposalBlock,
+  Devcash::MessageType::eTransactionAnnouncement,
+  Devcash::MessageType::eValid,
+};
+
+DevcashMessageSharedPtr MakeDevcashMessage(const std::string& uri,
+                                           const thrift::MessageType& message_type,
+                                           const std::string& data);
+
+template <typename ThriftObject>
+DevcashMessageSharedPtr MakeDevcashMessage(const ThriftObject& object) {
+  return MakeDevcashMessage(object.uri,
+                            object.message_type,
+                            object.data);
+}
 
 } // namespace io
 } // namespace Devcash

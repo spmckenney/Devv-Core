@@ -12,7 +12,7 @@ enable_testing()
 
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" OR
     "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-    set(warnings "-Wall -Wextra -std=gnu++11 -Wno-unused-function")
+set(warnings "-Wall -Wextra -std=gnu++11 -Wno-unused-function")
 elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
     set(warnings "/W4 /WX /EHsc")
 endif()
@@ -254,6 +254,16 @@ add_executable(io_server_test
   )
 
 target_link_libraries(io_server_test
+  io
+  ${fbzmq_LIBRARIES}
+  ${OPENSSL_LIBRARIES}
+  )
+
+add_executable(io_client_test
+  tests/io/transaction_client.cpp
+  )
+
+target_link_libraries(io_client_test
   io
   ${fbzmq_LIBRARIES}
   ${OPENSSL_LIBRARIES}

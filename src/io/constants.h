@@ -13,12 +13,13 @@
 namespace Devcash {
 namespace io {
 
-  namespace constants {
+namespace constants {
   // the zmq url for transaction messages
   static constexpr folly::StringPiece kTransactionMessageUrl = "tcp://127.0.0.1:55556";
 
   // the default I/O read timeout in milliseconds
   static constexpr std::chrono::milliseconds kReadTimeout{500};
-  }
+}
+
 } // namespace io
 } // namespace Devcash

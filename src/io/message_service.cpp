@@ -10,7 +10,6 @@
 
 #include <folly/Random.h>
 #include <io/constants.h>
-#include <thrift/gen-cpp2/Devcash_types.h>
 
 namespace Devcash {
 namespace io {
@@ -20,25 +19,16 @@ TransactionServer::TransactionServer(
     const std::string& bind_url)
     : bind_url_(bind_url),
       pub_socket_(context),
-      serializer_(),
-      callback_vector_() {
+      serializer_() {
   prepare();
 }
 
 void
 TransactionServer::SendMessage(DevcashMessageSharedPtr message) noexcept {
-  // Create a static enum map
-  std::vector<thrift::MessageType> message_type_ref = {
-    thrift::MessageType::KEY_FINAL_BLOCK,
-    thrift::MessageType::KEY_PROPOSAL_BLOCK,
-    thrift::MessageType::KEY_TRANSACTION_ANNOUNCEMENT,
-    thrift::MessageType::KEY_VALID,
-  };
-
   // Create and populate the thrift message
   thrift::DevcashMessage thrift_message;
   thrift_message.uri = message->uri;
-  thrift_message.message_type = message_type_ref[message->message_type];
+  thrift_message.message_type = message_type_to_thrift.at(message->message_type);
   //thrift_message.data 
 
   auto rc = pub_socket_.sendThriftObj(thrift_message, serializer_);
@@ -76,11 +66,6 @@ TransactionServer::prepare() noexcept {
   */
 }
 
-void
-TransactionServer::AttachCallback(DevcashMessageCallback callback) {
-  callback_vector_.push_back(callback);
-}
-
 /*
  * TransactionClient
  */
@@ -89,7 +74,8 @@ TransactionClient::TransactionClient(
     const std::string& peer_url)
     : context_(context),
       peer_url_(peer_url),
-      sub_socket_(context) {
+      sub_socket_(context),
+      callback_vector_() {
   prepare();
 }
 
@@ -108,12 +94,30 @@ TransactionClient::ProcessIncomingMessage() noexcept {
     LOG(ERROR) << "read thrift request failed: " << thrift_object.error();
     return;
   }
+  const auto& thrift_devcash_message = thrift_object.value();
 
-  const auto& devcash_message = thrift_object.value();
-  const auto& uri = devcash_message.uri;
-  //const auto& key = request.key;
-  //const auto& value = request.value;
+  auto message = MakeDevcashMessage(thrift_devcash_message);
+}
 
+void
+TransactionClient::AttachCallback(DevcashMessageCallback callback) {
+  callback_vector_.push_back(callback);
+}
+
+DevcashMessageSharedPtr
+MakeDevcashMessage(const std::string& uri,
+                   const thrift::MessageType& message_type,
+                   const std::string& data) {
+
+  DataBufferSharedPtr buffer = std::make_shared<DataBuffer>(data.begin(),
+                                                            data.end());
+  DevcashMessageSharedPtr devcash_message =
+    std::make_shared<DevcashMessage>();
+
+  devcash_message->uri = uri;
+  //message_type_to_devcash.at(int(message_type)),
+  //buffer
+  return devcash_message;
 }
 
 } // namespace io

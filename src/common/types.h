@@ -11,6 +11,7 @@
 #include <memory>
 #include <vector>
 #include <cstdint>
+#include <cstddef>
 
 namespace Devcash {
   
@@ -19,7 +20,6 @@ enum MessageType {
   eProposalBlock = 1,
   eTransactionAnnouncement = 2,
   eValid = 3,
-  eNumTypes = 4,
 };
 
 typedef std::vector<uint8_t> DataBuffer;
