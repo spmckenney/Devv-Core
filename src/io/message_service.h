@@ -47,7 +47,7 @@ class TransactionServer final : public fbzmq::ZmqEventLoop {
   apache::thrift::CompactSerializer serializer_;
 };
 
-class TransactionClient {
+class TransactionClient final : public fbzmq::ZmqEventLoop {
  public:
   TransactionClient(
       fbzmq::Context& context,

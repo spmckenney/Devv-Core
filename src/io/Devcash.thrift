@@ -13,6 +13,7 @@ enum MessageType {
   KEY_PROPOSAL_BLOCK = 1,
   KEY_TRANSACTION_ANNOUNCEMENT = 2,
   KEY_VALID = 3,
+  KEY_NUM_TYPES = 4,
 }
 
 typedef string URI

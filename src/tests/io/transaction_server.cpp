@@ -1,3 +1,7 @@
+#include <unistd.h>
+#include <thread>
+#include <chrono>
+
 #include <fbzmq/zmq/Zmq.h>
 
 #include <fbzmq/async/StopEventLoopSignalHandler.h>
@@ -31,12 +35,27 @@ main(int argc, char** argv) {
   server.waitUntilRunning();
   allThreads.emplace_back(std::move(serverThread));
 
-  LOG(INFO) << "Starting main event loop...";
-  mainEventLoop.run();
-  LOG(INFO) << "Main event loop got stopped";
+  LOG(INFO) << "Creating Event Thread";;
+  std::thread event_loop_thread([&mainEventLoop, &server]() noexcept {
+      LOG(INFO) << "Starting main event loop...";
+      mainEventLoop.run();
+      LOG(INFO) << "Main event loop got stopped";
 
-  server.stop();
-  server.waitUntilStopped();
+      server.stop();
+      server.waitUntilStopped();
+    });
+  LOG(INFO) << "Creating Event Thread";;
+
+  allThreads.emplace_back(std::move(event_loop_thread));
+
+  LOG(INFO) << "Gonna sleep(10)";
+  sleep(10);
+  auto devcash_message = std::make_shared<Devcash::DevcashMessage>();
+  devcash_message->uri = "my_uri";
+  devcash_message->message_type = Devcash::MessageType::eProposalBlock;
+  devcash_message->data = std::make_shared<Devcash::DataBuffer>();
+  LOG(INFO) << "Sending message";
+  server.SendMessage(devcash_message);
 
   for (auto& t : allThreads) {
     t.join();

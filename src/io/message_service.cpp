@@ -33,8 +33,10 @@ TransactionServer::SendMessage(DevcashMessageSharedPtr message) noexcept {
 
   auto rc = pub_socket_.sendThriftObj(thrift_message, serializer_);
   if (rc.hasError()) {
-    LOG(ERROR) << "Sent response failed: " << rc.error();
+    LOG(ERROR) << "Send message failed: " << rc.error();
     return;
+  } else {
+    LOG(INFO) << "Sent message";
   }
 }
 
@@ -93,10 +95,16 @@ TransactionClient::ProcessIncomingMessage() noexcept {
   if (thrift_object.hasError()) {
     LOG(ERROR) << "read thrift request failed: " << thrift_object.error();
     return;
+  } else {
+    LOG(INFO) << "Received Thrift Object";
   }
   const auto& thrift_devcash_message = thrift_object.value();
 
   auto message = MakeDevcashMessage(thrift_devcash_message);
+
+  for (fun : callback_vector_) {
+    fun(message);
+  }
 }
 
 void
