@@ -1,0 +1,238 @@
+diff --git a/build/build_fbzmq.sh b/build/build_fbzmq.sh
+index a166eaf..6d777e2 100755
+--- a/build/build_fbzmq.sh
++++ b/build/build_fbzmq.sh
+@@ -16,6 +16,8 @@ export DESTDIR=""
+ mkdir -p "$BUILD_DIR/deps"
+ cd "$BUILD_DIR/deps"
+ 
++CORES=$(grep -c ^processor /proc/cpuinfo)
++
+ find_github_hash() {
+   if [[ $# -eq 1 ]]; then
+     rev_file="github_hashes/$1-rev.txt"
+@@ -35,9 +37,9 @@ install_glog() {
+   git checkout v0.3.5
+   set -eu && autoreconf -i
+   ./configure
+-  make
+-  make install
+-  ldconfig
++  make -j${CORES}
++  sudo make -j${CORES} install
++  sudo ldconfig
+   popd
+ }
+ 
+@@ -54,9 +56,9 @@ install_gflags() {
+   fi
+   cd mybuild
+   cmake -DBUILD_SHARED_LIBS=ON ..
+-  make
+-  make install
+-  ldconfig
++  make -j${CORES}
++  sudo make -j${CORES} install
++  sudo ldconfig
+   popd
+ }
+ 
+@@ -70,14 +72,14 @@ install_gtest() {
+   git checkout release-1.8.0
+   cd googletest
+   cmake .
+-  make
+-  make install
+-  ldconfig
++  make -j${CORES}
++  sudo make -j${CORES} install
++  sudo ldconfig
+   cd ../googlemock
+   cmake .
+-  make
+-  make install
+-  ldconfig
++  make -j${CORES}
++  sudo make -j${CORES} install
++  sudo ldconfig
+   popd
+ }
+ 
+@@ -87,9 +89,9 @@ install_zstd() {
+     git clone https://github.com/facebook/zstd
+   fi
+   cd zstd
+-  make
+-  make install
+-  ldconfig
++  make -j${CORES}
++  sudo make -j${CORES} install
++  sudo ldconfig
+   popd
+ }
+ 
+@@ -100,9 +102,9 @@ install_mstch() {
+   fi
+   cd mstch
+   cmake -DBUILD_SHARED_LIBS=ON -DCMAKE_CXX_FLAGS="-fPIC" .
+-  make
+-  make install
+-  ldconfig
++  make -j${CORES}
++  sudo make -j${CORES} install
++  sudo ldconfig
+   popd
+ }
+ 
+@@ -121,9 +123,9 @@ install_wangle() {
+     -DFOLLY_INCLUDE_DIR=$DESTDIR/usr/local/include \
+     -DFOLLY_LIBRARY=$DESTDIR/usr/local/lib \
+     -DBUILD_TESTS=OFF .
+-  make
+-  make install
+-  ldconfig
++  make -j${CORES}
++  sudo make -j${CORES} install
++  sudo ldconfig
+   popd
+ }
+ 
+@@ -137,9 +139,9 @@ install_libzmq() {
+   git checkout v4.2.2
+   ./autogen.sh
+   ./configure
+-  make
+-  make install
+-  ldconfig
++  make -j${CORES}
++  sudo make -j${CORES} install
++  sudo ldconfig
+   popd
+ }
+ 
+@@ -150,9 +152,9 @@ install_libsodium() {
+   fi
+   cd libsodium
+   ./configure
+-  make
+-  make install
+-  ldconfig
++  make -j${CORES}
++  sudo make -j${CORES} install
++  sudo ldconfig
+   popd
+ }
+ 
+@@ -169,9 +171,9 @@ install_folly() {
+   fi
+   autoreconf -ivf
+   ./configure LIBS="-lpthread"
+-  make
+-  make install
+-  ldconfig
++  make -j${CORES}
++  sudo make -j${CORES} install
++  sudo ldconfig
+   popd
+ }
+ 
+@@ -187,11 +189,11 @@ install_fbthrift() {
+     git checkout "$rev"
+   fi
+   cmake -DBUILD_SHARED_LIBS=ON ..
+-  make
+-  make install
+-  ldconfig
++  make -j${CORES}
++  sudo make -j${CORES} install
++  sudo ldconfig
+   cd ../thrift/lib/py
+-  python setup.py install
++  sudo python setup.py install
+   popd
+ }
+ 
+@@ -201,47 +203,48 @@ install_fbzmq() {
+   cmake \
+     -DCMAKE_CXX_FLAGS="-Wno-sign-compare -Wno-unused-parameter" \
+     -DBUILD_SHARED_LIBS=OFF \
+-    -DCMAKE_EXE_LINKER_FLAGS="-static" \
+     -DCMAKE_FIND_LIBRARY_SUFFIXES=".a" \
+     ../fbzmq/
+-  make
+-  make install
+-  ldconfig
++  make -j${CORES}
++  sudo make -j${CORES} install
++  sudo ldconfig
+   cd ../fbzmq/py
+-  python setup.py install
++  sudo python setup.py install
+   popd
+ }
+ 
+-apt-get install libdouble-conversion-dev \
+-  libssl-dev \
+-  cmake \
+-  make \
+-  zip \
+-  git \
+-  autoconf \
+-  autoconf-archive \
+-  automake \
+-  libtool \
+-  g++ \
+-  libboost-all-dev \
+-  libevent-dev \
+-  flex \
+-  bison \
+-  liblz4-dev \
+-  liblzma-dev \
+-  scons \
+-  libkrb5-dev \
+-  libsnappy-dev \
+-  libsasl2-dev \
+-  libnuma-dev \
+-  pkg-config \
+-  zlib1g-dev \
+-  binutils-dev \
+-  libjemalloc-dev \
+-  libiberty-dev \
+-  python-setuptools \
+-  python3-setuptools \
+-  python-pip
++install_packages() {
++  apt-get install libdouble-conversion-dev \
++    libssl-dev \
++    cmake \
++    make \
++    zip \
++    git \
++    autoconf \
++    autoconf-archive \
++    automake \
++    libtool \
++    g++ \
++    libboost-all-dev \
++    libevent-dev \
++    flex \
++    bison \
++    liblz4-dev \
++    liblzma-dev \
++    scons \
++    libkrb5-dev \
++    libsnappy-dev \
++    libsasl2-dev \
++    libnuma-dev \
++    pkg-config \
++    zlib1g-dev \
++    binutils-dev \
++    libjemalloc-dev \
++    libiberty-dev \
++    python-setuptools \
++    python3-setuptools \
++    python-pip
++}
+ 
+ install_glog
+ install_gflags

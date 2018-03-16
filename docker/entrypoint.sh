@@ -11,4 +11,8 @@ usermod -u $H_USER_ID dcrunner
 chown -R $H_USER_ID:$H_GROUP_ID /home/dcrunner
 echo "Starting with UID:GID : $H_USER_ID:$H_GROUP_ID"
 
-/bin/bash
+if [ "$#" -eq 0 ]; then
+su dcrunner
+else
+sudo -H -u dcrunner -g dcrunner "$@"
+fi
