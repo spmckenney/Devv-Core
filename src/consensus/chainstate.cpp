@@ -12,8 +12,6 @@
 
 #include "chainstate.h"
 
-#include "../primitives/SmartCoin.h"
-
 namespace Devcash
 {
 
