@@ -24,6 +24,27 @@ if (NOT CONFIGURED_ONCE)
 endif()
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
+include_directories(${CMAKE_SOURCE_DIR})
+
+# External third-party libraries
+find_library(ZMQ zmq)
+
+# # # # Begin Thrift
+find_program(THRIFT1 thrift1)
+find_library(THRIFTCPP2 thriftcpp2)
+find_library(THRIFTPROTOCOL thriftprotocol)
+find_library(PROTOCOL protocol)
+find_library(TRANSPORT transport)
+find_path(THRIFT_COMPILER_INCLUDE thrift/templates)
+set(THRIFT_TEMPLATES ${THRIFT_COMPILER_INCLUDE}/thrift/templates)
+include(${THRIFT_COMPILER_INCLUDE}/thrift/ThriftLibrary.cmake)
+
+#
+# Generate thrift defs for C++ only. For python install via setuptools
+#
+set(THRIFT_DIR ${CMAKE_BINARY_DIR}/thrift)
+file(MAKE_DIRECTORY ${THRIFT_DIR})
+# # # # End Thrift
 
 file(GLOB_RECURSE dcSources "*.cpp")
 file(GLOB_RECURSE dcHeaders "*.h*")
@@ -96,3 +117,14 @@ target_include_directories(DevCash PRIVATE ${dcInclude})
 
 set(CONFIGURED_ONCE TRUE CACHE INTERNAL
     "A flag showing that CMake has configured at least once.")
+
+#
+# i/o Tests
+#
+add_executable(circular_buffer_test
+  tests/queues/circular_buffer_test.cpp
+  )
+
+target_link_libraries(circular_buffer_test
+  ${OPENSSL_LIBRARIES}
+  )
