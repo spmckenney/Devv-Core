@@ -1,11 +1,11 @@
 cmake_minimum_required(VERSION 2.8 FATAL_ERROR)
 set(CMAKE_LEGACY_CYGWIN_WIN32 0)
 
-project("DevCash")
+project("Devcash")
 
 set (CMAKE_CXX_STANDARD 11)
-set (DevCash_VERSION_MAJOR 0)
-set (DevCash_VERSION_MINOR 1)
+set (Devcash_VERSION_MAJOR 0)
+set (Devcash_VERSION_MINOR 1)
 
 enable_testing()
 
@@ -92,8 +92,8 @@ if(WITH_THREAD_TESTING)
   add_definitions(-DTEST_THREADS)
 endif()
 
-add_executable(DevCash devcash.cpp ${dcInclude})
-target_link_libraries (DevCash
+add_executable(devcash devcash.cpp ${dcInclude})
+target_link_libraries (devcash
   init
   common
   primitives
@@ -104,23 +104,25 @@ target_link_libraries (DevCash
 find_package (OpenSSL REQUIRED)
 if (OPENSSL_FOUND)
   include_directories(${OPENSSL_INCLUDE_DIR})
-  target_link_libraries (DevCash ${OPENSSL_LIBRARIES})
+  target_link_libraries (devcash ${OPENSSL_LIBRARIES})
 endif (OPENSSL_FOUND)
 
 find_package(Threads)
-target_link_libraries(DevCash ${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries(devcash ${CMAKE_THREAD_LIBS_INIT})
 
 find_package(Boost COMPONENTS date_time filesystem
   system program_options log REQUIRED)
 if(Boost_FOUND)
   include_directories(${Boost_INCLUDE_DIRS})
-  target_link_libraries(DevCash ${Boost_LIBRARIES})
+  target_link_libraries(devcash ${Boost_LIBRARIES})
 endif(Boost_FOUND)
 
-target_include_directories(DevCash PRIVATE ${dcInclude})
+target_include_directories(devcash PRIVATE ${dcInclude})
 
 set(CONFIGURED_ONCE TRUE CACHE INTERNAL
     "A flag showing that CMake has configured at least once.")
+
+install (TARGETS devcash DESTINATION bin)
 
 #
 # i/o Tests
@@ -139,6 +141,39 @@ target_link_libraries(ring_queue_test
   ${CMAKE_THREAD_LIBS_INIT}
   ${Boost_LIBRARIES}
   )
+
+install (TARGETS ring_queue_test DESTINATION bin)
+
+# # # devcash_spsc_queue_test
+add_executable(devcash_spsc_queue_test
+  tests/queues/devcash_spsc_queue_test.cpp
+  )
+
+target_link_libraries(devcash_spsc_queue_test
+  common
+  init
+  primitives
+  oracles
+  consensus
+  ${OPENSSL_LIBRARIES}
+  ${CMAKE_THREAD_LIBS_INIT}
+  ${Boost_LIBRARIES}
+  )
+
+install (TARGETS devcash_spsc_queue_test DESTINATION bin)
+
+# # # boost_spsc_test
+add_executable(boost_spsc_test
+  tests/queues/boost_spsc_test.cpp
+  )
+
+target_link_libraries(boost_spsc_test
+  common
+  ${CMAKE_THREAD_LIBS_INIT}
+  ${Boost_LIBRARIES}
+  )
+
+install (TARGETS boost_spsc_test DESTINATION bin)
 
 #add_executable(producer_consumer_queue_test
 #  tests/queues/producer_consumer_queue_test.cpp

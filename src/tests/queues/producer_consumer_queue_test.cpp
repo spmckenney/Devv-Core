@@ -2,6 +2,8 @@
 #include "queues/DevcashRingQueue.h"
 #include "types/DevcashMessage.h"
 
+#include "folly/ProducerConsumerQueue.h"
+
 const int kMessageCount = 100000;
 using namespace Devcash;
 
@@ -41,19 +43,23 @@ int
 main(int, char**) {
 
   LOG_DEBUG << "Going to run!!";
-  
-  Devcash::DevcashRingQueue rq{};
+
+  folly::ProducerConsumerQueue<DevcashMessage> queue(10);
+
   BufferTester func;
   
   auto msg = get_unique();
   
-  std::thread reader([&rq, &func] {
+  std::thread reader([&queue, &func] {
       bool quit = false;
       LOG_DEBUG << "Going to pop!!";
       do {
+        while (!queue.read(str)) {
+          //spin until we get a value
+          continue;
+        }
         quit = func(rq.pop());
       } while (!quit);
-      LOG_DEBUG << "Done working!!";
     });
 
   for (auto i = 0; i < kMessageCount; i++) {
