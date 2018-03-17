@@ -29,6 +29,10 @@ include_directories(${CMAKE_SOURCE_DIR})
 # External third-party libraries
 find_library(ZMQ zmq)
 
+# Facebook specific libraries
+find_library(FOLLY folly PATHS)
+find_library(ZSTD zstd)
+
 # # # # Begin Thrift
 find_program(THRIFT1 thrift1)
 find_library(THRIFTCPP2 thriftcpp2)
@@ -121,10 +125,34 @@ set(CONFIGURED_ONCE TRUE CACHE INTERNAL
 #
 # i/o Tests
 #
-add_executable(circular_buffer_test
-  tests/queues/circular_buffer_test.cpp
+add_executable(ring_queue_test
+  tests/queues/ring_queue_test.cpp
   )
 
-target_link_libraries(circular_buffer_test
+target_link_libraries(ring_queue_test
+  common
+  init
+  primitives
+  oracles
+  consensus
   ${OPENSSL_LIBRARIES}
+  ${CMAKE_THREAD_LIBS_INIT}
+  ${Boost_LIBRARIES}
   )
+
+#add_executable(producer_consumer_queue_test
+#  tests/queues/producer_consumer_queue_test.cpp
+#  )
+#
+#target_link_libraries(producer_consumer_queue_test
+#  common
+#  init
+#  primitives
+#  oracles
+#  consensus
+#  ${FOLLY}
+#  ${OPENSSL_LIBRARIES}
+#  ${CMAKE_THREAD_LIBS_INIT}
+#  ${Boost_LIBRARIES}
+#  )
+#
