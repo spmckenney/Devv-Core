@@ -38,7 +38,7 @@ ArgsManager dCashArgs; /** stores data parsed from config file */
 typedef unsigned char byte;
 #define UNUSED(x) ((void)x)
 
-bool AppInit(int argc, char* argv[]) {
+bool AppInit(int, char* argv[]) {
   CASH_TRY {
 
     std::string announce("Check DevCash logs at ");

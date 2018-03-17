@@ -78,9 +78,11 @@ static EC_GROUP* getEcGroup() {
 /** Gets the EC_GROUP for INN transactions.
  *  @return a pointer to the EC_GROUP
  */
+#if 0
 static EC_GROUP* getInnGroup() {
   return(EC_GROUP_new_by_curve_name(NID_secp384r1));
 }
+#endif
 
 /** Generates a new EC_KEY.
  *  @pre an OpenSSL context must have been initialized
@@ -90,6 +92,7 @@ static EC_GROUP* getInnGroup() {
  *  @return if success, a pointer to the EC_KEY object
  *  @return if error, a NULLPTR
  */
+/*
 static EC_KEY* genEcKey(EVP_MD_CTX* ctx, std::string& publicKey, std::string& pkHex) {
   CASH_TRY {
     EC_GROUP* ecGroup = getEcGroup();
@@ -144,6 +147,7 @@ static EC_KEY* genEcKey(EVP_MD_CTX* ctx, std::string& publicKey, std::string& pk
   }
   return nullptr;
 }
+*/
 
 /** Loads an existing EC_KEY based on the provided key pair.
  *  @pre an OpenSSL context must have been initialized
@@ -153,7 +157,7 @@ static EC_KEY* genEcKey(EVP_MD_CTX* ctx, std::string& publicKey, std::string& pk
  *  @return if success, a pointer to the EC_KEY object
  *  @return if error, a NULLPTR
  */
-static EC_KEY* loadEcKey(EVP_MD_CTX* ctx, const std::string& publicKey, const std::string& privKey) {
+static EC_KEY* loadEcKey(EVP_MD_CTX*, const std::string& publicKey, const std::string& privKey) {
   CASH_TRY {
     EC_GROUP* ecGroup = getEcGroup();
     if (NULL == ecGroup) {
@@ -299,7 +303,6 @@ static std::string sign(EC_KEY* ecKey, std::string msg) {
   }
   CASH_THROW("Failed to sign message!");
 }
-
 } //end namespace Devcash
 
 #endif /* SRC_COMMON_OSSLADAPTER_H_ */

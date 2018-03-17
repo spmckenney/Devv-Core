@@ -11,7 +11,7 @@ enable_testing()
 
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" OR
     "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-    set(warnings "-Wall -Wextra -std=gnu++11")
+    set(warnings "-Wall -Wextra -std=gnu++11 -Wno-unused-function")
 elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
     set(warnings "/W4 /WX /EHsc")
 endif()
@@ -46,6 +46,18 @@ file(GLOB common_SRC
 )
 add_library(common ${common_SRC})
 
+# Build the oracles module objects
+file(GLOB oracles_SRC
+    "oracles/*.cpp"
+)
+add_library(oracles ${oracles_SRC})
+
+# Build the consensus module objects
+file(GLOB consensus_SRC
+    "consensus/*.cpp"
+)
+add_library(consensus ${consensus_SRC})
+
 # Add init.cpp
 add_library(init init.cpp)
 
@@ -60,6 +72,8 @@ target_link_libraries (DevCash
   init
   common
   primitives
+  oracles
+  consensus
   )
 
 find_package (OpenSSL REQUIRED)
@@ -71,7 +85,8 @@ endif (OPENSSL_FOUND)
 find_package(Threads)
 target_link_libraries(DevCash ${CMAKE_THREAD_LIBS_INIT})
 
-find_package(Boost COMPONENTS date_time filesystem system program_options log REQUIRED)
+find_package(Boost COMPONENTS date_time filesystem
+  system program_options log REQUIRED)
 if(Boost_FOUND)
   include_directories(${Boost_INCLUDE_DIRS})
   target_link_libraries(DevCash ${Boost_LIBRARIES})

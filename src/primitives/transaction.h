@@ -145,7 +145,7 @@ class DCTransaction {
 /** Returns the quantity of coins affected by this transaction.
  * @return the quantity of coins affected by this transaction.
 */
-  long getValueOut() const;
+  unsigned long getValueOut() const;
 
 /** Returns the delay in seconds until this transaction is final.
  * @return the delay in seconds until this transaction is final.

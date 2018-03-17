@@ -32,9 +32,9 @@
 #include <mutex>
 #include <thread>
 
-#include "DevcashMessage.h";
-#include "../common/logger.h"
-#include "../common/util.h"
+#include "types/DevcashMessage.h"
+#include "common/logger.h"
+#include "common/util.h"
 
 namespace Devcash {
 

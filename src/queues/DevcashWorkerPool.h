@@ -39,10 +39,11 @@
 
 #include <boost/thread/thread.hpp>
 
-#include "DevcashMessage.h"
+#include "types/DevcashMessage.h"
+#include "common/logger.h"
+#include "common/util.h"
+
 #include "DevcashRingQueue.h"
-#include "../common/logger.h"
-#include "../common/util.h"
 
 namespace Devcash {
 
