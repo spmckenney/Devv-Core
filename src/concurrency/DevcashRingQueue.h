@@ -32,9 +32,9 @@
 #include <mutex>
 #include <thread>
 
-#include "DevcashMessage.h";
-#include "../common/logger.h"
-#include "../common/util.h"
+#include "types/DevcashMessage.h"
+#include "common/logger.h"
+#include "common/util.h"
 
 namespace Devcash {
 
@@ -79,6 +79,8 @@ class DevcashRingQueue {
       }
       std::unique_lock<std::mutex> eqLock(update_);
       ptrRing_[pushAt_] = std::move(pointer);
+      isEmpty_ = false;
+      empty_.notify_one();
       pushAt_++;
       if (pushAt_ >= kRingSize_) pushAt_ = 0;
       if (pushAt_ == popAt_) {
@@ -108,6 +110,8 @@ class DevcashRingQueue {
       }
       std::unique_lock<std::mutex> eqLock(update_);
       std::unique_ptr<DevcashMessage> out = std::move(ptrRing_[popAt_]);
+      isFull_ = false;
+      full_.notify_one();
       popAt_++;
       if (popAt_ >= kRingSize_) popAt_ = 0;
       if (popAt_ == pushAt_) {

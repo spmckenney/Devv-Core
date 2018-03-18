@@ -28,8 +28,10 @@ struct DevcashMessage {
   URI uri;
   eMessageType message_type;
   std::vector<uint8_t> data;
-  DevcashMessage(URI uri, eMessageType msgType, std::vector<uint8_t> data) :
-    uri(uri), message_type(msgType), data(data) {}
+  int index;
+  DevcashMessage() : uri(""), message_type(eMessageType::VALID), data() {}
+  DevcashMessage(URI uri, eMessageType msgType, std::vector<uint8_t> data, int index=0) :
+    uri(uri), message_type(msgType), data(data), index(index) {}
 };
 
 } /* namespace Devcash */
