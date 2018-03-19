@@ -268,7 +268,7 @@ std::string AppInitMain(std::string inStr, std::string mode)
         LOG_INFO << "No transactions.  Nothing to do.\n";
         return("");
       } else {
-        DCState* chainState;
+        DCState* chainState = nullptr;
         std::string toPrint(txCnt+" transactions\n");
         LOG_INFO << toPrint;
         for (auto iter = j.begin(); iter != j.end(); ++iter) {

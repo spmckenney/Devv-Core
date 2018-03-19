@@ -85,7 +85,7 @@ DCValidationBlock::DCValidationBlock(std::string node, std::string sig) {
   }
 }
 
-DCValidationBlock::DCValidationBlock(vmap sigMap) {
+DCValidationBlock::DCValidationBlock(vmap) {
   CASH_TRY {
     //sigs(sigMap);
     hash_ = ComputeHash();

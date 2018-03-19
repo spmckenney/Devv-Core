@@ -256,9 +256,9 @@ bool DCTransaction::isValid(EC_KEY* eckey) const {
   return(false);
 }
 
-long DCTransaction::getValueOut() const
+unsigned long DCTransaction::getValueOut() const
 {
-  long nValueOut = 0;
+  unsigned long nValueOut = 0;
   for (std::vector<DCTransfer>::iterator it = xfers_->begin();
       it != xfers_->end(); ++it) {
     if (it->amount_ > 0) nValueOut += it->amount_;
