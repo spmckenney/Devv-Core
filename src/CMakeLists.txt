@@ -40,6 +40,7 @@ list(REMOVE_DUPLICATES dcInclude)
 # Build the primitives objects
 file(GLOB primitives_SRC
     "primitives/*.cpp"
+)
 
 # External third-party libraries
 find_library(DOUBLECONV double-conversion)
@@ -268,3 +269,22 @@ target_link_libraries(io_client_test
   ${fbzmq_LIBRARIES}
   ${OPENSSL_LIBRARIES}
   )
+
+# # # zmq_envelope_publisher
+add_executable(zmq_envelope_publisher
+  tests/io/zmq_envelope_publisher.cpp
+  )
+
+target_link_libraries(zmq_envelope_publisher
+  ${ZMQ}
+  )
+
+# # # zmq_envelope_subscriber
+add_executable(zmq_envelope_subscriber
+  tests/io/zmq_envelope_subscriber.cpp
+  )
+
+target_link_libraries(zmq_envelope_subscriber
+  ${ZMQ}
+  )
+
