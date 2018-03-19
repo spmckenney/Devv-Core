@@ -1,5 +1,5 @@
 #include <memory>
-#include "queues/DevcashSPSCQueue.h"
+#include "concurrency/DevcashSPSCQueue.h"
 #include "types/DevcashMessage.h"
 
 const int kMessageCount = 1000000;

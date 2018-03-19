@@ -1,11 +1,11 @@
 cmake_minimum_required(VERSION 2.8 FATAL_ERROR)
 set(CMAKE_LEGACY_CYGWIN_WIN32 0)
 
-project("DevCash")
+project("Devcash")
 
 set (CMAKE_CXX_STANDARD 11)
-set (DevCash_VERSION_MAJOR 0)
-set (DevCash_VERSION_MINOR 1)
+set (Devcash_VERSION_MAJOR 0)
+set (Devcash_VERSION_MINOR 1)
 
 enable_testing()
 
@@ -24,6 +24,31 @@ if (NOT CONFIGURED_ONCE)
 endif()
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
+include_directories(${CMAKE_SOURCE_DIR})
+
+# External third-party libraries
+find_library(ZMQ zmq)
+
+# Facebook specific libraries
+find_library(FOLLY folly PATHS)
+find_library(ZSTD zstd)
+
+# # # # Begin Thrift
+find_program(THRIFT1 thrift1)
+find_library(THRIFTCPP2 thriftcpp2)
+find_library(THRIFTPROTOCOL thriftprotocol)
+find_library(PROTOCOL protocol)
+find_library(TRANSPORT transport)
+find_path(THRIFT_COMPILER_INCLUDE thrift/templates)
+set(THRIFT_TEMPLATES ${THRIFT_COMPILER_INCLUDE}/thrift/templates)
+include(${THRIFT_COMPILER_INCLUDE}/thrift/ThriftLibrary.cmake)
+
+#
+# Generate thrift defs for C++ only. For python install via setuptools
+#
+set(THRIFT_DIR ${CMAKE_BINARY_DIR}/thrift)
+file(MAKE_DIRECTORY ${THRIFT_DIR})
+# # # # End Thrift
 
 file(GLOB_RECURSE dcSources "*.cpp")
 file(GLOB_RECURSE dcHeaders "*.h*")
@@ -67,8 +92,8 @@ if(WITH_THREAD_TESTING)
   add_definitions(-DTEST_THREADS)
 endif()
 
-add_executable(DevCash devcash.cpp ${dcInclude})
-target_link_libraries (DevCash
+add_executable(devcash devcash.cpp ${dcInclude})
+target_link_libraries (devcash
   init
   common
   primitives
@@ -79,20 +104,90 @@ target_link_libraries (DevCash
 find_package (OpenSSL REQUIRED)
 if (OPENSSL_FOUND)
   include_directories(${OPENSSL_INCLUDE_DIR})
-  target_link_libraries (DevCash ${OPENSSL_LIBRARIES})
+  target_link_libraries (devcash ${OPENSSL_LIBRARIES})
 endif (OPENSSL_FOUND)
 
 find_package(Threads)
-target_link_libraries(DevCash ${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries(devcash ${CMAKE_THREAD_LIBS_INIT})
 
 find_package(Boost COMPONENTS date_time filesystem
   system program_options log REQUIRED)
 if(Boost_FOUND)
   include_directories(${Boost_INCLUDE_DIRS})
-  target_link_libraries(DevCash ${Boost_LIBRARIES})
+  target_link_libraries(devcash ${Boost_LIBRARIES})
 endif(Boost_FOUND)
 
-target_include_directories(DevCash PRIVATE ${dcInclude})
+target_include_directories(devcash PRIVATE ${dcInclude})
 
 set(CONFIGURED_ONCE TRUE CACHE INTERNAL
     "A flag showing that CMake has configured at least once.")
+
+install (TARGETS devcash DESTINATION bin)
+
+#
+# i/o Tests
+#
+add_executable(ring_queue_test
+  tests/concurrency/ring_queue_test.cpp
+  )
+
+target_link_libraries(ring_queue_test
+  common
+  init
+  primitives
+  oracles
+  consensus
+  ${OPENSSL_LIBRARIES}
+  ${CMAKE_THREAD_LIBS_INIT}
+  ${Boost_LIBRARIES}
+  )
+
+install (TARGETS ring_queue_test DESTINATION bin)
+
+# # # devcash_spsc_queue_test
+add_executable(devcash_spsc_queue_test
+  tests/concurrency/devcash_spsc_queue_test.cpp
+  )
+
+target_link_libraries(devcash_spsc_queue_test
+  common
+  init
+  primitives
+  oracles
+  consensus
+  ${OPENSSL_LIBRARIES}
+  ${CMAKE_THREAD_LIBS_INIT}
+  ${Boost_LIBRARIES}
+  )
+
+install (TARGETS devcash_spsc_queue_test DESTINATION bin)
+
+# # # boost_spsc_test
+add_executable(boost_spsc_test
+  tests/concurrency/boost_spsc_test.cpp
+  )
+
+target_link_libraries(boost_spsc_test
+  common
+  ${CMAKE_THREAD_LIBS_INIT}
+  ${Boost_LIBRARIES}
+  )
+
+install (TARGETS boost_spsc_test DESTINATION bin)
+
+#add_executable(producer_consumer_queue_test
+#  tests/concurrency/producer_consumer_queue_test.cpp
+#  )
+#
+#target_link_libraries(producer_consumer_queue_test
+#  common
+#  init
+#  primitives
+#  oracles
+#  consensus
+#  ${FOLLY}
+#  ${OPENSSL_LIBRARIES}
+#  ${CMAKE_THREAD_LIBS_INIT}
+#  ${Boost_LIBRARIES}
+#  )
+#
