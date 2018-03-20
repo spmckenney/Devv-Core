@@ -125,7 +125,7 @@ network could be build and tested.\n\nAllowed options");
         for (;;) {
           sleep(5);
           auto devcash_message = Devcash::DevcashMessageUniquePtr(new Devcash::DevcashMessage);
-          devcash_message->uri = "my_uri2";
+          devcash_message->uri = "my_uri1";
           devcash_message->message_type = Devcash::eMessageType::VALID;
           LOG(info) << "Sending message";
           t1_server->QueueMessage(std::move(devcash_message));

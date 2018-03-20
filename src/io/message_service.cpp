@@ -130,6 +130,8 @@ TransactionClient::ProcessIncomingMessage() noexcept {
     std::string uri(static_cast<char *>(message.data()), size);
     LOG(info) << "uri: " << uri;
 
+    devcash_message->uri = uri;
+
     //rc = zmq_recv (&sub_socket_, &devcash_message->uri_size, 0);
     //assert (rc == 0);
     /* Determine if more message parts are to follow */
