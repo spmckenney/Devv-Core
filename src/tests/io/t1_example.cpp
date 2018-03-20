@@ -9,12 +9,13 @@
 #include "io/message_service.h"
 #include "io/constants.h"
 
-void print_devcash_message(Devcash::DevcashMessageUniquePtr message) {
-  LOG(info) << "Got a message";
-  LOG(info) << "DC->uri: " << message->uri;
-  return;
+void print_t1_devcash_message(Devcash::DevcashMessageUniquePtr message) {
+  LOG(info) << "Got a T1 message: " << "Devcash->uri: " << message->uri;
 }
-  
+
+void print_t2_devcash_message(Devcash::DevcashMessageUniquePtr message) {
+  LOG(info) << "Got a T2 message: " << "Devcash->uri: " << message->uri;
+}
 
 namespace po = boost::program_options;
 
@@ -105,7 +106,7 @@ network could be build and tested.\n\nAllowed options");
   for (auto i : t1_host_vector) {
     t1_client.AddConnection(i);
   }
-  t1_client.AttachCallback(print_devcash_message);
+  t1_client.AttachCallback(print_t1_devcash_message);
 
   std::thread t1_client_thread([&t1_client]() noexcept {
     LOG(info) << "Starting T1 client thread ...";
@@ -120,19 +121,55 @@ network could be build and tested.\n\nAllowed options");
   if (t1_bind_endpoint.size() > 0) {
     t1_server = TSPtr(new Devcash::io::TransactionServer(context, t1_bind_endpoint));
     t1_server->StartServer();
-    std::thread t1_server_thread([t1_server]()
+    std::thread t1_server_thread([&t1_server](){
+        for (;;) {
+          sleep(5);
+          auto devcash_message = Devcash::DevcashMessageUniquePtr(new Devcash::DevcashMessage);
+          devcash_message->uri = "my_uri2";
+          devcash_message->message_type = Devcash::eMessageType::VALID;
+          LOG(info) << "Sending message";
+          t1_server->QueueMessage(std::move(devcash_message));
+        }
+      });
+    all_threads.emplace_back(std::move(t1_server_thread));
   }
 
 
-  /*
-  LOG(info) << "Starting main event loop...";
-  mainEventLoop.run();
-  LOG(info) << "Main event loop got stopped";
+  sleep(2);
+  // Setup the T2 client. This will connect to
+  // other nodes
+  Devcash::io::TransactionClient t2_client{context};
+  for (auto i : t2_host_vector) {
+    t2_client.AddConnection(i);
+  }
+  t2_client.AttachCallback(print_t2_devcash_message);
 
-  client.stop();
-  client.waitUntilStopped();
-  */
-  
+  std::thread t2_client_thread([&t2_client]() noexcept {
+    LOG(info) << "Starting T2 client thread ...";
+    t2_client.Run();
+    LOG(info) << "Client stopped.";
+  });
+
+  all_threads.emplace_back(std::move(t2_client_thread));
+
+  typedef std::unique_ptr<Devcash::io::TransactionServer> TSPtr;
+  TSPtr t2_server;
+  if (t2_bind_endpoint.size() > 0) {
+    t2_server = TSPtr(new Devcash::io::TransactionServer(context, t2_bind_endpoint));
+    t2_server->StartServer();
+    std::thread t2_server_thread([&t2_server](){
+        for (;;) {
+          sleep(5);
+          auto devcash_message = Devcash::DevcashMessageUniquePtr(new Devcash::DevcashMessage);
+          devcash_message->uri = "my_uri2";
+          devcash_message->message_type = Devcash::eMessageType::VALID;
+          LOG(info) << "Sending message";
+          t2_server->QueueMessage(std::move(devcash_message));
+        }
+      });
+    all_threads.emplace_back(std::move(t2_server_thread));
+  }
+
   for (auto& t : all_threads) {
     t.join();
   }
