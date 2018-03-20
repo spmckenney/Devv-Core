@@ -21,6 +21,12 @@ namespace po = boost::program_options;
 int
 main(int argc, char** argv) {
 
+  std::string t1_bind_endpoint("");
+  std::string t2_bind_endpoint("");
+
+  std::vector<std::string> t1_host_vector{};
+  std::vector<std::string> t2_host_vector{};
+
   try {
     int opt;
     po::options_description desc("\n\
@@ -50,26 +56,32 @@ network could be build and tested.\n\nAllowed options");
       return 0;
     }
 
-    std::string t1_bind_endpoint{};
     if (vm.count("t1-bind-endpoint")) {
-      LOG(debug) << "T1 bind URI:" 
-                 << vm["t1-bind-endpoint"].as<std::string>();
+      t1_bind_endpoint = vm["t1-bind-endpoint"].as<std::string>();
+      LOG(debug) << "T1 bind URI: " << t1_bind_endpoint;
     } else {
       LOG(debug) << "T1 bind URI was not set.\n";
     }
 
-    std::string t2_bind_endpoint{};
     if (vm.count("t2-bind-endpoint")) {
-      LOG(debug) << "T2 bind URI:" 
-                 << vm["t2-bind-endpoint"].as<std::string>();
+      t2_bind_endpoint = vm["t2-bind-endpoint"].as<std::string>();
+      LOG(debug) << "T2 bind URI: " \
+                 << t2_bind_endpoint;
     } else {
       LOG(debug) << "T2 bind URI was not set.\n";
     }
 
-    if (vm.count("t1-host")) {
-      const std::vector<std::string>& t1_host_vec = vm["include-path"].as<std::vector<std::string>>();
+    if (vm.count("t1-host-list")) {
+      t1_host_vector = vm["t1-host-list"].as<std::vector<std::string>>();
       LOG(debug) << "T1 host URIs:";
-      for (auto i : t1_host_vec) {
+      for (auto i : t1_host_vector) {
+        LOG(debug) << "  " << i;
+      }
+    }
+    if (vm.count("t2-host-list")) {
+      t2_host_vector = vm["t2-host-list"].as<std::vector<std::string>>();
+      LOG(debug) << "T2 host URIs:";
+      for (auto i : t2_host_vector) {
         LOG(debug) << "  " << i;
       }
     }
@@ -82,30 +94,37 @@ network could be build and tested.\n\nAllowed options");
     LOG_ERROR << "Exception of unknown type!\n";
   }
 
-  std::vector<std::thread> allThreads{};
+  std::vector<std::thread> all_threads{};
 
   // Zmq Context
   zmq::context_t context(1);
 
-  // start ZmqClient
-  Devcash::io::TransactionClient client{context, "tcp://localhost:55556"};
+  // Setup the T1 client. This will connect to
+  // other nodes
+  Devcash::io::TransactionClient t1_client{context};
+  for (auto i : t1_host_vector) {
+    t1_client.AddConnection(i);
+  }
+  t1_client.AttachCallback(print_devcash_message);
 
-  client.AttachCallback(print_devcash_message);
-
-  client.Run();
-
-  /*
-  std::thread clientThread([&client]() noexcept {
-    LOG(info) << "Starting Client thread ...";
-    client.Run();
+  std::thread t1_client_thread([&t1_client]() noexcept {
+    LOG(info) << "Starting T1 client thread ...";
+    t1_client.Run();
     LOG(info) << "Client stopped.";
   });
-  */
+
+  all_threads.emplace_back(std::move(t1_client_thread));
+
+  typedef std::unique_ptr<Devcash::io::TransactionServer> TSPtr;
+  TSPtr t1_server;
+  if (t1_bind_endpoint.size() > 0) {
+    t1_server = TSPtr(new Devcash::io::TransactionServer(context, t1_bind_endpoint));
+    t1_server->StartServer();
+    std::thread t1_server_thread([t1_server]()
+  }
+
 
   /*
-  client.waitUntilRunning();
-  allThreads.emplace_back(std::move(clientThread));
-
   LOG(info) << "Starting main event loop...";
   mainEventLoop.run();
   LOG(info) << "Main event loop got stopped";
@@ -114,10 +133,9 @@ network could be build and tested.\n\nAllowed options");
   client.waitUntilStopped();
   */
   
-  /*
-  for (auto& t : allThreads) {
+  for (auto& t : all_threads) {
     t.join();
   }
-  */
+
   return 0;
 }

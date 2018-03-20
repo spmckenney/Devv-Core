@@ -96,29 +96,23 @@ TransactionServer::Run() noexcept {
 /*
  * TransactionClient
  */
-TransactionClient::TransactionClient(
-    zmq::context_t& context,
-    const std::string& peer_url)
-    : peer_url_(peer_url)
-    , context_(context)
-    , sub_socket_(context_, ZMQ_SUB)
-    , callback_vector_() {
-  prepare();
+TransactionClient::TransactionClient(zmq::context_t& context)
+  : peer_urls_()
+  , context_(context)
+  , sub_socket_(nullptr)
+  , callback_() {
 }
 
 void
-TransactionClient::prepare() noexcept {
-  LOG(info) << "Client connecting pubUrl_ '" << peer_url_ << "'";
-  sub_socket_.connect(peer_url_);
-  sub_socket_.connect("tcp://localhost:55557");
-  sub_socket_.setsockopt( ZMQ_SUBSCRIBE, "", 0);
+TransactionClient::AddConnection(const std::string& endpoint) {
+  peer_urls_.push_back(endpoint);
 }
 
 void
 TransactionClient::ProcessIncomingMessage() noexcept {
 
   int more;
-  size_t more_size = sizeof(more);
+  //size_t more_size = sizeof(more);
 
   auto devcash_message = DevcashMessageUniquePtr(new DevcashMessage());
   
@@ -130,7 +124,7 @@ TransactionClient::ProcessIncomingMessage() noexcept {
     LOG(info) << "Waiting for uri";
     /* Block until a message is available to be received from socket */
     zmq::message_t message;
-    sub_socket_.recv(&message);
+    sub_socket_->recv(&message);
 
     int size = message.size();
     std::string uri(static_cast<char *>(message.data()), size);
@@ -161,11 +155,18 @@ TransactionClient::ProcessIncomingMessage() noexcept {
 
   auto message = MakeDevcashMessage(thrift_devcash_message);
     */
-    callback_vector_(std::move(devcash_message));
+    callback_(std::move(devcash_message));
 }
 
 void
 TransactionClient::Run() {
+  sub_socket_ = std::unique_ptr<zmq::socket_t>(new zmq::socket_t(context_, ZMQ_SUB));
+  sub_socket_->setsockopt( ZMQ_SUBSCRIBE, "", 0);
+
+  for (auto endpoint : peer_urls_) {
+    sub_socket_->connect(endpoint);
+  }
+
   for (;;) {
     ProcessIncomingMessage();
   }
@@ -173,7 +174,7 @@ TransactionClient::Run() {
 
 void
 TransactionClient::AttachCallback(DevcashMessageCallback callback) {
-  callback_vector_ = callback;
+  callback_ = callback;
 }
 
 } // namespace io

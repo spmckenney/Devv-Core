@@ -34,8 +34,8 @@ main(int argc, char** argv) {
   zmq::context_t context(1);
 
   // start ZmqClient
-  Devcash::io::TransactionClient client{context, "tcp://localhost:55556"};
-
+  Devcash::io::TransactionClient client{context};
+  client.AddConnection("tcp://localhost:55556");
   client.AttachCallback(print_devcash_message);
 
   client.Run();

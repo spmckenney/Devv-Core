@@ -22,7 +22,7 @@ class TransactionServer final {
       zmq::context_t& context,
       const std::string& bind_url);
 
-  // disable copying
+  // Disable copying
   TransactionServer(const TransactionServer&) = delete;
   TransactionServer& operator=(const TransactionServer&) = delete;
 
@@ -64,35 +64,34 @@ class TransactionServer final {
  */
 class TransactionClient final {
  public:
-  TransactionClient(
-      zmq::context_t& context,
-      const std::string& peer_url);
+  TransactionClient(zmq::context_t& context);
 
   /// Attach a callback to be called when a DevcashMessage
   /// arrives on the wire.
   void AttachCallback(DevcashMessageCallback);
 
   // Start the transaction client service
+  // Blocks indefinitely
   void Run();
 
- private:
-  // Initialize ZMQ sockets
-  void prepare() noexcept;
+  // Add a devcash node to connect to
+  void AddConnection(const std::string& endpoint);
 
+ private:
   // process received message
   void ProcessIncomingMessage() noexcept;
 
   // ZMQ communication urls
-  const std::string peer_url_;
+  std::vector<std::string> peer_urls_;
 
   // ZMQ context reference
   zmq::context_t& context_;
 
   // subscriber socket
-  zmq::socket_t sub_socket_;
+  std::unique_ptr<zmq::socket_t> sub_socket_;
 
   /// List of callbacks to call when a message arrives
-  DevcashMessageCallback callback_vector_;
+  DevcashMessageCallback callback_;
 };
 
 } // namespace io
