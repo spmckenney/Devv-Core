@@ -6,7 +6,6 @@
  */
 #pragma once
 
-#include <folly/Range.h>
 #include <chrono>
 #include <string>
 
@@ -14,9 +13,6 @@ namespace Devcash {
 namespace io {
 
 namespace constants {
-  // the zmq url for transaction messages
-  static constexpr folly::StringPiece kTransactionMessageUrl = "tcp://127.0.0.1:5556";
-
   // the default I/O read timeout in milliseconds
   static constexpr std::chrono::milliseconds kReadTimeout{500};
 }

@@ -8,44 +8,69 @@
 
 #include <vector>
 
-#include <folly/Random.h>
 #include <io/constants.h>
 
 namespace Devcash {
 namespace io {
 
 TransactionServer::TransactionServer(
-    fbzmq::Context& context,
+    zmq::context_t& context,
     const std::string& bind_url)
-    : bind_url_(bind_url),
-      pub_socket_(context),
-      serializer_() {
-  prepare();
+    : bind_url_(bind_url)
+    , context_(context)
+    , pub_socket_(nullptr)
+    , server_thread_(nullptr) {
 }
 
 void
-TransactionServer::SendMessage(DevcashMessageSharedPtr message) noexcept {
+TransactionServer::SendMessage(DevcashMessageUniquePtr dc_message) noexcept {
   // Create and populate the thrift message
-  thrift::DevcashMessage thrift_message;
-  thrift_message.uri = message->uri;
-  thrift_message.message_type = message_type_to_thrift.at(message->message_type);
-  //thrift_message.data 
 
+  //zmq::message_t uri(&(message->uri), sizeof(uri));
+  s_send(*pub_socket_, dc_message->uri);
+
+  /*
+  zmq::message_t message(sizeof(dc_message->message_type));
+  memcpy(message.data(), &dc_message->message_type, sizeof(dc_message->message_type));
+  pub_socket_.send(message);
+  */
+
+  //zmq_send(&pub_socket_, &message->message_type, sizeof(message->message_type), 0);
+
+  /*
   auto rc = pub_socket_.sendThriftObj(thrift_message, serializer_);
   if (rc.hasError()) {
     LOG(ERROR) << "Send message failed: " << rc.error();
     return;
   } else {
-    LOG(INFO) << "Sent message";
+    LOG(info) << "Sent message";
   }
+  */
 }
 
 void
-TransactionServer::prepare() noexcept {
+TransactionServer::QueueMessage(DevcashMessageUniquePtr message) noexcept
+{
+  message_queue_.push(std::move(message));
+}
 
-  LOG(INFO) << "Server: Binding bind_url_ '" << bind_url_ << "'";
-  pub_socket_.bind(fbzmq::SocketUrl{bind_url_}).value();
+void
+TransactionServer::StartServer() {
+  server_thread_ = std::unique_ptr<std::thread>(new std::thread([this]() { this->Run(); }));
+}
 
+void
+TransactionServer::Run() noexcept {
+
+  pub_socket_ = std::unique_ptr<zmq::socket_t>(new zmq::socket_t(context_, ZMQ_PUB));
+  LOG(info) << "Server: Binding bind_url_ '" << bind_url_ << "'";
+  pub_socket_->bind(bind_url_);
+
+
+  for (;;) {
+    auto message = message_queue_.pop();
+    SendMessage(std::move(message));
+  }
 
   /*
 // attach callbacks for thrift type command
@@ -53,7 +78,7 @@ TransactionServer::prepare() noexcept {
       fbzmq::RawZmqSocketPtr{*thriftCmdSock_},
       ZMQ_POLLIN,
       [this](int) noexcept {
-        LOG(INFO) << "Received command request on thriftCmdSock_";
+        LOG(info) << "Received command request on thriftCmdSock_";
         processThriftCommand();
       });
 
@@ -62,7 +87,7 @@ TransactionServer::prepare() noexcept {
       fbzmq::RawZmqSocketPtr{*multipleCmdSock_},
       ZMQ_POLLIN,
       [this](int) noexcept {
-        LOG(INFO) << "Received command request on multipleCmdSock_";
+        LOG(info) << "Received command request on multipleCmdSock_";
         processMultipleCommand();
       });
   */
@@ -72,60 +97,83 @@ TransactionServer::prepare() noexcept {
  * TransactionClient
  */
 TransactionClient::TransactionClient(
-    fbzmq::Context& context,
+    zmq::context_t& context,
     const std::string& peer_url)
-    : context_(context),
-      peer_url_(peer_url),
-      sub_socket_(context),
-      callback_vector_() {
+    : peer_url_(peer_url)
+    , context_(context)
+    , sub_socket_(context_, ZMQ_SUB)
+    , callback_vector_() {
   prepare();
 }
 
 void
 TransactionClient::prepare() noexcept {
-  LOG(INFO) << "Client connecting pubUrl_ '" << peer_url_ << "'";
-  sub_socket_.connect(fbzmq::SocketUrl{peer_url_}).value();
+  LOG(info) << "Client connecting pubUrl_ '" << peer_url_ << "'";
+  sub_socket_.connect(peer_url_);
+  sub_socket_.connect("tcp://localhost:55557");
+  sub_socket_.setsockopt( ZMQ_SUBSCRIBE, "", 0);
 }
 
 void
 TransactionClient::ProcessIncomingMessage() noexcept {
-  // read out thrift command
-  auto thrift_object =
+
+  int more;
+  size_t more_size = sizeof(more);
+
+  auto devcash_message = DevcashMessageUniquePtr(new DevcashMessage());
+  
+/* Create an empty ØMQ message to hold the message part */
+    zmq_msg_t part;
+    int rc = zmq_msg_init(&part);
+    assert (rc == 0);
+
+    LOG(info) << "Waiting for uri";
+    /* Block until a message is available to be received from socket */
+    zmq::message_t message;
+    sub_socket_.recv(&message);
+
+    int size = message.size();
+    std::string uri(static_cast<char *>(message.data()), size);
+    LOG(info) << "uri: " << uri;
+
+    //rc = zmq_recv (&sub_socket_, &devcash_message->uri_size, 0);
+    //assert (rc == 0);
+    /* Determine if more message parts are to follow */
+    /*
+    rc = zmq_getsockopt (&sub_socket_, ZMQ_RCVMORE, &more, &more_size);
+    LOG(info) << "rc: " << rc;
+    LOG(info) << "more: " << more;
+    assert (rc == 1);
+   
+    rc = zmq_recv(&sub_socket_, &devcash_message->message_type,
+                  sizeof(devcash_message->message_type), 0);
+    */
+    /*
+    auto thrift_object =
       sub_socket_.recvThriftObj<thrift::DevcashMessage>(serializer_);
   if (thrift_object.hasError()) {
     LOG(ERROR) << "read thrift request failed: " << thrift_object.error();
     return;
   } else {
-    LOG(INFO) << "Received Thrift Object";
+    LOG(info) << "Received Thrift Object";
   }
   const auto& thrift_devcash_message = thrift_object.value();
 
   auto message = MakeDevcashMessage(thrift_devcash_message);
+    */
+    callback_vector_(std::move(devcash_message));
+}
 
-  for (fun : callback_vector_) {
-    fun(message);
+void
+TransactionClient::Run() {
+  for (;;) {
+    ProcessIncomingMessage();
   }
 }
 
 void
 TransactionClient::AttachCallback(DevcashMessageCallback callback) {
-  callback_vector_.push_back(callback);
-}
-
-DevcashMessageSharedPtr
-MakeDevcashMessage(const std::string& uri,
-                   const thrift::MessageType& message_type,
-                   const std::string& data) {
-
-  DataBufferSharedPtr buffer = std::make_shared<DataBuffer>(data.begin(),
-                                                            data.end());
-  DevcashMessageSharedPtr devcash_message =
-    std::make_shared<DevcashMessage>();
-
-  devcash_message->uri = uri;
-  //message_type_to_devcash.at(int(message_type)),
-  //buffer
-  return devcash_message;
+  callback_vector_ = callback;
 }
 
 } // namespace io

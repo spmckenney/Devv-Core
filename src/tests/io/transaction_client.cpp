@@ -1,59 +1,69 @@
-#include <fbzmq/zmq/Zmq.h>
-#include <glog/logging.h>
+#include <vector>
+#include <string>
 
-#include <fbzmq/async/StopEventLoopSignalHandler.h>
+#include <boost/program_options.hpp>
+
 #include "io/message_service.h"
 #include "io/constants.h"
 
-void print_devcash_message(Devcash::DevcashMessageSharedPtr message) {
-  LOG(INFO) << "Got a message";
-  LOG(INFO) << "DC->uri: " << message->uri;
+void print_devcash_message(Devcash::DevcashMessageUniquePtr message) {
+  LOG(info) << "Got a message";
+  LOG(info) << "DC->uri: " << message->uri;
   return;
 }
   
 
+namespace po = boost::program_options;
+
 int
 main(int argc, char** argv) {
-  //gflags::ParseCommandLineFlags(&argc, &argv, true);
-  //google::InitGoogleLogging(argv[0]);
-  //google::InstallFailureSignalHandler();
 
-  // start signal handler before any thread
-  fbzmq::ZmqEventLoop mainEventLoop;
-  fbzmq::StopEventLoopSignalHandler handler(&mainEventLoop);
-  //handler.registerSignalHandler(SIGINT);
-  //handler.registerSignalHandler(SIGQUIT);
-  //handler.registerSignalHandler(SIGTERM);
+  int opt;
+  po::options_description desc("Allowed options");
+  desc.add_options()
+    ("help", "produce help message")
+    ("optimization", po::value<int>(&opt)->default_value(10),
+     "optimization level")
+    ("include-path,I", po::value< std::vector<std::string> >(),
+     "include path")
+    ;
 
-  std::vector<std::thread> allThreads{};
+     std::vector<std::thread> allThreads{};
 
   // Zmq Context
-  fbzmq::Context ctx;
+  zmq::context_t context(1);
 
   // start ZmqClient
-  Devcash::io::TransactionClient client{ctx,
-      Devcash::io::constants::kTransactionMessageUrl.str()};
+  Devcash::io::TransactionClient client{context, "tcp://localhost:55556"};
 
   client.AttachCallback(print_devcash_message);
 
-  std::thread clientThread([&client]() noexcept {
-    LOG(INFO) << "Starting Client thread ...";
-    client.run();
-    LOG(INFO) << "Client stopped.";
-  });
+  client.Run();
 
+  /*
+  std::thread clientThread([&client]() noexcept {
+    LOG(info) << "Starting Client thread ...";
+    client.Run();
+    LOG(info) << "Client stopped.";
+  });
+  */
+
+  /*
   client.waitUntilRunning();
   allThreads.emplace_back(std::move(clientThread));
 
-  LOG(INFO) << "Starting main event loop...";
+  LOG(info) << "Starting main event loop...";
   mainEventLoop.run();
-  LOG(INFO) << "Main event loop got stopped";
+  LOG(info) << "Main event loop got stopped";
 
   client.stop();
   client.waitUntilStopped();
+  */
 
+  /*
   for (auto& t : allThreads) {
     t.join();
   }
+  */
   return 0;
 }

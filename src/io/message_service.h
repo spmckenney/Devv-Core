@@ -6,24 +6,20 @@
  */
 #pragma once
 
-#include <thrift/lib/cpp2/protocol/Serializer.h>
+#include "io/zhelpers.hpp"
 
-#include <fbzmq/async/ZmqEventLoop.h>
-#include <fbzmq/zmq/Zmq.h>
-
-#include <thrift/gen-cpp2/Devcash_types.h>
-
-#include "common/types.h"
+#include "types/DevcashMessage.h"
+#include "concurrency/DevcashSPSCQueue.h"
 
 namespace Devcash {
 namespace io {
 
-typedef std::function<void(DevcashMessageSharedPtr)> DevcashMessageCallback;
+typedef std::function<void(DevcashMessageUniquePtr)> DevcashMessageCallback;
 
-class TransactionServer final : public fbzmq::ZmqEventLoop {
+class TransactionServer final {
  public:
   TransactionServer(
-      fbzmq::Context& context,
+      zmq::context_t& context,
       const std::string& bind_url);
 
   // disable copying
@@ -31,31 +27,53 @@ class TransactionServer final : public fbzmq::ZmqEventLoop {
   TransactionServer& operator=(const TransactionServer&) = delete;
 
   // Send a message
-  void SendMessage(DevcashMessageSharedPtr message) noexcept;
+  void SendMessage(DevcashMessageUniquePtr message) noexcept;
+
+  /**
+   * Queue a message
+   */
+  void QueueMessage(DevcashMessageUniquePtr message) noexcept;
+
+  /**
+   * Starts a server in a background thread
+   */
+  void StartServer();
 
  private:
   // Initialize ZMQ sockets
-  void prepare() noexcept;
+  void Run() noexcept;
 
   // communication urls
   const std::string bind_url_;
 
-  // publication socket
-  fbzmq::Socket<ZMQ_PUB, fbzmq::ZMQ_SERVER> pub_socket_;
+  // zmq context
+  zmq::context_t& context_;
 
-  // used for serialize/deserialize thrift obj
-  apache::thrift::CompactSerializer serializer_;
+  // publication socket
+  std::unique_ptr<zmq::socket_t> pub_socket_;
+
+  // Used to run the server service in a background thread
+  std::unique_ptr<std::thread> server_thread_;
+
+  // Used to queue outgoing messages
+  DevcashSPSCQueue message_queue_;
 };
 
-class TransactionClient final : public fbzmq::ZmqEventLoop {
+/**
+ * TransactionClient
+ */
+class TransactionClient final {
  public:
   TransactionClient(
-      fbzmq::Context& context,
+      zmq::context_t& context,
       const std::string& peer_url);
 
   /// Attach a callback to be called when a DevcashMessage
   /// arrives on the wire.
   void AttachCallback(DevcashMessageCallback);
+
+  // Start the transaction client service
+  void Run();
 
  private:
   // Initialize ZMQ sockets
@@ -64,46 +82,18 @@ class TransactionClient final : public fbzmq::ZmqEventLoop {
   // process received message
   void ProcessIncomingMessage() noexcept;
 
-  // ZMQ context reference
-  fbzmq::Context& context_;
-
   // ZMQ communication urls
   const std::string peer_url_;
 
-  // subscriber socket
-  fbzmq::Socket<ZMQ_SUB, fbzmq::ZMQ_CLIENT> sub_socket_;
+  // ZMQ context reference
+  zmq::context_t& context_;
 
-  // used for serialize/deserialize thrift obj
-  apache::thrift::CompactSerializer serializer_;
+  // subscriber socket
+  zmq::socket_t sub_socket_;
 
   /// List of callbacks to call when a message arrives
-  std::vector<DevcashMessageCallback> callback_vector_;
+  DevcashMessageCallback callback_vector_;
 };
-
-  // Create a static enum map
-static std::vector<thrift::MessageType> message_type_to_thrift = {
-  thrift::MessageType::KEY_FINAL_BLOCK,
-  thrift::MessageType::KEY_PROPOSAL_BLOCK,
-  thrift::MessageType::KEY_TRANSACTION_ANNOUNCEMENT,
-  thrift::MessageType::KEY_VALID,
-};
-static std::vector<Devcash::MessageType> message_type_to_devcash = {
-  Devcash::MessageType::eFinalBlock,
-  Devcash::MessageType::eProposalBlock,
-  Devcash::MessageType::eTransactionAnnouncement,
-  Devcash::MessageType::eValid,
-};
-
-DevcashMessageSharedPtr MakeDevcashMessage(const std::string& uri,
-                                           const thrift::MessageType& message_type,
-                                           const std::string& data);
-
-template <typename ThriftObject>
-DevcashMessageSharedPtr MakeDevcashMessage(const ThriftObject& object) {
-  return MakeDevcashMessage(object.uri,
-                            object.message_type,
-                            object.data);
-}
 
 } // namespace io
 } // namespace Devcash

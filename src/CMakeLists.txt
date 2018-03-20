@@ -250,14 +250,28 @@ list(APPEND fbzmq_LIBRARIES
 #
 # i/o Tests
 #
+add_executable(t1_example
+  tests/io/t1_example.cpp
+  )
+
+target_link_libraries(t1_example
+  io
+  common
+  ${fbzmq_LIBRARIES}
+  ${OPENSSL_LIBRARIES}
+  ${Boost_LIBRARIES}
+  )
+
 add_executable(io_server_test
   tests/io/transaction_server.cpp
   )
 
 target_link_libraries(io_server_test
   io
+  common
   ${fbzmq_LIBRARIES}
   ${OPENSSL_LIBRARIES}
+  ${Boost_LIBRARIES}
   )
 
 add_executable(io_client_test
@@ -266,8 +280,10 @@ add_executable(io_client_test
 
 target_link_libraries(io_client_test
   io
+  common
   ${fbzmq_LIBRARIES}
   ${OPENSSL_LIBRARIES}
+  ${Boost_LIBRARIES}
   )
 
 # # # zmq_envelope_publisher
