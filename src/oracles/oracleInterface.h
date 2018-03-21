@@ -14,8 +14,8 @@
 #define ORACLE_INTERFACE_H_
 
 #include <string>
-#include "../consensus/chainstate.h"
-#include "../primitives/transaction.h"
+#include "consensus/chainstate.h"
+#include "primitives/transaction.h"
 
 class oracleInterface {
 
@@ -31,6 +31,33 @@ class oracleInterface {
   static std::string getCoinType() {
     return("SmartCoin");
   };
+
+  static int getCoinIndexByType(std::string coinType) {
+    if (coinType == "dcash" || coinType == "dnero") {
+      return(0);
+    } else if (coinType == "dneroavailable") {
+      return(1);
+    } else if (coinType == "dnerowallet") {
+      return(2);
+    } else if (coinType == "id") {
+      return(3);
+    } else if (coinType == "vote") {
+      return(4);
+    } else if (coinType == "api") {
+      return(5);
+    } else if (coinType == "data") {
+      return(6);
+    } else { //invalid/unknown type
+      return(-1);
+    }
+  }
+
+/**
+ *  @note external coin types do not have an index and must be decomposed
+ *  into a set of internal types by the oracle
+ *  @return the index of this coin type
+ */
+  static int getCoinIndex();
 
 /** Checks if a transaction is objectively valid according to this oracle.
  *  When this function returns false, a transaction is syntactically invalid

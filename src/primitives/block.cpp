@@ -11,23 +11,11 @@
 
 #include <chrono>
 
-#include "../common/json.hpp"
-#include "../common/logger.h"
-#include "../common/ossladapter.h"
-#include "../common/util.h"
+#include "common/json.hpp"
+#include "common/logger.h"
+#include "common/ossladapter.h"
 
 using json = nlohmann::json;
-
-//exception toggling capability
-#if (defined(__cpp_exceptions) || defined(__EXCEPTIONS) || defined(_CPPUNWIND)) && not defined(DEVCASH_NOEXCEPTION)
-  #define CASH_THROW(exception) throw exception
-  #define CASH_TRY try
-  #define CASH_CATCH(exception) catch(exception)
-#else
-  #define CASH_THROW(exception) std::abort()
-  #define CASH_TRY if(true)
-  #define CASH_CATCH(exception) if(false)
-#endif
 
 namespace Devcash
 {
@@ -54,11 +42,11 @@ std::string DCBlockHeader::ToJSON() const {
 DCBlock::DCBlock(std::vector<DCTransaction> &txs, DCValidationBlock &validations)
   : vtx_(txs), vals_(validations)
 {
-  CASH_TRY {
+  //CASH_TRY {
     DCBlockHeader();
-  } CASH_CATCH (const std::exception& e) {
+  /*} CASH_CATCH (const std::exception& e) {
     LOG_WARNING << FormatException(&e, "block");
-  }
+  }*/
 }
 
 bool DCBlock::validate(EC_KEY* eckey) {

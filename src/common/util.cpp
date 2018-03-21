@@ -68,7 +68,6 @@
 #include <openssl/rand.h>
 #include <openssl/conf.h>
 
-#include "../init.h"
 #include "logger.h"
 
 namespace Devcash

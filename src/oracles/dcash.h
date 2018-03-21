@@ -13,9 +13,9 @@
 
 #include "dnerowallet.h"
 #include "oracleInterface.h"
-#include "../common/logger.h"
-#include "../consensus/chainstate.h"
-#include "../primitives/transaction.h"
+#include "common/logger.h"
+#include "consensus/chainstate.h"
+#include "primitives/transaction.h"
 
 class dcash : public oracleInterface {
 
@@ -26,6 +26,13 @@ class dcash : public oracleInterface {
   */
   static std::string getCoinType() {
     return("dcash");
+  }
+
+  /**
+   *  @return int internal index of this coin type
+  */
+  static int getCoinIndex() {
+    return(0);
   }
 
   /** Checks if a transaction is objectively valid according to this oracle.
@@ -41,10 +48,13 @@ class dcash : public oracleInterface {
    * @return false otherwise
    */
   bool isValid(Devcash::DCTransaction checkTx) {
-    if (checkTx.getDelay() != 0) {
-      LOG_WARNING << "Error: Delays are not allowed for dcash.";
-      return false;
-    }
+    for (std::vector<Devcash::DCTransfer>::iterator it=checkTx.xfers_.begin();
+        it != checkTx.xfers_.end(); ++it) {
+      if (it->getDelay() != 0) {
+        LOG_WARNING << "Error: Delays are not allowed for dcash.";
+        return false;
+      }
+    } //end for each transfer
     return true;
   }
 
@@ -62,8 +72,7 @@ class dcash : public oracleInterface {
    */
   bool isValid(Devcash::DCTransaction checkTx, Devcash::DCState& context) {
     if (!isValid(checkTx)) return false;
-    for (std::vector<Devcash::DCTransfer>::iterator it=checkTx.xfers_->begin();
-        it != checkTx.xfers_->end(); ++it) {
+    for (auto it=checkTx.xfers_.begin(); it != checkTx.xfers_.end(); ++it) {
       if (it->amount_ < 0) {
         if (context.getAmount(dnerowallet::getCoinType(), it->addr_) > 0) {
           LOG_WARNING << "Error: Dnerowallets may not send dcash.";

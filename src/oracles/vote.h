@@ -12,9 +12,11 @@
 #include <string>
 
 #include "oracleInterface.h"
-#include "../common/logger.h"
-#include "../consensus/chainstate.h"
-#include "../primitives/transaction.h"
+#include "common/logger.h"
+#include "consensus/chainstate.h"
+#include "primitives/transaction.h"
+
+//TODO: the election creates the vote tokens by giving them to the voters
 
 namespace Devcash
 {
@@ -36,6 +38,13 @@ class DCVote : public oracleInterface {
   */
   static std::string getCoinType() {
     return("vote");
+  }
+
+  /**
+   *  @return int internal index of this coin type
+  */
+  static int getCoinIndex() {
+    return(4);
   }
 
   /** Checks if a transaction is objectively valid according to this oracle.

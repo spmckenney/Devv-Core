@@ -24,17 +24,18 @@
  *      Author: Nick Williams
  */
 
-#ifndef QUEUES_DEVCASHRINGQUEUE_H_
-#define QUEUES_DEVCASHRINGQUEUE_H_
+#ifndef CONCURRENCY_DEVCASHRINGQUEUE_H_
+#define CONCURRENCY_DEVCASHRINGQUEUE_H_
 
 #include <array>
 #include <condition_variable>
 #include <mutex>
 #include <thread>
 
-#include "types/DevcashMessage.h"
 #include "common/logger.h"
 #include "common/util.h"
+#include "DevcashWorkerPool.h"
+#include "types/DevcashMessage.h"
 
 namespace Devcash {
 
@@ -57,7 +58,8 @@ class DevcashRingQueue {
   DevcashRingQueue() :
     kRingSize_(kDEFAULT_RING_SIZE) {
   }
-  virtual ~DevcashRingQueue() {};
+  virtual ~DevcashRingQueue() {}
+  DevcashRingQueue(size_t size) : kRingSize_(size) {}
 
   /* Disallow copy and assign */
   DevcashRingQueue(DevcashRingQueue const&) = delete;
@@ -129,7 +131,7 @@ class DevcashRingQueue {
 
  private:
   int kRingSize_;
-  std::array<std::unique_ptr<DevcashMessage>, kDEFAULT_RING_SIZE> ptrRing_;
+  std::vector<std::unique_ptr<DevcashMessage>> ptrRing_;
   int pushAt_ = 0;
   int popAt_ = 0;
   std::mutex pushLock_; //orders access to push()
@@ -143,4 +145,4 @@ class DevcashRingQueue {
 
 } /* namespace Devcash */
 
-#endif /* QUEUES_DEVCASHRINGQUEUE_H_ */
+#endif /* CONCURRENCY_DEVCASHRINGQUEUE_H_ */

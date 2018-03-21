@@ -9,10 +9,10 @@
 
 #include <stdint.h>
 
-#include "../common/json.hpp"
-#include "../common/logger.h"
-#include "../common/ossladapter.h"
-#include "../common/util.h"
+#include "common/json.hpp"
+#include "common/logger.h"
+#include "common/ossladapter.h"
+#include "oracles/oracleInterface.h"
 
 using json = nlohmann::json;
 
@@ -20,17 +20,6 @@ namespace Devcash
 {
 
 using namespace Devcash;
-
-//exception toggling capability
-#if (defined(__cpp_exceptions) || defined(__EXCEPTIONS) || defined(_CPPUNWIND)) && not defined(DEVCASH_NOEXCEPTION)
-    #define CASH_THROW(exception) throw exception
-    #define CASH_TRY try
-    #define CASH_CATCH(exception) catch(exception)
-#else
-    #define CASH_THROW(exception) std::abort()
-    #define CASH_TRY if(true)
-    #define CASH_CATCH(exception) if(false)
-#endif
 
 static const std::string kOPER_TAG = "oper";
 static const std::string kTYPE_TAG = "type";
@@ -61,55 +50,47 @@ DCTransfer::DCTransfer(std::string jsonTx) {
     json j = json::parse(jsonTx);
     addr_ = j[kADDR_TAG].dump();
     amount_ = std::stoi(j[kAMOUNT_TAG].dump());
-    nonce_ = 0;
-    if (!j[kNONCE_TAG].empty()) nonce_ = std::stoi(j[kNONCE_TAG].dump());
-    sig_ = "";
-    if (!j[kSIG_TAG].empty()) {
-      sig_ = j[kSIG_TAG].dump();
-      sig_.erase(remove(sig_.begin(), sig_.end(), '\"'), sig_.end());
+    coinIndex_ = oracleInterface::getCoinIndexByType(j[kTYPE_TAG]);
+    if (!j[kDELAY_TAG].empty()) {
+      delay_ = std::stoi(j[kDELAY_TAG].dump());
     }
   } CASH_CATCH (const std::exception& e) {
     LOG_WARNING << FormatException(&e, "transaction");
   }
 }
 
-DCTransfer::DCTransfer() {
-  addr_ = "";
-  amount_ = 0;
-  nonce_ = 0;
-  sig_ = "";
+DCTransfer::DCTransfer() : addr_(""), amount_(0), coinIndex_(-1), delay_(0) {
 }
+
+DCTransfer::DCTransfer(std::string& addr, int coinIndex, long amount,
+    long delay) : addr_(addr), amount_(amount), coinIndex_(coinIndex),
+        delay_(delay) { }
 
 DCTransfer::DCTransfer(std::vector<uint8_t> cbor) {
   CASH_TRY {
     json j = json::from_cbor(cbor);
     addr_ = j[kADDR_TAG].dump();
     amount_ = std::stoi(j[kAMOUNT_TAG].dump());
-    nonce_ = 0;
-    if (!j[kNONCE_TAG].empty()) nonce_ = std::stoi(j[kNONCE_TAG].dump());
-    sig_ = "";
-    if (!j[kSIG_TAG].empty()) {
-      sig_ = j[kSIG_TAG].dump();
-      sig_.erase(remove(sig_.begin(), sig_.end(), '\"'), sig_.end());
+    coinIndex_ = oracleInterface::getCoinIndexByType(j[kTYPE_TAG]);
+    if (!j[kDELAY_TAG].empty()) {
+      delay_ = std::stoi(j[kDELAY_TAG].dump());
     }
   } CASH_CATCH (const std::exception& e) {
     LOG_WARNING << FormatException(&e, "transaction");
   }
 }
 
-DCTransfer::DCTransfer(const DCTransfer &other) {
-  if (this != &other) {
-    this->addr_ = other.addr_;
-    this->amount_ = other.amount_;
-    this->nonce_ = other.nonce_;
-    this->sig_ = other.sig_;
-  }
+DCTransfer::DCTransfer(const DCTransfer &other) : addr_(other.addr_),
+    amount_(other.amount_), coinIndex_(other.coinIndex_), delay_(other.delay_){
 }
 
 std::string DCTransfer::getCanonical()
 {
-  std::string out("\""+kADDR_TAG+"\":\""+addr_+"\",\""+kAMOUNT_TAG+"\":"
-      +std::to_string(amount_)+",\""+kNONCE_TAG+"\":"+std::to_string(nonce_));
+  std::string out("\""+kADDR_TAG+"\":\""+addr_+"\",\""+kTYPE_TAG+"\":"+std::to_string(coinIndex_)+",\""+kAMOUNT_TAG+"\":"
+      +std::to_string(amount_));
+  if (delay_ > 0) {
+    out += ",\""+kDELAY_TAG+"\":"+std::to_string(delay_);
+  }
   return (out);
 }
 
@@ -129,124 +110,113 @@ bool DCTransaction::isOpType(std::string oper) {
   CASH_THROW("Invalid operation: "+oper);
 }
 
-DCTransaction::DCTransaction() {
-  xfers_ = nullptr;
-  oper_ = eOpType::Create;
-  type_ = "SmartCoin";
-  delay_ = 0;
+DCTransaction::DCTransaction() : oper_(eOpType::Create), nonce_(0), sig_("") {
 }
 
 DCTransaction::DCTransaction(std::string jsonTx) {
-  oper_ = eOpType::Create;
-  type_ = kSMARTCOIN;
-  xfers_ = nullptr;
-  delay_ = 0;
   CASH_TRY {
     json jsonObj = json::parse(jsonTx);
     std::string opTemp = jsonObj[kOPER_TAG];
     oper_ = mapOpType(opTemp);
-    type_ = jsonObj[kTYPE_TAG];
-    xfers_ = new std::vector<DCTransfer>(0);
-    for (auto iter = jsonObj[kXFER_TAG].begin(); iter != jsonObj[kXFER_TAG].end(); ++iter) {
+    for (auto iter = jsonObj[kXFER_TAG].begin();
+        iter != jsonObj[kXFER_TAG].end(); ++iter) {
       std::string xfer = iter.value().dump();
       DCTransfer* t = new DCTransfer(xfer);
-      xfers_->push_back(*t);
+      xfers_.push_back(*t);
+    }
+    if (!jsonObj[kNONCE_TAG].empty()) nonce_ =
+        std::stoi(jsonObj[kNONCE_TAG].dump());
+    sig_ = "";
+    if (!jsonObj[kSIG_TAG].empty()) {
+      sig_ = jsonObj[kSIG_TAG].dump();
+      sig_.erase(remove(sig_.begin(), sig_.end(), '\"'), sig_.end());
     }
     hash_ = ComputeHash();
     jsonStr_ = jsonObj.dump();
-    if (!jsonObj[kDELAY_TAG].empty()) {
-      delay_ = std::stoi(jsonObj[kDELAY_TAG].dump());
-    }
+
   } CASH_CATCH (const std::exception& e) {
     FormatException(&e, "transaction");
   }
 }
 
 DCTransaction::DCTransaction(json jsonObj) {
-  oper_ = eOpType::Create;
-  type_ = kSMARTCOIN;
-  xfers_ = nullptr;
-  delay_ = 0;
   CASH_TRY {
     std::string opTemp = jsonObj[kOPER_TAG];
     oper_ = mapOpType(opTemp);
-    type_ = jsonObj[kTYPE_TAG];
-    xfers_ = new std::vector<DCTransfer>(0);
+    nonce_ = 0;
+    if (!jsonObj[kNONCE_TAG].empty()) nonce_ =
+        std::stoi(jsonObj[kNONCE_TAG].dump());
+    sig_ = "";
+    if (!jsonObj[kSIG_TAG].empty()) {
+      sig_ = jsonObj[kSIG_TAG].dump();
+      sig_.erase(remove(sig_.begin(), sig_.end(), '\"'), sig_.end());
+    }
     for (auto iter = jsonObj[kXFER_TAG].begin(); iter != jsonObj[kXFER_TAG].end(); ++iter) {
       std::string xfer = iter.value().dump();
       DCTransfer* t = new DCTransfer(xfer);
-      xfers_->push_back(*t);
+      xfers_.push_back(*t);
     }
     hash_ = ComputeHash();
     jsonStr_ = jsonObj.dump();
-    if (!jsonObj[kDELAY_TAG].empty()) {
-      delay_ = std::stoi(jsonObj[kDELAY_TAG].dump());
-    }
   } CASH_CATCH (const std::exception& e) {
     FormatException(&e, "transaction");
   }
 }
 
 DCTransaction::DCTransaction(std::vector<uint8_t> cbor) {
-  oper_ = eOpType::Create;
-  type_ = kSMARTCOIN;
-  xfers_ = nullptr;
-  delay_ = 0;
   CASH_TRY {
     json jsonObj = json::from_cbor(cbor);
     std::string opTemp = jsonObj[kOPER_TAG];
     oper_ = mapOpType(opTemp);
-    type_ = jsonObj[kTYPE_TAG];
-    xfers_ = new std::vector<DCTransfer>(0);
     for (auto iter = jsonObj[kXFER_TAG].begin(); iter != jsonObj[kXFER_TAG].end(); ++iter) {
       std::string xfer = iter.value().dump();
       DCTransfer* t = new DCTransfer(xfer);
-      xfers_->push_back(*t);
+      xfers_.push_back(*t);
+    }
+    if (!jsonObj[kNONCE_TAG].empty()) nonce_ =
+        std::stoi(jsonObj[kNONCE_TAG].dump());
+    sig_ = "";
+    if (!jsonObj[kSIG_TAG].empty()) {
+      sig_ = jsonObj[kSIG_TAG].dump();
+      sig_.erase(remove(sig_.begin(), sig_.end(), '\"'), sig_.end());
     }
     hash_ = ComputeHash();
     jsonStr_ = jsonObj.dump();
-    if (!jsonObj[kDELAY_TAG].empty()) {
-      delay_ = std::stoi(jsonObj[kDELAY_TAG].dump());
-    }
   } CASH_CATCH (const std::exception& e) {
     FormatException(&e, "transaction");
   }
 }
 
-DCTransaction::DCTransaction(const DCTransaction& tx) : xfers_(tx.xfers_) {
-  oper_ = tx.oper_;
-  type_ = tx.type_;
-  hash_ = tx.hash_;
-  delay_ = tx.delay_;
+DCTransaction::DCTransaction(const DCTransaction& tx) : xfers_(tx.xfers_),
+    oper_(tx.oper_), nonce_(tx.nonce_), sig_(tx.sig_) {
 }
 
 bool DCTransaction::isValid(EC_KEY* eckey) const {
   CASH_TRY {
     long nValueOut = 0;
-    if (delay_ < 0) {
-      LOG_WARNING << "Error: A negative delay is not allowed.";
-      return false;
+
+    if (nonce_ < 1) {
+      LOG_WARNING << "Error: nonce is required\n";
+      return(false);
     }
-    for (std::vector<DCTransfer>::iterator it = xfers_->begin(); it != xfers_->end(); ++it) {
+    for (auto it = xfers_.begin(); it != xfers_.end(); ++it) {
       nValueOut += it->amount_;
       if ((oper_ == eOpType::Delete && it->amount_ > 0) ||
         (oper_ != eOpType::Delete && it->amount_ < 0) || oper_ == eOpType::Modify) {
-        if (it->nonce_ < 1) {
-          LOG_WARNING << "Error: nonce is required for outgoing tx\n";
-          return(false);
-        }
-        std::string msg("\"addr\":"+it->addr_+",\"amount\":"
-          +std::to_string(it->amount_)
-          +",\"nonce\":"+std::to_string(it->nonce_));
-        //TODO: use hash instead of raw msg, strHash(msg)
-        if (!verifySig(eckey, msg, it->sig_)) {
-          LOG_WARNING << "Error: signature did not validate.\n";
-          return(false);
+        if (it->delay_ < 0) {
+          LOG_WARNING << "Error: A negative delay is not allowed.";
+          return false;
         }
       }
     }
     if (nValueOut != 0) {
       LOG_WARNING << "Error: transaction amounts are asymmetric.\n";
+      return(false);
+    }
+    std::string msg(ToJSON());
+    //TODO: use hash instead of raw msg, strHash(msg)
+    if (!verifySig(eckey, msg, sig_)) {
+      LOG_WARNING << "Error: signature did not validate.\n";
       return(false);
     }
     return(true);
@@ -256,19 +226,36 @@ bool DCTransaction::isValid(EC_KEY* eckey) const {
   return(false);
 }
 
-unsigned long DCTransaction::getValueOut() const
+long DCTransaction::getValueOut() const
 {
-  unsigned long nValueOut = 0;
-  for (std::vector<DCTransfer>::iterator it = xfers_->begin();
-      it != xfers_->end(); ++it) {
+  long nValueOut = 0;
+  for (auto it = xfers_.begin(); it != xfers_.end(); ++it) {
     if (it->amount_ > 0) nValueOut += it->amount_;
   }
   return nValueOut;
 }
 
+std::string const DCTransaction::getCanonical() {
+  std::string out("{\""+kOPER_TAG+"\":"+
+      std::to_string(static_cast<unsigned int>(oper_))+",\""+
+      kNONCE_TAG+"\":"+std::to_string(nonce_)+",\""+kXFER_TAG+"\":[");
+  bool isFirst = true;
+  for (std::vector<DCTransfer>::iterator it = xfers_.begin();
+    it != xfers_.end(); ++it) {
+      if (!isFirst) {
+        out += ",";
+      } else {
+        isFirst = false;
+      }
+      out += it->getCanonical();
+  }
+  out += "],\""+kSIG_TAG+"\":"+sig_+"}";
+  return (out);
+}
+
 unsigned int DCTransaction::getByteSize() const
 {
-  return jsonStr_.size();
+  return ToJSON().size();
 }
 
 std::string DCTransaction::ComputeHash() const
@@ -278,16 +265,16 @@ std::string DCTransaction::ComputeHash() const
 
 std::string DCTransaction::ToJSON() const
 {
-  json j = {{kOPER_TAG, oper_},{kTYPE_TAG, type_}};
+  json j = {{kOPER_TAG, oper_},{kNONCE_TAG, nonce_}};
   json xferArray = json::array();
-  for (std::vector<DCTransfer>::iterator it = xfers_->begin();
-    it != xfers_->end(); ++it) {
-      json thisXfer = {{"addr", it->addr_}, {"amount", it->amount_}};
-      if (it->nonce_ > 0) thisXfer += {"nonce", it->nonce_};
-      if (it->sig_.length() > 0) thisXfer += {"sig", it->sig_};
+  for (auto it = xfers_.begin(); it != xfers_.end(); ++it) {
+      json thisXfer = {{kADDR_TAG, it->addr_}, {kTYPE_TAG, it->coinIndex_},
+          {kAMOUNT_TAG, it->amount_}};
+      if (it->delay_ > 0) thisXfer += {kDELAY_TAG, it->delay_};
       xferArray += thisXfer;
   }
   j += {kXFER_TAG, xferArray};
+  if (sig_.length() > 0) j += {kSIG_TAG, sig_};
   return(j.dump());
 }
 

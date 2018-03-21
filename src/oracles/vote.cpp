@@ -8,7 +8,7 @@
 
 #include "vote.h"
 
-#include "../common/json.hpp"
+#include "common/json.hpp"
 
 using json = nlohmann::json;
 
@@ -36,8 +36,8 @@ bool DCVote::isValid(Devcash::DCTransaction checkTx) {
       LOG_WARNING << "Error: Voting in an uninitialized election.";
       return false;
     }
-    for (std::vector<Devcash::DCTransfer>::iterator it=checkTx.xfers_->begin();
-        it != checkTx.xfers_->end(); ++it) {
+    for (std::vector<Devcash::DCTransfer>::iterator it=checkTx.xfers_.begin();
+        it != checkTx.xfers_.end(); ++it) {
       if (it->amount_ > 0) {
         if (targets_->end() == std::find(targets_->begin(),
             targets_->end(), it->addr_)) {
@@ -57,8 +57,8 @@ bool DCVote::isValid(Devcash::DCTransaction checkTx,
       LOG_WARNING << "Error: Voting in an uninitialized election.";
       return false;
     }
-    for (std::vector<Devcash::DCTransfer>::iterator it=checkTx.xfers_->begin();
-        it != checkTx.xfers_->end(); ++it) {
+    for (std::vector<Devcash::DCTransfer>::iterator it=checkTx.xfers_.begin();
+        it != checkTx.xfers_.end(); ++it) {
       if (it->amount_ > 0) {
         if (targets_->end() == std::find(targets_->begin(),
             targets_->end(), it->addr_)) {
@@ -78,7 +78,8 @@ bool DCVote::isValid(Devcash::DCTransaction checkTx,
 
 DCTransaction DCVote::getT1Syntax(Devcash::DCTransaction theTx) {
   Devcash::DCTransaction out(theTx);
-  out.type_ = election_;
+  DCTransfer election(election_, DCVote::getCoinIndex(), 1, 0);
+  out.xfers_.push_back(election);
   return(out);
 }
 
@@ -110,8 +111,8 @@ DCTransaction DCVote::Tier2Process(std::string rawTx,
       return tx;
     }
   }
-
-  tx.type_ = election_;
+  DCTransfer election(election_, DCVote::getCoinIndex(), 1, 0);
+  tx.xfers_.push_back(election);
   return tx;
 }
 

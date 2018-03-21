@@ -12,12 +12,16 @@
 
 #include "chainstate.h"
 
+#include "primitives/SmartCoin.h"
+
 namespace Devcash
 {
 
 using namespace Devcash;
 
 std::map<std::string, std::map<std::string, long>> stateMap_;
+
+DCState::DCState() {}
 
 bool DCState::addCoin(SmartCoin& coin) {
   std::map<std::string, std::map<std::string, long>>::iterator it =

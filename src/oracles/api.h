@@ -13,10 +13,10 @@
 #include <string>
 
 #include "oracleInterface.h"
-#include "../common/json.hpp"
-#include "../common/logger.h"
-#include "../consensus/chainstate.h"
-#include "../primitives/transaction.h"
+#include "common/json.hpp"
+#include "common/logger.h"
+#include "consensus/chainstate.h"
+#include "primitives/transaction.h"
 
 using json = nlohmann::json;
 
@@ -31,6 +31,13 @@ class DCapi : public oracleInterface {
   */
   static std::string getCoinType() {
     return("api");
+  }
+
+  /**
+   *  @return int internal index of this coin type
+  */
+  static int getCoinIndex() {
+    return(5);
   }
 
   /** Checks if a transaction is objectively valid according to this oracle.
@@ -64,8 +71,7 @@ class DCapi : public oracleInterface {
    */
   bool isValid(Devcash::DCTransaction checkTx, Devcash::DCState& context) {
     if (!isValid(checkTx)) return false;
-    for (std::vector<Devcash::DCTransfer>::iterator it=checkTx.xfers_->begin();
-        it != checkTx.xfers_->end(); ++it) {
+    for (auto it=checkTx.xfers_.begin(); it != checkTx.xfers_.end(); ++it) {
       if (it->amount_ > 0) {
         if ((context.getAmount(getCoinType(), it->addr_) > 0)) {
           LOG_WARNING << "Error: Addr already has an API token.";
@@ -78,15 +84,13 @@ class DCapi : public oracleInterface {
 
 /** Generate a tier 1 smartcoin transaction based on this tier 2 transaction.
  *
- * @note if delay is zero, sets to default delay as side-effect.
- *
  * @pre This transaction must be valid.
  * @params checkTx the transaction to (in)validate
  * @return a tier 1 transaction to implement this tier 2 logic.
  */
   Devcash::DCTransaction getT1Syntax(Devcash::DCTransaction theTx) {
     Devcash::DCTransaction out(theTx);
-    if (out.delay_ == 0) out.delay_ = kAPI_LIFETIME;
+    //if (out.delay_ == 0) out.delay_ = kAPI_LIFETIME;
     return(out);
   }
 
@@ -118,7 +122,6 @@ class DCapi : public oracleInterface {
         return tx;
       }
       //TODO: verify reference with INN
-      if (tx.delay_ == 0) tx.delay_ = kAPI_LIFETIME;
     }
     return tx;
   }

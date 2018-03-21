@@ -5,7 +5,9 @@
  *  Author: Nick Williams
  *
  *  **Validation Structure**
- *  A map of miner addresses to signatures.
+ *  The validation block has two parts.
+ *  1. A summary of the change in chain state caused by the transactions.
+ *  2. A map of miner addresses to signatures.
  *
  *  **Core Validation Logic**
  *  All of the following statements must be true;
@@ -27,10 +29,62 @@
 namespace Devcash
 {
 
+struct DCSummaryItem {
+  long delta=0;
+  long delay=0;
+  DCSummaryItem(long delta=0, long delay=0) : delta(delta), delay(delay) {}
+};
+
 typedef std::unordered_map<std::string, std::string> vmap;
+typedef std::unordered_map<long, DCSummaryItem> coinmap;
+
+class DCSummary {
+ public:
+  /** Constrcutors */
+  DCSummary();
+  DCSummary(std::string canonical);
+  DCSummary(std::unordered_map<std::string, std::unordered_map<long, DCSummaryItem>> summary);
+
+  /** Adds a summary record to this block.
+   *  @param addr the address that this change applies to
+   *  @param item a chain state vector summary of transactions.
+   *  @return true iff the summary was added
+  */
+  bool addItem(std::string addr, long coinType, DCSummaryItem item);
+  /** Adds a summary record to this block.
+   *  @param addr the addresses involved in this change
+   *  @param coinType the type number for this coin
+   *  @param delta change in coins (>0 for receiving, <0 for spending)
+   *  @param delay the delay in seconds before this transaction can be received
+   *  @return true iff the summary was added
+  */
+  bool addItem(std::string addr, long coinType, long delta, long delay=0);
+
+  /** Adds multiple summary records to this block.
+   *  @param addr the addresses involved in these changes
+   *  @param items map of DCSummary items detailing these changes by coinType
+   *  @return true iff the summary was added
+  */
+  bool addItems(std::string addr,
+      std::unordered_map<long, DCSummaryItem> items);
+
+  /**
+   *  @return a canonical string summarizing these changes.
+  */
+  std::string toCanonical();
+
+  /**
+   *  @return true iff, the summary passes sanity checks
+  */
+  bool isSane();
+
+ private:
+   std::unordered_map<std::string, coinmap> summary_;
+};
 
 class DCValidationBlock {
  public:
+  DCSummary summaryObj_;
   vmap sigs_;
 
 /** Checks if this is an empty validation block.
@@ -52,6 +106,12 @@ class DCValidationBlock {
  *  @return true iff the validation verified against the node's public key
 */
   bool addValidation(std::string node, std::string sig);
+
+  /** Adds a summary to this block.
+   *  @param summary a vector of summary items
+   *  @return the summary object
+  */
+  DCSummary addSummary(std::vector<DCSummaryItem> summary);
 
 /** Returns a JSON string representing this validation block.
  *  @return a JSON string representing this validation block.

@@ -31,18 +31,18 @@
  *      Author: Nick Williams
  */
 
-#ifndef QUEUES_DEVCASHWORKERPOOL_H_
-#define QUEUES_DEVCASHWORKERPOOL_H_
+#ifndef CONCURRENCY_DEVCASHWORKERPOOL_H_
+#define CONCURRENCY_DEVCASHWORKERPOOL_H_
 
 #include <functional>
 #include <thread>
 
 #include <boost/thread/thread.hpp>
+#include <boost/asio/io_service.hpp>
 
 #include "types/DevcashMessage.h"
 #include "common/logger.h"
 #include "common/util.h"
-
 #include "DevcashRingQueue.h"
 
 namespace Devcash {
@@ -63,29 +63,10 @@ static const int kDEFAULT_WORKERS = 10;
 class DevcashWorkerPool {
  public:
 
-  /** The internal callback from boost.
-   * Pops unique_ptr from the queue and passes the DevcashMessage to
-   * the registered consumer callback function.
-   * @note consumer is now fully responsible for the DevcashMessage.
-   */
-  void theLoop() {
-    CASH_TRY {
-      while (continue_) {
-        std::unique_ptr<DevcashMessage> nextMsg(trigger_.pop());
-        callback_(*nextMsg.get());
-      }
-    } CASH_CATCH (const std::exception& e) {
-      LOG_WARNING << FormatException(&e, "DevcashWorkerPool.theLoop");
-    }
-  }
-
   /* Constructors/Destructors */
-  DevcashWorkerPool(std::function<void(DevcashMessage)> callback,
+  DevcashWorkerPool(std::function<void(std::unique_ptr<DevcashMessage>)> callback,
       const int workers=kDEFAULT_WORKERS) :
       callback_(callback), continue_(true) {
-    for (int w = 0; w < workers; w++) {
-      pool_.create_thread(boost::bind(&Devcash::DevcashWorkerPool::theLoop, this));
-    }
   }
 
   virtual ~DevcashWorkerPool() {
@@ -96,6 +77,12 @@ class DevcashWorkerPool {
   /* Disallow copy and assign */
   DevcashWorkerPool(DevcashWorkerPool const&) = delete;
   DevcashWorkerPool& operator=(DevcashWorkerPool const&) = delete;
+
+  void start() {
+    for (int w = 0; w < workerNum_; w++) {
+      pool_.create_thread(boost::bind(&DevcashWorkerPool::theLoop, this));
+    }
+  }
 
   /** Stops all threads in this pool.
    * @note This function may block.
@@ -108,7 +95,7 @@ class DevcashWorkerPool {
       pool_.join_all();
       return true;
     } CASH_CATCH (const std::exception& e) {
-      LOG_WARNING << FormatException(&e, "DevcashWorkerPool.stopAll");
+      LOG_WARNING << FormatException(&e, "stopAll");
       return false;
     }
   }
@@ -118,24 +105,38 @@ class DevcashWorkerPool {
    * @note This function blocks when the ring queue is full!
    * @param message the DevcashMessage to push.
    */
-  void push(DevcashMessage message) {
+  void push(std::unique_ptr<DevcashMessage> message) {
     CASH_TRY {
-      DevcashMessage* msg = &message;
-      std::unique_ptr<DevcashMessage> ptr(msg);
-      trigger_.push(std::move(ptr));
+      trigger_.push(std::move(message));
     } CASH_CATCH (const std::exception& e) {
-      LOG_WARNING << FormatException(&e, "DevcashWorkerPool.push");
+      LOG_WARNING << FormatException(&e, "someStr");
+    }
+  }
+
+  /** The internal callback from boost.
+   * Pops unique_ptr from the queue and passes the DevcashMessage to
+   * the registered consumer callback function.
+   * @note consumer is now fully responsible for the DevcashMessage.
+   */
+  void theLoop() {
+    CASH_TRY {
+      while (continue_) {
+        callback_(std::move(trigger_.pop()));
+      }
+    } CASH_CATCH (const std::exception& e) {
+      LOG_WARNING << FormatException(&e, "DevcashWorkerPool.theLoop");
     }
   }
 
  private:
+  int workerNum_ = kDEFAULT_WORKERS;
   boost::thread_group pool_;
   DevcashRingQueue trigger_; //the ring queue triggers callbacks
-  std::function<void(DevcashMessage)> callback_; //the callback for this pool
+  std::function<void(std::unique_ptr<DevcashMessage>)> callback_; //callback for this pool
   std::atomic<bool> continue_;  //signals all threads to stop gracefully
 
 };
 
 } /* namespace Devcash */
 
-#endif /* QUEUES_DEVCASHWORKERPOOL_H_ */
+#endif /* CONCURRENCY_DEVCASHWORKERPOOL_H_ */

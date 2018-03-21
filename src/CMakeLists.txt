@@ -83,8 +83,14 @@ file(GLOB consensus_SRC
 )
 add_library(consensus ${consensus_SRC})
 
-# Add init.cpp
-add_library(init init.cpp)
+# Build the io module objects
+file(GLOB io_SRC
+    "io/*.cpp"
+)
+add_library(io ${io_SRC})
+
+# Add devcashnode.cpp
+add_library(devcashnode devcashnode.cpp)
 
 option(WITH_THREAD_TESTING "Enable thread testing" OFF)
 
@@ -94,11 +100,12 @@ endif()
 
 add_executable(devcash devcash.cpp ${dcInclude})
 target_link_libraries (devcash
-  init
+  devcashnode
   common
   primitives
   oracles
   consensus
+  io
   )
 
 find_package (OpenSSL REQUIRED)
@@ -128,7 +135,7 @@ install (TARGETS devcash DESTINATION bin)
 # i/o Tests
 #
 add_executable(ring_queue_test
-  tests/concurrency/ring_queue_test.cpp
+  tests/queues/ring_queue_test.cpp
   )
 
 target_link_libraries(ring_queue_test
@@ -146,7 +153,7 @@ install (TARGETS ring_queue_test DESTINATION bin)
 
 # # # devcash_spsc_queue_test
 add_executable(devcash_spsc_queue_test
-  tests/concurrency/devcash_spsc_queue_test.cpp
+  tests/queues/devcash_spsc_queue_test.cpp
   )
 
 target_link_libraries(devcash_spsc_queue_test
@@ -164,7 +171,7 @@ install (TARGETS devcash_spsc_queue_test DESTINATION bin)
 
 # # # boost_spsc_test
 add_executable(boost_spsc_test
-  tests/concurrency/boost_spsc_test.cpp
+  tests/queues/boost_spsc_test.cpp
   )
 
 target_link_libraries(boost_spsc_test
@@ -176,7 +183,7 @@ target_link_libraries(boost_spsc_test
 install (TARGETS boost_spsc_test DESTINATION bin)
 
 #add_executable(producer_consumer_queue_test
-#  tests/concurrency/producer_consumer_queue_test.cpp
+#  tests/queues/producer_consumer_queue_test.cpp
 #  )
 #
 #target_link_libraries(producer_consumer_queue_test

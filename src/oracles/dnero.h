@@ -14,9 +14,9 @@
 #include "dneroavailable.h"
 #include "dnerowallet.h"
 #include "oracleInterface.h"
-#include "../common/logger.h"
-#include "../consensus/chainstate.h"
-#include "../primitives/transaction.h"
+#include "common/logger.h"
+#include "consensus/chainstate.h"
+#include "primitives/transaction.h"
 
 class dnero : public oracleInterface {
 
@@ -31,6 +31,13 @@ class dnero : public oracleInterface {
     return("dnero");
   }
 
+  /**
+   *  @return int internal index of this coin type
+  */
+  static int getCoinIndex() {
+    return(0);
+  }
+
   /** Checks if a transaction is objectively valid according to this oracle.
    *  When this function returns false, a transaction is syntactically invalid
    *  and will be invalid for all chain states.
@@ -40,7 +47,7 @@ class dnero : public oracleInterface {
    * @return true iff the transaction can be valid according to this oracle
    * @return false otherwise
    */
-  bool isValid(Devcash::DCTransaction) {
+  bool isValid(Devcash::DCTransaction checkTx) {
     return true;
   }
 
@@ -58,8 +65,8 @@ class dnero : public oracleInterface {
    */
   bool isValid(Devcash::DCTransaction checkTx, Devcash::DCState& context) {
     if (!isValid(checkTx)) return false;
-    for (std::vector<Devcash::DCTransfer>::iterator it=checkTx.xfers_->begin();
-        it != checkTx.xfers_->end(); ++it) {
+    for (std::vector<Devcash::DCTransfer>::iterator it=checkTx.xfers_.begin();
+        it != checkTx.xfers_.end(); ++it) {
       if (it->amount_ < 0) {
         if ((context.getAmount(dnerowallet::getCoinType(), it->addr_) < 1) &&
             (context.getAmount(dneroavailable::getCoinType(),it->addr_) < 1)) {
@@ -81,8 +88,8 @@ class dnero : public oracleInterface {
  */
   Devcash::DCTransaction getT1Syntax(Devcash::DCTransaction theTx) {
     Devcash::DCTransaction out(theTx);
-    if (out.delay_ == 0) out.delay_ = kDEFAULT_DELAY;
-    out.type_ = dcash::getCoinType();
+    //if (out.delay_ == 0) out.delay_ = kDEFAULT_DELAY;
+    //out.type_ = dcash::getCoinType();
     return(out);
   }
 
@@ -104,8 +111,8 @@ class dnero : public oracleInterface {
       tx.setNull();
       return tx;
     }
-    if (tx.delay_ == 0) tx.delay_ = kDEFAULT_DELAY;
-    tx.type_ = dcash::getCoinType();
+    //if (tx.delay_ == 0) tx.delay_ = kDEFAULT_DELAY;
+    //tx.type_ = dcash::getCoinType();
     return tx;
   }
 
