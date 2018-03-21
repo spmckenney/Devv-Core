@@ -135,7 +135,7 @@ install (TARGETS devcash DESTINATION bin)
 # i/o Tests
 #
 add_executable(ring_queue_test
-  tests/queues/ring_queue_test.cpp
+  tests/concurrency/ring_queue_test.cpp
   )
 
 target_link_libraries(ring_queue_test
@@ -153,7 +153,7 @@ install (TARGETS ring_queue_test DESTINATION bin)
 
 # # # devcash_spsc_queue_test
 add_executable(devcash_spsc_queue_test
-  tests/queues/devcash_spsc_queue_test.cpp
+  tests/concurrency/devcash_spsc_queue_test.cpp
   )
 
 target_link_libraries(devcash_spsc_queue_test
@@ -171,7 +171,7 @@ install (TARGETS devcash_spsc_queue_test DESTINATION bin)
 
 # # # boost_spsc_test
 add_executable(boost_spsc_test
-  tests/queues/boost_spsc_test.cpp
+  tests/concurrency/boost_spsc_test.cpp
   )
 
 target_link_libraries(boost_spsc_test
@@ -183,7 +183,7 @@ target_link_libraries(boost_spsc_test
 install (TARGETS boost_spsc_test DESTINATION bin)
 
 #add_executable(producer_consumer_queue_test
-#  tests/queues/producer_consumer_queue_test.cpp
+#  tests/concurrency/producer_consumer_queue_test.cpp
 #  )
 #
 #target_link_libraries(producer_consumer_queue_test
