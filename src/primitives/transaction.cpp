@@ -9,10 +9,10 @@
 
 #include <stdint.h>
 
-#include "common/json.hpp"
-#include "common/logger.h"
-#include "common/ossladapter.h"
-#include "oracles/oracleInterface.h"
+#include "../common/json.hpp"
+#include "../common/logger.h"
+#include "../common/ossladapter.h"
+#include "../oracles/oracleInterface.h"
 
 using json = nlohmann::json;
 
@@ -29,7 +29,7 @@ static const std::string kADDR_TAG = "addr";
 static const std::string kAMOUNT_TAG = "amount";
 static const std::string kNONCE_TAG = "nonce";
 static const std::string kSIG_TAG = "sig";
-static const std::string kSMARTCOIN = "SmartCoin";
+//static const std::string kSMARTCOIN = "SmartCoin";
 
 struct OpString
 {

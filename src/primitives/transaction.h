@@ -25,8 +25,8 @@
 #include <vector>
 #include <stdint.h>
 
-#include "common/json.hpp"
-#include "common/ossladapter.h"
+#include "../common/json.hpp"
+#include "../common/ossladapter.h"
 using json = nlohmann::json;
 
 namespace Devcash
@@ -125,12 +125,12 @@ class DCTransaction {
   DCTransaction(const DCTransaction& tx);
 
   /** Sets this to a null/invalid transaction. */
-    void setNull() { nonce_ = -1; }
+    void setNull() { nonce_ = 0; }
 
   /** Checks if this is a null transaction.
    *  @return true iff this transaction is empty and invalid
   */
-    bool isNull() const { return (-1 == nonce_); }
+    bool isNull() const { return (nonce_ < 1); }
 
 /** Checks if this transaction is valid.
  *  Transactions are atomic, so if any portion of the transaction is invalid,

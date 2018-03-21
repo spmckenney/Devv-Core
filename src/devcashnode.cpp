@@ -161,7 +161,6 @@ bool DevcashNode::SanityChecks()
         appContext.kADDR_KEYs[1]);
 
     std::string sDer = sign(loadkey, hash);
-    std::cout << sDer << std::endl;
     return(verifySig(loadkey, hash, sDer));
   } CASH_CATCH (const std::exception& e) {
     FormatException(&e, "DevcashNode.initCrypto");

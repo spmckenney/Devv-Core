@@ -13,9 +13,9 @@
 #include <stdint.h>
 #include <string>
 
-#include "common/json.hpp"
-#include "common/logger.h"
-#include "common/ossladapter.h"
+#include "../common/json.hpp"
+#include "../common/logger.h"
+#include "../common/ossladapter.h"
 
 namespace Devcash
 {
@@ -54,7 +54,7 @@ coinmap getAddrSummary(std::string raw) {
 }
 
 DCSummary::DCSummary(std::string canonical) {
-  //CASH_TRY {
+  CASH_TRY {
     if (canonical.at(0) == '{') {
       std::stringstream ss(canonical);
       std::string temp = "";
@@ -70,9 +70,9 @@ DCSummary::DCSummary(std::string canonical) {
         summary_.insert(addrSet);
       }
     }
-  /*} CASH_CATCH (const std::exception& e) {
+  } CASH_CATCH (const std::exception& e) {
     LOG_WARNING << FormatException(&e, "summary");
-  }*/
+  }
 }
 
 DCSummary::DCSummary(std::unordered_map<std::string,
@@ -81,7 +81,7 @@ DCSummary::DCSummary(std::unordered_map<std::string,
 }
 
 bool DCSummary::addItem(std::string addr, long coinType, DCSummaryItem item) {
-  //CASH_TRY {
+  CASH_TRY {
     if (summary_.count(addr) > 0) {
       std::unordered_map<long, DCSummaryItem> existing(summary_.at(addr));
       if (existing.count(coinType) > 0) {
@@ -106,10 +106,10 @@ bool DCSummary::addItem(std::string addr, long coinType, DCSummaryItem item) {
       summary_.insert(oneSummary);
     }
     return true;
-  /*} CASH_CATCH (const std::exception& e) {
+  } CASH_CATCH (const std::exception& e) {
     LOG_WARNING << FormatException(&e, "summary");
     return false;
-  }*/
+  }
 }
 
 bool DCSummary::addItem(std::string addr, long coinType, long delta,
@@ -119,8 +119,8 @@ bool DCSummary::addItem(std::string addr, long coinType, long delta,
 }
 
 bool DCSummary::addItems(std::string addr,
-    std::unordered_map<long, DCSummaryItem> items) {
-  //CASH_TRY {
+  std::unordered_map<long, DCSummaryItem> items) {
+  CASH_TRY {
     if (summary_.count(addr) > 0) {
       std::unordered_map<long, DCSummaryItem> existing(summary_.at(addr));
       for (auto iter = items.begin(); iter != items.end(); ++iter) {
@@ -144,10 +144,10 @@ bool DCSummary::addItems(std::string addr,
       summary_.insert(oneSummary);
     }
     return true;
-  /*} CASH_CATCH (const std::exception& e) {
+  } CASH_CATCH (const std::exception& e) {
     LOG_WARNING << FormatException(&e, "summary");
     return false;
-  }*/
+  }
 }
 
 std::string DCSummary::toCanonical() {
@@ -174,7 +174,7 @@ std::string DCSummary::toCanonical() {
 
 /* All transactions must be symmetric wrt coin type */
 bool DCSummary::isSane() {
-  //CASH_TRY {
+  CASH_TRY {
     if (summary_.empty()) return false;
     long coinTotal = 0;
     for (auto iter = summary_.begin(); iter != summary_.end(); ++iter) {
@@ -185,14 +185,14 @@ bool DCSummary::isSane() {
       if (coinTotal != 0) return false;
     }
     return true;
-  /*} CASH_CATCH (const std::exception& e) {
+  } CASH_CATCH (const std::exception& e) {
     LOG_WARNING << FormatException(&e, "summary");
     return false;
-  }*/
+  }
 }
 
 DCValidationBlock::DCValidationBlock(std::string jsonMsg) {
-  //CASH_TRY {
+  CASH_TRY {
     json j = json::parse(jsonMsg);
     json temp = json::array();
     for (auto iter = j.begin(); iter != j.end(); ++iter) {
@@ -204,16 +204,16 @@ DCValidationBlock::DCValidationBlock(std::string jsonMsg) {
     }
     hash_ = ComputeHash();
     jsonStr_ = temp.dump();
-  /*} CASH_CATCH (const std::exception& e) {
+  } CASH_CATCH (const std::exception& e) {
     LOG_WARNING << FormatException(&e, "validation");
-  }*/
+  }
 }
 
 DCValidationBlock::DCValidationBlock() {
 }
 
 DCValidationBlock::DCValidationBlock(std::vector<uint8_t> cbor) {
-  //CASH_TRY {
+  CASH_TRY {
     json j = json::from_cbor(cbor);
     json temp = json::array();
     for (auto iter = j.begin(); iter != j.end(); ++iter) {
@@ -225,9 +225,9 @@ DCValidationBlock::DCValidationBlock(std::vector<uint8_t> cbor) {
     }
     hash_ = ComputeHash();
     jsonStr_ = temp.dump();
-  /*} CASH_CATCH (const std::exception& e) {
+  } CASH_CATCH (const std::exception& e) {
     LOG_WARNING << FormatException(&e, "validation");
-  }*/
+  }
 }
 
 DCValidationBlock::DCValidationBlock(const DCValidationBlock& other)
@@ -235,35 +235,34 @@ DCValidationBlock::DCValidationBlock(const DCValidationBlock& other)
 }
 
 DCValidationBlock::DCValidationBlock(std::string node, std::string sig) {
-  //CASH_TRY {
+  CASH_TRY {
     std::pair<std::string, std::string> oneSig(node, sig);
     sigs_.insert(oneSig);
     hash_ = ComputeHash();
     json j = {node, sig};
     jsonStr_ = j.dump();
-  /*} CASH_CATCH (const std::exception& e) {
+  } CASH_CATCH (const std::exception& e) {
     LOG_WARNING << FormatException(&e, "validation");
-  }*/
+  }
 }
 
-DCValidationBlock::DCValidationBlock(vmap sigMap) {
-  //CASH_TRY {
-    //sigs(sigMap);
+DCValidationBlock::DCValidationBlock(vmap sigMap) : sigs_(sigMap) {
+  CASH_TRY {
     hash_ = ComputeHash();
-  /*} CASH_CATCH (const std::exception& e) {
+  } CASH_CATCH (const std::exception& e) {
     LOG_WARNING << FormatException(&e, "validation");
-  }*/
+  }
 }
 
 bool DCValidationBlock::addValidation(std::string node, std::string sig) {
-  //CASH_TRY {
+  CASH_TRY {
     std::pair<std::string, std::string> oneSig(node, sig);
     sigs_.insert(oneSig);
     hash_ = ComputeHash();
     return(true);
-  /*} CASH_CATCH (const std::exception& e) {
+  } CASH_CATCH (const std::exception& e) {
     LOG_WARNING << FormatException(&e, "validation");
-  }*/
+  }
   return(false);
 }
 
