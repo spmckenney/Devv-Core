@@ -70,13 +70,13 @@ std::atomic<bool> fRequestShutdown(false); /** has a shutdown been requested? */
 bool isCryptoInit = false;
 DevcashContext appContext;
 
-zmq::context_t* zmqContext = zmq_ctx_new();
-io::TransactionClient client(*zmqContext);
-io::TransactionServer server(*zmqContext, "self");
+zmq::context_t zmqContext(zmq_ctx_new());
+io::TransactionClient client(zmqContext);
+io::TransactionServer server(zmqContext, "self");
 
 DCState* chainState = new DCState();
-ConsensusWorker consensus(chainState, &server, 10);
-ValidatorWorker validator(chainState, &consensus, 10);
+ConsensusWorker consensus(chainState, &server, kCONSENSUS_THREADS);
+ValidatorWorker validator(chainState, &consensus, kVALIDATOR_THREADS);
 
 
 void DevcashNode::StartShutdown()
@@ -188,7 +188,7 @@ std::string DevcashNode::RunNode(std::string inStr)
 {
   std::string out("");
   CASH_TRY {
-    client.AttachCallback([&validator, &consensus](std::unique_ptr<DevcashMessage> ptr) {
+    client.AttachCallback([this](std::unique_ptr<DevcashMessage> ptr) {
       if (ptr->message_type == TRANSACTION_ANNOUNCEMENT) {
           validator.push(std::move(ptr));
         } else {

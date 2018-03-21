@@ -12,11 +12,12 @@
 
 namespace Devcash {
 
-static const int N_THREADS = 64;  /** Number of threads to use. */
+static const int kVALIDATOR_THREADS = 10;
+static const int kCONSENSUS_THREADS = 10;
 enum eAppMode {T1,T2,scan};
 
 //Consensus Params
-static const int activtionRounds = 1;
+static const int activtionRounds = 334;
 static const int proposalTimeout = 60000;
 static const int validationPercent = 51;
 
