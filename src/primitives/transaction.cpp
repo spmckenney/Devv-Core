@@ -9,10 +9,10 @@
 
 #include <stdint.h>
 
-#include "../common/json.hpp"
-#include "../common/logger.h"
-#include "../common/ossladapter.h"
-#include "../oracles/oracleInterface.h"
+#include "common/json.hpp"
+#include "common/logger.h"
+#include "common/ossladapter.h"
+#include "oracles/oracleInterface.h"
 
 using json = nlohmann::json;
 

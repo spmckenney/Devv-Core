@@ -25,8 +25,8 @@
 #include <vector>
 #include <stdint.h>
 
-#include "../common/json.hpp"
-#include "../common/ossladapter.h"
+#include "common/json.hpp"
+#include "common/ossladapter.h"
 using json = nlohmann::json;
 
 namespace Devcash

@@ -79,8 +79,12 @@ class DevcashWorkerPool {
   DevcashWorkerPool& operator=(DevcashWorkerPool const&) = delete;
 
   void start() {
-    for (int w = 0; w < workerNum_; w++) {
-      pool_.create_thread(boost::bind(&DevcashWorkerPool::theLoop, this));
+    CASH_TRY {
+      for (int w = 0; w < workerNum_; w++) {
+        pool_.create_thread(boost::bind(&DevcashWorkerPool::theLoop, this));
+      }
+    } CASH_CATCH (const std::exception& e) {
+      LOG_WARNING << FormatException(&e, "Worker.start");
     }
   }
 
@@ -90,12 +94,13 @@ class DevcashWorkerPool {
    * @return false if some error occurred.
    */
   bool stopAll() {
-	CASH_TRY {
-	  continue_ = false;
+	  CASH_TRY {
+	    continue_ = false;
+	    trigger_.clearBlockers();
       pool_.join_all();
       return true;
     } CASH_CATCH (const std::exception& e) {
-      LOG_WARNING << FormatException(&e, "stopAll");
+      LOG_WARNING << FormatException(&e, "Worker.stopAll");
       return false;
     }
   }
@@ -109,7 +114,7 @@ class DevcashWorkerPool {
     CASH_TRY {
       trigger_.push(std::move(message));
     } CASH_CATCH (const std::exception& e) {
-      LOG_WARNING << FormatException(&e, "someStr");
+      LOG_WARNING << FormatException(&e, "Worker.push");
     }
   }
 
@@ -121,10 +126,12 @@ class DevcashWorkerPool {
   void theLoop() {
     CASH_TRY {
       while (continue_) {
+        trigger_.popGuard();
+        if (!continue_) break;
         callback_(std::move(trigger_.pop()));
       }
     } CASH_CATCH (const std::exception& e) {
-      LOG_WARNING << FormatException(&e, "DevcashWorkerPool.theLoop");
+      LOG_WARNING << FormatException(&e, "Worker.theLoop");
     }
   }
 

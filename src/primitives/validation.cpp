@@ -13,9 +13,9 @@
 #include <stdint.h>
 #include <string>
 
-#include "../common/json.hpp"
-#include "../common/logger.h"
-#include "../common/ossladapter.h"
+#include "common/json.hpp"
+#include "common/logger.h"
+#include "common/ossladapter.h"
 
 namespace Devcash
 {

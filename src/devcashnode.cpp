@@ -94,7 +94,7 @@ void DevcashNode::Shutdown()
   //TODO: how to stop zmq?
   consensus.stopAll();
   validator.stopAll();
-  LOG_INFO << "Shutting down DevCash";
+  LOG_INFO << "Shutting down DevCash\n";
 }
 
 DevcashNode::DevcashNode(std::string mode, int nodeIndex) : appContext() {
@@ -124,7 +124,7 @@ bool initCrypto()
     isCryptoInit = true;
     return true;
   } CASH_CATCH (const std::exception& e) {
-    FormatException(&e, "DevcashNode.initCrypto");
+    LOG_FATAL << FormatException(&e, "DevcashNode.initCrypto");
   }
   return(false);
 }
@@ -143,7 +143,6 @@ bool DevcashNode::Init()
 
 bool DevcashNode::SanityChecks()
 {
-  bool retVal = false;
   CASH_TRY {
     if (!isCryptoInit) initCrypto();
     EVP_MD_CTX *ctx;
@@ -153,8 +152,7 @@ bool DevcashNode::SanityChecks()
     }
 
     std::string msg("hello");
-    std::string hash("");
-    hash = strHash(msg);
+    std::string hash(strHash(msg));
 
     EC_KEY* loadkey = loadEcKey(ctx,
         appContext.kADDRs[1],
@@ -163,9 +161,9 @@ bool DevcashNode::SanityChecks()
     std::string sDer = sign(loadkey, hash);
     return(verifySig(loadkey, hash, sDer));
   } CASH_CATCH (const std::exception& e) {
-    FormatException(&e, "DevcashNode.initCrypto");
+    LOG_FATAL << FormatException(&e, "DevcashNode.sanityChecks");
   }
-  return(retVal);
+  return false;
 }
 
 std::string DevcashNode::RunScanner(std::string inStr) {
@@ -178,7 +176,7 @@ std::string DevcashNode::RunScanner(std::string inStr) {
     //remove escape chars
     out.erase(remove(out.begin(), out.end(), '\\'), out.end());
   } CASH_CATCH (const std::exception& e) {
-    FormatException(&e, "DevcashNode.RunScanner");
+    LOG_ERROR << FormatException(&e, "DevcashNode.RunScanner");
   }
   return out;
 }
@@ -195,15 +193,20 @@ std::string DevcashNode::RunNode(std::string inStr)
         }
     });
 
-    validator.start();
+    validator.start();;
     consensus.start();
     std::vector<uint8_t> data(100);
     auto startMsg = std::unique_ptr<DevcashMessage>(
         new DevcashMessage("self", TRANSACTION_ANNOUNCEMENT, data));
     server.QueueMessage(std::move(startMsg));
     //client.Run();
+
+	//make sure child threads are actually initialized before shutting down
+    boost::this_thread::sleep_for(boost::chrono::milliseconds(2000));
+    StartShutdown();
+    LOG_INFO << "end of RunNode\n";
   } CASH_CATCH (const std::exception& e) {
-    FormatException(&e, "DevcashNode.RunScanner");
+    LOG_FATAL << FormatException(&e, "DevcashNode.RunScanner");
   }
 
   return out;
