@@ -3,15 +3,16 @@ set(CMAKE_LEGACY_CYGWIN_WIN32 0)
 
 project("Devcash")
 
-set (CMAKE_CXX_STANDARD 11)
-set (Devcash_VERSION_MAJOR 0)
-set (Devcash_VERSION_MINOR 1)
+set (CMAKE_CXX_STANDARD 14)
+set (CMAKE_CXX_STANDARD_REQUIRED ON)
+set (DevCash_VERSION_MAJOR 0)
+set (DevCash_VERSION_MINOR 2)
 
 enable_testing()
 
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" OR
     "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-    set(warnings "-Wall -Wextra -std=gnu++11 -Wno-unused-function")
+set(warnings "-Wall -Wextra -std=gnu++11 -Wno-unused-function")
 elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
     set(warnings "/W4 /WX /EHsc")
 endif()
@@ -25,30 +26,7 @@ endif()
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 include_directories(${CMAKE_SOURCE_DIR})
-
-# External third-party libraries
-find_library(ZMQ zmq)
-
-# Facebook specific libraries
-find_library(FOLLY folly PATHS)
-find_library(ZSTD zstd)
-
-# # # # Begin Thrift
-find_program(THRIFT1 thrift1)
-find_library(THRIFTCPP2 thriftcpp2)
-find_library(THRIFTPROTOCOL thriftprotocol)
-find_library(PROTOCOL protocol)
-find_library(TRANSPORT transport)
-find_path(THRIFT_COMPILER_INCLUDE thrift/templates)
-set(THRIFT_TEMPLATES ${THRIFT_COMPILER_INCLUDE}/thrift/templates)
-include(${THRIFT_COMPILER_INCLUDE}/thrift/ThriftLibrary.cmake)
-
-#
-# Generate thrift defs for C++ only. For python install via setuptools
-#
-set(THRIFT_DIR ${CMAKE_BINARY_DIR}/thrift)
-file(MAKE_DIRECTORY ${THRIFT_DIR})
-# # # # End Thrift
+include_directories(${CMAKE_BINARY_DIR})
 
 file(GLOB_RECURSE dcSources "*.cpp")
 file(GLOB_RECURSE dcHeaders "*.h*")
@@ -63,7 +41,51 @@ list(REMOVE_DUPLICATES dcInclude)
 file(GLOB primitives_SRC
     "primitives/*.cpp"
 )
-add_library(primitives ${primitives_SRC})
+
+# External third-party libraries
+find_library(DOUBLECONV double-conversion)
+find_library(GFLAGS gflags)
+find_library(GLOG glog)
+find_library(PTHREAD pthread)
+find_library(SODIUM sodium)
+find_library(ZMQ zmq)
+
+# Facebook specific libraries
+find_library(FOLLY folly PATHS)
+find_library(ZSTD zstd)
+
+# Include Thrift
+find_program(THRIFT1 thrift1)
+find_library(THRIFTCPP2 thriftcpp2)
+find_library(THRIFTPROTOCOL thriftprotocol)
+find_library(PROTOCOL protocol)
+find_library(TRANSPORT transport)
+find_path(THRIFT_COMPILER_INCLUDE thrift/templates)
+set(THRIFT_TEMPLATES ${THRIFT_COMPILER_INCLUDE}/thrift/templates)
+include(${THRIFT_COMPILER_INCLUDE}/thrift/ThriftLibrary.cmake)
+
+#
+# Generate thrift defs for C++ only. For python install via setuptools
+#
+set(THRIFT_DIR ${CMAKE_BINARY_DIR}/thrift)
+file(MAKE_DIRECTORY ${THRIFT_DIR})
+
+thrift_object(
+    "Devcash" #file_name
+    "" #services
+    "cpp2" #language
+    "json,optionals" #options
+    "${CMAKE_SOURCE_DIR}/io" #file_path
+    "${THRIFT_DIR}" #output_path
+    "thrift" #include_prefix
+)
+file(GLOB_RECURSE devcash_headers "*.h*")
+set (devcash_includes "")
+foreach (_headerFile ${devcash_headers})
+  get_filename_component(_dir ${_headerFile} PATH)
+  list (APPEND devcash_includes ${_dir})
+endforeach()
+list(REMOVE_DUPLICATES devcash_includes)
 
 # Build the common module objects
 file(GLOB common_SRC
@@ -87,7 +109,18 @@ add_library(consensus ${consensus_SRC})
 file(GLOB io_SRC
     "io/*.cpp"
 )
-add_library(io ${io_SRC})
+add_library(io
+  ${io_SRC}
+  )
+
+# Build the primitives objects
+file(GLOB primitives_SRC
+    "primitives/*.cpp"
+)
+add_library(primitives ${primitives_SRC})
+
+# Add init.cpp
+add_library(init init.cpp)
 
 # Add devcashnode.cpp
 add_library(devcashnode devcashnode.cpp)
@@ -102,6 +135,7 @@ add_executable(devcash devcash.cpp ${dcInclude})
 target_link_libraries (devcash
   devcashnode
   common
+  io
   primitives
   oracles
   consensus
@@ -198,3 +232,78 @@ install (TARGETS boost_spsc_test DESTINATION bin)
 #  ${Boost_LIBRARIES}
 #  )
 #
+
+set(fbzmq_LIBRARIES "")
+
+list(APPEND fbzmq_LIBRARIES
+  fbzmq
+  ${DOUBLECONV}
+  ${ZSTD}
+  ${FOLLY}
+  ${GFLAGS}
+  ${GLOG}
+  ${ZMQ}
+  ${SODIUM}
+  ${PTHREAD}
+  ${THRIFTPROTOCOL}
+  ${PROTOCOL}
+  ${TRANSPORT}
+)
+
+#
+# i/o Tests
+#
+add_executable(t1_example
+  tests/io/t1_example.cpp
+  )
+
+target_link_libraries(t1_example
+  io
+  common
+  ${fbzmq_LIBRARIES}
+  ${OPENSSL_LIBRARIES}
+  ${Boost_LIBRARIES}
+  )
+
+add_executable(io_server_test
+  tests/io/transaction_server.cpp
+  )
+
+target_link_libraries(io_server_test
+  io
+  common
+  ${fbzmq_LIBRARIES}
+  ${OPENSSL_LIBRARIES}
+  ${Boost_LIBRARIES}
+  )
+
+add_executable(io_client_test
+  tests/io/transaction_client.cpp
+  )
+
+target_link_libraries(io_client_test
+  io
+  common
+  ${fbzmq_LIBRARIES}
+  ${OPENSSL_LIBRARIES}
+  ${Boost_LIBRARIES}
+  )
+
+# # # zmq_envelope_publisher
+add_executable(zmq_envelope_publisher
+  tests/io/zmq_envelope_publisher.cpp
+  )
+
+target_link_libraries(zmq_envelope_publisher
+  ${ZMQ}
+  )
+
+# # # zmq_envelope_subscriber
+add_executable(zmq_envelope_subscriber
+  tests/io/zmq_envelope_subscriber.cpp
+  )
+
+target_link_libraries(zmq_envelope_subscriber
+  ${ZMQ}
+  )
+

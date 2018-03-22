@@ -5,8 +5,8 @@
  *      Author: Silver
  */
 
-#ifndef QUEUES_DEVCASHMESSAGE_H_
-#define QUEUES_DEVCASHMESSAGE_H_
+#ifndef TYPES_DEVCASHMESSAGE_H_
+#define TYPES_DEVCASHMESSAGE_H_
 
 #include <stdint.h>
 #include <string>
@@ -29,8 +29,17 @@ struct DevcashMessage {
   URI uri;
   eMessageType message_type;
   std::vector<uint8_t> data;
-  DevcashMessage(URI uri, eMessageType msgType, std::vector<uint8_t> data) :
-    uri(uri), message_type(msgType), data(data) {}
+  int index;
+
+  DevcashMessage() : uri(""), message_type(eMessageType::VALID), data() {}
+  DevcashMessage(URI uri, eMessageType msgType, std::vector<uint8_t>& data, int index=0) :
+    uri(uri), message_type(msgType), data(data), index(index) {}
+
+  /**
+   * Constructor. Takes a string to initialize data vector
+   */
+  DevcashMessage(const URI& uri, eMessageType msgType, const std::string& data, int index=0) :
+    uri(uri), message_type(msgType), data(data.begin(), data.end()), index(index) {}
 };
 
 static std::vector<uint8_t> serialize(DevcashMessage msg) {
@@ -46,6 +55,8 @@ static DevcashMessage deserialize(std::vector<uint8_t> bytes, std::string uri) {
   return(DevcashMessage(uri, msgType, bytes));
 }
 
+typedef std::unique_ptr<DevcashMessage> DevcashMessageUniquePtr;
+
 } /* namespace Devcash */
 
-#endif /* QUEUES_DEVCASHMESSAGE_H_ */
+#endif /* TYPES_DEVCASHMESSAGE_H_ */

@@ -6,15 +6,15 @@
  */
 #pragma once
 
-#include "zhelpers.hpp"
+#include "io/zhelpers.hpp"
+
+#include "types/DevcashMessage.h"
 #include "concurrency/DevcashSPSCQueue.h"
-#include "concurrency/DevcashWorkerPool.h"
 
 namespace Devcash {
-
 namespace io {
 
-typedef std::function<void(std::unique_ptr<DevcashMessage>)> DevcashMessageCallback;
+typedef std::function<void(DevcashMessageUniquePtr)> DevcashMessageCallback;
 
 class TransactionServer final {
  public:
@@ -27,12 +27,12 @@ class TransactionServer final {
   TransactionServer& operator=(const TransactionServer&) = delete;
 
   // Send a message
-  void SendMessage(std::unique_ptr<DevcashMessage> message) noexcept;
+  void SendMessage(DevcashMessageUniquePtr message) noexcept;
 
   /**
    * Queue a message
    */
-  void QueueMessage(std::unique_ptr<DevcashMessage> message) noexcept;
+  void QueueMessage(DevcashMessageUniquePtr message) noexcept;
 
   /**
    * Starts a server in a background thread
