@@ -77,6 +77,7 @@ class DevcashSPSCQueue {
     while (!spsc_queue_.push(ptr)) {
       std::this_thread::sleep_for (std::chrono::milliseconds(1));
     }
+    return true;
   }
 
   /** Pop a message pointer from this queue.
