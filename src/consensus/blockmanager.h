@@ -11,9 +11,9 @@
 #include <stdint.h>
 #include <vector>
 
-#include "../primitives/transaction.h"
-#include "../primitives/validation.h"
-#include "../primitives/block.h"
+#include "primitives/transaction.h"
+#include "primitives/validation.h"
+#include "primitives/block.h"
 
 namespace Devcash
 {

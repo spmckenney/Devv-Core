@@ -25,8 +25,8 @@
 #include <vector>
 #include <stdint.h>
 
-#include "../common/json.hpp"
-#include "../common/ossladapter.h"
+#include "common/json.hpp"
+#include "common/ossladapter.h"
 using json = nlohmann::json;
 
 namespace Devcash
@@ -45,8 +45,8 @@ class DCTransfer {
 
   std::string addr_;
   long amount_;
-  uint32_t nonce_;
-  std::string sig_;
+  int coinIndex_;
+  long delay_;
 
 /** Sets this to an empty transfer. */
   void SetNull() { addr_ = ""; amount_ = 0; }
@@ -58,6 +58,7 @@ class DCTransfer {
 
 /** Constructors */
   DCTransfer();
+  DCTransfer(std::string& addr, int coinIndex, long amount, long delay);
   explicit DCTransfer(std::string json);
   explicit DCTransfer(std::vector<uint8_t> cbor);
   explicit DCTransfer(const DCTransfer &other);
@@ -70,12 +71,12 @@ class DCTransfer {
 /** Compare transfers */
   friend bool operator==(const DCTransfer& a, const DCTransfer& b)
   {
-      return (a.addr_ == b.addr_ && a.amount_ == b.amount_ && a.nonce_ == b.nonce_);
+      return (a.addr_ == b.addr_ && a.amount_ == b.amount_ && a.delay_ == b.delay_);
   }
 
   friend bool operator!=(const DCTransfer& a, const DCTransfer& b)
   {
-    return !(a.addr_ == b.addr_ && a.amount_ == b.amount_ && a.nonce_ == b.nonce_);
+    return !(a.addr_ == b.addr_ && a.amount_ == b.amount_ && a.delay_ == b.delay_);
   }
 
 /** Assign transfers */
@@ -84,8 +85,8 @@ class DCTransfer {
     if (this != &other) {
     this->addr_ = other.addr_;
     this->amount_ = other.amount_;
-    this->nonce_ = other.nonce_;
-    this->sig_ = other.sig_;
+    this->delay_ = other.delay_;
+    this->coinIndex_ = other.coinIndex_;
     }
     return this;
   }
@@ -94,19 +95,26 @@ class DCTransfer {
     if (this != &other) {
     this->addr_ = other.addr_;
     this->amount_ = other.amount_;
-    this->nonce_ = other.nonce_;
-    this->sig_ = other.sig_;
+    this->delay_ = other.delay_;
+    this->coinIndex_ = other.coinIndex_;
     }
     return this;
   }
+
+  /** Returns the delay in seconds until this transfer is final.
+   * @return the delay in seconds until this transfer is final.
+  */
+    long getDelay() const {
+      return delay_;
+    }
 };
 
 class DCTransaction {
  public:
 
-  std::string type_;
-  std::vector<DCTransfer>* xfers_;
-  long delay_;
+  uint32_t nonce_;
+  std::vector<DCTransfer> xfers_;
+  std::string sig_;
   std::string jsonStr_ = "";
 
 /** Constructors */
@@ -117,12 +125,12 @@ class DCTransaction {
   DCTransaction(const DCTransaction& tx);
 
   /** Sets this to a null/invalid transaction. */
-    void setNull() { type_ = ""; }
+    void setNull() { nonce_ = 0; }
 
   /** Checks if this is a null transaction.
    *  @return true iff this transaction is empty and invalid
   */
-    bool isNull() const { return ("" == type_); }
+    bool isNull() const { return (nonce_ < 1); }
 
 /** Checks if this transaction is valid.
  *  Transactions are atomic, so if any portion of the transaction is invalid,
@@ -145,14 +153,9 @@ class DCTransaction {
 /** Returns the quantity of coins affected by this transaction.
  * @return the quantity of coins affected by this transaction.
 */
-  unsigned long getValueOut() const;
+  long getValueOut() const;
 
-/** Returns the delay in seconds until this transaction is final.
- * @return the delay in seconds until this transaction is final.
-*/
-  long getDelay() const {
-    return delay_;
-  }
+
 
 /** Returns the transaction size in bytes.
  * @return the transaction size in bytes.
@@ -177,7 +180,8 @@ class DCTransaction {
       this->hash_ = other.hash_;
       this->jsonStr_ = other.jsonStr_;
       this->oper_ = other.oper_;
-      this->type_ = other.type_;
+      this->nonce_ = other.nonce_;
+      this->sig_ = other.sig_;
       this->xfers_ = std::move(other.xfers_);
     }
     return this;
@@ -189,11 +193,17 @@ class DCTransaction {
       this->hash_ = other.hash_;
       this->jsonStr_ = other.jsonStr_;
       this->oper_ = other.oper_;
-      this->type_ = other.type_;
+      this->nonce_ = other.nonce_;
+      this->sig_ = other.sig_;
       this->xfers_ = std::move(other.xfers_);
     }
     return this;
   }
+
+/** Returns a canonical string representation of this transaction.
+ * @return a canonical string representation of this transaction.
+*/
+  std::string const getCanonical();
 
 /** Returns a JSON string representing this transaction.
  * @return a JSON string representing this transaction.
@@ -213,14 +223,9 @@ class DCTransaction {
   bool isOpType(std::string oper);
 
  private:
-
   eOpType oper_;
   std::string hash_ = "";
 
-/** Returns a canonical string representation of this transaction.
- * @return a canonical string representation of this transaction.
-*/
-  std::string GetCanonical() const;
 };
 
 } //end namespace Devcash

@@ -12,10 +12,10 @@
 #include <string>
 
 #include "oracleInterface.h"
-#include "../common/json.hpp"
-#include "../common/logger.h"
-#include "../consensus/chainstate.h"
-#include "../primitives/transaction.h"
+#include "common/json.hpp"
+#include "common/logger.h"
+#include "consensus/chainstate.h"
+#include "primitives/transaction.h"
 
 using json = nlohmann::json;
 
@@ -30,6 +30,13 @@ class DCid : public oracleInterface {
   */
   static std::string getCoinType() {
     return("id");
+  }
+
+  /**
+   *  @return int internal index of this coin type
+  */
+  static int getCoinIndex() {
+    return(3);
   }
 
   /** Checks if a transaction is objectively valid according to this oracle.
@@ -63,8 +70,8 @@ class DCid : public oracleInterface {
    */
   bool isValid(Devcash::DCTransaction checkTx, Devcash::DCState& context) {
     if (!isValid(checkTx)) return false;
-    for (std::vector<Devcash::DCTransfer>::iterator it=checkTx.xfers_->begin();
-        it != checkTx.xfers_->end(); ++it) {
+    for (std::vector<Devcash::DCTransfer>::iterator it=checkTx.xfers_.begin();
+        it != checkTx.xfers_.end(); ++it) {
       if (it->amount_ > 0) {
         if ((context.getAmount(DCid::getCoinType(), it->addr_)) > 0) {
           LOG_WARNING << "Error: Addr already has an ID token.";
@@ -85,7 +92,7 @@ class DCid : public oracleInterface {
  */
   Devcash::DCTransaction getT1Syntax(Devcash::DCTransaction theTx) {
     Devcash::DCTransaction out(theTx);
-    if (out.delay_ == 0) out.delay_ = kID_LIFETIME;
+    //if (out.delay_ == 0) out.delay_ = kID_LIFETIME;
     return(out);
   }
 
@@ -117,7 +124,7 @@ class DCid : public oracleInterface {
         return tx;
       }
       //TODO: verify reference with INN
-      if (tx.delay_ == 0) tx.delay_ = kID_LIFETIME;
+      //if (tx.delay_ == 0) tx.delay_ = kID_LIFETIME;
     }
     return tx;
   }

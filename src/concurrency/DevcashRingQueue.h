@@ -24,17 +24,17 @@
  *      Author: Nick Williams
  */
 
-#ifndef QUEUES_DEVCASHRINGQUEUE_H_
-#define QUEUES_DEVCASHRINGQUEUE_H_
+#ifndef CONCURRENCY_DEVCASHRINGQUEUE_H_
+#define CONCURRENCY_DEVCASHRINGQUEUE_H_
 
 #include <array>
 #include <condition_variable>
 #include <mutex>
 #include <thread>
 
-#include "types/DevcashMessage.h"
 #include "common/logger.h"
 #include "common/util.h"
+#include "types/DevcashMessage.h"
 
 namespace Devcash {
 
@@ -57,7 +57,8 @@ class DevcashRingQueue {
   DevcashRingQueue() :
     kRingSize_(kDEFAULT_RING_SIZE) {
   }
-  virtual ~DevcashRingQueue() {};
+  virtual ~DevcashRingQueue() {}
+  DevcashRingQueue(size_t size) : kRingSize_(size) {}
 
   /* Disallow copy and assign */
   DevcashRingQueue(DevcashRingQueue const&) = delete;
@@ -73,9 +74,10 @@ class DevcashRingQueue {
     CASH_TRY {
       std::unique_lock<std::mutex> lock(pushLock_);
       while (isFull_) {
-        full_.wait(lock, [&]() {
+        LOG_FATAL << "Queue blocked on push, run is suboptimal\n";
+        /*full_.wait(lock, [&]() {
           return(!isFull_);}
-        );
+        );*/
       }
       std::unique_lock<std::mutex> eqLock(update_);
       ptrRing_[pushAt_] = std::move(pointer);
@@ -96,11 +98,11 @@ class DevcashRingQueue {
     }
   }
 
-  /** Pop a message pointer from this queue.
+  /** A better place to block when waiting to pop this queue.
    * @return unique_ptr to a DevcashMessage once one is queued.
    * @return nullptr, if any error
    */
-  std::unique_ptr<DevcashMessage> pop() {
+  void popGuard() {
     CASH_TRY {
       std::unique_lock<std::mutex> lock(popLock_);
       while (isEmpty_) {
@@ -108,6 +110,18 @@ class DevcashRingQueue {
           return(!isEmpty_);}
         );
       }
+    } CASH_CATCH (const std::exception& e) {
+      LOG_WARNING << FormatException(&e, "DevcashRingQueue.popGuard");
+    }
+  }
+
+  /** Pop a message pointer from this queue.
+   * @note caller must call popGuard() before pop()
+   * @return unique_ptr to a DevcashMessage once one is queued.
+   * @return nullptr, if any error
+   */
+  std::unique_ptr<DevcashMessage> pop() {
+    CASH_TRY {
       std::unique_lock<std::mutex> eqLock(update_);
       std::unique_ptr<DevcashMessage> out = std::move(ptrRing_[popAt_]);
       isFull_ = false;
@@ -127,9 +141,21 @@ class DevcashRingQueue {
     }
   }
 
+  /** Notify all threads blocking on this queue that they should stop.
+   * @return unique_ptr to a DevcashMessage once one is queued.
+   * @return nullptr, if any error
+   */
+  void clearBlockers() {
+    stopNow_ = true;
+    isEmpty_ = false;
+    isFull_ = false;
+    empty_.notify_all();
+    full_.notify_all();
+  }
+
  private:
   int kRingSize_;
-  std::array<std::unique_ptr<DevcashMessage>, kDEFAULT_RING_SIZE> ptrRing_;
+  std::vector<std::unique_ptr<DevcashMessage>> ptrRing_;
   int pushAt_ = 0;
   int popAt_ = 0;
   std::mutex pushLock_; //orders access to push()
@@ -139,8 +165,9 @@ class DevcashRingQueue {
   bool isFull_ = false;
   std::condition_variable empty_;
   std::condition_variable full_;
+  bool stopNow_ = false;
 };
 
 } /* namespace Devcash */
 
-#endif /* QUEUES_DEVCASHRINGQUEUE_H_ */
+#endif /* CONCURRENCY_DEVCASHRINGQUEUE_H_ */

@@ -12,10 +12,10 @@
 #include <string>
 
 #include "oracleInterface.h"
-#include "../common/json.hpp"
-#include "../common/logger.h"
-#include "../consensus/chainstate.h"
-#include "../primitives/transaction.h"
+#include "common/json.hpp"
+#include "common/logger.h"
+#include "consensus/chainstate.h"
+#include "primitives/transaction.h"
 
 using json = nlohmann::json;
 
@@ -23,13 +23,20 @@ class DCdata : public oracleInterface {
 
  public:
 
-  const uint kBYTES_PER_COIN = 10240; //1 year in seconds
+  const int kBYTES_PER_COIN = 10240; //1 year in seconds
 
   /**
    *  @return string that invokes this oracle in a T2 transaction
   */
   static std::string getCoinType() {
     return("data");
+  }
+
+  /**
+   *  @return int internal index of this coin type
+  */
+  static int getCoinIndex() {
+    return(6);
   }
 
   /** Checks if a transaction is objectively valid according to this oracle.
@@ -67,7 +74,7 @@ class DCdata : public oracleInterface {
    * @return true iff the transaction is valid according to this oracle
    * @return false otherwise
    */
-  bool isValid(Devcash::DCTransaction checkTx, Devcash::DCState&) {
+  bool isValid(Devcash::DCTransaction checkTx, Devcash::DCState& context) {
     if (!isValid(checkTx)) return false;
     return true;
   }

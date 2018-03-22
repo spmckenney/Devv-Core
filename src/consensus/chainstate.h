@@ -8,7 +8,7 @@
 #ifndef SRC_CONSENSUS_STATESTUB_H_
 #define SRC_CONSENSUS_STATESTUB_H_
 
-#include "../primitives/smartcoin.h"
+#include "primitives/smartcoin.h"
 #include <map>
 
 namespace Devcash
@@ -16,10 +16,25 @@ namespace Devcash
 
 class DCState {
 public:
-  std::map<std::string, std::map<std::string, long>> stateMap_;
 
 /** Constructor */
   DCState();
+
+  DCState* operator=(DCState&& other)
+  {
+    if (this != &other) {
+      this->stateMap_ = other.stateMap_;
+    }
+    return this;
+  }
+
+  DCState* operator=(const DCState& other)
+  {
+    if (this != &other) {
+      this->stateMap_ = other.stateMap_;
+    }
+    return this;
+  }
 
 /** Adds a coin to the state.
  *  @param reference to the coin to add
@@ -55,6 +70,9 @@ public:
  *  @return false otherwise
 */
   bool clear();
+
+ private:
+  std::map<std::string, std::map<std::string, long>> stateMap_;
 };
 
 } //namespace Devcash

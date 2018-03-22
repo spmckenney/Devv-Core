@@ -12,9 +12,9 @@
 #include <string>
 
 #include "oracleInterface.h"
-#include "../common/logger.h"
-#include "../consensus/chainstate.h"
-#include "../primitives/transaction.h"
+#include "common/logger.h"
+#include "consensus/chainstate.h"
+#include "primitives/transaction.h"
 
 class dnerowallet : public oracleInterface {
 
@@ -25,6 +25,13 @@ class dnerowallet : public oracleInterface {
   */
   static std::string getCoinType() {
     return("dnerowallet");
+  }
+
+  /**
+   *  @return int internal index of this coin type
+  */
+  static int getCoinIndex() {
+    return(2);
   }
 
   /** Checks if a transaction is objectively valid according to this oracle.
@@ -40,8 +47,8 @@ class dnerowallet : public oracleInterface {
    * @return false otherwise
    */
   bool isValid(Devcash::DCTransaction checkTx) {
-    for (std::vector<Devcash::DCTransfer>::iterator it=checkTx.xfers_->begin();
-        it != checkTx.xfers_->end(); ++it) {
+    for (std::vector<Devcash::DCTransfer>::iterator it=checkTx.xfers_.begin();
+        it != checkTx.xfers_.end(); ++it) {
       if (it->amount_ > 1) {
         LOG_WARNING << "Error: Can only have at most 1 dnerowallet token.";
         return false;
@@ -62,7 +69,7 @@ class dnerowallet : public oracleInterface {
    * @return true iff the transaction is valid according to this oracle
    * @return false otherwise
    */
-  bool isValid(Devcash::DCTransaction checkTx, Devcash::DCState&) {
+  bool isValid(Devcash::DCTransaction checkTx, Devcash::DCState& context) {
     if (!isValid(checkTx)) return false;
     return true;
   }
