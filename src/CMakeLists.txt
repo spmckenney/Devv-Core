@@ -119,9 +119,6 @@ file(GLOB primitives_SRC
 )
 add_library(primitives ${primitives_SRC})
 
-# Add init.cpp
-add_library(init init.cpp)
-
 # Add devcashnode.cpp
 add_library(devcashnode devcashnode.cpp)
 
@@ -139,7 +136,7 @@ target_link_libraries (devcash
   primitives
   oracles
   consensus
-  io
+  ${ZMQ}
   )
 
 find_package (OpenSSL REQUIRED)
@@ -174,7 +171,6 @@ add_executable(ring_queue_test
 
 target_link_libraries(ring_queue_test
   common
-  init
   primitives
   oracles
   consensus
@@ -192,7 +188,6 @@ add_executable(devcash_spsc_queue_test
 
 target_link_libraries(devcash_spsc_queue_test
   common
-  init
   primitives
   oracles
   consensus
@@ -222,7 +217,6 @@ install (TARGETS boost_spsc_test DESTINATION bin)
 #
 #target_link_libraries(producer_consumer_queue_test
 #  common
-#  init
 #  primitives
 #  oracles
 #  consensus

@@ -70,7 +70,7 @@ std::atomic<bool> fRequestShutdown(false); /** has a shutdown been requested? */
 bool isCryptoInit = false;
 DevcashContext appContext;
 
-zmq::context_t zmqContext(zmq_ctx_new());
+zmq::context_t zmqContext(1);
 io::TransactionClient client(zmqContext);
 io::TransactionServer server(zmqContext, "self");
 

@@ -34,7 +34,6 @@
 
 #include "common/logger.h"
 #include "common/util.h"
-#include "DevcashWorkerPool.h"
 #include "types/DevcashMessage.h"
 
 namespace Devcash {

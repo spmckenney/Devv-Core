@@ -338,9 +338,9 @@ void AllocateFileRange(FILE* file, unsigned int offset, unsigned int length) {
 }
 
 void signalHandler(int signum) {
-  StartShutdown();
+  //StartShutdown();
   LOG_INFO << "Signal ("+std::to_string(signum)+") received.";
-  Shutdown();
+  //Shutdown();
 }
 
 void SetupEnvironment()
