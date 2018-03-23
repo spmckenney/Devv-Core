@@ -40,9 +40,9 @@ network could be build and tested.\n\nAllowed options");
     desc.add_options()
       ("help", "produce help message")
       ("mode", po::value<std::string>(), "Devcash mode (T1|T2|scan)")
-      ("node-index", po::value<unsigned int>(), "Index of this node")
+      ("node-index", po::value<int>(), "Index of this node")
       ("num-consensus-threads", po::value<unsigned int>(), "Number of consensus threads")
-      ("num-validation-threads", po::value<unsigned int>(), "Number of validation threads")
+      ("num-validator-threads", po::value<unsigned int>(), "Number of validator threads")
       ("host-list", po::value<std::vector<std::string>>(), 
        "Client URI (i.e. tcp://192.168.10.1:5005). Option can be repeated to connect to multiple nodes.")
       ("bind-endpoint", po::value<std::string>(), "Endpoint for server (i.e. tcp://*:5556)")
