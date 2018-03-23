@@ -23,12 +23,12 @@ using namespace Devcash;
 class ConsensusWorker {
  public:
   ConsensusWorker(DCState& chain
-                  , std::unique_ptr<io::TransactionServer> server
+                  , io::TransactionServer& server
                   , int num_workers) :
-    chain_state_(chain), server_(std::move(server)),
+    chain_state_(chain), server_(server),
     internalPool_([this](std::unique_ptr<DevcashMessage> ptr) {
     if (flipper) {
-      server_->QueueMessage(std::move(ptr));
+      server_.QueueMessage(std::move(ptr));
     }
     flipper = !flipper;
   }, num_workers) {}
@@ -38,7 +38,7 @@ class ConsensusWorker {
   void stopAll() {internalPool_.stopAll();}
 
   DCState& chain_state_;
-  std::unique_ptr<io::TransactionServer> server_;
+  io::TransactionServer& server_;
   bool flipper = false;
 
 private:

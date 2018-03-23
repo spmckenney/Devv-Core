@@ -106,7 +106,7 @@ int main(int argc, char* argv[])
   std::unique_ptr<io::TransactionClient> client = create_transaction_client(*options, context);
 
   DCState chainState;
-  ConsensusWorker consensus(chainState, std::move(server), options->num_consensus_threads);
+  ConsensusWorker consensus(chainState, *server, options->num_consensus_threads);
   ValidatorWorker validator(chainState, consensus, options->num_validator_threads);
 
   CASH_TRY {
