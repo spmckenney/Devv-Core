@@ -65,7 +65,7 @@ class DevcashWorkerPool {
 
   /* Constructors/Destructors */
   DevcashWorkerPool(std::function<void(std::unique_ptr<DevcashMessage>)> callback,
-      const int workers=kDEFAULT_WORKERS) :
+                    const int /* workers=kDEFAULT_WORKERS */) :
       callback_(callback), continue_(true) {
   }
 

@@ -69,7 +69,7 @@ class dneroavailable : public oracleInterface {
  * @return true iff the transaction is valid according to this oracle
  * @return false otherwise
  */
-  bool isValid(Devcash::DCTransaction checkTx, Devcash::DCState& context) {
+  bool isValid(Devcash::DCTransaction checkTx, Devcash::DCState&) {
     if (!isValid(checkTx)) return false;
     return true;
   }

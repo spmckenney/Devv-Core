@@ -70,10 +70,8 @@ class DevcashNode {
   /**
    * Devcash core main initialization.
    * @note Call Shutdown() if this function fails.
-   * @param inStr raw string of input transaction or block
-   * @param mode either T1 or T2
    */
-  std::string RunNode(std::string inStr);
+  std::string RunNode();
 
 private:
 

@@ -59,6 +59,7 @@ std::unique_ptr<io::TransactionServer> create_transaction_server(const devcash_o
   return server;
 }
 
+#if 0
 bool AppInit(int, char* argv[]) {
   CASH_TRY {
 
@@ -75,26 +76,6 @@ bool AppInit(int, char* argv[]) {
       return false;
     }*/
 
-    /*
-    std::string inRaw = ReadFile(argv[3]);
-    std::string out("");
-    if (thisNode.appContext.appMode == scan) {
-      LOG_INFO << "Scanner ignores node index.\n";
-      out = thisNode.RunScanner(inRaw);
-    } else {
-      if (!thisNode.Init()) {
-        LOG_FATAL << "Basic setup failed";
-        return false;
-      }
-      LOG_INFO << "Basic Setup complete\n";
-      if (!thisNode.SanityChecks()) {
-        LOG_FATAL << "Sanity checks failed";
-        return false;
-      }
-      LOG_INFO << "Sanity checks passed\n";
-      out = thisNode.RunNode(inRaw);
-    }
-    */
 
     /*
     std::string outFileStr(argv[4]);
@@ -108,6 +89,51 @@ bool AppInit(int, char* argv[]) {
     }
     */
 
+}
+#endif
+
+int main(int argc, char* argv[])
+{
+  std::unique_ptr<devcash_options> options = parse_options(argc, argv);
+
+  if (!options) {
+    exit(-1);
+  }
+  
+  zmq::context_t context(1);
+
+  std::unique_ptr<io::TransactionServer> server = create_transaction_server(*options, context);
+  std::unique_ptr<io::TransactionClient> client = create_transaction_client(*options, context);
+
+  DCState chainState;
+  ConsensusWorker consensus(chainState, std::move(server), options->num_consensus_threads);
+  ValidatorWorker validator(chainState, consensus, options->num_validator_threads);
+
+  CASH_TRY {
+    DevcashNode this_node(options->mode
+                          , options->node_index
+                          , consensus
+                          , validator
+                          , *client
+                          , *server);
+
+    std::string out("");
+    if (options->mode == "scan") {
+      LOG_INFO << "Scanner ignores node index.\n";
+      out = this_node.RunScanner(options->scan_file);
+    } else {
+      if (!this_node.Init()) {
+        LOG_FATAL << "Basic setup failed";
+        return false;
+      }
+      LOG_INFO << "Basic Setup complete\n";
+      if (!this_node.SanityChecks()) {
+        LOG_FATAL << "Sanity checks failed";
+        return false;
+      }
+      LOG_INFO << "Sanity checks passed\n";
+      out = this_node.RunNode();
+    }
     LOG_INFO << "DevCash Shutting Down\n";
     return(true);
   } CASH_CATCH (...) {
@@ -118,49 +144,4 @@ bool AppInit(int, char* argv[]) {
     std::cerr << err << std::endl;
     return(false);
   }
-}
-
-int main(int argc, char* argv[])
-{
-  if (argc != 5) {
-    LOG_INFO << "Usage: DevCash T1|T2|scan nodeindex inputfile outputfile";
-    return(EXIT_FAILURE);
-  }
-
-  std::unique_ptr<devcash_options> options = parse_options(argc, argv);
-  zmq::context_t context(1);
-
-  std::unique_ptr<io::TransactionServer> server = create_transaction_server(*options, context);
-  std::unique_ptr<io::TransactionClient> client = create_transaction_client(*options, context);
-
-  DCState chainState;
-  ConsensusWorker consensus(chainState, std::move(server), options->num_consensus_threads);
-  ValidatorWorker validator(chainState, consensus, options->num_validator_threads);
-
-  DevcashNode this_node(options->mode
-                        , options->node_index
-                        , consensus
-                        , validator
-                        , *client
-                        , *server);
-
-  std::string out("");
-  if (options->mode == "scan") {
-    LOG_INFO << "Scanner ignores node index.\n";
-    out = this_node.RunScanner(options->scan_file);
-  } else {
-    if (!this_node.Init()) {
-      LOG_FATAL << "Basic setup failed";
-      return false;
-    }
-    LOG_INFO << "Basic Setup complete\n";
-    if (!this_node.SanityChecks()) {
-      LOG_FATAL << "Sanity checks failed";
-      return false;
-    }
-    LOG_INFO << "Sanity checks passed\n";
-    out = this_node.RunNode(options->scan_file);
-  }
-
- return(AppInit(argc, argv) ? EXIT_SUCCESS : EXIT_FAILURE);
 }

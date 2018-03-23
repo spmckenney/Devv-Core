@@ -192,7 +192,7 @@ std::string DevcashNode::RunScanner(std::string) {
   return out;
 }
 
-std::string DevcashNode::RunNode(std::string inStr)
+std::string DevcashNode::RunNode()
 {
   std::string out("");
   CASH_TRY {

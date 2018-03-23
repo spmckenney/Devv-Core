@@ -53,7 +53,7 @@ network could be build and tested.\n\nAllowed options");
 
     if (vm.count("help")) {
       LOG(debug) << desc << "\n";
-      return 0;
+      return nullptr;
     }
 
     if (vm.count("mode")) {
