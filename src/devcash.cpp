@@ -27,8 +27,6 @@
 using namespace Devcash;
 using json = nlohmann::json;
 
-//ArgsManager dCashArgs; /** stores data parsed from config file */
-
 //toggle exceptions on/off
 #if (defined(__cpp_exceptions) || defined(__EXCEPTIONS) || defined(_CPPUNWIND)) && not defined(DEVCASH_NOEXCEPTION)
     #define CASH_THROW(exception) throw exception
@@ -99,7 +97,7 @@ int main(int argc, char* argv[])
   if (!options) {
     exit(-1);
   }
-  
+
   zmq::context_t context(1);
 
   std::unique_ptr<io::TransactionServer> server = create_transaction_server(*options, context);

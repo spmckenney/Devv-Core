@@ -2,7 +2,6 @@
  * DevcashMessage.h
  *
  *  Created on: Mar 15, 2018
- *      Author: Silver
  */
 
 #ifndef TYPES_DEVCASHMESSAGE_H_

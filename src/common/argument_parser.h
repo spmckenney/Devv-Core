@@ -8,7 +8,8 @@
 
 #include <boost/program_options.hpp>
 
-#include "common/devcash_context.h"
+#include "devcash_context.h"
+#include "logger.h"
 
 namespace Devcash {
 
@@ -20,6 +21,7 @@ struct devcash_options {
   unsigned int num_consensus_threads;
   unsigned int num_validator_threads;
   std::string scan_file;
+  std::string write_file;
 };
 
 std::unique_ptr<struct devcash_options> parse_options(int argc, char** argv) {
@@ -39,19 +41,20 @@ and listen to multiple other t1_example programs so almost any size\n\
 network could be build and tested.\n\nAllowed options");
     desc.add_options()
       ("help", "produce help message")
-      ("mode", po::value<std::string>(), "Devcash mode (T1|T2|scan)")
-      ("node-index", po::value<int>(), "Index of this node")
+      ("mode", po::value<std::string>()->required(), "Devcash mode (T1|T2|scan)")
+      ("node-index", po::value<unsigned int>(), "Index of this node")
       ("num-consensus-threads", po::value<unsigned int>(), "Number of consensus threads")
-      ("num-validator-threads", po::value<unsigned int>(), "Number of validator threads")
-      ("host-list", po::value<std::vector<std::string>>(), 
+      ("num-validator-threads", po::value<unsigned int>(), "Number of validation threads")
+      ("host-list,host", po::value<std::vector<std::string>>(),
        "Client URI (i.e. tcp://192.168.10.1:5005). Option can be repeated to connect to multiple nodes.")
       ("bind-endpoint", po::value<std::string>(), "Endpoint for server (i.e. tcp://*:5556)")
-      ("scan-file", po::value<std::string>(), "File to read in when in scan mode, otherwise ignored")
+      ("scan-file", po::value<std::string>(), "Initial transaction or blockchain input file")
+      ("output", po::value<std::string>(), "Blockchain output path in binary JSON or CBOR")
       ;
 
     po::variables_map vm;        
     po::store(po::parse_command_line(argc, argv, desc), vm);
-    po::notify(vm);    
+    po::notify(vm);
 
     if (vm.count("help")) {
       LOG(debug) << desc << "\n";
@@ -61,27 +64,27 @@ network could be build and tested.\n\nAllowed options");
     if (vm.count("mode")) {
       std::string mode = vm["mode"].as<std::string>();
       if (mode == "SCAN") {
-        options->mode = SCAN;
+        options->mode = scan;
       } else if (mode == "T1") {
         options->mode = T1;
       } else if (mode == "T2") {
         options->mode = T2;
       }
-      LOG(debug) << "Mode: " << options->mode;
+      LOG(debug) << "Mode: " << options->mode << "\n";
     } else {
       LOG(debug) << "Mode was not set.\n";
     }
 
     if (vm.count("node-index")) {
-      options->node_index = vm["node-index"].as<int>();
-      LOG(debug) << "Node index: " << options->node_index;
+      options->node_index = vm["node-index"].as<unsigned int>();
+      LOG(debug) << "Node index: " << options->node_index  << "\n";
     } else {
       LOG(debug) << "Node index was not set.\n";
     }
 
     if (vm.count("num-consensus-threads")) {
       options->num_consensus_threads = vm["num-consensus-threads"].as<unsigned int>();
-      LOG(debug) << "Num consensus threads: " << options->num_consensus_threads;
+      LOG(debug) << "Num consensus threads: " << options->num_consensus_threads  << "\n";
     } else {
       LOG(debug) << "Num consensus threads was not set, defaulting to 10\n";
       options->num_consensus_threads = 10;
@@ -89,7 +92,7 @@ network could be build and tested.\n\nAllowed options");
 
     if (vm.count("num-validator-threads")) {
       options->num_validator_threads = vm["num-validator-threads"].as<unsigned int>();
-      LOG(debug) << "Num validator threads: " << options->num_validator_threads;
+      LOG(debug) << "Num validator threads: " << options->num_validator_threads  << "\n";
     } else {
       LOG(debug) << "Num validator threads was not set, defaulting to 10\n";
       options->num_validator_threads = 10;
@@ -97,7 +100,7 @@ network could be build and tested.\n\nAllowed options");
 
     if (vm.count("bind-endpoint")) {
       options->bind_endpoint = vm["bind-endpoint"].as<std::string>();
-      LOG(debug) << "Bind URI: " << options->bind_endpoint;
+      LOG(debug) << "Bind URI: " << options->bind_endpoint << "\n";
     } else {
       LOG(debug) << "Bind URI was not set.\n";
     }
@@ -112,9 +115,16 @@ network could be build and tested.\n\nAllowed options");
 
     if (vm.count("scan-file")) {
       options->scan_file = vm["scan-file"].as<std::string>();
-      LOG(debug) << "Scan file: " << options->scan_file;
+      LOG(debug) << "Scan file: " << options->scan_file  << "\n";
     } else {
       LOG(debug) << "Scan file was not set.\n";
+    }
+
+    if (vm.count("output")) {
+      options->write_file = vm["output"].as<std::string>();
+      LOG(debug) << "Output file: " << options->write_file  << "\n";
+    } else {
+      LOG(debug) << "Output file was not set.\n";
     }
 
   }
