@@ -8,12 +8,14 @@
 
 #include <boost/program_options.hpp>
 
+#include "common/devcash_context.h"
+
 namespace Devcash {
 
 struct devcash_options {
   std::string bind_endpoint;
   std::vector<std::string> host_vector{};
-  std::string mode;
+  eAppMode mode;
   int node_index;
   unsigned int num_consensus_threads;
   unsigned int num_validator_threads;
@@ -57,7 +59,14 @@ network could be build and tested.\n\nAllowed options");
     }
 
     if (vm.count("mode")) {
-      options->mode = vm["mode"].as<std::string>();
+      std::string mode = vm["mode"].as<std::string>();
+      if (mode == "SCAN") {
+        options->mode = SCAN;
+      } else if (mode == "T1") {
+        options->mode = T1;
+      } else if (mode == "T2") {
+        options->mode = T2;
+      }
       LOG(debug) << "Mode: " << options->mode;
     } else {
       LOG(debug) << "Mode was not set.\n";

@@ -97,8 +97,8 @@ void DevcashNode::Shutdown()
   LOG_INFO << "Shutting down DevCash\n";
 }
 
-DevcashNode::DevcashNode(std::string mode
-                         , int nodeIndex
+DevcashNode::DevcashNode(eAppMode mode
+                         , int node_index
                          , ConsensusWorker& consensus
                          , ValidatorWorker& validator
                          , io::TransactionClient& client
@@ -109,6 +109,7 @@ DevcashNode::DevcashNode(std::string mode
   , client_(client)
   , server_(server)
 {
+  /*
   eAppMode appMode;
   if (mode == "T1") {
     appMode = T1;
@@ -123,8 +124,10 @@ DevcashNode::DevcashNode(std::string mode
     LOG_FATAL << "Invalid mode";
     CASH_THROW("Invalid mode: "+mode+"!\n");
   }
-  appContext.currentNode=nodeIndex;
-  appContext.appMode=appMode;
+  */
+
+  appContext.current_node = node_index;
+  appContext.app_mode = mode;
 }
 
 bool initCrypto()
@@ -142,11 +145,11 @@ bool initCrypto()
 
 bool DevcashNode::Init()
 {
-  if (appContext.currentNode < 0
-      || appContext.currentNode >= appContext.kNODE_KEYs.size()
-      || appContext.currentNode >= appContext.kNODE_ADDRs.size()) {
+  if (appContext.current_node < 0
+      || appContext.current_node >= appContext.kNODE_KEYs.size()
+      || appContext.current_node >= appContext.kNODE_ADDRs.size()) {
     LOG_FATAL << "Invalid node index: "+
-      std::to_string(appContext.currentNode)+"\n";
+      std::to_string(appContext.current_node)+"\n";
     return false;
   }
   return initCrypto();

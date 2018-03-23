@@ -41,8 +41,8 @@ class DevcashNode {
    *  @param nodeIndex the index of this node in the set of shard peers
    *  @return the context for this node.
    */
-  DevcashNode(std::string mode
-              , int nodeIndex
+  DevcashNode(eAppMode mode
+              , int node_index
               , ConsensusWorker& consensus
               , ValidatorWorker& validator
               , io::TransactionClient& client
