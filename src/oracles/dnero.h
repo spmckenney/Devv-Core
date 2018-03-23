@@ -47,7 +47,7 @@ class dnero : public oracleInterface {
    * @return true iff the transaction can be valid according to this oracle
    * @return false otherwise
    */
-  bool isValid(Devcash::DCTransaction checkTx) {
+  bool isValid(Devcash::DCTransaction) {
     return true;
   }
 

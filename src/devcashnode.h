@@ -15,6 +15,8 @@
 #include <vector>
 
 #include "common/devcash_context.h"
+#include "concurrency/WorkerTypes.h"
+#include "io/message_service.h"
 
 namespace Devcash
 {
@@ -39,7 +41,12 @@ class DevcashNode {
    *  @param nodeIndex the index of this node in the set of shard peers
    *  @return the context for this node.
    */
-  DevcashNode(std::string mode, int nodeIndex);
+  DevcashNode(std::string mode
+              , int nodeIndex
+              , ConsensusWorker& consensus
+              , ValidatorWorker& validator
+              , io::TransactionClient& client
+              , io::TransactionServer& server);
 
   /** Initialize devcoin core: Basic context setup.
    *  @note Do not call Shutdown() if this function fails.
@@ -67,6 +74,18 @@ class DevcashNode {
    * @param mode either T1 or T2
    */
   std::string RunNode(std::string inStr);
+
+private:
+
+  std::unique_ptr<io::TransactionClient> transaction_client_ = nullptr;
+
+  ConsensusWorker& consensus_;
+
+  ValidatorWorker& validator_;
+
+  io::TransactionClient& client_;
+
+  io::TransactionServer& server_;
 };
 
 } //end namespace Devcash

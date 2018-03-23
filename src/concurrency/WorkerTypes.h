@@ -22,45 +22,49 @@ using namespace Devcash;
 
 class ConsensusWorker {
  public:
-  ConsensusWorker(DCState* chain, io::TransactionServer* server, int workerNum) :
-    chainState_(chain), server_(server),
+  ConsensusWorker(DCState& chain
+                  , std::unique_ptr<io::TransactionServer> server
+                  , int num_workers) :
+    chain_state_(chain), server_(std::move(server)),
     internalPool_([this](std::unique_ptr<DevcashMessage> ptr) {
     if (flipper) {
       server_->QueueMessage(std::move(ptr));
     }
     flipper = !flipper;
-  }, workerNum) {}
+  }, num_workers) {}
 
   void push(std::unique_ptr<DevcashMessage> ptr) {internalPool_.push(std::move(ptr));}
   void start() {internalPool_.start();}
   void stopAll() {internalPool_.stopAll();}
 
-  DCState* chainState_;
-  io::TransactionServer* server_;
+  DCState& chain_state_;
+  std::unique_ptr<io::TransactionServer> server_;
   bool flipper = false;
- private:
+
+private:
   DevcashWorkerPool internalPool_;
 };
 
 class ValidatorWorker {
  public:
-  ValidatorWorker(DCState* chain, ConsensusWorker* cWork, int workerNum) :
-    chainState_(chain), consensus_(cWork),
+  ValidatorWorker(DCState& chain, ConsensusWorker& consensus, int num_workers) :
+    chain_state_(chain), consensus_(consensus),
     internalPool_([this](std::unique_ptr<DevcashMessage> ptr) {
     if (flipper) {
-      consensus_->push(std::move(ptr));
+      consensus_.push(std::move(ptr));
     }
     flipper = !flipper;
-  }, workerNum) {}
+  }, num_workers) {}
 
   bool flipper = false;
-  DCState* chainState_;
-  ConsensusWorker* consensus_;
+  DCState& chain_state_;
+  ConsensusWorker& consensus_;
 
   void push(std::unique_ptr<DevcashMessage> ptr) {internalPool_.push(std::move(ptr));}
   void start() {internalPool_.start();}
   void stopAll() {internalPool_.stopAll();}
- private:
+
+private:
   DevcashWorkerPool internalPool_;
 };
 
