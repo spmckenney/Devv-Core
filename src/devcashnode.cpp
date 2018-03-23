@@ -26,7 +26,6 @@
 #include <signal.h>
 #endif
 
-#include "concurrency/WorkerTypes.h"
 #include "consensus/chainstate.h"
 #include "common/json.hpp"
 #include "common/logger.h"
@@ -70,6 +69,7 @@ std::atomic<bool> fRequestShutdown(false); /** has a shutdown been requested? */
 bool isCryptoInit = false;
 DevcashContext appContext;
 
+  /*
 zmq::context_t zmqContext(1);
 io::TransactionClient client(zmqContext);
 io::TransactionServer server(zmqContext, "self");
@@ -77,7 +77,7 @@ io::TransactionServer server(zmqContext, "self");
 DCState* chainState = new DCState();
 ConsensusWorker consensus(chainState, &server, kCONSENSUS_THREADS);
 ValidatorWorker validator(chainState, &consensus, kVALIDATOR_THREADS);
-
+  */
 
 void DevcashNode::StartShutdown()
 {
@@ -92,12 +92,24 @@ void DevcashNode::Shutdown()
 {
   fRequestShutdown = true;
   //TODO: how to stop zmq?
-  consensus.stopAll();
-  validator.stopAll();
+  consensus_.stopAll();
+  validator_.stopAll();
   LOG_INFO << "Shutting down DevCash\n";
 }
 
-DevcashNode::DevcashNode(std::string mode, int nodeIndex) : appContext() {
+DevcashNode::DevcashNode(eAppMode mode
+                         , int node_index
+                         , ConsensusWorker& consensus
+                         , ValidatorWorker& validator
+                         , io::TransactionClient& client
+                         , io::TransactionServer& server)
+  : appContext()
+  , consensus_(consensus)
+  , validator_(validator)
+  , client_(client)
+  , server_(server)
+{
+  /*
   eAppMode appMode;
   if (mode == "T1") {
     appMode = T1;
@@ -112,8 +124,10 @@ DevcashNode::DevcashNode(std::string mode, int nodeIndex) : appContext() {
     LOG_FATAL << "Invalid mode";
     CASH_THROW("Invalid mode: "+mode+"!\n");
   }
-  appContext.currentNode=nodeIndex;
-  appContext.appMode=appMode;
+  */
+
+  appContext.current_node = node_index;
+  appContext.app_mode = mode;
 }
 
 bool initCrypto()
@@ -131,11 +145,11 @@ bool initCrypto()
 
 bool DevcashNode::Init()
 {
-  if (appContext.currentNode < 0
-      || appContext.currentNode >= appContext.kNODE_KEYs.size()
-      || appContext.currentNode >= appContext.kNODE_ADDRs.size()) {
+  if (appContext.current_node < 0
+      || appContext.current_node >= appContext.kNODE_KEYs.size()
+      || appContext.current_node >= appContext.kNODE_ADDRs.size()) {
     LOG_FATAL << "Invalid node index: "+
-      std::to_string(appContext.currentNode)+"\n";
+      std::to_string(appContext.current_node)+"\n";
     return false;
   }
   return initCrypto();
@@ -166,7 +180,7 @@ bool DevcashNode::SanityChecks()
   return false;
 }
 
-std::string DevcashNode::RunScanner(std::string inStr) {
+std::string DevcashNode::RunScanner(std::string) {
   LOG_INFO << "Scanner Mode";
   std::string out("");
   CASH_TRY {
@@ -181,24 +195,24 @@ std::string DevcashNode::RunScanner(std::string inStr) {
   return out;
 }
 
-std::string DevcashNode::RunNode(std::string inStr)
+std::string DevcashNode::RunNode()
 {
   std::string out("");
   CASH_TRY {
-    client.AttachCallback([this](std::unique_ptr<DevcashMessage> ptr) {
+    client_.AttachCallback([this](std::unique_ptr<DevcashMessage> ptr) {
       if (ptr->message_type == TRANSACTION_ANNOUNCEMENT) {
-          validator.push(std::move(ptr));
+          validator_.push(std::move(ptr));
         } else {
-          consensus.push(std::move(ptr));
+          consensus_.push(std::move(ptr));
         }
     });
 
-    validator.start();;
-    consensus.start();
+    validator_.start();;
+    consensus_.start();
     std::vector<uint8_t> data(100);
     auto startMsg = std::unique_ptr<DevcashMessage>(
         new DevcashMessage("self", TRANSACTION_ANNOUNCEMENT, data));
-    server.QueueMessage(std::move(startMsg));
+    server_.QueueMessage(std::move(startMsg));
     //client.Run();
 
 	//make sure child threads are actually initialized before shutting down

@@ -8,6 +8,7 @@
 #ifndef COMMON_DEVCASH_CONTEXT_H_
 #define COMMON_DEVCASH_CONTEXT_H_
 
+#include <string>
 #include <vector>
 
 namespace Devcash {
@@ -52,18 +53,20 @@ class DevcashContext {
       "04B14F28DA8C0389BC385BA3865DB3FC7FAFA8FA4715C0ADAADAC52F2EB3E7FDCD695B439F9ACDCC90E55C1F9C48D7EB5B3BFD6C64EC89B1A6108F4B1B01A3FCA4"
   };
 
-  unsigned int currentNode;
-  eAppMode appMode = scan;
+  unsigned int current_node_;
+  eAppMode app_mode_ = scan;
 
-  DevcashContext() : currentNode(-1),appMode(scan) {}
+  DevcashContext() : current_node_(-1),app_mode_(scan) {}
+
+  DevcashContext(unsigned int currentNode, eAppMode mode) : current_node_(currentNode), app_mode_(mode) {}
 
   DevcashContext(std::string innPk, std::string innPubKey,
     std::vector<std::string> addrPks,std::vector<std::string> addrPubKeys,
     std::vector<std::string> nodePks,std::vector<std::string> nodePubKeys,
     int thisNode, eAppMode mode) : kINN_KEY(innPk),
     kINN_ADDR(innPubKey), kADDRs(addrPks), kADDR_KEYs(addrPubKeys),
-    kNODE_KEYs(nodePks), kNODE_ADDRs(nodePubKeys), currentNode(thisNode),
-    appMode(mode) {}
+    kNODE_KEYs(nodePks), kNODE_ADDRs(nodePubKeys), current_node_(thisNode),
+    app_mode_(mode) {}
 };
 
 } /* namespace Devcash */

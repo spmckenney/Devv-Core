@@ -20,10 +20,12 @@
 #include "common/logger.h"
 #include "common/util.h"
 
+#include "common/argument_parser.h"
+
+#include "io/message_service.h"
+
 using namespace Devcash;
 using json = nlohmann::json;
-
-//ArgsManager dCashArgs; /** stores data parsed from config file */
 
 //toggle exceptions on/off
 #if (defined(__cpp_exceptions) || defined(__EXCEPTIONS) || defined(_CPPUNWIND)) && not defined(DEVCASH_NOEXCEPTION)
@@ -39,7 +41,24 @@ using json = nlohmann::json;
 typedef unsigned char byte;
 #define UNUSED(x) ((void)x)
 
-bool AppInit(int argc, char* argv[]) {
+std::unique_ptr<io::TransactionClient> create_transaction_client(const devcash_options& options,
+                                                                 zmq::context_t& context) {
+  std::unique_ptr<io::TransactionClient> client(new io::TransactionClient(context));
+  for (auto i : options.host_vector) {
+    client->AddConnection(i);
+  }
+  return client;
+}
+
+std::unique_ptr<io::TransactionServer> create_transaction_server(const devcash_options& options,
+                                                                 zmq::context_t& context) {
+  std::unique_ptr<io::TransactionServer> server(new io::TransactionServer(context,
+                                                                          options.bind_endpoint));
+  return server;
+}
+
+#if 0
+bool AppInit(int, char* argv[]) {
   CASH_TRY {
 
     std::string announce("Check DevCash logs at ");
@@ -48,9 +67,6 @@ bool AppInit(int argc, char* argv[]) {
     std::cout << announce;
     LOG_INFO << "DevCash initializing...\n";
 
-    std::string mode(argv[1]);
-    int nodeIndex = std::stoi(argv[2]);
-
     /*CASH_TRY {
       dCashArgs.ReadConfigFile(argv[]);
     } CASH_CATCH (const std::exception& e) {
@@ -58,27 +74,8 @@ bool AppInit(int argc, char* argv[]) {
       return false;
     }*/
 
-    DevcashNode thisNode(mode, nodeIndex);
 
-    std::string inRaw = ReadFile(argv[3]);
-    std::string out("");
-    if (thisNode.appContext.appMode == scan) {
-      LOG_INFO << "Scanner ignores node index.\n";
-      out = thisNode.RunScanner(inRaw);
-    } else {
-      if (!thisNode.Init()) {
-        LOG_FATAL << "Basic setup failed";
-        return false;
-      }
-      LOG_INFO << "Basic Setup complete\n";
-      if (!thisNode.SanityChecks()) {
-        LOG_FATAL << "Sanity checks failed";
-        return false;
-      }
-      LOG_INFO << "Sanity checks passed\n";
-      out = thisNode.RunNode(inRaw);
-    }
-
+    /*
     std::string outFileStr(argv[4]);
     std::ofstream outFile(outFileStr);
     if (outFile.is_open()) {
@@ -88,7 +85,53 @@ bool AppInit(int argc, char* argv[]) {
         LOG_FATAL << "Failed to open output file '"+outFileStr+"'.\n";
         return(false);
     }
+    */
 
+}
+#endif
+
+int main(int argc, char* argv[])
+{
+  std::unique_ptr<devcash_options> options = parse_options(argc, argv);
+
+  if (!options) {
+    exit(-1);
+  }
+
+  zmq::context_t context(1);
+
+  std::unique_ptr<io::TransactionServer> server = create_transaction_server(*options, context);
+  std::unique_ptr<io::TransactionClient> client = create_transaction_client(*options, context);
+
+  DCState chainState;
+  ConsensusWorker consensus(chainState, *server, options->num_consensus_threads);
+  ValidatorWorker validator(chainState, consensus, options->num_validator_threads);
+
+  CASH_TRY {
+    DevcashNode this_node(options->mode
+                          , options->node_index
+                          , consensus
+                          , validator
+                          , *client
+                          , *server);
+
+    std::string out("");
+    if (options->mode == eAppMode::SCAN) {
+      LOG_INFO << "Scanner ignores node index.\n";
+      out = this_node.RunScanner(options->scan_file);
+    } else {
+      if (!this_node.Init()) {
+        LOG_FATAL << "Basic setup failed";
+        return false;
+      }
+      LOG_INFO << "Basic Setup complete\n";
+      if (!this_node.SanityChecks()) {
+        LOG_FATAL << "Sanity checks failed";
+        return false;
+      }
+      LOG_INFO << "Sanity checks passed\n";
+      out = this_node.RunNode();
+    }
     LOG_INFO << "DevCash Shutting Down\n";
     return(true);
   } CASH_CATCH (...) {
@@ -99,14 +142,4 @@ bool AppInit(int argc, char* argv[]) {
     std::cerr << err << std::endl;
     return(false);
   }
-}
-
-int main(int argc, char* argv[])
-{
-  if (argc != 5) {
-    LOG_INFO << "Usage: DevCash T1|T2|scan nodeindex inputfile outputfile";
-    return(EXIT_FAILURE);
-  }
-
-  return(AppInit(argc, argv) ? EXIT_SUCCESS : EXIT_FAILURE);
 }

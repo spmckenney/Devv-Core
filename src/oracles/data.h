@@ -56,7 +56,7 @@ class DCdata : public oracleInterface {
       json j = json::parse(checkTx.jsonStr_);
       std::vector<uint8_t> theData(json::to_cbor(j["data"]));
       //TODO: check that exchange is to an INN data collection address
-      if (checkTx.getValueOut() < theData.size()/kBYTES_PER_COIN) {
+      if (checkTx.getValueOut() < int(theData.size()/kBYTES_PER_COIN)) {
         LOG_WARNING << "Error: Data are too large for tokens provided.";
         return false;
       }
@@ -74,7 +74,7 @@ class DCdata : public oracleInterface {
    * @return true iff the transaction is valid according to this oracle
    * @return false otherwise
    */
-  bool isValid(Devcash::DCTransaction checkTx, Devcash::DCState& context) {
+  bool isValid(Devcash::DCTransaction checkTx, Devcash::DCState&) {
     if (!isValid(checkTx)) return false;
     return true;
   }
