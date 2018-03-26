@@ -43,42 +43,8 @@ file(GLOB primitives_SRC
 )
 
 # External third-party libraries
-find_library(DOUBLECONV double-conversion)
-find_library(GFLAGS gflags)
-find_library(GLOG glog)
-find_library(PTHREAD pthread)
-find_library(SODIUM sodium)
 find_library(ZMQ zmq)
 
-# Facebook specific libraries
-find_library(FOLLY folly PATHS)
-find_library(ZSTD zstd)
-
-# Include Thrift
-find_program(THRIFT1 thrift1)
-find_library(THRIFTCPP2 thriftcpp2)
-find_library(THRIFTPROTOCOL thriftprotocol)
-find_library(PROTOCOL protocol)
-find_library(TRANSPORT transport)
-find_path(THRIFT_COMPILER_INCLUDE thrift/templates)
-set(THRIFT_TEMPLATES ${THRIFT_COMPILER_INCLUDE}/thrift/templates)
-include(${THRIFT_COMPILER_INCLUDE}/thrift/ThriftLibrary.cmake)
-
-#
-# Generate thrift defs for C++ only. For python install via setuptools
-#
-set(THRIFT_DIR ${CMAKE_BINARY_DIR}/thrift)
-file(MAKE_DIRECTORY ${THRIFT_DIR})
-
-thrift_object(
-    "Devcash" #file_name
-    "" #services
-    "cpp2" #language
-    "json,optionals" #options
-    "${CMAKE_SOURCE_DIR}/io" #file_path
-    "${THRIFT_DIR}" #output_path
-    "thrift" #include_prefix
-)
 file(GLOB_RECURSE devcash_headers "*.h*")
 set (devcash_includes "")
 foreach (_headerFile ${devcash_headers})
@@ -227,26 +193,11 @@ install (TARGETS boost_spsc_test DESTINATION bin)
 #  )
 #
 
-set(fbzmq_LIBRARIES "")
-
-list(APPEND fbzmq_LIBRARIES
-  fbzmq
-  ${DOUBLECONV}
-  ${ZSTD}
-  ${FOLLY}
-  ${GFLAGS}
-  ${GLOG}
-  ${ZMQ}
-  ${SODIUM}
-  ${PTHREAD}
-  ${THRIFTPROTOCOL}
-  ${PROTOCOL}
-  ${TRANSPORT}
-)
-
 #
 # i/o Tests
 #
+
+# # # t1_example
 add_executable(t1_example
   tests/io/t1_example.cpp
   )
@@ -254,11 +205,12 @@ add_executable(t1_example
 target_link_libraries(t1_example
   io
   common
-  ${fbzmq_LIBRARIES}
+  ${ZMQ}
   ${OPENSSL_LIBRARIES}
   ${Boost_LIBRARIES}
   )
 
+# # # io_server_test
 add_executable(io_server_test
   tests/io/transaction_server.cpp
   )
@@ -266,11 +218,12 @@ add_executable(io_server_test
 target_link_libraries(io_server_test
   io
   common
-  ${fbzmq_LIBRARIES}
+  ${ZMQ}
   ${OPENSSL_LIBRARIES}
   ${Boost_LIBRARIES}
   )
 
+# # # io_client_test
 add_executable(io_client_test
   tests/io/transaction_client.cpp
   )
@@ -278,7 +231,7 @@ add_executable(io_client_test
 target_link_libraries(io_client_test
   io
   common
-  ${fbzmq_LIBRARIES}
+  ${ZMQ}
   ${OPENSSL_LIBRARIES}
   ${Boost_LIBRARIES}
   )
