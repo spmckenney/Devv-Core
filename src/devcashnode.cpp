@@ -126,8 +126,8 @@ DevcashNode::DevcashNode(eAppMode mode
   }
   */
 
-  appContext.current_node = node_index;
-  appContext.app_mode = mode;
+  appContext.current_node_ = node_index;
+  appContext.app_mode_ = mode;
 }
 
 bool initCrypto()
@@ -145,11 +145,11 @@ bool initCrypto()
 
 bool DevcashNode::Init()
 {
-  if (appContext.current_node < 0
-      || appContext.current_node >= appContext.kNODE_KEYs.size()
-      || appContext.current_node >= appContext.kNODE_ADDRs.size()) {
+  if (appContext.current_node_ < 0
+      || appContext.current_node_ >= appContext.kNODE_KEYs.size()
+      || appContext.current_node_ >= appContext.kNODE_ADDRs.size()) {
     LOG_FATAL << "Invalid node index: "+
-      std::to_string(appContext.current_node)+"\n";
+      std::to_string(appContext.current_node_)+"\n";
     return false;
   }
   return initCrypto();
