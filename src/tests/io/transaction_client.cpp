@@ -11,12 +11,22 @@ void print_devcash_message(Devcash::DevcashMessageUniquePtr message) {
   LOG(info) << "DC->uri: " << message->uri;
   return;
 }
-  
+
 
 namespace po = boost::program_options;
 
 int
-main(int, char**) {
+main(int argc, char** argv) {
+
+  if (argc != 2) {
+    std::cerr << "Usage: " << argv[0] << " uri" << std::endl;
+    std::cerr << "ex: " << argv[0] << " tcp://localhost:55557" << std::endl;
+    exit(-1);
+  }
+
+  std::string host_uri = argv[1];
+
+  std::cout << "Connecting to " << host_uri << std::endl;
 
   /*
 
@@ -37,7 +47,7 @@ main(int, char**) {
 
   // start ZmqClient
   Devcash::io::TransactionClient client{context};
-  client.AddConnection("tcp://localhost:55557");
+  client.AddConnection(host_uri);
   client.AttachCallback(print_devcash_message);
 
   client.Run();

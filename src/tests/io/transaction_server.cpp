@@ -7,23 +7,29 @@
 #include "io/constants.h"
 
 int
-main(int, char**) {
+main(int argc, char** argv) {
 
-  // start signal handler before any thread
-  /*
-  fbzmq::ZmqEventLoop mainEventLoop;
-  fbzmq::StopEventLoopSignalHandler handler(&mainEventLoop);
-  handler.registerSignalHandler(SIGINT);
-  handler.registerSignalHandler(SIGQUIT);
-  handler.registerSignalHandler(SIGTERM);
+  if (argc < 2) {
+    std::cerr << "Usage: " << argv[0] << " bind-endpoint [URI]" << std::endl;
+    std::cerr << "ex: " << argv[0] << " tcp://*:55557 my-message" << std::endl;
+    exit(-1);
+  }
 
-  std::vector<std::thread> allThreads{};
-  */
+  std::string host_uri = argv[1];
+
+  std::cout << "Binding to " << host_uri << std::endl;
+
+  std::string message;
+  if (argc > 2) {
+    message = argv[2];
+  } else {
+    message = "my-uri";
+  }
 
   // Zmq Context
   zmq::context_t context(1);
 
-  Devcash::io::TransactionServer server{context, "tcp://*:55557"};
+  Devcash::io::TransactionServer server{context, host_uri};
 
   /*
   std::thread serverThread([&server]() noexcept {
@@ -56,7 +62,7 @@ main(int, char**) {
   for (;;) {
     sleep(1);
     auto devcash_message = Devcash::DevcashMessageUniquePtr(new Devcash::DevcashMessage);
-    devcash_message->uri = "my_uri2";
+    devcash_message->uri = message;
     devcash_message->message_type = Devcash::eMessageType::VALID;
     LOG(info) << "Sending message";
     server.QueueMessage(std::move(devcash_message));
