@@ -16,7 +16,9 @@ void print_devcash_message(Devcash::DevcashMessageUniquePtr message) {
 namespace po = boost::program_options;
 
 int
-main(int argc, char** argv) {
+main(int, char**) {
+
+  /*
 
   int opt;
   po::options_description desc("Allowed options");
@@ -29,13 +31,13 @@ main(int argc, char** argv) {
     ;
 
      std::vector<std::thread> allThreads{};
-
+  */
   // Zmq Context
   zmq::context_t context(1);
 
   // start ZmqClient
   Devcash::io::TransactionClient client{context};
-  client.AddConnection("tcp://localhost:55556");
+  client.AddConnection("tcp://localhost:55557");
   client.AttachCallback(print_devcash_message);
 
   client.Run();

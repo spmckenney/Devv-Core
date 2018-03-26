@@ -7,7 +7,7 @@
 #include "io/constants.h"
 
 int
-main(int argc, char** argv) {
+main(int, char**) {
 
   // start signal handler before any thread
   /*

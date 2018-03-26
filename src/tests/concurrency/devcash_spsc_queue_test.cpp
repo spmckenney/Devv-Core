@@ -23,7 +23,7 @@ std::unique_ptr<DevcashMessage> get_unique() {
 }
 
 void
-put_unique(std::unique_ptr<DevcashMessage> message) {
+put_unique(std::unique_ptr<DevcashMessage>) {
 }
 
 struct BufferTester {

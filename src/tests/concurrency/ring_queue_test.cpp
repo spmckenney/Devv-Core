@@ -14,7 +14,7 @@ DevcashRingQueue rq;
 class DataStore {
  public:
   DataStore(int tot, int valid) : tot_count(tot), valid_count(valid) {}
-  DataStore(const DataStore& other) {};
+  DataStore(const DataStore&) {};
   void incTotal() {
 	std::lock_guard<std::mutex> lock(totLock_);
     tot_count++;
