@@ -116,7 +116,7 @@ int main(int argc, char* argv[])
                           , *server);
 
     std::string out("");
-    if (options->mode == eAppMode::SCAN) {
+    if (options->mode == eAppMode::scan) {
       LOG_INFO << "Scanner ignores node index.\n";
       out = this_node.RunScanner(options->scan_file);
     } else {
