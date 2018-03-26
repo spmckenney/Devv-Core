@@ -197,6 +197,9 @@ std::string DevcashNode::RunScanner(std::string) {
 
 std::string DevcashNode::RunNode()
 {
+  // Start the TransactionServer running in a thread
+  server_.StartServer();
+
   std::string out("");
   CASH_TRY {
     client_.AttachCallback([this](std::unique_ptr<DevcashMessage> ptr) {
@@ -207,7 +210,7 @@ std::string DevcashNode::RunNode()
         }
     });
 
-    validator_.start();;
+    validator_.start();
     consensus_.start();
     std::vector<uint8_t> data(100);
     auto startMsg = std::unique_ptr<DevcashMessage>(
@@ -216,7 +219,7 @@ std::string DevcashNode::RunNode()
     //client.Run();
 
 	//make sure child threads are actually initialized before shutting down
-    boost::this_thread::sleep_for(boost::chrono::milliseconds(2000));
+    boost::this_thread::sleep_for(boost::chrono::milliseconds(20000));
     StartShutdown();
     LOG_INFO << "end of RunNode\n";
   } CASH_CATCH (const std::exception& e) {
