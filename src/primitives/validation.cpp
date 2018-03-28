@@ -282,7 +282,8 @@ DCValidationBlock::DCValidationBlock(std::vector<uint8_t> cbor) {
 }
 
 DCValidationBlock::DCValidationBlock(const DCValidationBlock& other)
-  : sigs_(other.sigs_), summaryObj_(other.summaryObj_) {
+  : sigs_(other.sigs_)
+  , summaryObj_(other.summaryObj_) {
 }
 
 DCValidationBlock::DCValidationBlock(std::string node, std::string sig) {

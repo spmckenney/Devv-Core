@@ -45,7 +45,7 @@ bool KeyRing::initKeys() {
 
     keyMap_.insert(std::pair<std::string, EC_KEY*>(context_.kINN_ADDR, inn_key));
 
-    for (size_t i=0; i<context_.kADDRs.size(); i++) {
+    for (unsigned int i=0; i<context_.kADDRs.size(); i++) {
 
       EC_KEY* addr_key = loadEcKey(ctx,
           context_.kADDRs[i],
@@ -59,7 +59,7 @@ bool KeyRing::initKeys() {
       keyMap_.insert(std::pair<std::string, EC_KEY*>(context_.kADDRs[i], addr_key));
     }
 
-    for (int i=0; i<context_.kNODE_ADDRs.size(); i++) {
+    for (unsigned int i=0; i<context_.kNODE_ADDRs.size(); i++) {
 
       EC_KEY* loadkey = loadEcKey(ctx,
           context_.kNODE_ADDRs[i],

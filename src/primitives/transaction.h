@@ -121,8 +121,8 @@ class DCTransfer {
 class DCTransaction {
  public:
 
-  uint32_t nonce_;
   std::vector<DCTransfer> xfers_;
+  uint32_t nonce_;
   std::string sig_;
   std::string jsonStr_ = "";
 
@@ -239,4 +239,3 @@ class DCTransaction {
 } //end namespace Devcash
 
 #endif // DEVCASH_PRIMITIVES_TRANSACTION_H
-

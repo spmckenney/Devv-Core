@@ -200,8 +200,12 @@ DCTransaction::DCTransaction(std::vector<uint8_t> cbor) {
   }
 }
 
-DCTransaction::DCTransaction(const DCTransaction& tx) : xfers_(tx.xfers_),
-    nonce_(tx.nonce_), oper_(tx.oper_), sig_(tx.sig_) {
+DCTransaction::DCTransaction(const DCTransaction& tx)
+  : xfers_(tx.xfers_)
+  , nonce_(tx.nonce_)
+  , sig_(tx.sig_)
+  , oper_(tx.oper_)
+{
 }
 
 bool DCTransaction::isValid(DCState& chainState, KeyRing& keys, DCSummary& summary) const {

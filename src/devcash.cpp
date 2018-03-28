@@ -28,19 +28,6 @@
 using namespace Devcash;
 using json = nlohmann::json;
 
-//ArgsManager dCashArgs; /** stores data parsed from config file */
-
-//toggle exceptions on/off
-#if (defined(__cpp_exceptions) || defined(__EXCEPTIONS) || defined(_CPPUNWIND)) && not defined(DEVCASH_NOEXCEPTION)
-    #define CASH_THROW(exception) throw exception
-    #define CASH_TRY try
-    #define CASH_CATCH(exception) catch(exception)
-#else
-    #define CASH_THROW(exception) std::abort()
-    #define CASH_TRY if(true)
-    #define CASH_CATCH(exception) if(false)
-#endif
-
 typedef unsigned char byte;
 #define UNUSED(x) ((void)x)
 

@@ -58,4 +58,20 @@ static void init_log(void)
 #define LOG_ERROR LOG(error)
 #define LOG_FATAL LOG(fatal)
 
+//toggle exceptions on/off
+#if (defined(__cpp_exceptions) || defined(__EXCEPTIONS) || defined(_CPPUNWIND)) && not defined(DEVCASH_NOEXCEPTION)
+    #define CASH_THROW(exception) throw exception
+    #define CASH_TRY try
+    #define CASH_CATCH(exception) catch(exception)
+#else
+    #define CASH_THROW(exception) std::abort()
+    #define CASH_TRY if(true)
+    #define CASH_CATCH(exception) if(false)
+#endif
+
+static const int kDEFAULT_WORKERS = 10;
+
+#define NOW std::chrono::high_resolution_clock::now()
+#define MILLI_SINCE(start) std::chrono::duration_cast<std::chrono::milliseconds>(NOW - start).count()
+
 #endif  // DEVCASH_LOGGER_H

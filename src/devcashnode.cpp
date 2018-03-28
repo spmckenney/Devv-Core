@@ -50,21 +50,6 @@
 using namespace Devcash;
 using json = nlohmann::json;
 
-//exception toggling capability
-#if (defined(__cpp_exceptions) || defined(__EXCEPTIONS) || defined(_CPPUNWIND)) \
-  && not defined(DEVCASH_NOEXCEPTION)
-    #define CASH_THROW(exception) throw exception
-    #define CASH_TRY try
-    #define CASH_CATCH(exception) catch(exception)
-#else
-    #define CASH_THROW(exception) std::abort()
-    #define CASH_TRY if(true)
-    #define CASH_CATCH(exception) if(false)
-#endif
-
-#define NOW std::chrono::high_resolution_clock::now()
-#define MILLI_SINCE(start) std::chrono::duration_cast<std::chrono::milliseconds>(NOW - start).count()
-
 namespace Devcash {
 
 std::atomic<bool> fRequestShutdown(false); /** has a shutdown been requested? */

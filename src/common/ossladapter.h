@@ -20,18 +20,6 @@
 #include "util.h"
 #include "logger.h"
 
-//exception toggling capability
-#if (defined(__cpp_exceptions) || defined(__EXCEPTIONS) || defined(_CPPUNWIND)) \
-  && not defined(DEVCASH_NOEXCEPTION)
-    #define CASH_THROW(exception) throw exception
-    #define CASH_TRY try
-    #define CASH_CATCH(exception) catch(exception)
-#else
-    #define CASH_THROW(exception) std::abort()
-    #define CASH_TRY if(true)
-    #define CASH_CATCH(exception) if(false)
-#endif
-
 namespace Devcash
 {
 
