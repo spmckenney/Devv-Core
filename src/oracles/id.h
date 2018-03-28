@@ -73,7 +73,7 @@ class DCid : public oracleInterface {
     for (std::vector<Devcash::DCTransfer>::iterator it=checkTx.xfers_.begin();
         it != checkTx.xfers_.end(); ++it) {
       if (it->amount_ > 0) {
-        if ((context.getAmount(DCid::getCoinType(), it->addr_)) > 0) {
+        if ((context.getAmount(DCid::getCoinIndex(), it->addr_)) > 0) {
           LOG_WARNING << "Error: Addr already has an ID token.";
           return false;
         } //endif has ID
@@ -112,7 +112,7 @@ class DCid : public oracleInterface {
   Devcash::DCTransaction Tier2Process(std::string rawTx,
       Devcash::DCState context) {
     json jsonObj = json::parse(rawTx);
-    Devcash::DCTransaction tx(jsonObj);
+    Devcash::DCTransaction tx(jsonObj.dump());
     if (!isValid(tx, context)) {
       tx.setNull();
       return tx;

@@ -51,11 +51,13 @@ TransactionServer::SendMessage(DevcashMessageUniquePtr dc_message) noexcept {
 void
 TransactionServer::QueueMessage(DevcashMessageUniquePtr message) noexcept
 {
+  LOG_DEBUG << "QueueMessage: Queueing";
   message_queue_.push(std::move(message));
 }
 
 void
 TransactionServer::StartServer() {
+  LOG_DEBUG << "Starting TransactionServer";
   server_thread_ = std::unique_ptr<std::thread>(new std::thread([this]() { this->Run(); }));
 }
 
@@ -63,34 +65,13 @@ void
 TransactionServer::Run() noexcept {
 
   pub_socket_ = std::unique_ptr<zmq::socket_t>(new zmq::socket_t(context_, ZMQ_PUB));
-  LOG(info) << "Server: Binding bind_url_ '" << bind_url_ << "'";
+  LOG_INFO << "Server: Binding bind_url_ '" << bind_url_ << "'";
   pub_socket_->bind(bind_url_);
-
 
   for (;;) {
     auto message = message_queue_.pop();
     SendMessage(std::move(message));
   }
-
-  /*
-// attach callbacks for thrift type command
-  addSocket(
-      fbzmq::RawZmqSocketPtr{*thriftCmdSock_},
-      ZMQ_POLLIN,
-      [this](int) noexcept {
-        LOG(info) << "Received command request on thriftCmdSock_";
-        processThriftCommand();
-      });
-
-  // attach callbacks for multiple command
-  addSocket(
-      fbzmq::RawZmqSocketPtr{*multipleCmdSock_},
-      ZMQ_POLLIN,
-      [this](int) noexcept {
-        LOG(info) << "Received command request on multipleCmdSock_";
-        processMultipleCommand();
-      });
-  */
 }
 
 /*
@@ -111,24 +92,21 @@ TransactionClient::AddConnection(const std::string& endpoint) {
 void
 TransactionClient::ProcessIncomingMessage() noexcept {
 
-  int more;
-  //size_t more_size = sizeof(more);
-
   auto devcash_message = DevcashMessageUniquePtr(new DevcashMessage());
-  
+
 /* Create an empty ØMQ message to hold the message part */
     zmq_msg_t part;
     int rc = zmq_msg_init(&part);
     assert (rc == 0);
 
-    LOG(info) << "Waiting for uri";
+    LOG_DEBUG << "Waiting for uri";
     /* Block until a message is available to be received from socket */
     zmq::message_t message;
     sub_socket_->recv(&message);
 
     int size = message.size();
     std::string uri(static_cast<char *>(message.data()), size);
-    LOG(info) << "uri: " << uri;
+    LOG_DEBUG << "uri: " << uri;
 
     devcash_message->uri = uri;
 
@@ -140,7 +118,7 @@ TransactionClient::ProcessIncomingMessage() noexcept {
     LOG(info) << "rc: " << rc;
     LOG(info) << "more: " << more;
     assert (rc == 1);
-   
+
     rc = zmq_recv(&sub_socket_, &devcash_message->message_type,
                   sizeof(devcash_message->message_type), 0);
     */
@@ -172,6 +150,12 @@ TransactionClient::Run() {
   for (;;) {
     ProcessIncomingMessage();
   }
+}
+
+void
+TransactionClient::StartClient() {
+  LOG_DEBUG << "Starting TransactionClient thread";
+  client_thread_ = std::unique_ptr<std::thread>(new std::thread([this]() { this->Run(); }));
 }
 
 void

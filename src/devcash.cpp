@@ -15,6 +15,7 @@
 #include <thread>
 
 #include "common/devcash_context.h"
+#include "concurrency/DevcashController.h"
 #include "devcashnode.h"
 #include "common/json.hpp"
 #include "common/logger.h"
@@ -26,6 +27,8 @@
 
 using namespace Devcash;
 using json = nlohmann::json;
+
+//ArgsManager dCashArgs; /** stores data parsed from config file */
 
 //toggle exceptions on/off
 #if (defined(__cpp_exceptions) || defined(__EXCEPTIONS) || defined(_CPPUNWIND)) && not defined(DEVCASH_NOEXCEPTION)
@@ -57,68 +60,37 @@ std::unique_ptr<io::TransactionServer> create_transaction_server(const devcash_o
   return server;
 }
 
-#if 0
-bool AppInit(int, char* argv[]) {
-  CASH_TRY {
-
-    std::string announce("Check DevCash logs at ");
-    announce += LOGFILE;
-    announce += "\n";
-    std::cout << announce;
-    LOG_INFO << "DevCash initializing...\n";
-
-    /*CASH_TRY {
-      dCashArgs.ReadConfigFile(argv[]);
-    } CASH_CATCH (const std::exception& e) {
-      LOG_FATAL << "Error reading configuration file: " << e.what();
-      return false;
-    }*/
-
-
-    /*
-    std::string outFileStr(argv[4]);
-    std::ofstream outFile(outFileStr);
-    if (outFile.is_open()) {
-      outFile << out;
-      outFile.close();
-    } else {
-        LOG_FATAL << "Failed to open output file '"+outFileStr+"'.\n";
-        return(false);
-    }
-    */
-
-}
-#endif
-
 int main(int argc, char* argv[])
 {
-  std::unique_ptr<devcash_options> options = parse_options(argc, argv);
-
-  if (!options) {
-    exit(-1);
-  }
-
-  zmq::context_t context(1);
-
-  std::unique_ptr<io::TransactionServer> server = create_transaction_server(*options, context);
-  std::unique_ptr<io::TransactionClient> client = create_transaction_client(*options, context);
-
-  DCState chainState;
-  ConsensusWorker consensus(chainState, *server, options->num_consensus_threads);
-  ValidatorWorker validator(chainState, consensus, options->num_validator_threads);
-
   CASH_TRY {
-    DevcashNode this_node(options->mode
-                          , options->node_index
-                          , consensus
-                          , validator
-                          , *client
-                          , *server);
+    std::unique_ptr<devcash_options> options = parse_options(argc, argv);
 
-    std::string out("");
-    if (options->mode == eAppMode::SCAN) {
+    if (!options) {
+      exit(-1);
+    }
+
+    zmq::context_t context(1);
+
+    std::unique_ptr<io::TransactionServer> server = create_transaction_server(*options, context);
+    std::unique_ptr<io::TransactionClient> client = create_transaction_client(*options, context);
+
+    DevcashContext this_context(static_cast<eAppMode>(options->mode),
+      options->node_index);
+    KeyRing keys(this_context);
+    ProposedBlock genesis;
+    ProposedBlock on_deck;
+    DevcashController controller(std::move(server),std::move(client),
+      options->num_validator_threads, options->num_consensus_threads,
+      keys, this_context,genesis,on_deck);
+
+    DevcashNode this_node(controller, this_context);
+
+    std::string in_raw = ReadFile(options->scan_file);
+
+   std::string out("");
+    if (options->mode == eAppMode::scan) {
       LOG_INFO << "Scanner ignores node index.\n";
-      out = this_node.RunScanner(options->scan_file);
+      out = this_node.RunScanner(in_raw);
     } else {
       if (!this_node.Init()) {
         LOG_FATAL << "Basic setup failed";
@@ -130,8 +102,24 @@ int main(int argc, char* argv[])
         return false;
       }
       LOG_INFO << "Sanity checks passed\n";
-      out = this_node.RunNode();
+      keys.initKeys();
+      out = this_node.RunNetworkTest();
     }
+
+    //We do need to output the resulting blockchain for analysis
+    //It should be deterministic based on the input and parameters,
+    //so we won't need it from every run, just interesting ones.
+    //Feel free to do this differently!
+    std::string outFileStr(argv[4]);
+    std::ofstream outFile(options->write_file);
+    if (outFile.is_open()) {
+      outFile << out;
+      outFile.close();
+    } else {
+        LOG_FATAL << "Failed to open output file '"+outFileStr+"'.\n";
+        return(false);
+    }
+
     LOG_INFO << "DevCash Shutting Down\n";
     return(true);
   } CASH_CATCH (...) {

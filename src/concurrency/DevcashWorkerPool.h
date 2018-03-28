@@ -64,9 +64,9 @@ class DevcashWorkerPool {
  public:
 
   /* Constructors/Destructors */
-  DevcashWorkerPool(std::function<void(std::unique_ptr<DevcashMessage>)> callback,
-                    const int /* workers=kDEFAULT_WORKERS */) :
-      callback_(callback), continue_(true) {
+  DevcashWorkerPool(const std::function<void(std::unique_ptr<DevcashMessage>)>& callback,
+                    const int workers=kDEFAULT_WORKERS) :
+      callback_(callback), worker_num_(workers), continue_(true) {
   }
 
   virtual ~DevcashWorkerPool() {
@@ -80,7 +80,7 @@ class DevcashWorkerPool {
 
   void start() {
     CASH_TRY {
-      for (int w = 0; w < workerNum_; w++) {
+      for (int w = 0; w < worker_num_; w++) {
         pool_.create_thread(boost::bind(&DevcashWorkerPool::theLoop, this));
       }
     } CASH_CATCH (const std::exception& e) {
@@ -112,7 +112,8 @@ class DevcashWorkerPool {
    */
   void push(std::unique_ptr<DevcashMessage> message) {
     CASH_TRY {
-      trigger_.push(std::move(message));
+      callback_(std::move(message));
+      //trigger_.push(std::move(message));
     } CASH_CATCH (const std::exception& e) {
       LOG_WARNING << FormatException(&e, "Worker.push");
     }
@@ -136,10 +137,10 @@ class DevcashWorkerPool {
   }
 
  private:
-  int workerNum_ = kDEFAULT_WORKERS;
   boost::thread_group pool_;
   DevcashRingQueue trigger_; //the ring queue triggers callbacks
-  std::function<void(std::unique_ptr<DevcashMessage>)> callback_; //callback for this pool
+  const std::function<void(std::unique_ptr<DevcashMessage>)>& callback_; //callback for this pool
+  const int worker_num_ = kDEFAULT_WORKERS;
   std::atomic<bool> continue_;  //signals all threads to stop gracefully
 
 };

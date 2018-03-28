@@ -55,10 +55,10 @@ class DevcashRingQueue {
 
   /* Constructors/Destructors */
   DevcashRingQueue() :
-    kRingSize_(kDEFAULT_RING_SIZE) {
+    kRingSize_(kDEFAULT_RING_SIZE), ptrRing_(kRingSize_) {
   }
   virtual ~DevcashRingQueue() {}
-  DevcashRingQueue(size_t size) : kRingSize_(size) {}
+  DevcashRingQueue(size_t size) : kRingSize_(size), ptrRing_(kRingSize_) {}
 
   /* Disallow copy and assign */
   DevcashRingQueue(DevcashRingQueue const&) = delete;
@@ -74,13 +74,16 @@ class DevcashRingQueue {
     CASH_TRY {
       std::unique_lock<std::mutex> lock(pushLock_);
       while (isFull_) {
-        LOG_FATAL << "Queue blocked on push, run is suboptimal\n";
-        /*full_.wait(lock, [&]() {
-          return(!isFull_);}
-        );*/
+        LOG_FATAL << "Queue blocked on push, run is suboptimal!\n";
+        full_.wait(lock, [&]() {
+          return(pending_ < kRingSize_);}
+        );
       }
       std::unique_lock<std::mutex> eqLock(update_);
-      ptrRing_[pushAt_] = std::move(pointer);
+      ptrRing_.at(pushAt_) = std::move(pointer);
+      pending_++;
+      if (pushAt_+1 == popAt_) isFull_=true;
+      if (pushAt_+1 >= kRingSize_&& popAt_ == 0) isEmpty_=true;
       isEmpty_ = false;
       empty_.notify_one();
       pushAt_++;
@@ -104,12 +107,17 @@ class DevcashRingQueue {
    */
   void popGuard() {
     CASH_TRY {
+      std::lock_guard<std::mutex> pop_guard(popGuardLock_);;
       std::unique_lock<std::mutex> lock(popLock_);
       while (isEmpty_) {
         empty_.wait(lock, [&]() {
-          return(!isEmpty_);}
+          return(pending_ > 0);}
         );
       }
+      pending_--;
+      if (popAt_+1 == pushAt_) isEmpty_=true;
+      if (popAt_+1 >= kRingSize_&& pushAt_ == 0) isEmpty_=true;
+      LOG_INFO << "Worker will pop.\n";
     } CASH_CATCH (const std::exception& e) {
       LOG_WARNING << FormatException(&e, "DevcashRingQueue.popGuard");
     }
@@ -123,7 +131,7 @@ class DevcashRingQueue {
   std::unique_ptr<DevcashMessage> pop() {
     CASH_TRY {
       std::unique_lock<std::mutex> eqLock(update_);
-      std::unique_ptr<DevcashMessage> out = std::move(ptrRing_[popAt_]);
+      std::unique_ptr<DevcashMessage> out = std::move(ptrRing_.at(popAt_));
       isFull_ = false;
       full_.notify_one();
       popAt_++;
@@ -149,6 +157,7 @@ class DevcashRingQueue {
     stopNow_ = true;
     isEmpty_ = false;
     isFull_ = false;
+    pending_ = 0;
     empty_.notify_all();
     full_.notify_all();
   }
@@ -161,6 +170,8 @@ class DevcashRingQueue {
   std::mutex pushLock_; //orders access to push()
   std::mutex popLock_; //orders access to pop()
   std::mutex update_; //stops threads from updating members simultaneously
+  std::mutex popGuardLock_;
+  int pending_ = 0;
   bool isEmpty_ = true;
   bool isFull_ = false;
   std::condition_variable empty_;

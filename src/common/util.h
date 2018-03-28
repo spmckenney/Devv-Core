@@ -16,11 +16,48 @@
 #include <exception>
 #include <map>
 #include <stdint.h>
+#include <bitset>
+#include <fstream>
+#include <iostream>
+#include <sstream>
 #include <string>
 #include <vector>
 
 namespace Devcash
 {
+
+static std::string jsonFinder(std::string haystack, std::string key, size_t& pos) {
+  std::string out;
+  size_t dex = haystack.find("\""+key+"\":", pos);
+  if (dex == std::string::npos) return out;
+  dex += key.size()+3;
+  size_t eDex = haystack.find(",\"", dex);
+  if (eDex == std::string::npos) {
+    eDex = haystack.find("}", dex);
+    if (eDex == std::string::npos) return out;
+  }
+  out = haystack.substr(dex, eDex-dex);
+  pos = eDex;
+  if (out.front() == '\"') out.erase(std::begin(out));
+  if (out.back() == '\"') out.pop_back();
+  return out;
+}
+
+static std::vector<uint8_t> str2Bin(std::string msg) {
+  std::vector<uint8_t> out;
+  for (std::size_t i=0; i <msg.size(); ++i) {
+    out.push_back((int) msg.at(i));
+  }
+  return out;
+}
+
+static std::string bin2Str(std::vector<uint8_t> bytes) {
+  std::string out;
+  for (std::size_t i=0; i <bytes.size(); ++i) {
+    out += char(bytes[i]);
+  }
+  return out;
+}
 
 /** Setup the runtime environment. */
 void SetupEnvironment();
