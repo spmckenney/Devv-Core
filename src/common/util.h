@@ -22,6 +22,7 @@
 #include <sstream>
 #include <string>
 #include <vector>
+#include <memory>
 
 namespace Devcash
 {
@@ -291,7 +292,12 @@ protected:
 
 extern ArgsManager gArgs;
 
+template<typename T, typename ...Args>
+std::unique_ptr<T> make_unique( Args&& ...args )
+{
+    return std::unique_ptr<T>( new T( std::forward<Args>(args)... ) );
+}
+
 } //end namespace Devcash
 
 #endif // DEVCASH_UTIL_H
-
