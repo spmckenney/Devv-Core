@@ -81,8 +81,8 @@ using namespace Devcash;
   void DevcashControllerWorker::pushValidator(
       std::unique_ptr<DevcashMessage> message) {
     CASH_TRY {
-      //trigger_.push(std::move(message));
-      controller_->ValidatorCallback(std::move(message));
+      validators_.push(std::move(message));
+      //controller_->ValidatorCallback(std::move(message));
     } CASH_CATCH (const std::exception& e) {
       LOG_WARNING << FormatException(&e, "Worker.push");
     }
@@ -91,8 +91,8 @@ using namespace Devcash;
   void DevcashControllerWorker::pushConsensus(std::unique_ptr<DevcashMessage> message) {
     CASH_TRY {
       (std::move(message));
-      //trigger_.push(std::move(message));
-      controller_->ConsensusCallback(std::move(message));
+      consensus_.push(std::move(message));
+      //controller_->ConsensusCallback(std::move(message));
     } CASH_CATCH (const std::exception& e) {
       LOG_WARNING << FormatException(&e, "Worker.push");
     }
