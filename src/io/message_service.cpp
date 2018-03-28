@@ -93,7 +93,7 @@ TransactionClient::AddConnection(const std::string& endpoint) {
 void
 TransactionClient::ProcessIncomingMessage() noexcept {
 
-  auto devcash_message = DevcashMessageUniquePtr(new DevcashMessage());
+  auto devcash_message = std::make_unique<DevcashMessage>();
 
 /* Create an empty ØMQ message to hold the message part */
     zmq_msg_t part;
@@ -107,9 +107,10 @@ TransactionClient::ProcessIncomingMessage() noexcept {
 
     int size = message.size();
     std::string uri(static_cast<char *>(message.data()), size);
-    LOG_DEBUG << "uri: " << uri;
 
     devcash_message->uri = uri;
+
+    LogDevcashMessageSummary(*devcash_message);
 
     //rc = zmq_recv (&sub_socket_, &devcash_message->uri_size, 0);
     //assert (rc == 0);
