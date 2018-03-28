@@ -94,48 +94,48 @@ TransactionClient::ProcessIncomingMessage() noexcept {
 
   auto devcash_message = DevcashMessageUniquePtr(new DevcashMessage());
 
-/* Create an empty ØMQ message to hold the message part */
-    zmq_msg_t part;
-    int rc = zmq_msg_init(&part);
-    assert (rc == 0);
+  /* Create an empty ØMQ message to hold the message part */
+  zmq_msg_t part;
+  int rc = zmq_msg_init(&part);
+  assert (rc == 0);
 
-    LOG_DEBUG << "Waiting for uri";
-    /* Block until a message is available to be received from socket */
-    zmq::message_t message;
-    sub_socket_->recv(&message);
+  LOG_DEBUG << "Waiting for uri";
+  /* Block until a message is available to be received from socket */
+  zmq::message_t message;
+  sub_socket_->recv(&message);
 
-    int size = message.size();
-    std::string uri(static_cast<char *>(message.data()), size);
-    LOG_DEBUG << "uri: " << uri;
+  int size = message.size();
+  std::string uri(static_cast<char *>(message.data()), size);
+  LOG_DEBUG << "uri: " << uri;
 
-    devcash_message->uri = uri;
+  devcash_message->uri = uri;
 
-    //rc = zmq_recv (&sub_socket_, &devcash_message->uri_size, 0);
-    //assert (rc == 0);
-    /* Determine if more message parts are to follow */
-    /*
+  //rc = zmq_recv (&sub_socket_, &devcash_message->uri_size, 0);
+  //assert (rc == 0);
+  /* Determine if more message parts are to follow */
+  /*
     rc = zmq_getsockopt (&sub_socket_, ZMQ_RCVMORE, &more, &more_size);
     LOG(info) << "rc: " << rc;
     LOG(info) << "more: " << more;
     assert (rc == 1);
 
     rc = zmq_recv(&sub_socket_, &devcash_message->message_type,
-                  sizeof(devcash_message->message_type), 0);
-    */
-    /*
+    sizeof(devcash_message->message_type), 0);
+  */
+  /*
     auto thrift_object =
-      sub_socket_.recvThriftObj<thrift::DevcashMessage>(serializer_);
-  if (thrift_object.hasError()) {
+    sub_socket_.recvThriftObj<thrift::DevcashMessage>(serializer_);
+    if (thrift_object.hasError()) {
     LOG(ERROR) << "read thrift request failed: " << thrift_object.error();
     return;
-  } else {
+    } else {
     LOG(info) << "Received Thrift Object";
-  }
-  const auto& thrift_devcash_message = thrift_object.value();
+    }
+    const auto& thrift_devcash_message = thrift_object.value();
 
-  auto message = MakeDevcashMessage(thrift_devcash_message);
-    */
-    callback_(std::move(devcash_message));
+    auto message = MakeDevcashMessage(thrift_devcash_message);
+  */
+  callback_(std::move(devcash_message));
 }
 
 void

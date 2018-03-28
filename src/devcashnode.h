@@ -23,7 +23,6 @@ namespace Devcash
 
 class DevcashNode {
  public:
-  DevcashContext appContext;
   /** Begin stopping threads and shutting down. */
   void StartShutdown();
 
@@ -36,7 +35,8 @@ class DevcashNode {
   /** Shut down immediately. */
   void Shutdown();
 
-  /** Construct a context object for this node.
+  /**
+   * Construct a context object for this node.
    *  @param mode either T1, T2, or scan
    *  @param nodeIndex the index of this node in the set of shard peers
    *  @return the context for this node.
@@ -48,7 +48,8 @@ class DevcashNode {
               , io::TransactionClient& client
               , io::TransactionServer& server);
 
-  /** Initialize devcoin core: Basic context setup.
+  /**
+   * Initialize devcoin core: Basic context setup.
    *  @note Do not call Shutdown() if this function fails.
    *  @pre Parameters should be parsed and config file should be read.
    */
@@ -75,14 +76,35 @@ class DevcashNode {
 
 private:
 
-  std::unique_ptr<io::TransactionClient> transaction_client_ = nullptr;
+  DevcashContext app_context_;
 
+  /**
+   * A reference to the worker. This is owned by the calling
+   * code and must stay alive for the duration of this object's
+   * duration.
+   */
   ConsensusWorker& consensus_;
 
+  /**
+   * A reference to the validation worker. This is owned by the
+   * calling code and must stay alive for the duration of this
+   * object's lifetime.
+   */
   ValidatorWorker& validator_;
 
+  /**
+   * A reference to the TransactionClient. The client is owned
+   * by the code that instantiated the DevcashNode and must be
+   * cleaned up after the node is destroyed. This node is responsible
+   * for starting the client ( StartClient() ).
+   */
   io::TransactionClient& client_;
 
+  /**
+   * A reference to the TansactionServer. The server is owned
+   * by the calling code. This node is responsible for starting
+   * the server ( StartServer() )
+   */
   io::TransactionServer& server_;
 };
 

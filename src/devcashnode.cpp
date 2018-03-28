@@ -67,22 +67,12 @@ namespace Devcash {
 
 std::atomic<bool> fRequestShutdown(false); /** has a shutdown been requested? */
 bool isCryptoInit = false;
-DevcashContext appContext;
-
-  /*
-zmq::context_t zmqContext(1);
-io::TransactionClient client(zmqContext);
-io::TransactionServer server(zmqContext, "self");
-
-DCState* chainState = new DCState();
-ConsensusWorker consensus(chainState, &server, kCONSENSUS_THREADS);
-ValidatorWorker validator(chainState, &consensus, kVALIDATOR_THREADS);
-  */
 
 void DevcashNode::StartShutdown()
 {
   Shutdown();
 }
+
 bool DevcashNode::ShutdownRequested()
 {
   return fRequestShutdown;
@@ -103,31 +93,14 @@ DevcashNode::DevcashNode(eAppMode mode
                          , ValidatorWorker& validator
                          , io::TransactionClient& client
                          , io::TransactionServer& server)
-  : appContext()
+  : app_context_()
   , consensus_(consensus)
   , validator_(validator)
   , client_(client)
   , server_(server)
 {
-  /*
-  eAppMode appMode;
-  if (mode == "T1") {
-    appMode = T1;
-    LOG_INFO << "Configuring T1 node.\n";
-  } else if (mode == "T2") {
-    appMode = T2;
-    LOG_INFO << "Configuring T2 node.\n";
-  } else if (mode == "scan") {
-    appMode = scan;
-    LOG_INFO << "Configuring scanner.\n";
-  } else {
-    LOG_FATAL << "Invalid mode";
-    CASH_THROW("Invalid mode: "+mode+"!\n");
-  }
-  */
-
-  appContext.current_node_ = node_index;
-  appContext.app_mode_ = mode;
+  app_context_.current_node_ = node_index;
+  app_context_.app_mode_ = mode;
 }
 
 bool initCrypto()
@@ -145,11 +118,10 @@ bool initCrypto()
 
 bool DevcashNode::Init()
 {
-  if (appContext.current_node_ < 0
-      || appContext.current_node_ >= appContext.kNODE_KEYs.size()
-      || appContext.current_node_ >= appContext.kNODE_ADDRs.size()) {
-    LOG_FATAL << "Invalid node index: "+
-      std::to_string(appContext.current_node_)+"\n";
+  if (app_context_.current_node_ >= app_context_.kNODE_KEYs.size() ||
+      app_context_.current_node_ >= app_context_.kNODE_ADDRs.size()) {
+    LOG_FATAL << "Invalid node index: " <<
+      std::to_string(app_context_.current_node_);
     return false;
   }
   return initCrypto();
@@ -169,8 +141,8 @@ bool DevcashNode::SanityChecks()
     std::string hash(strHash(msg));
 
     EC_KEY* loadkey = loadEcKey(ctx,
-        appContext.kADDRs[1],
-        appContext.kADDR_KEYs[1]);
+        app_context_.kADDRs[1],
+        app_context_.kADDR_KEYs[1]);
 
     std::string sDer = sign(loadkey, hash);
     return(verifySig(loadkey, hash, sDer));
@@ -212,6 +184,9 @@ std::string DevcashNode::RunNode()
 
     validator_.start();
     consensus_.start();
+
+    client_.StartClient();
+
     std::vector<uint8_t> data(100);
     auto startMsg = std::unique_ptr<DevcashMessage>(
         new DevcashMessage("self", TRANSACTION_ANNOUNCEMENT, data));
