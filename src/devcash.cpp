@@ -62,6 +62,9 @@ std::unique_ptr<io::TransactionServer> create_transaction_server(const devcash_o
 
 int main(int argc, char* argv[])
 {
+
+  init_log();
+
   CASH_TRY {
     std::unique_ptr<devcash_options> options = parse_options(argc, argv);
 
