@@ -69,8 +69,6 @@ static void init_log(void)
     #define CASH_CATCH(exception) if(false)
 #endif
 
-static const int kDEFAULT_WORKERS = 10;
-
 #define NOW std::chrono::high_resolution_clock::now()
 #define MILLI_SINCE(start) std::chrono::duration_cast<std::chrono::milliseconds>(NOW - start).count()
 
