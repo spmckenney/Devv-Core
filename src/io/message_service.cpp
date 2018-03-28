@@ -27,6 +27,7 @@ TransactionServer::SendMessage(DevcashMessageUniquePtr dc_message) noexcept {
   // Create and populate the thrift message
 
   //zmq::message_t uri(&(message->uri), sizeof(uri));
+  LOG_DEBUG << "Sending message: " << dc_message->uri;
   s_send(*pub_socket_, dc_message->uri);
 
   /*

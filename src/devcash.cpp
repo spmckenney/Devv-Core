@@ -91,19 +91,19 @@ int main(int argc, char* argv[])
 
     std::string out("");
     if (options->mode == eAppMode::scan) {
-      LOG_INFO << "Scanner ignores node index.\n";
+      LOG_INFO << "Scanner ignores node index.";
       out = this_node.RunScanner(in_raw);
     } else {
       if (!this_node.Init()) {
         LOG_FATAL << "Basic setup failed";
         return false;
       }
-      LOG_INFO << "Basic Setup complete\n";
+      LOG_INFO << "Basic Setup complete";
       if (!this_node.SanityChecks()) {
         LOG_FATAL << "Sanity checks failed";
         return false;
       }
-      LOG_INFO << "Sanity checks passed\n";
+      LOG_INFO << "Sanity checks passed";
       keys.initKeys();
       out = this_node.RunNetworkTest();
     }
@@ -118,11 +118,11 @@ int main(int argc, char* argv[])
       outFile << out;
       outFile.close();
     } else {
-        LOG_FATAL << "Failed to open output file '"+outFileStr+"'.\n";
-        return(false);
+      LOG_FATAL << "Failed to open output file '" << outFileStr << "'.";
+      return(false);
     }
 
-    LOG_INFO << "DevCash Shutting Down\n";
+    LOG_INFO << "DevCash Shutting Down";
     return(true);
   } CASH_CATCH (...) {
     std::exception_ptr p = std::current_exception();

@@ -85,7 +85,7 @@ void DevcashNode::Shutdown()
   fRequestShutdown = true;
   //TODO: how to stop zmq?
   control_.stopAll();
-  LOG_INFO << "Shutting down DevCash\n";
+  LOG_INFO << "Shutting down DevCash";
 }
 
 /*DevcashNode::DevcashNode(eAppMode mode
@@ -138,8 +138,8 @@ bool DevcashNode::Init()
   if (app_context_.current_node_ < 0
       || app_context_.current_node_ >= app_context_.kNODE_KEYs.size()
       || app_context_.current_node_ >= app_context_.kNODE_ADDRs.size()) {
-    LOG_FATAL << "Invalid node index: "+
-      std::to_string(app_context_.current_node_)+"\n";
+    LOG_FATAL << "Invalid node index: " <<
+      std::to_string(app_context_.current_node_);
     return false;
   }
   return initCrypto();
@@ -191,7 +191,7 @@ std::string DevcashNode::RunNode(std::string inStr)
 {
   std::string out("");
   CASH_TRY {
-    LOG_INFO << "Start controller.\n";
+    LOG_INFO << "Start controller.";
     control_.start();
 
     control_.seedTransactions(inStr);
@@ -213,7 +213,10 @@ std::string DevcashNode::RunNetworkTest()
     //TODO: add messages for each node in concurrency/DevcashController.cpp
 
 	//let the test run before shutting down (<10 sec)
-    boost::this_thread::sleep_for(boost::chrono::milliseconds(10000));
+    auto ms = 10000;
+    LOG_INFO << "Sleeping for " << ms;
+    boost::this_thread::sleep_for(boost::chrono::milliseconds(ms));
+    LOG_INFO << "Starting shutdown";
     StartShutdown();
   } CASH_CATCH (const std::exception& e) {
     LOG_FATAL << FormatException(&e, "DevcashNode.RunScanner");

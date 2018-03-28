@@ -156,12 +156,17 @@ void DevcashController::startToy() {
   client_.StartClient();
 
 
-  //TODO: send a message like this for each remote
-  std::vector<uint8_t> data(100);
-  auto startMsg = std::make_unique<DevcashMessage>("remoteURI",
-                                                   TRANSACTION_ANNOUNCEMENT,
-                                                   data);
-  server_.QueueMessage(std::move(startMsg));
+  sleep(10);
+
+  for (;;) {
+    //TODO: send a message like this for each remote
+    std::vector<uint8_t> data(100);
+    auto startMsg = std::make_unique<DevcashMessage>("remoteURI",
+                                                     TRANSACTION_ANNOUNCEMENT,
+                                                     data);
+    server_.QueueMessage(std::move(startMsg));
+    sleep(3);
+  }
 }
 
 void DevcashController::start() {
@@ -190,10 +195,12 @@ void DevcashController::stopAll() {
 }
 
 void DevcashController::pushValidator(DevcashMessageUniquePtr ptr) {
+  LOG_DEBUG << "DevcashController::pushValidator()";
   workers_->pushValidator(std::move(ptr));
 }
 
 void DevcashController::pushConsensus(DevcashMessageUniquePtr ptr) {
+  LOG_DEBUG << "DevcashController::pushConsensus()";
   workers_->pushConsensus(std::move(ptr));
 }
 
