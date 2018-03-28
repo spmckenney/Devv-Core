@@ -22,7 +22,7 @@ BOOST_LOG_GLOBAL_LOGGER(logger, logger_t)
 // just a helper macro used by the macros below - don't use it in your code
 #define LOG(severity) \
   BOOST_LOG_SEV(logger::get(), boost::log::trivial::severity) \
-  << __FILE__ << ":" << __LINE__ << " "
+  << __FILE__ << ":" << __LINE__ << " -> "
 
 // ===== log macros =====
 #define LOG_TRACE LOG(trace)
