@@ -77,6 +77,11 @@ class TransactionClient final {
   // Add a devcash node to connect to
   void AddConnection(const std::string& endpoint);
 
+  /**
+   * Starts a client in a background thread
+   */
+  void StartClient();
+
  private:
   // process received message
   void ProcessIncomingMessage() noexcept;
@@ -89,6 +94,9 @@ class TransactionClient final {
 
   // subscriber socket
   std::unique_ptr<zmq::socket_t> sub_socket_;
+
+  // Used to run the client service in a background thread
+  std::unique_ptr<std::thread> client_thread_;
 
   /// List of callbacks to call when a message arrives
   DevcashMessageCallback callback_;

@@ -25,14 +25,23 @@
 #include <vector>
 #include <stdint.h>
 
-#include "common/json.hpp"
+#include "validation.h"
 #include "common/ossladapter.h"
-using json = nlohmann::json;
+#include "consensus/KeyRing.h"
+#include "consensus/chainstate.h"
 
 namespace Devcash
 {
 
 static const std::string kTX_TAG = "txs";
+static const std::string kOPER_TAG = "oper";
+static const std::string kTYPE_TAG = "type";
+static const std::string kXFER_TAG = "xfer";
+static const std::string kDELAY_TAG = "dlay";
+static const std::string kADDR_TAG = "addr";
+static const std::string kAMOUNT_TAG = "amount";
+static const std::string kNONCE_TAG = "nonce";
+static const std::string kSIG_TAG = "sig";
 
 enum eOpType : char {
   Create     = 0x00,
@@ -59,7 +68,7 @@ class DCTransfer {
 /** Constructors */
   DCTransfer();
   DCTransfer(std::string& addr, int coinIndex, long amount, long delay);
-  explicit DCTransfer(std::string json);
+  explicit DCTransfer(std::string& json, int defaultCoinType);
   explicit DCTransfer(std::vector<uint8_t> cbor);
   explicit DCTransfer(const DCTransfer &other);
 
@@ -120,7 +129,6 @@ class DCTransaction {
 /** Constructors */
   DCTransaction();
   explicit DCTransaction(std::string jsonTx);
-  explicit DCTransaction(json jsonObj);
   explicit DCTransaction(std::vector<uint8_t> cbor);
   DCTransaction(const DCTransaction& tx);
 
@@ -139,7 +147,7 @@ class DCTransaction {
  * @return true iff the transaction is valid
  * @return false otherwise
  */
-  bool isValid(EC_KEY* ecKey) const;
+  bool isValid(DCState& state, KeyRing& keys, DCSummary& summary) const;
   std::string ComputeHash() const;
 
 /** Returns the hash of this transaction.
@@ -203,7 +211,7 @@ class DCTransaction {
 /** Returns a canonical string representation of this transaction.
  * @return a canonical string representation of this transaction.
 */
-  std::string const getCanonical();
+  std::string getCanonicalForm();
 
 /** Returns a JSON string representing this transaction.
  * @return a JSON string representing this transaction.

@@ -9,56 +9,39 @@
 
 #include <stdint.h>
 #include <map>
-
-#include "chainstate.h"
+#include <mutex>
 
 namespace Devcash
 {
 
 using namespace Devcash;
 
-std::map<std::string, std::map<std::string, long>> stateMap_;
-
-DCState::DCState() {}
-
 bool DCState::addCoin(SmartCoin& coin) {
-  std::map<std::string, std::map<std::string, long>>::iterator it =
-      stateMap_.find(coin.type_);
+  std::lock_guard<std::mutex> lock(lock_);
+  auto it = stateMap_.find(coin.addr_);
   if (it != stateMap_.end()) {
-    std::map<std::string, long> elt = it->second;
-    auto amtIt = elt.find(coin.addr_);
-    if (amtIt != elt.end()) {
-      long amt = amtIt->second;
-      elt[coin.addr_] = coin.amount_+((long) amt);
-    } else {
-      elt[coin.addr_] = coin.amount_;
-    }
-  } else {
-    stateMap_[coin.type_][coin.addr_] = coin.amount_;
+    it->second[coin.type_] += coin.amount_;
   }
   return(true);
 }
 
-long DCState::getAmount(const std::string type, const std::string addr) {
-  std::map<std::string, std::map<std::string, long>>::iterator it =
-      stateMap_.find(type);
+long DCState::getAmount(int type, const std::string addr) {
+  auto it = stateMap_.find(addr);
   if (it != stateMap_.end()) {
-    std::map<std::string, long> elt = it->second;
-    auto amtIt = elt.find(addr);
-    if (amtIt != elt.end()) return((long) amtIt->second);
+    return it->second[type];
   }
   return(0);
 }
 
 bool DCState::moveCoin(SmartCoin& start, SmartCoin& end) {
+  std::lock_guard<std::mutex> lock(lock_);
   if (start.type_ != end.type_) return(false);
   if (start.amount_ != end.amount_) return(false);
 
-  std::map<std::string, std::map<std::string, long>>::iterator it =
-      stateMap_.find(start.type_);
+  /*auto it = stateMap_.find(start.addr_);
   if (it != stateMap_.end()) {
-    std::map<std::string, long> sElt = it->second;
-    auto amtIt = sElt.find(start.addr_);
+    std::map<int, long> sElt = it->second;
+    auto amtIt = sElt.find(start.type_);
     if (amtIt != sElt.end()) {
       long amt = amtIt->second;
       if (amt >= start.amount_) {
@@ -68,23 +51,16 @@ bool DCState::moveCoin(SmartCoin& start, SmartCoin& end) {
         return(false);
       } //endif enough coins available
     } //endif any coins here
-  } //endif any coins of this type
+  } //endif any coins of this type*/
   return(false);
 }
 
 bool DCState::delCoin(SmartCoin& coin) {
-  std::map<std::string, std::map<std::string, long>>::iterator it =
-      stateMap_.find(coin.type_);
+  std::lock_guard<std::mutex> lock(lock_);
+  auto it = stateMap_.find(coin.addr_);
   if (it != stateMap_.end()) {
-    std::map<std::string, long> elt = it->second;
-    auto amtIt = elt.find(coin.addr_);
-    if (amtIt != elt.end()) {
-      long amt = amtIt->second;
-      if (amt >= coin.amount_) {
-        elt[coin.addr_] = coin.amount_-amt;
-        return(true);
-      }
-    }
+    it->second[coin.type_] -= coin.amount_;
+    return true;
   }
   return(false);
 }

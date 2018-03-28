@@ -15,6 +15,7 @@
 #include <vector>
 
 #include "common/devcash_context.h"
+#include "concurrency/DevcashController.h"
 #include "concurrency/WorkerTypes.h"
 #include "io/message_service.h"
 
@@ -23,7 +24,6 @@ namespace Devcash
 
 class DevcashNode {
  public:
-  DevcashContext appContext;
   /** Begin stopping threads and shutting down. */
   void StartShutdown();
 
@@ -36,17 +36,14 @@ class DevcashNode {
   /** Shut down immediately. */
   void Shutdown();
 
-  /** Construct a context object for this node.
-   *  @param mode either T1, T2, or scan
-   *  @param nodeIndex the index of this node in the set of shard peers
-   *  @return the context for this node.
-   */
   DevcashNode(eAppMode mode
               , int node_index
               , ConsensusWorker& consensus
               , ValidatorWorker& validator
               , io::TransactionClient& client
               , io::TransactionServer& server);
+
+  DevcashNode(DevcashController& devcash, DevcashContext& context);
 
   /** Initialize devcoin core: Basic context setup.
    *  @note Do not call Shutdown() if this function fails.
@@ -71,19 +68,16 @@ class DevcashNode {
    * Devcash core main initialization.
    * @note Call Shutdown() if this function fails.
    */
-  std::string RunNode();
+  std::string RunNode(std::string inStr);
+
+  std::string RunNetworkTest();
 
 private:
 
-  std::unique_ptr<io::TransactionClient> transaction_client_ = nullptr;
+  DevcashController& control_;
 
-  ConsensusWorker& consensus_;
+  DevcashContext& app_context_;
 
-  ValidatorWorker& validator_;
-
-  io::TransactionClient& client_;
-
-  io::TransactionServer& server_;
 };
 
 } //end namespace Devcash

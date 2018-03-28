@@ -9,11 +9,14 @@
 
 #include "block.h"
 
+#include <algorithm>
 #include <chrono>
 
+#include "transaction.h"
 #include "common/json.hpp"
 #include "common/logger.h"
 #include "common/ossladapter.h"
+#include "consensus/KeyRing.h"
 
 using json = nlohmann::json;
 
@@ -22,44 +25,97 @@ namespace Devcash
 
 using namespace Devcash;
 
-std::string DCBlockHeader::GetHash() const
+static const std::string kVERSION_TAG = "v";
+static const std::string kPREV_HASH_TAG = "prev";
+static const std::string kMERKLE_TAG = "merkle";
+static const std::string kBYTES_TAG = "bytes";
+static const std::string kTIME_TAG = "time";
+static const std::string kTX_SIZE_TAG = "txlen";
+static const std::string kSUM_SIZE_TAG = "sumlen";
+static const std::string kVAL_SIZE_TAG = "vlen";
+static const std::string kTXS_TAG = "txs";
+static const std::string kSUM_TAG = "sum";
+static const std::string kVAL_TAG = "vals";
+
+DCBlock::DCBlock()
 {
-  return this->hashMerkleRoot_;
 }
 
-std::string DCBlockHeader::ToJSON() const {
-  json out = json();
-  out["version"] = this->nVersion_;
-  out["prevHash"] = this->hashPrevBlock_;
-  out["hashMerkleRoot"] = this->hashMerkleRoot_;
-  out["time"] = this->nTime_;
-  out["bytes"] = this->nBytes_;
-  out["txBytes"] = this->txSize_;
-  out["vBytes"] = this->vSize_;
-  return(out.dump());
-}
-
-DCBlock::DCBlock(std::vector<DCTransaction> &txs, DCValidationBlock &validations)
-  : vtx_(txs), vals_(validations)
+//note the order of elements is assumed, which is fast, but not proper JSON
+DCBlock::DCBlock(std::string rawBlock)
 {
-  //CASH_TRY {
-    DCBlockHeader();
-  /*} CASH_CATCH (const std::exception& e) {
-    LOG_WARNING << FormatException(&e, "block");
-  }*/
-}
+  CASH_TRY {
+    if (rawBlock.at(0) == '{') {
+      size_t pos = 0;
+      hashPrevBlock_ =jsonFinder(rawBlock, kPREV_HASH_TAG, pos);
+      hashMerkleRoot_=jsonFinder(rawBlock, kMERKLE_TAG, pos);
+      nBytes_=std::stoul(jsonFinder(rawBlock, kBYTES_TAG, pos));
+      nTime_=std::stoul(jsonFinder(rawBlock, kTIME_TAG, pos));
+      txSize_=std::stoul(jsonFinder(rawBlock, kTX_SIZE_TAG, pos));
+      sumSize_=std::stoul(jsonFinder(rawBlock, kSUM_SIZE_TAG, pos));
+      vSize_=std::stoul(jsonFinder(rawBlock, kVAL_SIZE_TAG, pos));
 
-bool DCBlock::validate(EC_KEY* eckey) {
-  for (auto iter = vtx_.begin(); iter != vtx_.end();) {
-    DCTransaction tx = *iter;
-    if (!tx.isValid(eckey)) {
-      LOG_WARNING << "Remove invalid transaction: "+tx.ToJSON();
-     iter = vtx_.erase(iter);
+      size_t dex = rawBlock.find("\""+kTXS_TAG+"\":[", pos);
+      dex += kTXS_TAG.size()+4;
+      size_t eDex = rawBlock.find(kSIG_TAG, dex);
+      eDex = rawBlock.find("}", eDex);
+      std::string oneTx = rawBlock.substr(dex, eDex-dex);
+      vtx_.push_back(DCTransaction(oneTx));
+      while (rawBlock.at(eDex+1) != ']' && eDex < rawBlock.size()-2) {
+        pos = eDex;
+        dex = rawBlock.find("{", pos);
+        dex++;
+        eDex = rawBlock.find(kSIG_TAG, dex);
+        eDex = rawBlock.find("}", eDex);
+        oneTx = rawBlock.substr(dex, eDex-dex);
+        vtx_.push_back(DCTransaction(oneTx));
+      }
+
+      std::string valSection = rawBlock.substr(eDex+2);
+      vals_ = *(new DCValidationBlock(valSection));
     } else {
-      iter++;
+      LOG_WARNING << "Invalid block input:"+rawBlock+"\n----------------\n";
+    }
+  } CASH_CATCH (const std::exception& e) {
+    FormatException(&e, "transaction");
+  }
+}
+
+DCBlock::DCBlock(std::vector<DCTransaction>& txs
+    , DCValidationBlock& validations)
+  : vtx_(txs), vals_(validations), vSize_(0), sumSize_(0), txSize_(0)
+  , nTime_(0), nBytes_(0)
+{
+}
+
+DCBlock::DCBlock(const DCBlock& other)
+  : vtx_(other.vtx_), vals_(other.vals_), vSize_(0), sumSize_(0), txSize_(0)
+  , nTime_(0), nBytes_(0) {
+}
+
+bool DCBlock::validate(DCState& chainState, KeyRing& keys) {
+  for (auto iter = vtx_.begin(); iter != vtx_.end(); ++iter) {
+    if (!iter->isValid(chainState, keys, vals_.summaryObj_)) {
+      LOG_WARNING << "Invalid transaction: "+iter->getCanonicalForm()+"\n";
+      //iter = vtx_.erase(iter);
+      return false;
     }
   }
   if (vtx_.size() < 1) return false;
+
+  if (vals_.summaryObj_.isSane()) {
+    LOG_WARNING << "Summary is invalid!\n";
+    return false;
+  }
+
+  std::string md(vals_.summaryObj_.toCanonical());
+  int i=0;
+  for (auto iter = vals_.sigs_.begin(); iter != vals_.sigs_.end();) {
+    if(!verifySig(keys.getKey(iter->first), md, iter->second)) {
+      LOG_WARNING << "Invalid transaction: \n";
+    }
+  }
+
   return true;
 }
 
@@ -71,7 +127,7 @@ bool DCBlock::signBlock(EC_KEY* eckey) {
   std::string hash(strHash(txBlock));
   std::string sDer = sign(eckey, hash);
   vals_.addValidation(std::string("toy/miner"), std::string(sDer));
-  this->nBytes_=txBlock.size();
+  nBytes_=txBlock.size();
   return(true);
 }
 
@@ -84,34 +140,39 @@ bool DCBlock::finalize() {
   }
   std::string txSubHash(strHash(txHashes));
   std::string valHashes(vals_.GetHash());
-  this->hashPrevBlock_="Genesis";  //TODO: check for previous block Merkle
-  this->hashMerkleRoot_=strHash(txSubHash+strHash(valHashes));
+  hashPrevBlock_="Genesis";  //TODO: check for previous block Merkle
+  hashMerkleRoot_=strHash(txSubHash+strHash(valHashes));
 
   std::chrono::milliseconds ms = std::chrono::duration_cast<std::chrono::milliseconds>
     (std::chrono::system_clock::now().time_since_epoch());
   uint64_t now = ms.count();
-  this->nTime_=now;
-  this->txSize_=vtx_.size();
-  this->vSize_=vals_.GetValidationCount();
+  nTime_=now;
+  txSize_=vtx_.size();
+  vSize_=vals_.GetValidationCount();
   return(true);
 }
 
 std::string DCBlock::ToJSON() const
 {
-  json j = {{"hashPrevBlock", hashPrevBlock_},
-    {"hashMerkleRoot", hashMerkleRoot_},
-    {"nBytes", nBytes_},
-    {"nTime", nTime_},
-    {"txSize", txSize_},
-    {"vSize", vSize_}};
-  json txs = json::array();
-  for (std::vector<DCTransaction>::iterator iter = vtx_.begin();
-    iter != vtx_.end(); ++iter) {
-      txs += json::parse(iter->ToJSON());
+  std::string out = "{\""+kPREV_HASH_TAG+"\":\""+hashPrevBlock_+"\",";
+  out += "\""+kMERKLE_TAG+"\":\""+hashMerkleRoot_+"\",";
+  out += "\""+kBYTES_TAG+"\":"+std::to_string(nBytes_)+",";
+  out += "\""+kTIME_TAG+"\":"+std::to_string(nTime_)+",";
+  out += "\""+kTX_SIZE_TAG+"\":"+std::to_string(txSize_)+",";
+  out += "\""+kSUM_SIZE_TAG+"\":"+std::to_string(sumSize_)+",";
+  out += "\""+kVAL_SIZE_TAG+"\":"+std::to_string(vSize_)+",";
+  out += "\""+kTXS_TAG+"\":[";
+  bool isFirst = true;
+  for (auto iter = vtx_.begin(); iter != vtx_.end(); ++iter) {
+      if (!isFirst) {
+        out += ",";
+      }
+      isFirst = false;
+      out += iter->ToJSON();
   }
-  j += {"txs", txs};
-  j += {"vals", json::parse(vals_.ToJSON())};
-  return(j.dump());
+  out += "],";
+  out += vals_.ToJSON();
+  return(out);
 }
 
 std::vector<uint8_t> DCBlock::ToCBOR() const

@@ -8,8 +8,10 @@
 #ifndef SRC_CONSENSUS_STATESTUB_H_
 #define SRC_CONSENSUS_STATESTUB_H_
 
-#include "primitives/smartcoin.h"
 #include <map>
+#include <mutex>
+
+#include "primitives/smartcoin.h"
 
 namespace Devcash
 {
@@ -18,7 +20,12 @@ class DCState {
 public:
 
 /** Constructor */
-  DCState();
+  DCState() {}
+
+  DCState(const DCState& other)
+  : stateMap_(other.stateMap_)
+  {
+  }
 
   DCState* operator=(DCState&& other)
   {
@@ -48,7 +55,7 @@ public:
  *  @param the address to check
  *  @return the number of this type of coins at this address
 */
-  long getAmount(const std::string type, const std::string addr);
+  long getAmount(int type, const std::string addr);
 
 /** Moves a coin from one address to another
  *  @param start references where the coins will be removed
@@ -72,7 +79,8 @@ public:
   bool clear();
 
  private:
-  std::map<std::string, std::map<std::string, long>> stateMap_;
+  std::map<std::string, std::vector<long>> stateMap_;
+  std::mutex lock_;
 };
 
 } //namespace Devcash

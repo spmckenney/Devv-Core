@@ -74,7 +74,7 @@ class dcash : public oracleInterface {
     if (!isValid(checkTx)) return false;
     for (auto it=checkTx.xfers_.begin(); it != checkTx.xfers_.end(); ++it) {
       if (it->amount_ < 0) {
-        if (context.getAmount(dnerowallet::getCoinType(), it->addr_) > 0) {
+        if (context.getAmount(dnerowallet::getCoinIndex(), it->addr_) > 0) {
           LOG_WARNING << "Error: Dnerowallets may not send dcash.";
           return false;
         } //endif has dnerowallet

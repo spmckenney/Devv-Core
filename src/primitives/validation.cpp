@@ -80,6 +80,10 @@ DCSummary::DCSummary(std::unordered_map<std::string,
     summary_(summary) {
 }
 
+DCSummary::DCSummary(const DCSummary& other)
+  : summary_(other.summary_) {
+}
+
 bool DCSummary::addItem(std::string addr, long coinType, DCSummaryItem item) {
   CASH_TRY {
     if (summary_.count(addr) > 0) {
@@ -160,6 +164,7 @@ std::string DCSummary::toCanonical() {
       bool isFirst = true;
       for (auto j = coinTypes.begin(); j != coinTypes.end(); ++j) {
         if (!isFirst) out += ",";
+        isFirst = false;
         out += "("+std::to_string(j->first);
         out += ","+std::to_string(j->second.delta);
         if (j->second.delay > 0) out += ","+std::to_string(j->second.delay);
@@ -170,6 +175,10 @@ std::string DCSummary::toCanonical() {
   }
   out += "}";
   return out;
+}
+
+size_t DCSummary::getByteSize() {
+  return toCanonical().size();
 }
 
 /* All transactions must be symmetric wrt coin type */
@@ -191,9 +200,51 @@ bool DCSummary::isSane() {
   }
 }
 
-DCValidationBlock::DCValidationBlock(std::string jsonMsg) {
+DCValidationBlock::DCValidationBlock(std::string& jsonMsg) {
   CASH_TRY {
-    json j = json::parse(jsonMsg);
+    size_t pos = 0;
+    std::string sumTemp(jsonFinder(jsonMsg, "sum", pos));
+    summaryObj_ = DCSummary(sumTemp);
+
+    size_t dex = jsonMsg.find("\"vals\":[", pos);
+    dex += 8;
+    size_t eDex = jsonMsg.find("\":\"", dex);
+    std::string oneAddr = jsonMsg.substr(dex, eDex-dex);
+    if (!oneAddr.empty()) {
+      dex = eDex+3;
+      eDex = jsonMsg.find("\",\"", dex);
+      if (eDex == std::string::npos) {
+        eDex = jsonMsg.find("\"]", dex);
+        std::string oneSig = jsonMsg.substr(dex, eDex-dex-2);
+        std::pair<std::string, std::string> onePair(oneAddr, oneSig);
+        sigs_.insert(onePair);
+        return;
+      }
+
+      std::string oneSig = jsonMsg.substr(dex, eDex-dex-3);
+      std::pair<std::string, std::string> onePair(oneAddr, oneSig);
+      sigs_.insert(onePair);
+
+      while (eDex < jsonMsg.size()) {
+        dex = eDex+3;
+        eDex = jsonMsg.find("\":\"", dex);
+        oneAddr = jsonMsg.substr(dex, eDex-dex-3);
+        dex = eDex+3;
+        eDex = jsonMsg.find("\",\"", dex);
+        if (eDex == std::string::npos) {
+          eDex = jsonMsg.find("\"]", dex);
+          oneSig = jsonMsg.substr(dex, eDex-dex-2);
+          std::pair<std::string, std::string> onePair(oneAddr, oneSig);
+          sigs_.insert(onePair);
+          return;
+        }
+        oneSig = jsonMsg.substr(dex, eDex-dex-3);
+        std::pair<std::string, std::string> onePair(oneAddr, oneSig);
+        sigs_.insert(onePair);
+      }
+    }
+
+    /*json j = json::parse(jsonMsg);
     json temp = json::array();
     for (auto iter = j.begin(); iter != j.end(); ++iter) {
       std::string key(iter.key());
@@ -203,7 +254,7 @@ DCValidationBlock::DCValidationBlock(std::string jsonMsg) {
       temp += json::object({iter.key(), iter.value()});
     }
     hash_ = ComputeHash();
-    jsonStr_ = temp.dump();
+    jsonStr_ = temp.dump();*/
   } CASH_CATCH (const std::exception& e) {
     LOG_WARNING << FormatException(&e, "validation");
   }
@@ -266,9 +317,23 @@ bool DCValidationBlock::addValidation(std::string node, std::string sig) {
   return(false);
 }
 
+bool DCValidationBlock::addValidation(DCValidationBlock& other) {
+  CASH_TRY {
+    for (auto it : other.sigs_) {
+      if (!sigs_.count(it.first) == 0)
+        sigs_.insert(std::pair<std::string, std::string>(it.first, it.second));
+    }
+    return(true);
+  } CASH_CATCH (const std::exception& e) {
+    LOG_WARNING << FormatException(&e, "validation");
+  }
+  return(false);
+}
+
 unsigned int DCValidationBlock::GetByteSize() const
 {
-  return ToCBOR().size();
+  //return ToCBOR().size();
+  return ToJSON().size();
 }
 
 unsigned int DCValidationBlock::GetValidationCount() const
@@ -283,12 +348,38 @@ std::string DCValidationBlock::ComputeHash() const
 
 std::string DCValidationBlock::ToJSON() const
 {
-  json j = {};
-  for (auto it : sigs_) {
-    json thisSig = {it.first, it.second};
-    j += thisSig;
+  std::string out = "\"sum\":";
+  out += "{";
+  for (auto iter = summaryObj_.summary_.begin();
+      iter != summaryObj_.summary_.end(); ++iter) {
+    std::string addr(iter->first);
+    std::unordered_map<long, DCSummaryItem> coinTypes(iter->second);
+    if (!coinTypes.empty()) {
+      out += addr+":[";
+      bool isFirst = true;
+      for (auto j = coinTypes.begin(); j != coinTypes.end(); ++j) {
+        if (!isFirst) out += ",";
+        isFirst = false;
+        out += "("+std::to_string(j->first);
+        out += ","+std::to_string(j->second.delta);
+        if (j->second.delay > 0) out += ","+std::to_string(j->second.delay);
+        out += ")";
+      }
+      out += "]";
+    }
   }
-  return(j.dump());
+  out += "}";
+  out += ",\"vals\":[";
+  bool isFirst = true;
+  for (auto it : sigs_) {
+    if (!isFirst) {
+      out += ",";
+    }
+    isFirst = false;
+    out += "\""+it.first+"\":\""+it.second+"\"";
+  }
+  out += "]";
+  return(out);
 }
 
 std::vector<uint8_t> DCValidationBlock::ToCBOR() const
