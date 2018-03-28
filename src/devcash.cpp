@@ -95,7 +95,7 @@ int main(int argc, char* argv[])
       }
       LOG_INFO << "Sanity checks passed";
       keys.initKeys();
-      out = this_node.RunNetworkTest();
+      out = this_node.RunNetworkTest(this_context.current_node_);
     }
 
     //We do need to output the resulting blockchain for analysis

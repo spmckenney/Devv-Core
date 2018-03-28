@@ -171,7 +171,7 @@ std::string DevcashNode::RunScanner(std::string inStr) {
   return out;
 }
 
-std::string DevcashNode::RunNode(std::string inStr)
+std::string DevcashNode::RunNode(std::string& inStr)
 {
   std::string out("");
   CASH_TRY {
@@ -188,11 +188,11 @@ std::string DevcashNode::RunNode(std::string inStr)
   return out;
 }
 
-std::string DevcashNode::RunNetworkTest()
+std::string DevcashNode::RunNetworkTest(unsigned int node_index)
 {
   std::string out("");
   CASH_TRY {
-    control_.startToy();
+    control_.StartToy(node_index);
 
     //TODO: add messages for each node in concurrency/DevcashController.cpp
 

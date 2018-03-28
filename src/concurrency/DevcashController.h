@@ -35,7 +35,7 @@ class DevcashController {
   virtual ~DevcashController() {};
 
   void seedTransactions(std::string txs);
-  void startToy();
+  void StartToy(unsigned int node_index);
   void start();
   void stopAll();
   void pushConsensus(std::unique_ptr<DevcashMessage> ptr);

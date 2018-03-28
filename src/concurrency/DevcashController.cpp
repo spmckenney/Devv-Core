@@ -26,7 +26,7 @@ namespace Devcash {
 using namespace Devcash;
 
 void DevcashController::ValidatorCallback(DevcashMessageUniquePtr ptr) {
-  LOG_DEBUG << "Validator callback triggered!\n";
+  LOG_DEBUG << "Validator callback triggered!";
   if (validator_flipper) {
     pushConsensus(std::move(ptr));
   }
@@ -35,7 +35,7 @@ void DevcashController::ValidatorCallback(DevcashMessageUniquePtr ptr) {
 
 void DevcashController::ConsensusCallback(DevcashMessageUniquePtr ptr) {
   std::thread::id id = std::this_thread::get_id();
-  LOG_INFO << "Consensus Callback "<<id<<" triggered!\n";
+  LOG_INFO << "Consensus Callback "<<id<<" triggered!";
   if (consensus_flipper) {
     server_.QueueMessage(std::move(ptr));
   }
@@ -87,7 +87,7 @@ void DevcashController::seedTransactions(std::string txs) {
         counter++;
         if (eDex == std::string::npos) {
           eDex = toParse.find("}]]");
-          if (eDex == std::string::npos) LOG_WARNING << "Invalid input.\n";
+          if (eDex == std::string::npos) LOG_WARNING << "Invalid input.";
           std::string txSubstr(toParse.substr(dex, eDex-dex+2));
           seeds_.push_back(txSubstr);
           break;
@@ -99,9 +99,9 @@ void DevcashController::seedTransactions(std::string txs) {
         postTransactions();
       }
     } else {
-      LOG_WARNING << "Input has wrong syntax!\n";
+      LOG_WARNING << "Input has wrong syntax!";
     }
-    LOG_INFO << "Seeded "+std::to_string(counter)+" input blocks.\n";
+    LOG_INFO << "Seeded "+std::to_string(counter)+" input blocks.";
   } CASH_CATCH (const std::exception& e) {
     LOG_WARNING << FormatException(&e, "DevcashController.seedTransactions");
   }
@@ -141,7 +141,7 @@ void DevcashController::postTransactions() {
   }
 }
 
-void DevcashController::startToy() {
+void DevcashController::StartToy(unsigned int node_index) {
   workers_->start();
 
   client_.AttachCallback([this](DevcashMessageUniquePtr ptr) {
@@ -159,9 +159,10 @@ void DevcashController::startToy() {
   sleep(10);
 
   for (;;) {
+    std::string uri = "RemoteURI-" + node_index;
     //TODO: send a message like this for each remote
     std::vector<uint8_t> data(100);
-    auto startMsg = std::make_unique<DevcashMessage>("remoteURI",
+    auto startMsg = std::make_unique<DevcashMessage>(uri,
                                                      TRANSACTION_ANNOUNCEMENT,
                                                      data);
     server_.QueueMessage(std::move(startMsg));
