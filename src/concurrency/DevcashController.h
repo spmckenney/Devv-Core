@@ -24,11 +24,14 @@ class DevcashControllerWorker;
 
 class DevcashController {
  public:
-  DevcashController(std::unique_ptr<io::TransactionServer> serverPtr,
-      std::unique_ptr<io::TransactionClient> clientPtr,
-        const int validatorCount, const int consensusWorkerCount,
-        KeyRing& keys, DevcashContext& context,
-        ProposedBlock& nextBlock, ProposedBlock& futureBlock);
+  DevcashController(io::TransactionServer& server,
+                    io::TransactionClient& client,
+                    const int validatorCount,
+                    const int consensusWorkerCount,
+                    KeyRing& keys,
+                    DevcashContext& context,
+                    ProposedBlock& nextBlock,
+                    ProposedBlock& futureBlock);
   virtual ~DevcashController() {};
 
   void seedTransactions(std::string txs);

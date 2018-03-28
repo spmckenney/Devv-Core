@@ -79,7 +79,9 @@ int main(int argc, char* argv[])
     KeyRing keys(this_context);
     ProposedBlock genesis;
     ProposedBlock on_deck;
-    DevcashController controller(std::move(server),std::move(client),
+
+    DevcashController controller(*server,
+                                 *client,
       options->num_validator_threads, options->num_consensus_threads,
       keys, this_context,genesis,on_deck);
 
