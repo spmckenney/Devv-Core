@@ -43,7 +43,24 @@ class DCSummary {
   /** Constrcutors */
   DCSummary();
   DCSummary(std::string canonical);
+  DCSummary(const DCSummary& other);
   DCSummary(std::unordered_map<std::string, std::unordered_map<long, DCSummaryItem>> summary);
+
+  /** Assignment Operators */
+  DCSummary* operator=(DCSummary&& other)
+  {
+    if (this != &other) {
+      this->summary_ = std::move(other.summary_);
+    }
+    return this;
+  }
+  DCSummary* operator=(DCSummary& other)
+  {
+    if (this != &other) {
+      this->summary_ = std::move(other.summary_);
+    }
+    return this;
+  }
 
   /** Adds a summary record to this block.
    *  @param addr the address that this change applies to
@@ -73,12 +90,13 @@ class DCSummary {
   */
   std::string toCanonical();
 
+  size_t getByteSize();
+
   /**
    *  @return true iff, the summary passes sanity checks
   */
   bool isSane();
 
- private:
    std::unordered_map<std::string, coinmap> summary_;
 };
 
@@ -95,7 +113,7 @@ class DCValidationBlock {
 /** Constrcutors */
   DCValidationBlock();
   DCValidationBlock(std::vector<uint8_t> cbor);
-  DCValidationBlock(std::string jsonMsg);
+  DCValidationBlock(std::string& jsonMsg);
   DCValidationBlock(const DCValidationBlock& other);
   DCValidationBlock(std::string node, std::string sig);
   DCValidationBlock(std::unordered_map<std::string, std::string> sigs);
@@ -106,6 +124,7 @@ class DCValidationBlock {
  *  @return true iff the validation verified against the node's public key
 */
   bool addValidation(std::string node, std::string sig);
+  bool addValidation(DCValidationBlock& other);
 
   /** Adds a summary to this block.
    *  @param summary a vector of summary items
@@ -145,12 +164,23 @@ class DCValidationBlock {
   }
 
 /** Assignment Operators */
+  DCValidationBlock* operator=(DCValidationBlock&& other)
+  {
+    if (this != &other) {
+      this->summaryObj_ = other.summaryObj_;
+      this->hash_ = other.hash_;
+      this->jsonStr_ = other.jsonStr_;
+      this->sigs_ = std::move(other.sigs_);
+    }
+    return this;
+  }
   DCValidationBlock* operator=(DCValidationBlock& other)
   {
     if (this != &other) {
-    this->hash_ = other.hash_;
-    this->jsonStr_ = other.jsonStr_;
-    this->sigs_ = std::move(other.sigs_);
+      this->summaryObj_ = other.summaryObj_;
+      this->hash_ = other.hash_;
+      this->jsonStr_ = other.jsonStr_;
+      this->sigs_ = std::move(other.sigs_);
     }
     return this;
   }

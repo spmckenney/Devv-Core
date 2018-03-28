@@ -17,21 +17,23 @@
 #include <sstream>
 #include <iomanip>
 
-#include "logger.h"
 #include "util.h"
+#include "logger.h"
+
+//exception toggling capability
+#if (defined(__cpp_exceptions) || defined(__EXCEPTIONS) || defined(_CPPUNWIND)) \
+  && not defined(DEVCASH_NOEXCEPTION)
+    #define CASH_THROW(exception) throw exception
+    #define CASH_TRY try
+    #define CASH_CATCH(exception) catch(exception)
+#else
+    #define CASH_THROW(exception) std::abort()
+    #define CASH_TRY if(true)
+    #define CASH_CATCH(exception) if(false)
+#endif
 
 namespace Devcash
 {
-
-#if (defined(__cpp_exceptions) || defined(__EXCEPTIONS) || defined(_CPPUNWIND)) && not defined(DEVCASH_NOEXCEPTION)
-  #define CASH_THROW(exception) throw exception
-   #define CASH_TRY try
-  #define CASH_CATCH(exception) catch(exception)
-#else
-  #define CASH_THROW(exception) std::abort()
-  #define CASH_TRY if(true)
-  #define CASH_CATCH(exception) if(false)
-#endif
 
 static const char alpha[] = "0123456789ABCDEF";  /** chars for hex conversions */
 static const char* pwd = "password";  /** password for aes pem */
@@ -62,7 +64,7 @@ static std::string toHex(char* input, int len) {
 static char* hex2Bytes(std::string hex, char* buffer) {
   int len = hex.length();
   for (int i=0;i<len/2;i++) {
-  buffer[i] = char2int(hex.at(i*2))*16+char2int(hex.at(1+i*2));
+    buffer[i] = char2int(hex.at(i*2))*16+char2int(hex.at(1+i*2));
   }
   buffer[len/2] = '\0';
   return(buffer);
@@ -78,11 +80,9 @@ static EC_GROUP* getEcGroup() {
 /** Gets the EC_GROUP for INN transactions.
  *  @return a pointer to the EC_GROUP
  */
-#if 0
-static EC_GROUP* getInnGroup() {
+/*static EC_GROUP* getInnGroup() {
   return(EC_GROUP_new_by_curve_name(NID_secp384r1));
-}
-#endif
+}*/
 
 /** Generates a new EC_KEY.
  *  @pre an OpenSSL context must have been initialized
@@ -92,51 +92,60 @@ static EC_GROUP* getInnGroup() {
  *  @return if success, a pointer to the EC_KEY object
  *  @return if error, a NULLPTR
  */
-/*
-static EC_KEY* genEcKey(EVP_MD_CTX* ctx, std::string& publicKey, std::string& pkHex) {
+/*static EC_KEY* genEcKey(EVP_MD_CTX* ctx, std::string& publicKey, std::string& pk) {
   CASH_TRY {
     EC_GROUP* ecGroup = getEcGroup();
     if (NULL == ecGroup) {
-      CASH_THROW("Failed to generate EC group.");
+      LOG_ERROR << "Failed to generate EC group.";
     }
 
     EC_KEY *eckey=EC_KEY_new();
     if (NULL == eckey) {
-      CASH_THROW("Failed to allocate EC key.");
+      LOG_ERROR << "Failed to allocate EC key.";
     }
 
     EC_GROUP_set_asn1_flag(ecGroup, OPENSSL_EC_NAMED_CURVE);
     int state = EC_KEY_set_group(eckey, ecGroup);
-    if (1 != state) CASH_THROW("Failed to set EC group status.");
+    if (1 != state) LOG_ERROR << "Failed to set EC group status.";
     state = EC_KEY_generate_key(eckey);
-    if (1 != state) CASH_THROW("Failed to generate EC key.");
+    if (1 != state) LOG_ERROR << "Failed to generate EC key.";
 
     OpenSSL_add_all_algorithms();
     EVP_PKEY* pkey = EVP_PKEY_new();
     if (!EVP_PKEY_set1_EC_KEY(pkey, eckey)) {
-      CASH_THROW("Could not export private key");
+      LOG_ERROR << "Could not export private key";
+    }
+
+    if (1 != EC_GROUP_check(EC_KEY_get0_group(eckey), NULL)) {
+      CASH_THROW("EC group is invalid!");
+    }
+
+    if (1 != EC_KEY_check_key(eckey)) {
+      LOG_ERROR << "key is invalid!";
     }
 
     const EVP_CIPHER* cipher = EVP_aes_128_cbc();
     BIO* fOut = BIO_new(BIO_s_mem());
     int result = PEM_write_bio_PKCS8PrivateKey(fOut, pkey, cipher, NULL, 0, NULL,
       const_cast<char*>(pwd));
-    if (result != 1) CASH_THROW("Failed to generate PEM private key file");
-    std::string pkPem("");
+    if (result != 1) LOG_ERROR << "Failed to generate PEM private key file";
     char buffer[1024];
     while (BIO_read(fOut, buffer, 1024) > 0) {
-      pkPem += buffer;
+      pk += buffer;
     }
     BIO_free(fOut);
     EVP_cleanup();
 
-    if (1 != EC_GROUP_check(EC_KEY_get0_group(eckey), NULL)) {
-      CASH_THROW("group is invalid!");
-    }
-
-    if (1 != EC_KEY_check_key(eckey)) {
-      CASH_THROW("key is invalid!");
-    }
+    //BIO* pOut = BIO_new(BIO_s_mem());
+    //result = PEM_write_bio_PUBKEY(pOut, pkey);
+    //if (result != 1) LOG_ERROR << "Failed to generate PEM public key file";
+    //std::string pubPem("");
+    //char buffer2[1024];
+    //while (BIO_read(pOut, buffer2, 1024) > 0) {
+    //  publicKey += buffer2;
+    //}
+    //BIO_free(pOut);
+    //EVP_cleanup();
 
     const EC_POINT *pubKey = EC_KEY_get0_public_key(eckey);
     publicKey = EC_POINT_point2hex(ecGroup, pubKey, POINT_CONVERSION_COMPRESSED, NULL);
@@ -146,8 +155,7 @@ static EC_KEY* genEcKey(EVP_MD_CTX* ctx, std::string& publicKey, std::string& pk
     LOG_WARNING << FormatException(&e, "Crypto");
   }
   return nullptr;
-}
-*/
+}*/
 
 /** Loads an existing EC_KEY based on the provided key pair.
  *  @pre an OpenSSL context must have been initialized
@@ -157,26 +165,27 @@ static EC_KEY* genEcKey(EVP_MD_CTX* ctx, std::string& publicKey, std::string& pk
  *  @return if success, a pointer to the EC_KEY object
  *  @return if error, a NULLPTR
  */
-static EC_KEY* loadEcKey(EVP_MD_CTX*, const std::string& publicKey, const std::string& privKey) {
+static EC_KEY* loadEcKey(EVP_MD_CTX* ctx, const std::string& publicKey, const std::string& privKey) {
   CASH_TRY {
     EC_GROUP* ecGroup = getEcGroup();
     if (NULL == ecGroup) {
-      CASH_THROW("Failed to generate EC group.");
+      LOG_ERROR << "Failed to generate EC group.";
     }
 
     EC_KEY *eckey=EC_KEY_new();
     if (NULL == eckey) {
-      CASH_THROW("Failed to allocate EC key.");
+      LOG_ERROR << "Failed to allocate EC key.";
     }
 
     EC_GROUP_set_asn1_flag(ecGroup, OPENSSL_EC_NAMED_CURVE);
-    int state = EC_KEY_set_group(eckey, ecGroup);
-    if (1 != state) CASH_THROW("Failed to set EC group status.");
+    if (1 != EC_KEY_set_group(eckey, ecGroup)) {
+      LOG_ERROR << "Failed to set EC group status.";
+    }
 
     EC_POINT* tempPoint = NULL;
     const char* pubKeyBuffer = &publicKey[0u];
     const EC_POINT* pubKeyPoint = EC_POINT_hex2point(EC_KEY_get0_group(eckey), pubKeyBuffer, tempPoint, NULL);
-    if (eckey == NULL) CASH_THROW("Invalid public key point.");
+    if (eckey == NULL) LOG_ERROR << "Invalid public key point.";
 
     OpenSSL_add_all_algorithms();
     EVP_PKEY* pkey = EVP_PKEY_new();
@@ -190,17 +199,17 @@ static EC_KEY* loadEcKey(EVP_MD_CTX*, const std::string& publicKey, const std::s
     EVP_cleanup();
 
     if (1 != EC_GROUP_check(EC_KEY_get0_group(eckey), NULL)) {
-      CASH_THROW("group is invalid!");
+      LOG_ERROR << "group is invalid!";
     }
 
     if (1 != EC_KEY_check_key(eckey)) {
-      CASH_THROW("key is invalid!");
+      LOG_ERROR << "key is invalid!";
     }
     return(eckey);
   } CASH_CATCH(const std::exception& e) {
     LOG_WARNING << FormatException(&e, "Crypto");
   }
-  return nullptr;
+  return 0;
 }
 
 /** Hashes a string with SHA-256.
@@ -247,7 +256,7 @@ static bool verifySig(EC_KEY* ecKey, const std::string msg, const std::string st
       LOG_FATAL << "Could not create signature context!";
     int len = strSig.length();
     if (len%2==1) {
-      CASH_THROW("Invalid signature hex!");
+      LOG_ERROR << "Invalid signature hex!";
       return(false);
     }
 
@@ -261,7 +270,7 @@ static bool verifySig(EC_KEY* ecKey, const std::string msg, const std::string st
 
     return(1 == state);
   } CASH_CATCH (const std::exception& e) {
-    LOG_WARNING << FormatException(&e, "Crypto");
+    LOG_WARNING << FormatException(&e, "Crypto.verifySignature");
   }
   return(false);
 }
@@ -286,7 +295,7 @@ static std::string sign(EC_KEY* ecKey, std::string msg) {
 
     //0 -> invalid, -1 -> openssl error
     if (1 != state)
-      CASH_THROW("Signature did not validate("+std::to_string(state)+")");
+      LOG_ERROR << "Signature did not validate("+std::to_string(state)+")";
 
     int len = i2d_ECDSA_SIG(signature, NULL);
     unsigned char *sigBytes = (unsigned char*) malloc(len);
@@ -299,10 +308,11 @@ static std::string sign(EC_KEY* ecKey, std::string msg) {
     free(sigBytes);
   return(out);
   } CASH_CATCH (const std::exception& e) {
-    LOG_WARNING << FormatException(&e, "Crypto");
+    LOG_WARNING << FormatException(&e, "Crypto.sign");
   }
-  CASH_THROW("Failed to sign message!");
+  return("");
 }
+
 } //end namespace Devcash
 
 #endif /* SRC_COMMON_OSSLADAPTER_H_ */

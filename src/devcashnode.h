@@ -15,6 +15,7 @@
 #include <vector>
 
 #include "common/devcash_context.h"
+#include "concurrency/DevcashController.h"
 #include "concurrency/WorkerTypes.h"
 #include "io/message_service.h"
 
@@ -35,12 +36,6 @@ class DevcashNode {
   /** Shut down immediately. */
   void Shutdown();
 
-  /**
-   * Construct a context object for this node.
-   *  @param mode either T1, T2, or scan
-   *  @param nodeIndex the index of this node in the set of shard peers
-   *  @return the context for this node.
-   */
   DevcashNode(eAppMode mode
               , int node_index
               , ConsensusWorker& consensus
@@ -48,8 +43,9 @@ class DevcashNode {
               , io::TransactionClient& client
               , io::TransactionServer& server);
 
-  /**
-   * Initialize devcoin core: Basic context setup.
+  DevcashNode(DevcashController& devcash, DevcashContext& context);
+
+  /** Initialize devcoin core: Basic context setup.
    *  @note Do not call Shutdown() if this function fails.
    *  @pre Parameters should be parsed and config file should be read.
    */
@@ -72,40 +68,13 @@ class DevcashNode {
    * Devcash core main initialization.
    * @note Call Shutdown() if this function fails.
    */
-  std::string RunNode();
+  std::string RunNode(std::string inStr);
+
+  std::string RunNetworkTest();
 
 private:
-
-  DevcashContext app_context_;
-
-  /**
-   * A reference to the worker. This is owned by the calling
-   * code and must stay alive for the duration of this object's
-   * duration.
-   */
-  ConsensusWorker& consensus_;
-
-  /**
-   * A reference to the validation worker. This is owned by the
-   * calling code and must stay alive for the duration of this
-   * object's lifetime.
-   */
-  ValidatorWorker& validator_;
-
-  /**
-   * A reference to the TransactionClient. The client is owned
-   * by the code that instantiated the DevcashNode and must be
-   * cleaned up after the node is destroyed. This node is responsible
-   * for starting the client ( StartClient() ).
-   */
-  io::TransactionClient& client_;
-
-  /**
-   * A reference to the TansactionServer. The server is owned
-   * by the calling code. This node is responsible for starting
-   * the server ( StartServer() )
-   */
-  io::TransactionServer& server_;
+  DevcashController& control_;
+  DevcashContext& app_context_;
 };
 
 } //end namespace Devcash

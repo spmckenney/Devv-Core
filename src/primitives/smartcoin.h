@@ -23,12 +23,12 @@ inline bool MoneyRange(const long& nValue) {
 
 class SmartCoin {
  public:
-  std::string type_;
+  int type_;
   std::string addr_;
   long amount_ = 0;
 
 /** Constructor */
-  SmartCoin(std::string type, std::string addr, long amount=0) {
+  SmartCoin(int type, std::string addr, long amount=0) {
     this->type_=type;
     this->addr_=addr;
     this->amount_ = amount;

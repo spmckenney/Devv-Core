@@ -66,10 +66,10 @@ bool DCVote::isValid(Devcash::DCTransaction checkTx,
           return false;
         } //endif sending to specified target
       } else if (it->amount_ < 0) { //sending vote
-        if (context.getAmount(election_, it->addr_) < it->amount_) {
+        //if (context.getAmount(election_, it->addr_) < it->amount_) {
           LOG_WARNING << "Error: Voter lacks votes in this election.";
           return false;
-        } //endif voter has enough votes in this election context
+        //} //endif voter has enough votes in this election context
       } //end send vs receive vote
     } //end for each transfer
   } //endif operation is exchange
@@ -86,7 +86,7 @@ DCTransaction DCVote::getT1Syntax(Devcash::DCTransaction theTx) {
 DCTransaction DCVote::Tier2Process(std::string rawTx,
     Devcash::DCState context) {
   json jsonObj = json::parse(rawTx);
-  Devcash::DCTransaction tx(jsonObj);
+  Devcash::DCTransaction tx(jsonObj.dump());
   if (tx.isOpType("create") || tx.isOpType("modify")) {
     if (jsonObj["election"].empty()) {
       LOG_WARNING << "Error: No address for new election.";

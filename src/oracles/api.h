@@ -73,7 +73,7 @@ class DCapi : public oracleInterface {
     if (!isValid(checkTx)) return false;
     for (auto it=checkTx.xfers_.begin(); it != checkTx.xfers_.end(); ++it) {
       if (it->amount_ > 0) {
-        if ((context.getAmount(getCoinType(), it->addr_) > 0)) {
+        if ((context.getAmount(getCoinIndex(), it->addr_) > 0)) {
           LOG_WARNING << "Error: Addr already has an API token.";
           return false;
         } //endif has API
@@ -110,7 +110,7 @@ class DCapi : public oracleInterface {
   Devcash::DCTransaction Tier2Process(std::string rawTx,
       Devcash::DCState context) {
     json jsonObj = json::parse(rawTx);
-    Devcash::DCTransaction tx(jsonObj);
+    Devcash::DCTransaction tx(jsonObj.dump());
     if (!isValid(tx, context)) {
       tx.setNull();
       return tx;

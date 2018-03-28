@@ -68,8 +68,8 @@ class dnero : public oracleInterface {
     for (std::vector<Devcash::DCTransfer>::iterator it=checkTx.xfers_.begin();
         it != checkTx.xfers_.end(); ++it) {
       if (it->amount_ < 0) {
-        if ((context.getAmount(dnerowallet::getCoinType(), it->addr_) < 1) &&
-            (context.getAmount(dneroavailable::getCoinType(),it->addr_) < 1)) {
+        if ((context.getAmount(dnerowallet::getCoinIndex(), it->addr_) < 1) &&
+            (context.getAmount(dneroavailable::getCoinIndex(),it->addr_) < 1)) {
           LOG_WARNING << "Error: Addr has no dnerowallet or dneroavailable.";
           return false;
         } //endif has dnerowallet or dneroavailable

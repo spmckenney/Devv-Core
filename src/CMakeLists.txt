@@ -65,6 +65,12 @@ file(GLOB oracles_SRC
 )
 add_library(oracles ${oracles_SRC})
 
+# Build the concurrency module objects
+file(GLOB concurrency_SRC
+    "concurrency/*.cpp"
+)
+add_library(concurrency ${concurrency_SRC})
+
 # Build the consensus module objects
 file(GLOB consensus_SRC
     "consensus/*.cpp"
@@ -99,8 +105,9 @@ target_link_libraries (devcash
   devcashnode
   common
   io
-  primitives
   oracles
+  concurrency
+  primitives
   consensus
   ${ZMQ}
   )
@@ -253,4 +260,3 @@ add_executable(zmq_envelope_subscriber
 target_link_libraries(zmq_envelope_subscriber
   ${ZMQ}
   )
-

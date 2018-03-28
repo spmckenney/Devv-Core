@@ -94,26 +94,26 @@ TransactionClient::ProcessIncomingMessage() noexcept {
 
   auto devcash_message = DevcashMessageUniquePtr(new DevcashMessage());
 
-  /* Create an empty ØMQ message to hold the message part */
-  zmq_msg_t part;
-  int rc = zmq_msg_init(&part);
-  assert (rc == 0);
+/* Create an empty ØMQ message to hold the message part */
+    zmq_msg_t part;
+    int rc = zmq_msg_init(&part);
+    assert (rc == 0);
 
-  LOG_DEBUG << "Waiting for uri";
-  /* Block until a message is available to be received from socket */
-  zmq::message_t message;
-  sub_socket_->recv(&message);
+    LOG_DEBUG << "Waiting for uri";
+    /* Block until a message is available to be received from socket */
+    zmq::message_t message;
+    sub_socket_->recv(&message);
 
-  int size = message.size();
-  std::string uri(static_cast<char *>(message.data()), size);
-  LOG_DEBUG << "uri: " << uri;
+    int size = message.size();
+    std::string uri(static_cast<char *>(message.data()), size);
+    LOG_DEBUG << "uri: " << uri;
 
-  devcash_message->uri = uri;
+    devcash_message->uri = uri;
 
-  //rc = zmq_recv (&sub_socket_, &devcash_message->uri_size, 0);
-  //assert (rc == 0);
-  /* Determine if more message parts are to follow */
-  /*
+    //rc = zmq_recv (&sub_socket_, &devcash_message->uri_size, 0);
+    //assert (rc == 0);
+    /* Determine if more message parts are to follow */
+    /*
     rc = zmq_getsockopt (&sub_socket_, ZMQ_RCVMORE, &more, &more_size);
     LOG(info) << "rc: " << rc;
     LOG(info) << "more: " << more;

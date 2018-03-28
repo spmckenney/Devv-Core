@@ -27,10 +27,12 @@
 #endif
 
 #include "consensus/chainstate.h"
+#include "common/devcash_context.h"
 #include "common/json.hpp"
 #include "common/logger.h"
 #include "common/ossladapter.h"
 #include "common/util.h"
+#include "concurrency/DevcashController.h"
 #include "concurrency/DevcashWorkerPool.h"
 #include "io/zhelpers.hpp"
 #include "oracles/api.h"
@@ -82,25 +84,40 @@ void DevcashNode::Shutdown()
 {
   fRequestShutdown = true;
   //TODO: how to stop zmq?
-  consensus_.stopAll();
-  validator_.stopAll();
+  control_.stopAll();
   LOG_INFO << "Shutting down DevCash\n";
 }
 
-DevcashNode::DevcashNode(eAppMode mode
+/*DevcashNode::DevcashNode(eAppMode mode
                          , int node_index
                          , ConsensusWorker& consensus
                          , ValidatorWorker& validator
                          , io::TransactionClient& client
                          , io::TransactionServer& server)
-  : app_context_()
+  : app_context_(node_index, mode)
   , consensus_(consensus)
   , validator_(validator)
   , client_(client)
   , server_(server)
 {
-  app_context_.current_node_ = node_index;
-  app_context_.app_mode_ = mode;
+}
+
+DevcashNode::DevcashNode(DevcashContext& nodeContext
+                         , ConsensusWorker& consensus
+                         , ValidatorWorker& validator
+                         , io::TransactionClient& client
+                         , io::TransactionServer& server)
+  : app_context_(nodeContext)
+  , consensus_(consensus)
+  , validator_(validator)
+  , client_(client)
+  , server_(server)
+{
+}*/
+
+DevcashNode::DevcashNode(DevcashController& control, DevcashContext& context)
+    : control_(control), app_context_(context)
+{
 }
 
 bool initCrypto()
@@ -118,10 +135,11 @@ bool initCrypto()
 
 bool DevcashNode::Init()
 {
-  if (app_context_.current_node_ >= app_context_.kNODE_KEYs.size() ||
-      app_context_.current_node_ >= app_context_.kNODE_ADDRs.size()) {
-    LOG_FATAL << "Invalid node index: " <<
-      std::to_string(app_context_.current_node_);
+  if (app_context_.current_node_ < 0
+      || app_context_.current_node_ >= app_context_.kNODE_KEYs.size()
+      || app_context_.current_node_ >= app_context_.kNODE_ADDRs.size()) {
+    LOG_FATAL << "Invalid node index: "+
+      std::to_string(app_context_.current_node_)+"\n";
     return false;
   }
   return initCrypto();
@@ -141,22 +159,24 @@ bool DevcashNode::SanityChecks()
     std::string hash(strHash(msg));
 
     EC_KEY* loadkey = loadEcKey(ctx,
-        app_context_.kADDRs[1],
-        app_context_.kADDR_KEYs[1]);
+        app_context_.kINN_ADDR,
+        app_context_.kINN_KEY);
 
     std::string sDer = sign(loadkey, hash);
-    return(verifySig(loadkey, hash, sDer));
+    if (!verifySig(loadkey, hash, sDer)) return false;
+
+    return true;
   } CASH_CATCH (const std::exception& e) {
     LOG_FATAL << FormatException(&e, "DevcashNode.sanityChecks");
   }
   return false;
 }
 
-std::string DevcashNode::RunScanner(std::string) {
+std::string DevcashNode::RunScanner(std::string inStr) {
   LOG_INFO << "Scanner Mode";
   std::string out("");
   CASH_TRY {
-    std::vector<uint8_t> buffer = hex2CBOR(out);
+    std::vector<uint8_t> buffer = hex2CBOR(inStr);
     json j = json::from_cbor(buffer);
     out = j.dump();
     //remove escape chars
@@ -167,36 +187,34 @@ std::string DevcashNode::RunScanner(std::string) {
   return out;
 }
 
-std::string DevcashNode::RunNode()
+std::string DevcashNode::RunNode(std::string inStr)
 {
-  // Start the TransactionServer running in a thread
-  server_.StartServer();
-
   std::string out("");
   CASH_TRY {
-    client_.AttachCallback([this](std::unique_ptr<DevcashMessage> ptr) {
-      if (ptr->message_type == TRANSACTION_ANNOUNCEMENT) {
-          validator_.push(std::move(ptr));
-        } else {
-          consensus_.push(std::move(ptr));
-        }
-    });
+    LOG_INFO << "Start controller.\n";
+    control_.start();
 
-    validator_.start();
-    consensus_.start();
+    control_.seedTransactions(inStr);
+    //TODO: block here until all input is processed
 
-    client_.StartClient();
+  } CASH_CATCH (const std::exception& e) {
+    LOG_FATAL << FormatException(&e, "DevcashNode.RunScanner");
+  }
 
-    std::vector<uint8_t> data(100);
-    auto startMsg = std::unique_ptr<DevcashMessage>(
-        new DevcashMessage("self", TRANSACTION_ANNOUNCEMENT, data));
-    server_.QueueMessage(std::move(startMsg));
-    //client.Run();
+  return out;
+}
 
-	//make sure child threads are actually initialized before shutting down
-    boost::this_thread::sleep_for(boost::chrono::milliseconds(20000));
+std::string DevcashNode::RunNetworkTest()
+{
+  std::string out("");
+  CASH_TRY {
+    control_.startToy();
+
+    //TODO: add messages for each node in concurrency/DevcashController.cpp
+
+	//let the test run before shutting down (<10 sec)
+    boost::this_thread::sleep_for(boost::chrono::milliseconds(10000));
     StartShutdown();
-    LOG_INFO << "end of RunNode\n";
   } CASH_CATCH (const std::exception& e) {
     LOG_FATAL << FormatException(&e, "DevcashNode.RunScanner");
   }

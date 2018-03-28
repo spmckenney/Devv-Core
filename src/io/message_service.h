@@ -112,7 +112,7 @@ class TransactionClient final {
   // Used to run the client service in a background thread
   std::unique_ptr<std::thread> client_thread_;
 
-  // List of callbacks to call when a message arrives
+  /// List of callbacks to call when a message arrives
   DevcashMessageCallback callback_;
 };
 
