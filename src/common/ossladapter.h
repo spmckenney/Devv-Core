@@ -165,7 +165,7 @@ static EC_GROUP* getEcGroup() {
  *  @return if success, a pointer to the EC_KEY object
  *  @return if error, a NULLPTR
  */
-static EC_KEY* loadEcKey(EVP_MD_CTX* ctx, const std::string& publicKey, const std::string& privKey) {
+static EC_KEY* loadEcKey(EVP_MD_CTX*, const std::string& publicKey, const std::string& privKey) {
   CASH_TRY {
     EC_GROUP* ecGroup = getEcGroup();
     if (NULL == ecGroup) {

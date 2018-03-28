@@ -37,14 +37,15 @@ class DCBlock {
   std::vector<Devcash::DCTransaction> vtx_;
   DCValidationBlock vals_;
 
+  uint32_t vSize_;
+  uint32_t sumSize_;
+  uint32_t txSize_;
+  uint64_t nTime_;
+  uint32_t nBytes_;
+
   short nVersion_ = 0;
   std::string hashPrevBlock_;
   std::string hashMerkleRoot_;
-  uint32_t nBytes_;
-  uint64_t nTime_;
-  uint32_t txSize_;
-  uint32_t sumSize_;
-  uint32_t vSize_;
 
 /** Constructor */
   DCBlock();
@@ -141,4 +142,3 @@ class DCBlock {
 } //end namespace Devcash
 
 #endif // DEVCASH_PRIMITIVES_BLOCK_H
-

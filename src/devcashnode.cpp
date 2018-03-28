@@ -135,9 +135,8 @@ bool initCrypto()
 
 bool DevcashNode::Init()
 {
-  if (app_context_.current_node_ < 0
-      || app_context_.current_node_ >= app_context_.kNODE_KEYs.size()
-      || app_context_.current_node_ >= app_context_.kNODE_ADDRs.size()) {
+  if (app_context_.current_node_ >= app_context_.kNODE_KEYs.size() ||
+      app_context_.current_node_ >= app_context_.kNODE_ADDRs.size()) {
     LOG_FATAL << "Invalid node index: " <<
       std::to_string(app_context_.current_node_);
     return false;

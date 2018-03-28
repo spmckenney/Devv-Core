@@ -116,7 +116,7 @@ using namespace Devcash;
     LOG_DEBUG << "DevcashControllerWorker::ConsensusLoop()";
     CASH_TRY {
       while (continue_) {
-        validators_.popGuard();
+        consensus_.popGuard();
         if (!continue_) break;
         controller_->ConsensusCallback(std::move(consensus_.pop()));
       }

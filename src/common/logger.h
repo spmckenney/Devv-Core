@@ -1,6 +1,8 @@
 #ifndef DEVCASH_LOGGER_H
 #define DEVCASH_LOGGER_H
 
+#include <thread>
+
 #define BOOST_LOG_DYN_LINK \
   1  // necessary when linking the boost_log library dynamically
 
@@ -22,7 +24,7 @@ BOOST_LOG_GLOBAL_LOGGER(logger, logger_t)
 // just a helper macro used by the macros below - don't use it in your code
 #define LOG(severity) \
   BOOST_LOG_SEV(logger::get(), boost::log::trivial::severity) \
-  << __FILE__ << ":" << __LINE__ << " -> "
+  << __FILENAME__ << ":" << __LINE__ << " TID[" << std::this_thread::get_id() << "] -> "
 
 // ===== log macros =====
 #define LOG_TRACE LOG(trace)

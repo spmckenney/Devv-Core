@@ -74,7 +74,7 @@ class DevcashRingQueue {
     CASH_TRY {
       std::unique_lock<std::mutex> lock(pushLock_);
       while (isFull_) {
-        LOG_FATAL << "Queue blocked on push, run is suboptimal!\n";
+        LOG_FATAL << "Queue blocked on push, run is suboptimal!";
         full_.wait(lock, [&]() {
           return(pending_ < kRingSize_);}
         );
@@ -117,7 +117,7 @@ class DevcashRingQueue {
       pending_--;
       if (popAt_+1 == pushAt_) isEmpty_=true;
       if (popAt_+1 >= kRingSize_&& pushAt_ == 0) isEmpty_=true;
-      LOG_INFO << "Worker will pop.\n";
+      LOG_INFO << "Worker will pop.";
     } CASH_CATCH (const std::exception& e) {
       LOG_WARNING << FormatException(&e, "DevcashRingQueue.popGuard");
     }

@@ -112,90 +112,6 @@ static void InterpretNegativeSetting(std::string& strKey, std::string& strValue)
   }
 }
 
-void ArgsManager::ParseParameters(int argc, const char* const argv[])
-{
-  mapArgs.clear();
-  mapMultiArgs.clear();
-
-  for (int i = 1; i < argc; i++)
-  {
-    std::string str(argv[i]);
-    std::string strValue;
-    size_t is_index = str.find('=');
-    if (is_index != std::string::npos)
-    {
-      strValue = str.substr(is_index+1);
-      str = str.substr(0, is_index);
-    }
-#ifdef WIN32
-    boost::to_lower(str);
-    if (boost::algorithm::starts_with(str, "/"))
-      str = "-" + str.substr(1);
-#endif
-
-    if (str[0] != '-') break;
-
-    // Interpret --foo as -foo.
-    // If both --foo and -foo are set, the last takes effect.
-    if (str.length() > 1 && str[1] == '-')
-      str = str.substr(1);
-      InterpretNegativeSetting(str, strValue);
-      mapArgs[str] = strValue;
-      mapMultiArgs[str].push_back(strValue);
-    }
-}
-
-std::vector<std::string> ArgsManager::GetArgs(const std::string& strArg) const
-{
-  auto it = mapMultiArgs.find(strArg);
-  if (it != mapMultiArgs.end()) return it->second;
-  return {};
-}
-
-bool ArgsManager::IsArgSet(const std::string& strArg) const
-{
-  return mapArgs.count(strArg);
-}
-
-std::string ArgsManager::GetArg(const std::string& strArg, const std::string& strDefault) const
-{
-  auto it = mapArgs.find(strArg);
-  if (it != mapArgs.end()) return it->second;
-  return strDefault;
-}
-
-std::string ArgsManager::GetPathArg(const std::string& strArg) const
-{
-  std::string arg(GetArg(strArg, ""));
-  return(getWorkPath()+arg);
-}
-
-bool ArgsManager::GetBoolArg(const std::string& strArg, bool fDefault) const
-{
-  auto it = mapArgs.find(strArg);
-  if (it != mapArgs.end()) return InterpretBool(it->second);
-  return fDefault;
-}
-
-bool ArgsManager::SoftSetArg(const std::string& strArg, const std::string& strValue)
-{
-  if (IsArgSet(strArg)) return false;
-  ForceSetArg(strArg, strValue);
-  return true;
-}
-
-bool ArgsManager::SoftSetBoolArg(const std::string& strArg, bool fValue)
-{
-  if (fValue) return SoftSetArg(strArg, std::string("1"));
-  else return SoftSetArg(strArg, std::string("0"));
-}
-
-void ArgsManager::ForceSetArg(const std::string& strArg, const std::string& strValue)
-{
-  mapArgs[strArg] = strValue;
-  mapMultiArgs[strArg] = {strValue};
-}
-
 std::string FormatException(const std::exception* pex, const std::string pszThread)
 {
   std::string msg = "";
@@ -219,29 +135,6 @@ void setWorkPath(std::string arg0) {
 }
 std::string getWorkPath() {
   return(workPath);
-}
-
-void ArgsManager::ReadConfigFile(const std::string& confPath)
-{
-  std::ifstream streamConfig(confPath);
-  if (!streamConfig.good())
-    throw std::runtime_error("Config file could not be found");
-  if (!streamConfig.is_open())
-    throw std::runtime_error("Couldn't open config file, check permissions");
-
-  for(std::string line; std::getline(streamConfig, line);) {
-    std::string::size_type eq = line.find("=");
-    if (eq != std::string::npos) {
-      std::string key = line.substr(0, eq);
-      std::string val = line.substr(eq+1);
-      if ("RELPATH" == key) setWorkPath(val);
-      if ("LOGFILE" == key) {
-        std::cout << "Check DevCash logs at "+key << std::endl;
-        LOG_INFO << "DevCash initializing...";
-      }
-      mapArgs[key]=val;
-    } //endif line has "="
-  } //end for each line
 }
 
 void FileCommit(FILE* file)
