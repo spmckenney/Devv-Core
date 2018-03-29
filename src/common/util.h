@@ -22,6 +22,7 @@
 #include <sstream>
 #include <string>
 #include <vector>
+#include <memory>
 
 namespace Devcash
 {
@@ -213,85 +214,12 @@ static std::vector<uint8_t> hex2CBOR(std::string hex) {
   return(ss.str());
 }*/
 
-class ArgsManager
+template<typename T, typename ...Args>
+std::unique_ptr<T> make_unique( Args&& ...args )
 {
-public:
-    void ParseParameters(int argc, const char*const argv[]);
-    void ReadConfigFile(const std::string& confPath);
-
-    /**
-     * Return a vector of strings of the given argument
-     *
-     * @param strArg Argument to get (e.g. "-foo")
-     * @return command-line arguments
-     */
-    std::vector<std::string> GetArgs(const std::string& strArg) const;
-
-    /**
-     * Return true if the given argument has been manually set
-     *
-     * @param strArg Argument to get (e.g. "-foo")
-     * @return true if the argument has been set
-     */
-    bool IsArgSet(const std::string& strArg) const;
-
-    /**
-     * Return string argument or default value
-     *
-     * @param strArg Argument to get (e.g. "-foo")
-     * @param strDefault (e.g. "1")
-     * @return command-line argument or default value
-     */
-    std::string GetArg(const std::string& strArg, const std::string& strDefault) const;
-
-    /**
-     * Return a file path argument or an empty string.
-     * Adds the relative path for this program if no path was specified in the map
-     *
-     * @param strArg Argument to get (e.g. "LOGFILE")
-     * @return file path config argument or an empty string
-     */
-    std::string GetPathArg(const std::string& strArg) const;
-
-    /**
-     * Return boolean argument or default value
-     *
-     * @param strArg Argument to get (e.g. "-foo")
-     * @param fDefault (true or false)
-     * @return command-line argument or default value
-     */
-    bool GetBoolArg(const std::string& strArg, bool fDefault) const;
-
-    /**
-     * Set an argument if it doesn't already have a value
-     *
-     * @param strArg Argument to set (e.g. "-foo")
-     * @param strValue Value (e.g. "1")
-     * @return true if argument gets set, false if it already had a value
-     */
-    bool SoftSetArg(const std::string& strArg, const std::string& strValue);
-
-    /**
-     * Set a boolean argument if it doesn't already have a value
-     *
-     * @param strArg Argument to set (e.g. "-foo")
-     * @param fValue Value (e.g. false)
-     * @return true if argument gets set, false if it already had a value
-     */
-    bool SoftSetBoolArg(const std::string& strArg, bool fValue);
-
-    // Forces an arg setting. Called by SoftSetArg() if the arg hasn't already
-    // been set. Also called directly in testing.
-    void ForceSetArg(const std::string& strArg, const std::string& strValue);
-
-protected:
-    std::map<std::string, std::string> mapArgs;
-    std::map<std::string, std::vector<std::string>> mapMultiArgs;
-};
-
-extern ArgsManager gArgs;
+    return std::unique_ptr<T>( new T( std::forward<Args>(args)... ) );
+}
 
 } //end namespace Devcash
 
 #endif // DEVCASH_UTIL_H
-

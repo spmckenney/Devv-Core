@@ -24,10 +24,12 @@ TransactionServer::TransactionServer(
 
 void
 TransactionServer::SendMessage(DevcashMessageUniquePtr dc_message) noexcept {
-  // Create and populate the thrift message
 
+  LOG_DEBUG << "Sending message1: " << dc_message->uri;
+  auto buffer = serialize(*dc_message);
   //zmq::message_t uri(&(message->uri), sizeof(uri));
-  s_send(*pub_socket_, dc_message->uri);
+  LOG_DEBUG << "Sending message2: " << dc_message->uri;
+  s_send(*pub_socket_, buffer);
 
   /*
   zmq::message_t message(sizeof(dc_message->message_type));
@@ -92,23 +94,27 @@ TransactionClient::AddConnection(const std::string& endpoint) {
 void
 TransactionClient::ProcessIncomingMessage() noexcept {
 
-  auto devcash_message = DevcashMessageUniquePtr(new DevcashMessage());
+  //auto devcash_message = std::make_unique<DevcashMessage>();
 
-/* Create an empty ØMQ message to hold the message part */
+/* Create an empty ØMQ message to hold the message part
     zmq_msg_t part;
     int rc = zmq_msg_init(&part);
     assert (rc == 0);
+*/
 
     LOG_DEBUG << "Waiting for uri";
     /* Block until a message is available to be received from socket */
-    zmq::message_t message;
+    auto devcash_message = deserialize(s_vrecv(*sub_socket_));
+
+    /*zmq::message_t message;
     sub_socket_->recv(&message);
 
     int size = message.size();
     std::string uri(static_cast<char *>(message.data()), size);
-    LOG_DEBUG << "uri: " << uri;
 
     devcash_message->uri = uri;
+    */
+    LogDevcashMessageSummary(*devcash_message);
 
     //rc = zmq_recv (&sub_socket_, &devcash_message->uri_size, 0);
     //assert (rc == 0);
@@ -120,22 +126,22 @@ TransactionClient::ProcessIncomingMessage() noexcept {
     assert (rc == 1);
 
     rc = zmq_recv(&sub_socket_, &devcash_message->message_type,
-                  sizeof(devcash_message->message_type), 0);
-    */
-    /*
+    sizeof(devcash_message->message_type), 0);
+  */
+  /*
     auto thrift_object =
-      sub_socket_.recvThriftObj<thrift::DevcashMessage>(serializer_);
-  if (thrift_object.hasError()) {
+    sub_socket_.recvThriftObj<thrift::DevcashMessage>(serializer_);
+    if (thrift_object.hasError()) {
     LOG(ERROR) << "read thrift request failed: " << thrift_object.error();
     return;
-  } else {
+    } else {
     LOG(info) << "Received Thrift Object";
-  }
-  const auto& thrift_devcash_message = thrift_object.value();
+    }
+    const auto& thrift_devcash_message = thrift_object.value();
 
-  auto message = MakeDevcashMessage(thrift_devcash_message);
-    */
-    callback_(std::move(devcash_message));
+    auto message = MakeDevcashMessage(thrift_devcash_message);
+  */
+  callback_(std::move(devcash_message));
 }
 
 void

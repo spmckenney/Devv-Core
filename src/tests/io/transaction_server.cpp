@@ -6,66 +6,67 @@
 #include "io/message_service.h"
 #include "io/constants.h"
 
+#include "transaction_test_struct.h"
+
 int
 main(int argc, char** argv) {
 
-  // start signal handler before any thread
-  /*
-  fbzmq::ZmqEventLoop mainEventLoop;
-  fbzmq::StopEventLoopSignalHandler handler(&mainEventLoop);
-  handler.registerSignalHandler(SIGINT);
-  handler.registerSignalHandler(SIGQUIT);
-  handler.registerSignalHandler(SIGTERM);
+  auto dev_message = std::make_unique<Devcash::DevcashMessage>();
+  dev_message->index = 10;
+  dev_message->uri = "Hello!";
+  dev_message->message_type = Devcash::eMessageType::VALID;
+  dev_message->data.emplace_back(25);
 
-  std::vector<std::thread> allThreads{};
-  */
+  Devcash::LogDevcashMessageSummary(*dev_message);
+
+  auto buffer = Devcash::serialize(*dev_message);
+
+  auto new_message = Devcash::deserialize(buffer);
+
+  assert(dev_message->index == new_message->index);
+
+  Devcash::LogDevcashMessageSummary(*new_message);
+  LOG_INFO << "We made it!!!";
+
+  if (argc < 2) {
+    LOG_ERROR << "Usage: " << argv[0] << " bind-endpoint [URI]";
+    LOG_ERROR << "ex: " << argv[0] << " tcp://*:55557 my-message";
+    exit(-1);
+  }
+
+  std::string bind_endpoint = argv[1];
+
+  LOG_INFO << "Binding to " << bind_endpoint;
+
+  std::string message;
+  if (argc > 2) {
+    message = argv[2];
+  } else {
+    message = "my-uri";
+  }
+
+
+  test_struct test;
+  test.a = 10;
+  test.b = 20;
+  test.c = 30;
 
   // Zmq Context
   zmq::context_t context(1);
-
-  Devcash::io::TransactionServer server{context, "tcp://*:55557"};
-
-  /*
-  std::thread serverThread([&server]() noexcept {
-    LOG(info) << "Starting Server thread ...";
-    server.run();
-    LOG(info) << "Server stopped.";
-  });
-
-  server.waitUntilRunning();
-  allThreads.emplace_back(std::move(serverThread));
-
-  LOG(info) << "Creating Event Thread";;
-  std::thread event_loop_thread([&mainEventLoop, &server]() noexcept {
-      LOG(info) << "Starting main event loop...";
-      mainEventLoop.run();
-      LOG(info) << "Main event loop got stopped";
-
-      server.stop();
-      server.waitUntilStopped();
-    });
-  LOG(info) << "Creating Event Thread";;
-
-  allThreads.emplace_back(std::move(event_loop_thread));
-  */
-
+  Devcash::io::TransactionServer server{context, bind_endpoint};
   server.StartServer();
-
-  LOG(info) << "Gonna sleep(1)";
 
   for (;;) {
     sleep(1);
-    auto devcash_message = Devcash::DevcashMessageUniquePtr(new Devcash::DevcashMessage);
-    devcash_message->uri = "my_uri2";
+    auto devcash_message = std::make_unique<Devcash::DevcashMessage>();
+    devcash_message->index = 15;
+    devcash_message->uri = "Hello!";
     devcash_message->message_type = Devcash::eMessageType::VALID;
-    LOG(info) << "Sending message";
+    devcash_message->SetData(test);
+
+    LOG_INFO << "Sending message: " << message;
     server.QueueMessage(std::move(devcash_message));
   }
 
-  /*
-  for (auto& t : allThreads) {
-    t.join();
-  }
-  */
   return 0;
 }

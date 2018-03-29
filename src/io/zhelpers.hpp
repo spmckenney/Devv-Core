@@ -81,11 +81,31 @@ static std::string s_recv(zmq::socket_t &socket) {
   return std::string(static_cast<char *>(message.data()), message.size());
 }
 
-//  Convert string to 0MQ string and send to socket
-static bool s_send(zmq::socket_t &socket, const std::string &string) {
+//  Receive 0MQ string from socket and convert into string
+static std::vector<uint8_t> s_vrecv(zmq::socket_t &socket) {
 
-  zmq::message_t message(string.size());
-  memcpy(message.data(), string.data(), string.size());
+  zmq::message_t message;
+  socket.recv(&message);
+  std::vector<uint8_t> buf(message.size());
+  memcpy(buf.data(), message.data(), message.size());
+  return buf;
+}
+
+//  Convert string to 0MQ string and send to socket
+static bool s_send(zmq::socket_t &socket, const std::string& buf) {
+
+  zmq::message_t message(buf.size());
+  memcpy(message.data(), buf.data(), buf.size());
+
+  bool rc = socket.send(message);
+  return (rc);
+}
+
+//  Convert string to 0MQ string and send to socket
+static bool s_send(zmq::socket_t &socket, const std::vector<uint8_t>& buf) {
+
+  zmq::message_t message(buf.size());
+  memcpy(message.data(), buf.data(), buf.size());
 
   bool rc = socket.send(message);
   return (rc);

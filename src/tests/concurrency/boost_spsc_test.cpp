@@ -81,7 +81,7 @@ void consumer(void)
         ++consumer_count;
 }
 
-int main(int argc, char* argv[])
+int main(int, char**)
 {
     using namespace std;
     cout << "boost::lockfree::queue is ";

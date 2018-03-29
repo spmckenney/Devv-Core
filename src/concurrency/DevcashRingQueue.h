@@ -38,17 +38,6 @@
 
 namespace Devcash {
 
-//exception toggling capability
-#if (defined(__cpp_exceptions) || defined(__EXCEPTIONS) || defined(_CPPUNWIND)) && not defined(DEVCASH_NOEXCEPTION)
-    #define CASH_THROW(exception) throw exception
-    #define CASH_TRY try
-    #define CASH_CATCH(exception) catch(exception)
-#else
-    #define CASH_THROW(exception) std::abort()
-    #define CASH_TRY if(true)
-    #define CASH_CATCH(exception) if(false)
-#endif
-
 class DevcashRingQueue {
  public:
   static const int kDEFAULT_RING_SIZE = 10;
@@ -74,7 +63,7 @@ class DevcashRingQueue {
     CASH_TRY {
       std::unique_lock<std::mutex> lock(pushLock_);
       while (isFull_) {
-        LOG_FATAL << "Queue blocked on push, run is suboptimal!\n";
+        LOG_FATAL << "Queue blocked on push, run is suboptimal!";
         full_.wait(lock, [&]() {
           return(pending_ < kRingSize_);}
         );
@@ -117,7 +106,7 @@ class DevcashRingQueue {
       pending_--;
       if (popAt_+1 == pushAt_) isEmpty_=true;
       if (popAt_+1 >= kRingSize_&& pushAt_ == 0) isEmpty_=true;
-      LOG_INFO << "Worker will pop.\n";
+      LOG_INFO << "Worker will pop.";
     } CASH_CATCH (const std::exception& e) {
       LOG_WARNING << FormatException(&e, "DevcashRingQueue.popGuard");
     }

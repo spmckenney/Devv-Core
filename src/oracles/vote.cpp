@@ -51,7 +51,7 @@ bool DCVote::isValid(Devcash::DCTransaction checkTx) {
 }
 
 bool DCVote::isValid(Devcash::DCTransaction checkTx,
-    Devcash::DCState& context) {
+                     Devcash::DCState&) {
   if (checkTx.isOpType("exchange")) {
     if (targets_->empty() || election_.empty()) {
       LOG_WARNING << "Error: Voting in an uninitialized election.";

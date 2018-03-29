@@ -6,64 +6,45 @@
 #include "io/message_service.h"
 #include "io/constants.h"
 
+#include "transaction_test_struct.h"
+
 void print_devcash_message(Devcash::DevcashMessageUniquePtr message) {
-  LOG(info) << "Got a message";
-  LOG(info) << "DC->uri: " << message->uri;
+  LOG(info) << "Got a message!";
+  LogDevcashMessageSummary(*message);
+
+  test_struct test;
+  message->GetData(test);
+  LOG_INFO << "test_struct - a:" << test.a
+           << " b:" << test.b
+           << " c:" << test.c;
   return;
 }
-  
+
 
 namespace po = boost::program_options;
 
 int
 main(int argc, char** argv) {
 
-  int opt;
-  po::options_description desc("Allowed options");
-  desc.add_options()
-    ("help", "produce help message")
-    ("optimization", po::value<int>(&opt)->default_value(10),
-     "optimization level")
-    ("include-path,I", po::value< std::vector<std::string> >(),
-     "include path")
-    ;
+  if (argc != 2) {
+    LOG(error) << "Usage: " << argv[0] << " endpoint";
+    LOG(error) << "ex: " << argv[0] << " tcp://localhost:55557";
+    exit(-1);
+  }
 
-     std::vector<std::thread> allThreads{};
+  std::string endpoint = argv[1];
+
+  LOG(info) << "Connecting to " << endpoint;
 
   // Zmq Context
   zmq::context_t context(1);
 
   // start ZmqClient
   Devcash::io::TransactionClient client{context};
-  client.AddConnection("tcp://localhost:55556");
+  client.AddConnection(endpoint);
   client.AttachCallback(print_devcash_message);
 
   client.Run();
 
-  /*
-  std::thread clientThread([&client]() noexcept {
-    LOG(info) << "Starting Client thread ...";
-    client.Run();
-    LOG(info) << "Client stopped.";
-  });
-  */
-
-  /*
-  client.waitUntilRunning();
-  allThreads.emplace_back(std::move(clientThread));
-
-  LOG(info) << "Starting main event loop...";
-  mainEventLoop.run();
-  LOG(info) << "Main event loop got stopped";
-
-  client.stop();
-  client.waitUntilStopped();
-  */
-
-  /*
-  for (auto& t : allThreads) {
-    t.join();
-  }
-  */
   return 0;
 }

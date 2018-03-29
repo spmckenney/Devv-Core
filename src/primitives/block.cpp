@@ -81,16 +81,26 @@ DCBlock::DCBlock(std::string rawBlock)
   }
 }
 
-DCBlock::DCBlock(std::vector<DCTransaction>& txs
-    , DCValidationBlock& validations)
-  : vtx_(txs), vals_(validations), vSize_(0), sumSize_(0), txSize_(0)
-  , nTime_(0), nBytes_(0)
+DCBlock::DCBlock(std::vector<DCTransaction>& txs,
+                 DCValidationBlock& validations)
+  : vtx_(txs)
+  , vals_(validations)
+  , vSize_(0)
+  , sumSize_(0)
+  , txSize_(0)
+  , nTime_(0)
+  , nBytes_(0)
 {
 }
 
 DCBlock::DCBlock(const DCBlock& other)
-  : vtx_(other.vtx_), vals_(other.vals_), vSize_(0), sumSize_(0), txSize_(0)
-  , nTime_(0), nBytes_(0) {
+  : vtx_(other.vtx_)
+  , vals_(other.vals_)
+  , vSize_(0)
+  , sumSize_(0)
+  , txSize_(0)
+  , nTime_(0)
+  , nBytes_(0) {
 }
 
 bool DCBlock::validate(DCState& chainState, KeyRing& keys) {
@@ -109,7 +119,6 @@ bool DCBlock::validate(DCState& chainState, KeyRing& keys) {
   }
 
   std::string md(vals_.summaryObj_.toCanonical());
-  int i=0;
   for (auto iter = vals_.sigs_.begin(); iter != vals_.sigs_.end();) {
     if(!verifySig(keys.getKey(iter->first), md, iter->second)) {
       LOG_WARNING << "Invalid transaction: \n";

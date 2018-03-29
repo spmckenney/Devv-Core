@@ -8,8 +8,8 @@
 #ifndef CONSENSUS_KEYRING_H_
 #define CONSENSUS_KEYRING_H_
 
-#include "../common/devcash_context.h"
-#include "../common/ossladapter.h"
+#include "common/devcash_context.h"
+#include "common/ossladapter.h"
 
 namespace Devcash {
 

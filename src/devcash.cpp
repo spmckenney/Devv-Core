@@ -28,19 +28,6 @@
 using namespace Devcash;
 using json = nlohmann::json;
 
-//ArgsManager dCashArgs; /** stores data parsed from config file */
-
-//toggle exceptions on/off
-#if (defined(__cpp_exceptions) || defined(__EXCEPTIONS) || defined(_CPPUNWIND)) && not defined(DEVCASH_NOEXCEPTION)
-    #define CASH_THROW(exception) throw exception
-    #define CASH_TRY try
-    #define CASH_CATCH(exception) catch(exception)
-#else
-    #define CASH_THROW(exception) std::abort()
-    #define CASH_TRY if(true)
-    #define CASH_CATCH(exception) if(false)
-#endif
-
 typedef unsigned char byte;
 #define UNUSED(x) ((void)x)
 
@@ -62,6 +49,9 @@ std::unique_ptr<io::TransactionServer> create_transaction_server(const devcash_o
 
 int main(int argc, char* argv[])
 {
+
+  init_log();
+
   CASH_TRY {
     std::unique_ptr<devcash_options> options = parse_options(argc, argv);
 
@@ -74,12 +64,14 @@ int main(int argc, char* argv[])
     std::unique_ptr<io::TransactionServer> server = create_transaction_server(*options, context);
     std::unique_ptr<io::TransactionClient> client = create_transaction_client(*options, context);
 
-    DevcashContext this_context(static_cast<eAppMode>(options->mode),
-      options->node_index);
+    DevcashContext this_context(options->node_index,
+                                static_cast<eAppMode>(options->mode));
     KeyRing keys(this_context);
     ProposedBlock genesis;
     ProposedBlock on_deck;
-    DevcashController controller(std::move(server),std::move(client),
+
+    DevcashController controller(*server,
+                                 *client,
       options->num_validator_threads, options->num_consensus_threads,
       keys, this_context,genesis,on_deck);
 
@@ -87,23 +79,23 @@ int main(int argc, char* argv[])
 
     std::string in_raw = ReadFile(options->scan_file);
 
-   std::string out("");
+    std::string out("");
     if (options->mode == eAppMode::scan) {
-      LOG_INFO << "Scanner ignores node index.\n";
+      LOG_INFO << "Scanner ignores node index.";
       out = this_node.RunScanner(in_raw);
     } else {
       if (!this_node.Init()) {
         LOG_FATAL << "Basic setup failed";
         return false;
       }
-      LOG_INFO << "Basic Setup complete\n";
+      LOG_INFO << "Basic Setup complete";
       if (!this_node.SanityChecks()) {
         LOG_FATAL << "Sanity checks failed";
         return false;
       }
-      LOG_INFO << "Sanity checks passed\n";
+      LOG_INFO << "Sanity checks passed";
       keys.initKeys();
-      out = this_node.RunNetworkTest();
+      out = this_node.RunNetworkTest(this_context.current_node_);
     }
 
     //We do need to output the resulting blockchain for analysis
@@ -116,11 +108,11 @@ int main(int argc, char* argv[])
       outFile << out;
       outFile.close();
     } else {
-        LOG_FATAL << "Failed to open output file '"+outFileStr+"'.\n";
-        return(false);
+      LOG_FATAL << "Failed to open output file '" << outFileStr << "'.";
+      return(false);
     }
 
-    LOG_INFO << "DevCash Shutting Down\n";
+    LOG_INFO << "DevCash Shutting Down";
     return(true);
   } CASH_CATCH (...) {
     std::exception_ptr p = std::current_exception();

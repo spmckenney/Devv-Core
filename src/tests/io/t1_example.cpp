@@ -29,7 +29,6 @@ main(int argc, char** argv) {
   std::vector<std::string> t2_host_vector{};
 
   try {
-    int opt;
     po::options_description desc("\n\
 The t1_example program can be used to demonstrate connectivity of\n\
 T1 and T2 networks. By default, it will send random DevcashMessage\n\

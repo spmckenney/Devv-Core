@@ -13,6 +13,7 @@
 
 namespace Devcash {
 
+static const int kDEFAULT_WORKERS = 10;
 static const int kVALIDATOR_THREADS = 10;
 static const int kCONSENSUS_THREADS = 10;
 enum eAppMode {T1,T2,scan};

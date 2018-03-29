@@ -16,21 +16,35 @@ namespace io {
 
 typedef std::function<void(DevcashMessageUniquePtr)> DevcashMessageCallback;
 
+/**
+ * TransactionClient
+ */
 class TransactionServer final {
  public:
-  TransactionServer(
-      zmq::context_t& context,
-      const std::string& bind_url);
+  /**
+   * Constructor
+   */
+  TransactionServer(zmq::context_t& context,
+                    const std::string& bind_url);
 
   // Disable copying
   TransactionServer(const TransactionServer&) = delete;
   TransactionServer& operator=(const TransactionServer&) = delete;
 
-  // Send a message
+  /**
+   * Send a message directly.
+   * This must be called from the same thread in which
+   * the socket lives. It is public for convenience, but
+   * QueueMessage() should probably be used.
+   */
   void SendMessage(DevcashMessageUniquePtr message) noexcept;
 
   /**
-   * Queue a message
+   * Queue a message.
+   * This can be called from a different thread than
+   * the one that owns the socket. However, this method
+   * is not thread-safe, so it shouldn't be called from
+   * multiple threads simultaneously.
    */
   void QueueMessage(DevcashMessageUniquePtr message) noexcept;
 

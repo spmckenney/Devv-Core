@@ -25,38 +25,41 @@ namespace Devcash {
 
 using namespace Devcash;
 
-void DevcashController::ValidatorCallback(std::unique_ptr<DevcashMessage> ptr) {
-  LOG_DEBUG << "Validator callback triggered!\n";
+void DevcashController::ValidatorCallback(DevcashMessageUniquePtr ptr) {
+  LOG_DEBUG << "Validator callback triggered!";
   if (validator_flipper) {
-    consensus_.push(std::move(ptr));
+    pushConsensus(std::move(ptr));
   }
   validator_flipper = !validator_flipper;
 }
 
-void DevcashController::ConsensusCallback(std::unique_ptr<DevcashMessage> ptr) {
+void DevcashController::ConsensusCallback(DevcashMessageUniquePtr ptr) {
   std::thread::id id = std::this_thread::get_id();
-  LOG_INFO << "Consensus Callback "<<id<<" triggered!\n";
+  LOG_INFO << "Consensus Callback "<<id<<" triggered!";
   if (consensus_flipper) {
     server_.QueueMessage(std::move(ptr));
   }
   consensus_flipper = !consensus_flipper;
 }
 
-DevcashController::DevcashController(std::unique_ptr<io::TransactionServer> serverPtr,
-    std::unique_ptr<io::TransactionClient> clientPtr,
-    const int validatorCount, const int consensusWorkerCount,
-    KeyRing& keys, DevcashContext& context, ProposedBlock& nextBlock,
-    ProposedBlock& futureBlock)
-    : server_(*serverPtr.get())
-    , client_(*clientPtr.get())
-    , validator_count_(validatorCount)
-    , consensus_count_(consensusWorkerCount)
-    , keys_(keys)
-    , context_(context)
-    , next_block_(nextBlock)
-    , future_block_(futureBlock)
-    , seeds_at_(0)
-    , workers_(new DevcashControllerWorker(this, validator_count_, consensus_count_))
+DevcashController::DevcashController(io::TransactionServer& server,
+                                     io::TransactionClient& client,
+                                     int validatorCount,
+                                     int consensusWorkerCount,
+                                     KeyRing& keys,
+                                     DevcashContext& context,
+                                     ProposedBlock& nextBlock,
+                                     ProposedBlock& futureBlock)
+  : server_(server)
+  , client_(client)
+  , validator_count_(validatorCount)
+  , consensus_count_(consensusWorkerCount)
+  , keys_(keys)
+  , context_(context)
+  , next_block_(nextBlock)
+  , future_block_(futureBlock)
+  , seeds_at_(0)
+  , workers_(new DevcashControllerWorker(this, validator_count_, consensus_count_))
 {
 }
 
@@ -84,7 +87,7 @@ void DevcashController::seedTransactions(std::string txs) {
         counter++;
         if (eDex == std::string::npos) {
           eDex = toParse.find("}]]");
-          if (eDex == std::string::npos) LOG_WARNING << "Invalid input.\n";
+          if (eDex == std::string::npos) LOG_WARNING << "Invalid input.";
           std::string txSubstr(toParse.substr(dex, eDex-dex+2));
           seeds_.push_back(txSubstr);
           break;
@@ -96,9 +99,9 @@ void DevcashController::seedTransactions(std::string txs) {
         postTransactions();
       }
     } else {
-      LOG_WARNING << "Input has wrong syntax!\n";
+      LOG_WARNING << "Input has wrong syntax!";
     }
-    LOG_INFO << "Seeded "+std::to_string(counter)+" input blocks.\n";
+    LOG_INFO << "Seeded "+std::to_string(counter)+" input blocks.";
   } CASH_CATCH (const std::exception& e) {
     LOG_WARNING << FormatException(&e, "DevcashController.seedTransactions");
   }
@@ -118,7 +121,7 @@ void DevcashController::postTransactions() {
       eDex = someTxs.find("}", eDex);
       std::string oneTx = someTxs.substr(dex-1, eDex-dex+2);
       std::vector<uint8_t> data(str2Bin((new DCTransaction(oneTx))->ToJSON()));
-      auto announce = std::unique_ptr<DevcashMessage>(
+      auto announce = DevcashMessageUniquePtr(
         new DevcashMessage("self", TRANSACTION_ANNOUNCEMENT,data));
       pushValidator(std::move(announce));
       while (someTxs.at(eDex+1) != ']' && eDex < someTxs.size()-2) {
@@ -128,7 +131,7 @@ void DevcashController::postTransactions() {
         oneTx = someTxs.substr(dex, eDex-dex);
         std::vector<uint8_t> moreData(
             str2Bin((new DCTransaction(oneTx))->ToJSON()));
-        announce = std::unique_ptr<DevcashMessage>(
+        announce = DevcashMessageUniquePtr(
           new DevcashMessage("self", TRANSACTION_ANNOUNCEMENT, moreData));
         pushValidator(std::move(announce));
       }
@@ -138,10 +141,10 @@ void DevcashController::postTransactions() {
   }
 }
 
-void DevcashController::startToy() {
+void DevcashController::StartToy(unsigned int node_index) {
   workers_->start();
 
-  client_.AttachCallback([this](std::unique_ptr<DevcashMessage> ptr) {
+  client_.AttachCallback([this](DevcashMessageUniquePtr ptr) {
       if (ptr->message_type == TRANSACTION_ANNOUNCEMENT) {
           pushValidator(std::move(ptr));
         } else {
@@ -149,18 +152,29 @@ void DevcashController::startToy() {
         }
     });
 
-  //TODO: send a message like this for each remote
-  std::vector<uint8_t> data(100);
-  auto startMsg = std::unique_ptr<DevcashMessage>(
-    new DevcashMessage("remoteURI", TRANSACTION_ANNOUNCEMENT, data));
-  server_.QueueMessage(std::move(startMsg));
+  server_.StartServer();
+  client_.StartClient();
+
+
+  sleep(10);
+
+  for (;;) {
+    std::string uri = "RemoteURI-" + std::to_string(node_index);
+    //TODO: send a message like this for each remote
+    std::vector<uint8_t> data(100);
+    auto startMsg = std::make_unique<DevcashMessage>(uri,
+                                                     TRANSACTION_ANNOUNCEMENT,
+                                                     data);
+    server_.QueueMessage(std::move(startMsg));
+    sleep(60);
+  }
 }
 
 void DevcashController::start() {
   workers_->start();
   postTransactions();
 
-  client_.AttachCallback([this](std::unique_ptr<DevcashMessage> ptr) {
+  client_.AttachCallback([this](DevcashMessageUniquePtr ptr) {
       if (ptr->message_type == TRANSACTION_ANNOUNCEMENT) {
           pushValidator(std::move(ptr));
         } else {
@@ -171,7 +185,7 @@ void DevcashController::start() {
   if (0 == context_.current_node_) {
     next_block_.signBlock(keys_.getNodeKey(context_.current_node_));
     std::vector<uint8_t> data(str2Bin(next_block_.ToJSON()));
-    auto proposal = std::unique_ptr<DevcashMessage>(
+    auto proposal = DevcashMessageUniquePtr(
         new DevcashMessage("peers", PROPOSAL_BLOCK,data));
     server_.QueueMessage(std::move(proposal));
   }
@@ -181,11 +195,13 @@ void DevcashController::stopAll() {
   workers_->stopAll();
 }
 
-void DevcashController::pushValidator(std::unique_ptr<DevcashMessage> ptr) {
+void DevcashController::pushValidator(DevcashMessageUniquePtr ptr) {
+  LOG_DEBUG << "DevcashController::pushValidator()";
   workers_->pushValidator(std::move(ptr));
 }
 
-void DevcashController::pushConsensus(std::unique_ptr<DevcashMessage> ptr) {
+void DevcashController::pushConsensus(DevcashMessageUniquePtr ptr) {
+  LOG_DEBUG << "DevcashController::pushConsensus()";
   workers_->pushConsensus(std::move(ptr));
 }
 

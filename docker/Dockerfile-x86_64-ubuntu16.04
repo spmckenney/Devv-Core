@@ -3,6 +3,7 @@ FROM ubuntu:16.04
 # System packages
 RUN apt-get update && apt-get install -y \
     gdb \
+    lldb \
     valgrind \
     unzip \
     git \
@@ -48,6 +49,10 @@ RUN apt-get install -y \
     python-secretstorage-doc \
     python-setuptools-doc
 
+# ZeroMQ
+RUN apt-get install -y \
+    libzmqpp-dev
+
 RUN apt-get install -y \
     software-properties-common
 
@@ -67,7 +72,8 @@ RUN apt-get install -y \
 RUN apt-get install -y \
     netcat \
     net-tools \
-    iputils-ping
+    iputils-ping \
+    telnet
 
 # fbzmq
 # I left the redundant packages here to preserve
@@ -107,6 +113,9 @@ RUN apt-get install -y \
 
 RUN apt-get install -y sudo
 
+# Cleanup
+RUN apt-get clean autoclean
+
 RUN groupadd --gid 1002 dcrunner
 RUN useradd -d /home/dcrunner --uid 1002 -m --gid 1002 dcrunner
 COPY bashrc /home/dcrunner/.bashrc
@@ -115,13 +124,7 @@ EXPOSE 55556
 
 RUN echo "dcrunner ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
 
-RUN mkdir /home/dcrunner/src
-RUN chown dcrunner:dcrunner /home/dcrunner/src
-COPY install_fbzmq.sh /home/dcrunner/src
-COPY fbzmq_docker_build.patch /home/dcrunner/src
-WORKDIR /home/dcrunner/src
-
-RUN sudo -H -u dcrunner -g dcrunner ./install_fbzmq.sh
+WORKDIR /home/dcrunner
 
 # https://denibertovic.com/posts/handling-permissions-with-docker-volumes/
 COPY entrypoint.sh /tmp/entrypoint.sh

@@ -102,8 +102,8 @@ class DCSummary {
 
 class DCValidationBlock {
  public:
-  DCSummary summaryObj_;
   vmap sigs_;
+  DCSummary summaryObj_;
 
 /** Checks if this is an empty validation block.
  *  @return true iff this validation block is empty and invalid

@@ -20,54 +20,11 @@
 #include "util.h"
 #include "logger.h"
 
-//exception toggling capability
-#if (defined(__cpp_exceptions) || defined(__EXCEPTIONS) || defined(_CPPUNWIND)) \
-  && not defined(DEVCASH_NOEXCEPTION)
-    #define CASH_THROW(exception) throw exception
-    #define CASH_TRY try
-    #define CASH_CATCH(exception) catch(exception)
-#else
-    #define CASH_THROW(exception) std::abort()
-    #define CASH_TRY if(true)
-    #define CASH_CATCH(exception) if(false)
-#endif
-
 namespace Devcash
 {
 
 static const char alpha[] = "0123456789ABCDEF";  /** chars for hex conversions */
 static const char* pwd = "password";  /** password for aes pem */
-
-/** Maps a hex digit to an int value.
- *  @param hex digit to get the int value for
- *  @return int value of this hex digit
-*/
-static int char2int(char in) {
-  if (in >= '0' && in <= '9') {
-    return(in - '0');
-  }
-  if (in >= 'A' && in <= 'F') {
-    return(in - 'A' + 10);
-  }
-  if (in >= 'a' && in <= 'f') {
-  return(in - 'a' + 10);
-  }
-  return(-1);
-}
-
-/** Maps a hex string into a byte vector for CBOR parsing.
- *  @param hex a string of hex digits encoding a CBOR message.
- *  @return a byte vector of the same data in binary form.
-*/
-static std::vector<uint8_t> hex2CBOR(std::string hex) {
-  int len = hex.length();
-  std::vector<uint8_t> buf(len/2+1);
-  for (int i=0;i<len/2;i++) {
-    buf.at(i) = (uint8_t) char2int(hex.at(i*2))*16+char2int(hex.at(1+i*2));
-  }
-  buf.pop_back(); //remove null terminator
-  return(buf);
-}
 
 /** Change binary data into a hex string.
  *  @pre input must be allocated to a length of len
@@ -196,7 +153,7 @@ static EC_GROUP* getEcGroup() {
  *  @return if success, a pointer to the EC_KEY object
  *  @return if error, a NULLPTR
  */
-static EC_KEY* loadEcKey(EVP_MD_CTX* ctx, const std::string& publicKey, const std::string& privKey) {
+static EC_KEY* loadEcKey(EVP_MD_CTX*, const std::string& publicKey, const std::string& privKey) {
   CASH_TRY {
     EC_GROUP* ecGroup = getEcGroup();
     if (NULL == ecGroup) {

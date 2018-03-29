@@ -52,12 +52,12 @@ network could be build and tested.\n\nAllowed options");
       ("output", po::value<std::string>(), "Blockchain output path in binary JSON or CBOR")
       ;
 
-    po::variables_map vm;        
+    po::variables_map vm;
     po::store(po::parse_command_line(argc, argv, desc), vm);
     po::notify(vm);
 
     if (vm.count("help")) {
-      LOG(debug) << desc << "\n";
+      LOG_DEBUG << desc << "\n";
       return nullptr;
     }
 
@@ -70,66 +70,66 @@ network could be build and tested.\n\nAllowed options");
       } else if (mode == "T2") {
         options->mode = T2;
       }
-      LOG(debug) << "Mode: " << options->mode << "\n";
+      LOG_DEBUG << "Mode: " << options->mode;
     } else {
-      LOG(debug) << "Mode was not set.\n";
+      LOG_DEBUG << "Mode was not set.";
     }
 
     if (vm.count("node-index")) {
       options->node_index = vm["node-index"].as<unsigned int>();
-      LOG(debug) << "Node index: " << options->node_index  << "\n";
+      LOG_DEBUG << "Node index: " << options->node_index;
     } else {
-      LOG(debug) << "Node index was not set.\n";
+      LOG_DEBUG << "Node index was not set.";
     }
 
     if (vm.count("num-consensus-threads")) {
       options->num_consensus_threads = vm["num-consensus-threads"].as<unsigned int>();
-      LOG(debug) << "Num consensus threads: " << options->num_consensus_threads  << "\n";
+      LOG_DEBUG << "Num consensus threads: " << options->num_consensus_threads;
     } else {
-      LOG(debug) << "Num consensus threads was not set, defaulting to 10\n";
+      LOG_DEBUG << "Num consensus threads was not set, defaulting to 10";
       options->num_consensus_threads = 10;
     }
 
     if (vm.count("num-validator-threads")) {
       options->num_validator_threads = vm["num-validator-threads"].as<unsigned int>();
-      LOG(debug) << "Num validator threads: " << options->num_validator_threads  << "\n";
+      LOG_DEBUG << "Num validator threads: " << options->num_validator_threads;
     } else {
-      LOG(debug) << "Num validator threads was not set, defaulting to 10\n";
+      LOG_DEBUG << "Num validator threads was not set, defaulting to 10";
       options->num_validator_threads = 10;
     }
 
     if (vm.count("bind-endpoint")) {
       options->bind_endpoint = vm["bind-endpoint"].as<std::string>();
-      LOG(debug) << "Bind URI: " << options->bind_endpoint << "\n";
+      LOG_DEBUG << "Bind URI: " << options->bind_endpoint;
     } else {
-      LOG(debug) << "Bind URI was not set.\n";
+      LOG_DEBUG << "Bind URI was not set";
     }
 
     if (vm.count("host-list")) {
       options->host_vector = vm["host-list"].as<std::vector<std::string>>();
-      LOG(debug) << "Node URIs:";
+      LOG_DEBUG << "Node URIs:";
       for (auto i : options->host_vector) {
-        LOG(debug) << "  " << i;
+        LOG_DEBUG << "  " << i;
       }
     }
 
     if (vm.count("scan-file")) {
       options->scan_file = vm["scan-file"].as<std::string>();
-      LOG(debug) << "Scan file: " << options->scan_file  << "\n";
+      LOG_DEBUG << "Scan file: " << options->scan_file;
     } else {
-      LOG(debug) << "Scan file was not set.\n";
+      LOG_DEBUG << "Scan file was not set.";
     }
 
     if (vm.count("output")) {
       options->write_file = vm["output"].as<std::string>();
-      LOG(debug) << "Output file: " << options->write_file  << "\n";
+      LOG_DEBUG << "Output file: " << options->write_file;
     } else {
-      LOG(debug) << "Output file was not set.\n";
+      LOG_DEBUG << "Output file was not set.";
     }
 
   }
   catch(std::exception& e) {
-    LOG_ERROR << "error: " << e.what() << "\n";
+    LOG_ERROR << "error: " << e.what();
     return nullptr;
   }
 

@@ -78,8 +78,8 @@ using namespace Devcash;
     }
   }
 
-  void DevcashControllerWorker::pushValidator(
-      std::unique_ptr<DevcashMessage> message) {
+  void DevcashControllerWorker::pushValidator(std::unique_ptr<DevcashMessage> message) {
+    LOG_DEBUG << "DevcashControllerWorker::pushValidator()";
     CASH_TRY {
       validators_.push(std::move(message));
       //controller_->ValidatorCallback(std::move(message));
@@ -89,6 +89,7 @@ using namespace Devcash;
   }
 
   void DevcashControllerWorker::pushConsensus(std::unique_ptr<DevcashMessage> message) {
+    LOG_DEBUG << "DevcashControllerWorker::pushConsensus()";
     CASH_TRY {
       (std::move(message));
       consensus_.push(std::move(message));
@@ -99,6 +100,7 @@ using namespace Devcash;
   }
 
   void DevcashControllerWorker::ValidatorLoop() {
+    LOG_DEBUG << "DevcashControllerWorker::ValidatorLoop()";
     CASH_TRY {
       while (continue_) {
         validators_.popGuard();
@@ -111,9 +113,10 @@ using namespace Devcash;
   }
 
   void DevcashControllerWorker::ConsensusLoop() {
+    LOG_DEBUG << "DevcashControllerWorker::ConsensusLoop()";
     CASH_TRY {
       while (continue_) {
-        validators_.popGuard();
+        consensus_.popGuard();
         if (!continue_) break;
         controller_->ConsensusCallback(std::move(consensus_.pop()));
       }
