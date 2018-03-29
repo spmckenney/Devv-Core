@@ -35,27 +35,26 @@ std::string DevcashController::getHighestMerkleRoot() {
 }
 
 bool DevcashController::CreateNextProposal() {
-  ProposedBlock next_proposal = *upcoming_chain_.back().get();
+  ProposedPtr next_proposal = upcoming_chain_.back();
   unsigned int block_height = final_chain_.size();
   LOG_INFO << "Proposal #"+std::to_string(block_height)+" has "
-      +std::to_string(next_proposal.vtx_.size())+" transactions.";
+      +std::to_string(next_proposal->vtx_.size())+" transactions.";
   if (block_height%context_.peer_count == context_.current_node_) {
     LOG_INFO << "This node's turn to create proposal.";
-    ProposedPtr upcoming_ptr = ProposedPtr(new ProposedBlock("", upcoming_chain_.size()
-              , next_proposal.getChainState()));
+    ProposedPtr upcoming_ptr = std::make_shared<ProposedBlock>("", upcoming_chain_.size()
+                                                               , next_proposal->getChainState());
     upcoming_chain_.push_back(upcoming_ptr);
-    ProposedPtr proposal_ptr = ProposedPtr(new ProposedBlock(next_proposal.vtx_
-        , next_proposal.vals_, next_proposal.block_height_));
+    ProposedPtr proposal_ptr = std::make_shared<ProposedBlock>(next_proposal->vtx_
+        , next_proposal->vals_, next_proposal->block_height_);
     proposed_chain_.push_back(proposal_ptr);
-    ProposedBlock proposal = *proposed_chain_.back().get();
+    ProposedPtr proposal = proposed_chain_.back();
     LOG_INFO << "Proposal #"+std::to_string(block_height)+" has "
-        +std::to_string(proposal.vtx_.size())+" transactions.";
-    proposal.validate(keys_);
-    proposal.signBlock(keys_.getNodeKey(context_.current_node_),
+        +std::to_string(proposal->vtx_.size())+" transactions.";
+    proposal->validate(keys_);
+    proposal->signBlock(keys_.getNodeKey(context_.current_node_),
         context_.kNODE_ADDRs[context_.current_node_]);
-    std::vector<uint8_t> data(str2Bin(proposal.ToJSON()));
-    auto propose_msg = std::unique_ptr<DevcashMessage>(
-        new DevcashMessage("peers", PROPOSAL_BLOCK, data));
+    std::vector<uint8_t> data(str2Bin(proposal->ToJSON()));
+  auto propose_msg = std::make_unique<DevcashMessage>("peers", PROPOSAL_BLOCK, data);
     server_.QueueMessage(std::move(propose_msg));
     return true;
   } else if (waiting_ == 0) {
@@ -79,10 +78,10 @@ void DevcashController::ValidatorCallback(DevcashMessageUniquePtr ptr) {
   if (ptr->message_type == TRANSACTION_ANNOUNCEMENT) {
     DevcashMessage msg(*ptr.get());
     DCTransaction new_tx(bin2Str(msg.data));
-    DCState current_state = upcoming_chain_.back().get()->chain_state_;
+    DCState current_state = upcoming_chain_.back()->chain_state_;
     if (new_tx.isValid(current_state, keys_
-        , upcoming_chain_.back().get()->vals_.summaryObj_)) {
-      upcoming_chain_.back().get()->addTransaction(new_tx, keys_);
+        , upcoming_chain_.back()->vals_.summaryObj_)) {
+      upcoming_chain_.back()->addTransaction(new_tx, keys_);
     }
   } else {
     LOG_DEBUG << "Unexpected message @ validator, to consensus.\n";
@@ -158,18 +157,17 @@ void DevcashController::ConsensusCallback(DevcashMessageUniquePtr ptr) {
           , highest_proposal.vals_, highest_proposal.block_height_));
       final_chain_.push_back(top_block);
 
-      ProposedPtr upcoming = ProposedPtr(new ProposedBlock(""
+      ProposedPtr upcoming = std::make_shared<ProposedBlock>(""
           , upcoming_chain_.size()
-          , proposed_chain_.back().get()->getChainState()));
+          , proposed_chain_.back()->getChainState());
       upcoming_chain_.push_back(upcoming);
       std::string final_str = top_block->ToJSON();
       LOG_DEBUG << "Final block: "+final_str;
       std::vector<uint8_t> data(str2Bin(final_str));
-      auto finalBlock = std::unique_ptr<DevcashMessage>(
-        new DevcashMessage("peers", FINAL_BLOCK, data));
+      auto finalBlock = std::make_unique<DevcashMessage>("peers", FINAL_BLOCK, data);
       server_.QueueMessage(std::move(finalBlock));
     } else {
-      unsigned int vals = proposed_chain_.back().get()->vals_.GetValidationCount();
+      unsigned int vals = proposed_chain_.back()->vals_.GetValidationCount();
       LOG_INFO << "Block proposal validated "+std::to_string(vals)+" times.\n";
     }
   } else if (ptr->message_type == REQUEST_BLOCK) {
@@ -214,7 +212,7 @@ DevcashController::DevcashController(io::TransactionServer& server,
   keys_.initKeys();
   LOG_INFO << "Crypto Keys initialized.";
 
-  ProposedPtr upcoming = ProposedPtr(new ProposedBlock());
+  ProposedPtr upcoming = std::make_shared<ProposedBlock>();
   upcoming_chain_.push_back(upcoming);
   LOG_INFO << "Upcoming chain created";
 }
@@ -275,8 +273,8 @@ bool DevcashController::postTransactions() {
       eDex = someTxs.find("}", eDex);
       std::string oneTx = someTxs.substr(dex-1, eDex-dex+2);
       DCTransaction* new_tx = new DCTransaction(oneTx);
-      ProposedBlock upcoming = *upcoming_chain_.back().get();
-      upcoming.addTransaction(*new_tx, keys_);
+      ProposedPtr upcoming = upcoming_chain_.back();
+      upcoming->addTransaction(*new_tx, keys_);
       counter++;
       while (someTxs.at(eDex+1) != ']' && eDex < someTxs.size()-2) {
         dex = someTxs.find("{", eDex);
@@ -284,12 +282,12 @@ bool DevcashController::postTransactions() {
         eDex = someTxs.find("}", eDex);
         oneTx = someTxs.substr(dex, eDex-dex);
         new_tx = new DCTransaction(oneTx);
-        upcoming.addTransaction(*new_tx, keys_);
+        upcoming->addTransaction(*new_tx, keys_);
         counter++;
       }
       LOG_DEBUG << std::to_string(counter)+" transactions posted upcoming.";
-      LOG_DEBUG << "Upcoming state: "+upcoming.ToJSON();
-      LOG_DEBUG << "Upcoming state: "+upcoming_chain_.back().get()->ToJSON();
+      LOG_DEBUG << "Upcoming state: "+upcoming->ToJSON();
+      LOG_DEBUG << "Upcoming state: "+upcoming_chain_.back()->ToJSON();
     } else { //all input processed by the chain
       return false;
     }
@@ -339,7 +337,7 @@ bool DevcashController::start() {
       }
   });
 
-  LOG_DEBUG << "Upcoming state: "+upcoming_chain_.back().get()->ToJSON();
+  LOG_DEBUG << "Upcoming state: "+upcoming_chain_.back()->ToJSON();
   CreateNextProposal();
 
   bool transactions_to_post = true;
