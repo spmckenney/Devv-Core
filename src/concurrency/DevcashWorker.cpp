@@ -59,6 +59,15 @@ using namespace Devcash;
     }
   }
 
+  void DevcashControllerWorker::startToy() {
+    CASH_TRY {
+      toy_mode_ = true;
+      start();
+    } CASH_CATCH (const std::exception& e) {
+      LOG_WARNING << FormatException(&e, "Worker.startToy");
+    }
+  }
+
   /** Stops all threads in this pool.
    * @note This function may block.
    * @return true iff all threads in this pool joined.
@@ -100,12 +109,16 @@ using namespace Devcash;
   }
 
   void DevcashControllerWorker::ValidatorLoop() {
-    LOG_DEBUG << "DevcashControllerWorker::ValidatorLoop()";
+    LOG_DEBUG << "DevcashControllerWorker::ValidatorLoop(): Validator Ready";
     CASH_TRY {
       while (continue_) {
         validators_.popGuard();
         if (!continue_) break;
-        controller_->ValidatorCallback(std::move(validators_.pop()));
+        if (!toy_mode_) {
+          controller_->ValidatorCallback(std::move(validators_.pop()));
+        } else {
+          controller_->ValidatorToyCallback(std::move(validators_.pop()));
+        }
       }
     } CASH_CATCH (const std::exception& e) {
       LOG_WARNING << FormatException(&e, "ControllerWorker.ValidatorLoop");
@@ -113,12 +126,16 @@ using namespace Devcash;
   }
 
   void DevcashControllerWorker::ConsensusLoop() {
-    LOG_DEBUG << "DevcashControllerWorker::ConsensusLoop()";
+    LOG_DEBUG << "DevcashControllerWorker::ConsensusLoop(): Consensus Worker Ready";
     CASH_TRY {
       while (continue_) {
         consensus_.popGuard();
         if (!continue_) break;
-        controller_->ConsensusCallback(std::move(consensus_.pop()));
+        if (!toy_mode_) {
+          controller_->ConsensusCallback(std::move(consensus_.pop()));
+        } else {
+          controller_->ConsensusToyCallback(std::move(consensus_.pop()));
+        }
       }
     } CASH_CATCH (const std::exception& e) {
       LOG_WARNING << FormatException(&e, "ControllerWorker.ConsensusLoop");

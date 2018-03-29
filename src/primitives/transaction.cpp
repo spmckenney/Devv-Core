@@ -96,10 +96,10 @@ std::string DCTransfer::getCanonical()
 }
 
 eOpType mapOpType(std::string oper) {
-  if ("create"==oper) return(eOpType::Create);
-  if ("modify"==oper) return(eOpType::Modify);
-  if ("exchange"==oper) return(eOpType::Exchange);
-  if ("delete"==oper) return(eOpType::Delete);
+  if ("0"==oper || "create"==oper) return(eOpType::Create);
+  if ("1"==oper || "modify"==oper) return(eOpType::Modify);
+  if ("2"==oper || "exchange"==oper) return(eOpType::Exchange);
+  if ("3"==oper || "delete"==oper) return(eOpType::Delete);
   CASH_THROW("Invalid operation: "+oper);
 }
 
@@ -114,15 +114,16 @@ bool DCTransaction::isOpType(std::string oper) {
 DCTransaction::DCTransaction() : nonce_(0), sig_(""), oper_(eOpType::Create) {
 }
 
-DCTransaction::DCTransaction(std::string jsonTx) {
+DCTransaction::DCTransaction(std::string jsonTx)
+  : nonce_(0), sig_(""), oper_(eOpType::Create ){
   CASH_TRY {
-    LOG_DEBUG << "Parse Transaction.\n";
     if (jsonTx.at(0) == '{') {
       int coinDex = -1;
       size_t pos = 0;
       std::string opTemp(jsonFinder(jsonTx, kOPER_TAG, pos));
+      size_t temp = pos;
       oper_ = mapOpType(opTemp);
-      std::string typeStr(jsonFinder(jsonTx, kTYPE_TAG, pos));
+      std::string typeStr(jsonFinder(jsonTx, kTYPE_TAG, temp));
       if (!typeStr.empty()) {
         coinDex = oracleInterface::getCoinIndexByType(typeStr);
       }
@@ -131,19 +132,22 @@ DCTransaction::DCTransaction(std::string jsonTx) {
       dex += kXFER_TAG.size()+4;
       size_t eDex = jsonTx.find("}", dex);
       std::string oneXfer = jsonTx.substr(dex, eDex-dex+1);
+      LOG_DEBUG << "One transfer: "+oneXfer;
       DCTransfer* t = new DCTransfer(oneXfer, coinDex);
       xfers_.push_back(*t);
-      while (jsonTx.at(eDex+1) != ']') {
+      while (jsonTx.at(eDex+1) != ']' && eDex < jsonTx.size()-1) {
         pos = eDex;
         dex = jsonTx.find("{", pos);
         dex++;
         eDex = jsonTx.find("}", dex);
         oneXfer = jsonTx.substr(dex, eDex-dex+1);
+        LOG_DEBUG << "One transfer: "+oneXfer;
         DCTransfer* t = new DCTransfer(oneXfer, coinDex);
         xfers_.push_back(*t);
       }
       nonce_ = std::stoul(jsonFinder(jsonTx, kNONCE_TAG, pos));
       sig_ = jsonFinder(jsonTx, kSIG_TAG, pos);
+      LOG_DEBUG << "Transaction signature: "+sig_;
     } else {
       LOG_WARNING << "Invalid transaction input:"+jsonTx+"\n----------------\n";
     }
@@ -217,9 +221,10 @@ bool DCTransaction::isValid(DCState& chainState, KeyRing& keys, DCSummary& summa
       return(false);
     }
 
-    std::string msg = "{\""+kOPER_TAG+"\":"+
-        std::to_string(static_cast<unsigned int>(oper_))+",\""+
-        kNONCE_TAG+"\":"+std::to_string(nonce_)+",\""+kXFER_TAG+"\":[";
+    std::string msg = "\""+kOPER_TAG+"\":\""
+        +kOpTypes[oper_].jsonVal+"\",\""+kTYPE_TAG
+        +"\":\""+oracleInterface::getCoinTypeByIndex(xfers_[0].coinIndex_)
+        +"\",\""+kXFER_TAG+"\":[";
     bool isFirst = true;
     std::string senderAddr;
 
@@ -237,9 +242,9 @@ bool DCTransaction::isValid(DCState& chainState, KeyRing& keys, DCSummary& summa
         } else {
           isFirst = false;
         }
-        msg += "\""+kADDR_TAG+"\":\""+it->addr_+"\",\""+kTYPE_TAG+"\":"+std::to_string(it->coinIndex_)+",\""+kAMOUNT_TAG+"\":"
+        msg += "{\""+kADDR_TAG+"\":\""+it->addr_+"\",\""+kAMOUNT_TAG+"\":"
             +std::to_string(it->amount_);
-        if (it->amount_ > 0) {
+        if (it->amount_ < 0) {
           if (!senderAddr.empty()) {
             LOG_WARNING << "Multiple senders in transaction!\n";
             return false;
@@ -253,26 +258,29 @@ bool DCTransaction::isValid(DCState& chainState, KeyRing& keys, DCSummary& summa
         if (it->delay_ > 0) {
          msg += ",\""+kDELAY_TAG+"\":"+std::to_string(it->delay_);
         }
+        msg += "}";
         SmartCoin next_flow(it->coinIndex_, it->addr_, it->amount_);
         chainState.addCoin(next_flow);
         summary.addItem(it->addr_, it->coinIndex_, it->amount_, it->delay_);
     }
-    msg += "],\""+kSIG_TAG+"\":"+sig_+"}";
-
+    msg += "],\""+kNONCE_TAG+"\":"+std::to_string(nonce_);
     if (nValueOut != 0) {
-      LOG_WARNING << "Error: transaction amounts are asymmetric.\n";
+      LOG_WARNING << "Error: transaction amounts are asymmetric. (sum="+std::to_string(nValueOut)+")";
       return(false);
     }
 
     if ((oper_ != Exchange) && (!keys.isINN(senderAddr))) {
-      LOG_WARNING << "INN transaction not performed by INN!\n";
+      LOG_WARNING << "INN transaction not performed by INN!";
       return false;
     }
 
     EC_KEY* eckey(keys.getKey(senderAddr));
 
-    if (!verifySig(eckey, msg, sig_)) {
+    if (!verifySig(eckey, strHash(msg), sig_)) {
       LOG_WARNING << "Error: transaction signature did not validate.\n";
+      LOG_DEBUG << "Validation message is: "+msg;
+      LOG_DEBUG << "Sender addr is: "+senderAddr;
+      LOG_DEBUG << "Signature is: "+sig_;
       return(false);
     }
     return(true);
@@ -321,7 +329,8 @@ std::string DCTransaction::ComputeHash() const
 
 std::string DCTransaction::ToJSON() const
 {
-  std::string out = "{\""+kOPER_TAG+"\":"+kOpTypes[oper_].jsonVal+",\"";
+  std::string out = "{\""+kOPER_TAG+"\":"
+      +std::to_string(static_cast<unsigned int>(oper_))+",\"";
   out+=kXFER_TAG+"\":[";
   json xferArray = json::array();
   bool isFirst = true;
@@ -330,17 +339,18 @@ std::string DCTransaction::ToJSON() const
       out += ",";
     }
     isFirst = false;
-    out +="\""+kADDR_TAG+"\":\""+it->addr_+"\",\""+kTYPE_TAG+"\":"+
+    out +="{\""+kADDR_TAG+"\":\""+it->addr_+"\",\""+kTYPE_TAG+"\":"+
         std::to_string(it->coinIndex_)+",\""+kAMOUNT_TAG+"\":"+
         std::to_string(it->amount_);
     if (it->delay_ > 0) {
       out += ",\""+kDELAY_TAG+"\":"+std::to_string(it->delay_);
     }
+    out+="}";
   }
-  out += "]";
-  out+=kNONCE_TAG+"\":"+std::to_string(nonce_)+",\"";
+  out += "],\"";
+  out+=kNONCE_TAG+"\":"+std::to_string(nonce_);
   if (sig_.length() > 0) {
-    out += "\""+kSIG_TAG+"\":\""+sig_+"\"";
+    out += ",\""+kSIG_TAG+"\":\""+sig_+"\"";
   }
   out += "}";
   return out;

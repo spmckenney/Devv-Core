@@ -24,6 +24,9 @@ public:
       int blockHeight, DCState chainState);
   ProposedBlock(std::vector<DCTransaction>& txs,
       DCValidationBlock& vs,
+      unsigned int blockHeight);
+  ProposedBlock(std::vector<DCTransaction>& txs,
+      DCValidationBlock& vs,
       FinalBlock previousBlock,
       DCState chainState);
   virtual ~ProposedBlock() {};
@@ -43,8 +46,8 @@ public:
   bool addTransaction(DCTransaction newTx, KeyRing& keys);
 
   bool validateBlock(KeyRing& keys);
+  bool signBlock(EC_KEY* eckey, std::string myAddr);
 
-private:
   DCState chain_state_;
 
 };

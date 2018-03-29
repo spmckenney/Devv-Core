@@ -11,8 +11,7 @@ namespace Devcash {
 
 FinalBlock::FinalBlock() :
     DCBlock(),
-    block_height_(0),
-    chain_state_(*(new DCState()))
+    block_height_(0)
 {
 }
 
@@ -37,7 +36,7 @@ FinalBlock::FinalBlock(FinalBlock& other)
 }
 
 bool FinalBlock::validateBlock(KeyRing& keys) {
-  if (!DCBlock::validate(chain_state_, keys)) return false;
+  if (!DCBlock::validate(keys)) return false;
   return true;
 }
 

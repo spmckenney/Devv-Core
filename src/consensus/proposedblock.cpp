@@ -15,13 +15,22 @@ using namespace Devcash;
 
 ProposedBlock::ProposedBlock() :
         DCBlock(),
-        block_height_(0)
+        block_height_(0),
+        chain_state_()
 {
 }
 
 ProposedBlock::ProposedBlock(const ProposedBlock& other)
   : DCBlock(), block_height_(other.block_height_)
   , chain_state_(other.chain_state_)
+{
+}
+
+ProposedBlock::ProposedBlock(std::vector<DCTransaction>& txs,
+    DCValidationBlock& vs,
+    unsigned int blockHeight)
+    : DCBlock(txs, vs)
+    , block_height_(blockHeight)
 {
 }
 
@@ -44,16 +53,21 @@ ProposedBlock::ProposedBlock(std::vector<DCTransaction>& txs,
 }
 
 bool ProposedBlock::addTransaction(DCTransaction newTx, KeyRing& keys) {
-  DCSummary summary;
-  if (newTx.isValid(chain_state_, keys, summary)) {
+  if (newTx.isValid(chain_state_, keys, DCBlock::vals_.summaryObj_)) {
     DCBlock::vtx_.push_back(newTx);
+  } else {
+    LOG_WARNING << "Invalid transaction:"+newTx.ToJSON();
+    return false;
   }
   return true;
 }
 
 bool ProposedBlock::validateBlock(KeyRing& keys) {
-  if (!DCBlock::validate(chain_state_, keys)) return false;
-  return true;
+  return(!DCBlock::validate(keys));
+}
+
+bool ProposedBlock::signBlock(EC_KEY* eckey, std::string myAddr) {
+  return(DCBlock::signBlock(eckey, myAddr));
 }
 
 } /* namespace Devcash */

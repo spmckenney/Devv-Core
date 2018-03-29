@@ -42,6 +42,8 @@ class DevcashControllerWorker {
 
   void start();
 
+  void startToy();
+
   /** Stops all threads in this pool.
    * @note This function may block.
    * @return true iff all threads in this pool joined.
@@ -66,6 +68,7 @@ class DevcashControllerWorker {
   DevcashRingQueue consensus_;
   std::atomic<bool> continue_;  //signals all threads to stop gracefully
   DevcashController* controller_;
+  bool toy_mode_ = false;
 
 };
 

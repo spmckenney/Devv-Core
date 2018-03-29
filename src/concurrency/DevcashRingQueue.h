@@ -106,7 +106,6 @@ class DevcashRingQueue {
       pending_--;
       if (popAt_+1 == pushAt_) isEmpty_=true;
       if (popAt_+1 >= kRingSize_&& pushAt_ == 0) isEmpty_=true;
-      LOG_INFO << "Worker will pop.";
     } CASH_CATCH (const std::exception& e) {
       LOG_WARNING << FormatException(&e, "DevcashRingQueue.popGuard");
     }

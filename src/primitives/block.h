@@ -86,6 +86,17 @@ class DCBlock {
     return this;
   }
 
+  bool compare(const DCBlock& other) {
+    if (hashPrevBlock_ == other.hashPrevBlock_
+        && hashMerkleRoot_ == other.hashMerkleRoot_
+        && nBytes_ == other.nBytes_
+        && nTime_ == other.nTime_
+        && txSize_ == other.txSize_
+        && sumSize_ == other.sumSize_
+        && vSize_ == other.vSize_) return true;
+    return false;
+  }
+
 /** Validates this block.
  *  @pre OpenSSL is initialized and ecKey contains a public key
  *  @note Invalid transactions are removed.
@@ -94,7 +105,7 @@ class DCBlock {
  *  @return true iff at least once transaction in this block validated.
  *  @return false if this block has no valid transactions
 */
-  bool validate(DCState& chainState, KeyRing& keys);
+  bool validate(KeyRing& keys);
 
 /** Signs this block.
  *  @pre OpenSSL is initialized and ecKey contains a private key
@@ -102,14 +113,15 @@ class DCBlock {
  *  @return true iff the block was signed.
  *  @return false otherwise
 */
-  bool signBlock(EC_KEY* ecKey);
+  bool signBlock(EC_KEY* ecKey, std::string myAddr);
 
 /** Finalizes this block.
  *  Creates the header, calculates the Merkle root, sets the blocktime (nTime_)
+ *  @param prevHash a string of the previous block's hash
  *  @return true iff the block was finalized.
  *  @return false otherwise
 */
-  bool finalize();
+  bool finalize(std::string prevHash);
 
 /** Resets this block. */
   void SetNull()
