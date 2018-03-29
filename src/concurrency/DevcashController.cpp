@@ -41,8 +41,8 @@ bool DevcashController::CreateNextProposal() {
       +std::to_string(next_proposal->vtx_.size())+" transactions.";
   if (block_height%context_.peer_count == context_.current_node_) {
     LOG_INFO << "This node's turn to create proposal.";
-    ProposedPtr upcoming_ptr = std::make_shared<ProposedBlock>("", upcoming_chain_.size()
-                                                               , next_proposal->getChainState());
+    ProposedPtr upcoming_ptr = std::make_shared<ProposedBlock>(""
+        , upcoming_chain_.size(), next_proposal->getChainState(), keys_);
     upcoming_chain_.push_back(upcoming_ptr);
     ProposedPtr proposal_ptr = std::make_shared<ProposedBlock>(next_proposal->vtx_
         , next_proposal->vals_, next_proposal->block_height_);
@@ -79,10 +79,7 @@ void DevcashController::ValidatorCallback(DevcashMessageUniquePtr ptr) {
     DevcashMessage msg(*ptr.get());
     DCTransaction new_tx(bin2Str(msg.data));
     DCState current_state = upcoming_chain_.back()->chain_state_;
-    if (new_tx.isValid(current_state, keys_
-        , upcoming_chain_.back()->vals_.summaryObj_)) {
-      upcoming_chain_.back()->addTransaction(new_tx, keys_);
-    }
+    upcoming_chain_.back()->addTransaction(new_tx, keys_);
   } else {
     LOG_DEBUG << "Unexpected message @ validator, to consensus.\n";
     pushConsensus(std::move(ptr));
@@ -96,15 +93,17 @@ void DevcashController::ConsensusCallback(DevcashMessageUniquePtr ptr) {
     //check if propose next
     //if so, send proposal with all pending valid txs
     DevcashMessage msg(*ptr.get());
-    DCBlock new_block(bin2Str(msg.data));
+    std::string final_block_str = bin2Str(msg.data);
+    LOG_DEBUG << "Got final block: "+final_block_str;
+    ProposedPtr highest_proposal = proposed_chain_.back();
+    DCBlock new_block(final_block_str, highest_proposal->chain_state_, keys_);
 
-    ProposedBlock highest_proposal = *proposed_chain_.back().get();
-    highest_proposal.vals_.addValidation(new_block.vals_);
-    highest_proposal.finalize(getHighestMerkleRoot());
+    highest_proposal->vals_.addValidation(new_block.vals_);
+    highest_proposal->finalize(getHighestMerkleRoot());
 
-    if (highest_proposal.compare(new_block)) {
-      FinalPtr top_block = FinalPtr(new FinalBlock(highest_proposal.vtx_
-          , highest_proposal.vals_, highest_proposal.block_height_));
+    if (highest_proposal->compare(new_block)) {
+      FinalPtr top_block = FinalPtr(new FinalBlock(highest_proposal->vtx_
+          , highest_proposal->vals_, highest_proposal->block_height_));
       final_chain_.push_back(top_block);
       CreateNextProposal();
     } else {
@@ -118,9 +117,12 @@ void DevcashController::ConsensusCallback(DevcashMessageUniquePtr ptr) {
     DevcashMessage msg(*ptr.get());
     std::string raw_str = bin2Str(msg.data);
     LOG_DEBUG << "Received block proposal: "+raw_str;
-    ProposedBlock already_proposed = *proposed_chain_.back().get();
-    ProposedPtr new_proposal = ProposedPtr(new ProposedBlock(raw_str,
-        proposed_chain_.size()+1, already_proposed.getChainState()));
+    ProposedPtr upcoming_top = upcoming_chain_.back();
+    ProposedPtr upcoming_ptr = std::make_shared<ProposedBlock>(""
+        , upcoming_chain_.size(), upcoming_top->getChainState(), keys_);
+    ProposedPtr new_proposal = std::make_shared<ProposedBlock>(raw_str, upcoming_chain_.size()
+        , upcoming_top->getChainState(), keys_);
+    upcoming_chain_.push_back(upcoming_ptr);
     if (new_proposal->validateBlock(keys_)) {
       LOG_DEBUG << "Proposed block is valid.";
       proposed_chain_.push_back(new_proposal);
@@ -153,13 +155,13 @@ void DevcashController::ConsensusCallback(DevcashMessageUniquePtr ptr) {
     highest_proposal.vals_.addValidation(validation);
     if (highest_proposal.vals_.GetValidationCount() > 1) {
       highest_proposal.finalize(getHighestMerkleRoot());
-      FinalPtr top_block = FinalPtr(new FinalBlock(highest_proposal.vtx_
-          , highest_proposal.vals_, highest_proposal.block_height_));
+      FinalPtr top_block =std::make_shared<FinalBlock>(highest_proposal.vtx_
+          , highest_proposal.vals_, highest_proposal.block_height_);
       final_chain_.push_back(top_block);
 
       ProposedPtr upcoming = std::make_shared<ProposedBlock>(""
           , upcoming_chain_.size()
-          , proposed_chain_.back()->getChainState());
+          , proposed_chain_.back()->getChainState(), keys_);
       upcoming_chain_.push_back(upcoming);
       std::string final_str = top_block->ToJSON();
       LOG_DEBUG << "Final block: "+final_str;
@@ -286,8 +288,6 @@ bool DevcashController::postTransactions() {
         counter++;
       }
       LOG_DEBUG << std::to_string(counter)+" transactions posted upcoming.";
-      LOG_DEBUG << "Upcoming state: "+upcoming->ToJSON();
-      LOG_DEBUG << "Upcoming state: "+upcoming_chain_.back()->ToJSON();
     } else { //all input processed by the chain
       return false;
     }
@@ -337,10 +337,9 @@ bool DevcashController::start() {
       }
   });
 
-  LOG_DEBUG << "Upcoming state: "+upcoming_chain_.back()->ToJSON();
   CreateNextProposal();
 
-  bool transactions_to_post = true;
+  /*bool transactions_to_post = true;
   auto ms = kMAIN_WAIT_INTERVAL;
   //while (true) {
     LOG_DEBUG << "Sleeping for " << ms;
@@ -353,14 +352,17 @@ bool DevcashController::start() {
     //EXIT_FAILURE
     if (shutdown) return false;
   //}
+   *
+   */
 
 
-  /*std::string validBlock("{\"prev\":\"\",\"merkle\":\"\",\"bytes\":0,\"time\":0,\"txlen\":0,\"sumlen\":0,\"vlen\":0,\"txs\":[{\"oper\":0,\"xfer\":[{\"addr\":\"7242DC4F1D89513CBA236C895B117BC7D0ABD6DC8336E202D93FB266E582C79624\",\"type\":0,\"amount\":-20},{\"addr\":\"02514038DA1905561BF9043269B8515C1E7C4E79B011291B4CBED5B18DAECB71E4\",\"type\":0,\"amount\":10},{\"addr\":\"035C0841F8F62271F3058F37B32193360322BBF0C4E85E00F07BCB10492E91A2BD\",\"type\":0,\"amount\":10}],\"nonce\":1521706664,\"sig\":\"304402206C7179523F204125D3C63F9817460B211784B071B608625933E646F46CD5BAD10220088BBA2D10EE2EBA3A1D5BB40A323D5CBD2CD7946A315104F4FAA2A3B582DFF0\"}],\"sum\":{\"02514038DA1905561BF9043269B8515C1E7C4E79B011291B4CBED5B18DAECB71E4\":[(0,10)],\"035C0841F8F62271F3058F37B32193360322BBF0C4E85E00F07BCB10492E91A2BD\":[(0,10)],\"7242DC4F1D89513CBA236C895B117BC7D0ABD6DC8336E202D93FB266E582C79624\":[(0,-20)]},\"vals\":[\"04158913328E4469124B33A5D421665A36891B7BCB8183A22CC3D78239A89073FEB7432E6477663CDE2E032A56687617800B97FC0EBD9F3AC30F683B6C4A89D1D8\":\"30440220777A4E029CB67C20332425A1519514A08BACDE59FFFB1E81AC94DC7A7636F89A022078E7B2D4AF6400F72293B4AB7FE6D608BCAA83129C66A5E27527BEB82D9C6B04\"]}");
+  std::string validBlock("{\"prev\":\"\",\"merkle\":\"\",\"bytes\":0,\"time\":0,\"txlen\":0,\"sumlen\":0,\"vlen\":0,\"txs\":[{\"oper\":0,\"xfer\":[{\"addr\":\"7242DC4F1D89513CBA236C895B117BC7D0ABD6DC8336E202D93FB266E582C79624\",\"type\":0,\"amount\":-20},{\"addr\":\"02514038DA1905561BF9043269B8515C1E7C4E79B011291B4CBED5B18DAECB71E4\",\"type\":0,\"amount\":10},{\"addr\":\"035C0841F8F62271F3058F37B32193360322BBF0C4E85E00F07BCB10492E91A2BD\",\"type\":0,\"amount\":10}],\"nonce\":1521706664,\"sig\":\"304402206C7179523F204125D3C63F9817460B211784B071B608625933E646F46CD5BAD10220088BBA2D10EE2EBA3A1D5BB40A323D5CBD2CD7946A315104F4FAA2A3B582DFF0\"}],\"sum\":{\"02514038DA1905561BF9043269B8515C1E7C4E79B011291B4CBED5B18DAECB71E4\":[(0,10)],\"035C0841F8F62271F3058F37B32193360322BBF0C4E85E00F07BCB10492E91A2BD\":[(0,10)],\"7242DC4F1D89513CBA236C895B117BC7D0ABD6DC8336E202D93FB266E582C79624\":[(0,-20)]},\"vals\":[\"04158913328E4469124B33A5D421665A36891B7BCB8183A22CC3D78239A89073FEB7432E6477663CDE2E032A56687617800B97FC0EBD9F3AC30F683B6C4A89D1D8\":\"30440220777A4E029CB67C20332425A1519514A08BACDE59FFFB1E81AC94DC7A7636F89A022078E7B2D4AF6400F72293B4AB7FE6D608BCAA83129C66A5E27527BEB82D9C6B04\"]}");
   std::vector<uint8_t> data(str2Bin(validBlock));
   auto valid = DevcashMessageUniquePtr(
           new DevcashMessage("peers", PROPOSAL_BLOCK, data));
-  pushConsensus(std::move(valid));
-  LOG_DEBUG << "Proposal test pushed.";*/
+  //pushConsensus(std::move(valid));
+  ConsensusCallback(std::move(valid));
+  LOG_DEBUG << "Proposal test pushed.";
 
   /*std::string valid("\"sum\":{\"02514038DA1905561BF9043269B8515C1E7C4E79B011291B4CBED5B18DAECB71E4\":[(0,10)],\"035C0841F8F62271F3058F37B32193360322BBF0C4E85E00F07BCB10492E91A2BD\":[(0,10)],\"7242DC4F1D89513CBA236C895B117BC7D0ABD6DC8336E202D93FB266E582C79624\":[(0,-20)]},\"vals\":[\"0462CAF2CC08A7763A7F7B51590D016499079116E37892195E2AC8DE2DA54834D346558C56EE496104A4B533507948CEC5D8128AD2EDAE63BA0DC29F5D1D5AA5F3\":\"3046022100C6E6B8E1F1A5E64B7B5601D7D94FB8C0AEEB61F829C94DB2680A2BF6627FF36A022100B141E7370B4DD8086A94C4496F48A1F6D9A560678EF5EC0170444B15076FC9CB\",\"04158913328E4469124B33A5D421665A36891B7BCB8183A22CC3D78239A89073FEB7432E6477663CDE2E032A56687617800B97FC0EBD9F3AC30F683B6C4A89D1D8\":\"30440220777A4E029CB67C20332425A1519514A08BACDE59FFFB1E81AC94DC7A7636F89A022078E7B2D4AF6400F72293B4AB7FE6D608BCAA83129C66A5E27527BEB82D9C6B04\"]");
   std::vector<uint8_t> data(str2Bin(valid));
@@ -369,6 +371,14 @@ bool DevcashController::start() {
   ConsensusCallback(std::move(v));
     //pushConsensus(std::move(v));
     LOG_DEBUG << "Valid test pushed.";*/
+
+  /*std::string final_block("{\"prev\":\"\",\"merkle\":\"\",\"bytes\":0,\"time\":0,\"txlen\":0,\"sumlen\":0,\"vlen\":0,\"txs\":[],\"sum\":{},\"vals\":[\"0462CAF2CC08A7763A7F7B51590D016499079116E37892195E2AC8DE2DA54834D346558C56EE496104A4B533507948CEC5D8128AD2EDAE63BA0DC29F5D1D5AA5F3\":\"3046022100C6E6B8E1F1A5E64B7B5601D7D94FB8C0AEEB61F829C94DB2680A2BF6627FF36A022100B141E7370B4DD8086A94C4496F48A1F6D9A560678EF5EC0170444B15076FC\",\"04158913328E4469124B33A5D421665A36891B7BCB8183A22CC3D78239A89073FEB7432E6477663CDE2E032A56687617800B97FC0EBD9F3AC30F683B6C4A89D\":\"30440220777A4E029CB67C20332425A1519514A08BACDE59FFFB1E81AC94DC7A7636F89A022078E7B2D4AF6400F72293B4AB7FE6D608BCAA83129C66A5E27527BEB82D9C6B\"]}");
+  std::vector<uint8_t> data2(str2Bin(final_block));
+    auto v = DevcashMessageUniquePtr(
+              new DevcashMessage("peers", FINAL_BLOCK, data2));
+    //ConsensusCallback(std::move(v));
+    LOG_DEBUG << "Final block test pushed.";*/
+
   return true;
 }
 

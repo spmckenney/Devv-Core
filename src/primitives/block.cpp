@@ -47,7 +47,7 @@ DCBlock::DCBlock()
 }
 
 //note the order of elements is assumed, which is fast, but not proper JSON
-DCBlock::DCBlock(std::string rawBlock)
+DCBlock::DCBlock(std::string rawBlock, DCState& chain_state, KeyRing& keys)
   :  vSize_(0)
   , sumSize_(0)
   , txSize_(0)
@@ -78,6 +78,7 @@ DCBlock::DCBlock(std::string rawBlock)
       eDex = rawBlock.find("}", eDex);
       std::string oneTx = rawBlock.substr(dex, eDex-dex+1);
       LOG_DEBUG << "One transaction: "+oneTx;
+      DCTransaction new_tx(oneTx);
       vtx_.push_back(DCTransaction(oneTx));
       while (rawBlock.at(eDex+1) != ']' && eDex < rawBlock.size()-2) {
         pos = eDex;
@@ -92,7 +93,14 @@ DCBlock::DCBlock(std::string rawBlock)
       std::string valSection = rawBlock.substr(eDex+2);
       LOG_DEBUG << "Parse validation section: "+valSection;
       vals_ = *(new DCValidationBlock(valSection));
-      LOG_DEBUG << "finished";
+
+      LOG_DEBUG << std::to_string(vtx_.size())+" new transactions.";
+      for (std::vector<DCTransaction>::iterator iter = vtx_.begin();
+          iter != vtx_.end(); ++iter) {
+        if (!iter->isValid(chain_state, keys, vals_.summaryObj_)) {
+          LOG_WARNING << "Invalid transaction:"+iter->ToJSON();
+        }
+      }
     } else {
       LOG_WARNING << "Invalid block input:"+rawBlock+"\n----------------\n";
     }
@@ -130,7 +138,8 @@ bool DCBlock::validate(KeyRing& keys) {
   }
 
   if (!vals_.summaryObj_.isSane()) {
-    LOG_WARNING << "Summary is invalid!\n";
+    LOG_WARNING << "Summary is invalid in block.validate()!\n";
+    LOG_DEBUG << "Summary state: "+vals_.summaryObj_.toCanonical();
     return false;
   }
 

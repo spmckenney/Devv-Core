@@ -139,16 +139,16 @@ bool DevcashNode::SanityChecks()
       return false;
     }
 
-    std::string msg("hello");
-    //std::string msg("\"oper\":\"create\",\"type\":\"dnero\",\"xfer\":[{\"addr\":\"7242DC4F1D89513CBA236C895B117BC7D0ABD6DC8336E202D93FB266E582C79624\",\"amount\":-20},{\"addr\":\"02514038DA1905561BF9043269B8515C1E7C4E79B011291B4CBED5B18DAECB71E4\",\"amount\":10},{\"addr\":\"035C0841F8F62271F3058F37B32193360322BBF0C4E85E00F07BCB10492E91A2BD\",\"amount\":10}],\"nonce\":1521706664");
+    //std::string msg("hello");
+    std::string msg("\"oper\":\"exchange\",\"type\":\"dnero\",\"xfer\":[{\"addr\":\"035C0841F8F62271F3058F37B32193360322BBF0C4E85E00F07BCB10492E91A2BD\",\"amount\":-10},{\"addr\":\"02514038DA1905561BF9043269B8515C1E7C4E79B011291B4CBED5B18DAECB71E4\",\"amount\":2},{\"addr\":\"035C0841F8F62271F3058F37B32193360322BBF0C4E85E00F07BCB10492E91A2BD\",\"amount\":8}],\"nonce\":1518021688");
     std::string hash(strHash(msg));
 
     EC_KEY* loadkey = loadEcKey(ctx,
-        app_context_.kINN_ADDR,
-        app_context_.kINN_KEY);
+        app_context_.kADDRs[1],
+        app_context_.kADDR_KEYs[1]);
 
     std::string sDer = sign(loadkey, hash);
-    //LOG_DEBUG << "Signature="+sDer;
+    LOG_DEBUG << "Signature="+sDer;
     if (!verifySig(loadkey, hash, sDer)) return false;
 
     return true;

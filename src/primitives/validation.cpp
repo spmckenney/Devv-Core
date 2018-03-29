@@ -24,9 +24,6 @@ namespace Devcash
 
 using json = nlohmann::json;
 
-DCSummary::DCSummary() {
-}
-
 std::pair<long, DCSummaryItem> getSummaryPair(std::string raw) {
   if (raw.front() == '(') raw.erase(std::begin(raw));
   int dex = raw.find(',');
@@ -58,7 +55,8 @@ coinmap getAddrSummary(std::string raw) {
   return(out);
 }
 
-DCSummary::DCSummary(std::string canonical) {
+DCSummary::DCSummary(std::string canonical)
+{
   CASH_TRY {
     LOG_DEBUG << "CanonicalSummary: "+canonical;
     if (canonical.at(0) == '{') {
@@ -90,9 +88,7 @@ DCSummary::DCSummary(std::string canonical) {
   }
 }
 
-DCSummary::DCSummary(std::map<std::string,
-    std::unordered_map<long, DCSummaryItem>> summary) :
-    summary_(summary) {
+DCSummary::DCSummary() {
 }
 
 DCSummary::DCSummary(const DCSummary& other)
@@ -103,6 +99,7 @@ bool DCSummary::addItem(std::string addr, long coinType, DCSummaryItem item) {
   CASH_TRY {
     std::lock_guard<std::mutex> lock(lock_);
     if (summary_.count(addr) > 0) {
+      LOG_DEBUG << "Addr exists";
       std::unordered_map<long, DCSummaryItem> existing(summary_.at(addr));
       if (existing.count(coinType) > 0) {
         DCSummaryItem the_item = existing.at(coinType);
@@ -118,6 +115,7 @@ bool DCSummary::addItem(std::string addr, long coinType, DCSummaryItem item) {
         std::unordered_map<long, DCSummaryItem>> one_summary(addr, existing);
       summary_.insert(one_summary);
     } else {
+      LOG_DEBUG << "Addr does not exist";
       std::pair<long, DCSummaryItem> new_pair(coinType, item);
       std::unordered_map<long, DCSummaryItem> new_summary;
       new_summary.insert(new_pair);
@@ -221,7 +219,8 @@ bool DCSummary::isSane() {
   }
 }
 
-DCValidationBlock::DCValidationBlock(std::string& jsonMsg) {
+DCValidationBlock::DCValidationBlock(std::string& jsonMsg)
+{
   CASH_TRY {
     size_t pos = 0;
     /*size_t dex = jsonMsg.find("\"sum\":", pos);
@@ -242,7 +241,7 @@ DCValidationBlock::DCValidationBlock(std::string& jsonMsg) {
     summaryObj_ = DCSummary(sumTemp);
 
     if (!summaryObj_.isSane()) {
-      LOG_WARNING << "Summary is invalid!\n";
+      LOG_WARNING << "Summary is invalid in DCValidationBlock constructor!\n";
       LOG_DEBUG << "Summary state: "+summaryObj_.toCanonical();
     }*/
 
@@ -296,10 +295,12 @@ DCValidationBlock::DCValidationBlock(std::string& jsonMsg) {
   }
 }
 
-DCValidationBlock::DCValidationBlock() {
+DCValidationBlock::DCValidationBlock()
+{
 }
 
-DCValidationBlock::DCValidationBlock(std::vector<uint8_t> cbor) {
+DCValidationBlock::DCValidationBlock(std::vector<uint8_t> cbor)
+{
   CASH_TRY {
     json j = json::from_cbor(cbor);
     json temp = json::array();
@@ -322,7 +323,8 @@ DCValidationBlock::DCValidationBlock(const DCValidationBlock& other)
   , summaryObj_(other.summaryObj_) {
 }
 
-DCValidationBlock::DCValidationBlock(std::string node, std::string sig) {
+DCValidationBlock::DCValidationBlock(std::string node, std::string sig)
+{
   CASH_TRY {
     std::pair<std::string, std::string> oneSig(node, sig);
     sigs_.insert(oneSig);
@@ -334,7 +336,9 @@ DCValidationBlock::DCValidationBlock(std::string node, std::string sig) {
   }
 }
 
-DCValidationBlock::DCValidationBlock(vmap sigMap) : sigs_(sigMap) {
+DCValidationBlock::DCValidationBlock(vmap sigMap)
+: sigs_(sigMap)
+{
   CASH_TRY {
     hash_ = ComputeHash();
   } CASH_CATCH (const std::exception& e) {

@@ -49,7 +49,7 @@ class DCBlock {
 
 /** Constructor */
   DCBlock();
-  DCBlock(std::string rawBlock);
+  DCBlock(std::string rawBlock, DCState& chain_state, KeyRing& keys);
   DCBlock(const DCBlock& other);
   DCBlock(std::vector<Devcash::DCTransaction>& txs,
       DCValidationBlock& validations);

@@ -21,7 +21,7 @@ public:
   ProposedBlock();
   ProposedBlock(const ProposedBlock& other);
   ProposedBlock(std::string blockStr,
-      int blockHeight, DCState chainState);
+      int blockHeight, DCState chainState, KeyRing& keys);
   ProposedBlock(std::vector<DCTransaction>& txs,
       DCValidationBlock& vs,
       unsigned int blockHeight);

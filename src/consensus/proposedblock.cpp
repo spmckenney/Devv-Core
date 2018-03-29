@@ -35,10 +35,10 @@ ProposedBlock::ProposedBlock(std::vector<DCTransaction>& txs,
 }
 
 ProposedBlock::ProposedBlock(std::string blockStr,
-    int blockHeight, DCState chainState)
-    :  DCBlock(blockStr)
-    , block_height_(blockHeight)
+    int blockHeight, DCState chainState, KeyRing& keys)
+    :  block_height_(blockHeight)
     , chain_state_(chainState)
+    , DCBlock(blockStr, chain_state_, keys)
 {
 }
 

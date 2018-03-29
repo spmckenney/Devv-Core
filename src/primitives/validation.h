@@ -46,7 +46,6 @@ class DCSummary {
   DCSummary();
   DCSummary(std::string canonical);
   DCSummary(const DCSummary& other);
-  DCSummary(std::map<std::string, std::unordered_map<long, DCSummaryItem>> summary);
 
   /** Assignment Operators */
   DCSummary* operator=(DCSummary&& other)
