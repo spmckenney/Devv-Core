@@ -6,6 +6,8 @@
 #include "io/message_service.h"
 #include "io/constants.h"
 
+#include "transaction_test_struct.h"
+
 int
 main(int argc, char** argv) {
 
@@ -44,18 +46,24 @@ main(int argc, char** argv) {
   }
 
 
+  test_struct test;
+  test.a = 10;
+  test.b = 20;
+  test.c = 30;
+
   // Zmq Context
   zmq::context_t context(1);
-
   Devcash::io::TransactionServer server{context, bind_endpoint};
-
   server.StartServer();
 
   for (;;) {
     sleep(1);
-    auto devcash_message = Devcash::DevcashMessageUniquePtr(new Devcash::DevcashMessage);
-    devcash_message->uri = message;
+    auto devcash_message = std::make_unique<Devcash::DevcashMessage>();
+    devcash_message->index = 15;
+    devcash_message->uri = "Hello!";
     devcash_message->message_type = Devcash::eMessageType::VALID;
+    devcash_message->SetData(test);
+
     LOG_INFO << "Sending message: " << message;
     server.QueueMessage(std::move(devcash_message));
   }

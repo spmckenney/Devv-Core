@@ -40,8 +40,27 @@ struct DevcashMessage {
   /**
    * Constructor. Takes a string to initialize data vector
    */
-  DevcashMessage(const URI& uri, eMessageType msgType, const std::string& data, int index=0) :
-    uri(uri), message_type(msgType), data(data.begin(), data.end()), index(index) {}
+  DevcashMessage(const URI& uri,
+                 eMessageType msgType,
+                 const std::string& data,
+                 int index=0)
+    : uri(uri)
+    , message_type(msgType)
+    , data(data.begin(), data.end())
+    , index(index)
+  {}
+
+  template <typename T>
+  void SetData(const T& object) {
+    data.resize(sizeof(object));
+    memcpy(data.data(), &object, sizeof(object));
+  }
+
+  template <typename T>
+  void GetData(T& object, int index = 0) const {
+    assert(data.size() >= (sizeof(object) + index));
+    memcpy(&object, &data[index], sizeof(object));
+  }
 };
 
 typedef std::unique_ptr<DevcashMessage> DevcashMessageUniquePtr;
@@ -128,7 +147,6 @@ inline unsigned int extract(std::string& dest,
   dest.append(reinterpret_cast<const char*>(&buffer[new_index]), size);
   return(new_index + size);
 }
-
 
 /**
  * Extract data from serialized buffer. Specialized for std::vector<uint8_t>

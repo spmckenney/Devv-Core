@@ -6,8 +6,17 @@
 #include "io/message_service.h"
 #include "io/constants.h"
 
+#include "transaction_test_struct.h"
+
 void print_devcash_message(Devcash::DevcashMessageUniquePtr message) {
-  LOG(info) << "DevcashMesage->uri: " << message->uri;
+  LOG(info) << "Got a message!";
+  LogDevcashMessageSummary(*message);
+
+  test_struct test;
+  message->GetData(test);
+  LOG_INFO << "test_struct - a:" << test.a
+           << " b:" << test.b
+           << " c:" << test.c;
   return;
 }
 
