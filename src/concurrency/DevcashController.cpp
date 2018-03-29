@@ -159,14 +159,14 @@ void DevcashController::StartToy(unsigned int node_index) {
   sleep(10);
 
   for (;;) {
-    std::string uri = "RemoteURI-" + node_index;
+    std::string uri = "RemoteURI-" + std::to_string(node_index);
     //TODO: send a message like this for each remote
     std::vector<uint8_t> data(100);
     auto startMsg = std::make_unique<DevcashMessage>(uri,
                                                      TRANSACTION_ANNOUNCEMENT,
                                                      data);
     server_.QueueMessage(std::move(startMsg));
-    sleep(3);
+    sleep(60);
   }
 }
 

@@ -80,6 +80,9 @@ inline void append(std::vector<uint8_t>& buf, const std::vector<uint8_t>& obj) {
   buf.insert(buf.end(), obj.begin(), obj.end());
 }
 
+/**
+ * Serialize a messag into a buffer
+ */
 static std::vector<uint8_t> serialize(const DevcashMessage& msg) {
   // Arbitrary header
   uint8_t header_version = 41;
@@ -142,6 +145,9 @@ inline unsigned int extract(std::vector<uint8_t>& dest,
  return(new_index + size);
 }
 
+/**
+ * Deserialize a a buffer into a devcash message
+ */
 static DevcashMessageUniquePtr deserialize(const std::vector<uint8_t>& bytes) {
   unsigned int buffer_index = 0;
   uint8_t header_version = 0;
@@ -152,7 +158,7 @@ static DevcashMessageUniquePtr deserialize(const std::vector<uint8_t>& bytes) {
   // Get the header_version
   buffer_index = extract(header_version, bytes, buffer_index);
   assert(header_version == 41);
-  LOG_DEBUG << "header_version: " << header_version << " buffer_index " << buffer_index;
+  LOG_DEBUG << "header_version: " << static_cast<int>(header_version) << " buffer_index " << buffer_index;
   // index
   buffer_index = extract(message->index, bytes, buffer_index);
   LOG_DEBUG << "index: " <<  message->index << " buffer_index " << buffer_index;
@@ -168,6 +174,9 @@ static DevcashMessageUniquePtr deserialize(const std::vector<uint8_t>& bytes) {
   return(message);
 }
 
+/**
+ * Stream the message to the logger
+ */
 static void LogDevcashMessageSummary(const DevcashMessage& message) {
 
   std::string message_type_string;
