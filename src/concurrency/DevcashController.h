@@ -68,6 +68,7 @@ class DevcashController {
   bool shutdown = false;
   uint64_t waiting_ = 0;
   bool postTransactions();
+  bool postAdvanceTransactions(std::string inputTxs);
   std::string getHighestMerkleRoot();
   bool CreateNextProposal();
 
