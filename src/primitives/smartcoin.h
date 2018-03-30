@@ -23,7 +23,7 @@ inline bool MoneyRange(const long& nValue) {
 
 class SmartCoin {
  public:
-  int type_;
+  unsigned int type_;
   std::string addr_;
   long amount_ = 0;
 

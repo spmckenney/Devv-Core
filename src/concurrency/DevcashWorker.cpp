@@ -46,16 +46,25 @@ using namespace Devcash;
 
   void DevcashControllerWorker::start() {
     CASH_TRY {
-      for (int w = 0; w < validator_num_; w++) {
+      /*for (int w = 0; w < validator_num_; w++) {
         validator_pool_.create_thread(
             boost::bind(&DevcashControllerWorker::ValidatorLoop, this));
       }
       for (int w = 0; w < consensus_num_; w++) {
         consensus_pool_.create_thread(
             boost::bind(&DevcashControllerWorker::ConsensusLoop, this));
-      }
+      }*/
     } CASH_CATCH (const std::exception& e) {
       LOG_WARNING << FormatException(&e, "Worker.start");
+    }
+  }
+
+  void DevcashControllerWorker::startToy() {
+    CASH_TRY {
+      toy_mode_ = true;
+      start();
+    } CASH_CATCH (const std::exception& e) {
+      LOG_WARNING << FormatException(&e, "Worker.startToy");
     }
   }
 
@@ -100,12 +109,16 @@ using namespace Devcash;
   }
 
   void DevcashControllerWorker::ValidatorLoop() {
-    LOG_DEBUG << "DevcashControllerWorker::ValidatorLoop()";
+    LOG_DEBUG << "DevcashControllerWorker::ValidatorLoop(): Validator Ready";
     CASH_TRY {
       while (continue_) {
         validators_.popGuard();
         if (!continue_) break;
-        controller_->ValidatorCallback(std::move(validators_.pop()));
+        if (!toy_mode_) {
+          controller_->ValidatorCallback(std::move(validators_.pop()));
+        } else {
+          controller_->ValidatorToyCallback(std::move(validators_.pop()));
+        }
       }
     } CASH_CATCH (const std::exception& e) {
       LOG_WARNING << FormatException(&e, "ControllerWorker.ValidatorLoop");
@@ -113,12 +126,16 @@ using namespace Devcash;
   }
 
   void DevcashControllerWorker::ConsensusLoop() {
-    LOG_DEBUG << "DevcashControllerWorker::ConsensusLoop()";
+    LOG_DEBUG << "DevcashControllerWorker::ConsensusLoop(): Consensus Worker Ready";
     CASH_TRY {
       while (continue_) {
         consensus_.popGuard();
         if (!continue_) break;
-        controller_->ConsensusCallback(std::move(consensus_.pop()));
+        if (!toy_mode_) {
+          controller_->ConsensusCallback(std::move(consensus_.pop()));
+        } else {
+          controller_->ConsensusToyCallback(std::move(consensus_.pop()));
+        }
       }
     } CASH_CATCH (const std::exception& e) {
       LOG_WARNING << FormatException(&e, "ControllerWorker.ConsensusLoop");

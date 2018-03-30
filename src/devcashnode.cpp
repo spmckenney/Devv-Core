@@ -69,8 +69,8 @@ void DevcashNode::Shutdown()
 {
   fRequestShutdown = true;
   //TODO: how to stop zmq?
-  control_.stopAll();
   LOG_INFO << "Shutting down DevCash";
+  //control_.stopAll();
 }
 
 /*DevcashNode::DevcashNode(eAppMode mode
@@ -139,14 +139,16 @@ bool DevcashNode::SanityChecks()
       return false;
     }
 
-    std::string msg("hello");
+    //std::string msg("hello");
+    std::string msg("\"oper\":\"exchange\",\"type\":\"dnero\",\"xfer\":[{\"addr\":\"035C0841F8F62271F3058F37B32193360322BBF0C4E85E00F07BCB10492E91A2BD\",\"amount\":-10},{\"addr\":\"02514038DA1905561BF9043269B8515C1E7C4E79B011291B4CBED5B18DAECB71E4\",\"amount\":2},{\"addr\":\"035C0841F8F62271F3058F37B32193360322BBF0C4E85E00F07BCB10492E91A2BD\",\"amount\":8}],\"nonce\":1518021688");
     std::string hash(strHash(msg));
 
     EC_KEY* loadkey = loadEcKey(ctx,
-        app_context_.kINN_ADDR,
-        app_context_.kINN_KEY);
+        app_context_.kADDRs[1],
+        app_context_.kADDR_KEYs[1]);
 
     std::string sDer = sign(loadkey, hash);
+    LOG_DEBUG << "Signature="+sDer;
     if (!verifySig(loadkey, hash, sDer)) return false;
 
     return true;
@@ -175,11 +177,20 @@ std::string DevcashNode::RunNode(std::string& inStr)
 {
   std::string out("");
   CASH_TRY {
-    LOG_INFO << "Start controller.";
-    control_.start();
-
     control_.seedTransactions(inStr);
-    //TODO: block here until all input is processed
+    LOG_INFO << "Start controller.";
+    //TODO: start timing here
+    bool success = control_.start();
+
+    if (success) {
+      LOG_INFO << "Run succeeded.";
+      //TODO: end timing here
+    } else {
+      LOG_INFO << "Run failed.";
+    }
+
+    LOG_INFO << "Starting shutdown";
+    //StartShutdown();
 
   } CASH_CATCH (const std::exception& e) {
     LOG_FATAL << FormatException(&e, "DevcashNode.RunScanner");

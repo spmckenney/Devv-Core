@@ -22,9 +22,11 @@
 #define SRC_PRIMITIVES_VALIDATION_H_
 
 #include <stdint.h>
+#include <mutex>
 #include <unordered_map>
 #include <vector>
 #include <string>
+#include <boost/container/flat_map.hpp>
 
 namespace Devcash
 {
@@ -44,7 +46,6 @@ class DCSummary {
   DCSummary();
   DCSummary(std::string canonical);
   DCSummary(const DCSummary& other);
-  DCSummary(std::unordered_map<std::string, std::unordered_map<long, DCSummaryItem>> summary);
 
   /** Assignment Operators */
   DCSummary* operator=(DCSummary&& other)
@@ -97,7 +98,9 @@ class DCSummary {
   */
   bool isSane();
 
-   std::unordered_map<std::string, coinmap> summary_;
+  typedef boost::container::flat_map<std::string, coinmap> SummaryMap;
+  SummaryMap summary_;
+  std::mutex lock_;
 };
 
 class DCValidationBlock {
@@ -126,11 +129,11 @@ class DCValidationBlock {
   bool addValidation(std::string node, std::string sig);
   bool addValidation(DCValidationBlock& other);
 
-  /** Adds a summary to this block.
-   *  @param summary a vector of summary items
-   *  @return the summary object
+  /** Calculates summary for this block based on provided transactions.
+   *  @param a vector of transactions in this block
+   *  @return the canonical form of the summary
   */
-  DCSummary addSummary(std::vector<DCSummaryItem> summary);
+  //std::string CalculateSummary(const std::vector<DCTransaction>& txs);
 
 /** Returns a JSON string representing this validation block.
  *  @return a JSON string representing this validation block.

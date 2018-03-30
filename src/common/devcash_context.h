@@ -16,12 +16,14 @@ namespace Devcash {
 static const int kDEFAULT_WORKERS = 10;
 static const int kVALIDATOR_THREADS = 10;
 static const int kCONSENSUS_THREADS = 10;
+//millis of sleep between main shut down checks
+static const int kMAIN_WAIT_INTERVAL = 1000;
 enum eAppMode {T1,T2,scan};
 
 //Consensus Params
-static const int activtionRounds = 334;
-static const int proposalTimeout = 60000;
-static const int validationPercent = 51;
+static const int kACTIVATION_ROUNDS = 334;
+static const unsigned int kPROPOSAL_TIMEOUT = 60000;
+static const int kVALIDATION_PERCENT = 51;
 
 class DevcashContext {
  public:
@@ -53,6 +55,8 @@ class DevcashContext {
       "0462CAF2CC08A7763A7F7B51590D016499079116E37892195E2AC8DE2DA54834D346558C56EE496104A4B533507948CEC5D8128AD2EDAE63BA0DC29F5D1D5AA5F3",
       "04B14F28DA8C0389BC385BA3865DB3FC7FAFA8FA4715C0ADAADAC52F2EB3E7FDCD695B439F9ACDCC90E55C1F9C48D7EB5B3BFD6C64EC89B1A6108F4B1B01A3FCA4"
   };
+
+  const size_t peer_count = 3;
 
   unsigned int current_node_;
   eAppMode app_mode_ = scan;

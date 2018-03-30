@@ -7,19 +7,19 @@
 
 #include "finalblock.h"
 
+#include "proposedblock.h"
+
 namespace Devcash {
 
 FinalBlock::FinalBlock() :
     DCBlock(),
-    block_height_(0),
-    chain_state_(*(new DCState()))
+    block_height_(0)
 {
 }
 
 FinalBlock::FinalBlock(const FinalBlock& other)
   : DCBlock()
   , block_height_(other.block_height_)
-  , chain_state_(other.chain_state_)
 {
 }
 
@@ -30,15 +30,15 @@ FinalBlock::FinalBlock(std::vector<DCTransaction>& txs,
     , block_height_(blockHeight) {
 }
 
-FinalBlock::FinalBlock(FinalBlock& other)
+FinalBlock::FinalBlock(DCBlock& other, unsigned int blockHeight)
   : DCBlock(other.vtx_, other.vals_)
-  , block_height_(other.block_height_)
+  , block_height_(blockHeight)
 {
+  DCBlock::copyHeaders(other);
 }
 
 bool FinalBlock::validateBlock(KeyRing& keys) {
-  if (!DCBlock::validate(chain_state_, keys)) return false;
-  return true;
+  return (DCBlock::validate(keys));
 }
 
 } /* namespace Devcash */

@@ -61,14 +61,16 @@ bool KeyRing::initKeys() {
 
     for (unsigned int i=0; i<context_.kNODE_ADDRs.size(); i++) {
 
-      EC_KEY* loadkey = loadEcKey(ctx,
+      EC_KEY* addr_key = loadEcKey(ctx,
           context_.kNODE_ADDRs[i],
           context_.kNODE_KEYs[i]);
 
-      if (!verifySig(loadkey, hash, sign(loadkey, hash))) {
+      if (!verifySig(addr_key, hash, sign(addr_key, hash))) {
         LOG_WARNING << "Invalid node["+std::to_string(i)+"] key!";
         CASH_THROW("Invalid node["+std::to_string(i)+"] key!");
       }
+
+      keyMap_.insert(std::pair<std::string, EC_KEY*>(context_.kNODE_ADDRs[i], addr_key));
     }
     is_init_ = true;
     return is_init_;

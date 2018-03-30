@@ -20,6 +20,9 @@
 
 namespace Devcash {
 
+typedef std::shared_ptr<FinalBlock> FinalPtr;
+typedef std::shared_ptr<ProposedBlock> ProposedPtr;
+
 class DevcashControllerWorker;
 
 class DevcashController {
@@ -29,20 +32,21 @@ class DevcashController {
                     const int validatorCount,
                     const int consensusWorkerCount,
                     KeyRing& keys,
-                    DevcashContext& context,
-                    ProposedBlock& nextBlock,
-                    ProposedBlock& futureBlock);
+                    DevcashContext& context);
   virtual ~DevcashController() {};
 
   void seedTransactions(std::string txs);
   void StartToy(unsigned int node_index);
-  void start();
+  bool start();
   void stopAll();
   void pushConsensus(std::unique_ptr<DevcashMessage> ptr);
   void pushValidator(std::unique_ptr<DevcashMessage> ptr);
 
   void ConsensusCallback(std::unique_ptr<DevcashMessage> ptr);
   void ValidatorCallback(std::unique_ptr<DevcashMessage> ptr);
+
+  void ConsensusToyCallback(std::unique_ptr<DevcashMessage> ptr);
+  void ValidatorToyCallback(std::unique_ptr<DevcashMessage> ptr);
 
  protected:
   io::TransactionServer& server_;
@@ -51,9 +55,9 @@ class DevcashController {
   const int consensus_count_;
   KeyRing& keys_;
   DevcashContext& context_;
-  std::vector<FinalBlock*> final_chain_;
-  ProposedBlock& next_block_;
-  ProposedBlock& future_block_;
+  std::vector<FinalPtr> final_chain_;
+  std::vector<ProposedPtr> proposed_chain_;
+  std::vector<ProposedPtr> upcoming_chain_;
   std::vector<std::string> seeds_;
   unsigned int seeds_at_;
   DevcashControllerWorker* workers_;
@@ -61,8 +65,11 @@ class DevcashController {
   bool consensus_flipper = true;
 
  private:
-  void rotateBlocks();
-  void postTransactions();
+  bool shutdown = false;
+  uint64_t waiting_ = 0;
+  bool postTransactions();
+  std::string getHighestMerkleRoot();
+  bool CreateNextProposal();
 
 };
 

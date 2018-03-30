@@ -67,13 +67,11 @@ int main(int argc, char* argv[])
     DevcashContext this_context(options->node_index,
                                 static_cast<eAppMode>(options->mode));
     KeyRing keys(this_context);
-    ProposedBlock genesis;
-    ProposedBlock on_deck;
 
     DevcashController controller(*server,
                                  *client,
       options->num_validator_threads, options->num_consensus_threads,
-      keys, this_context,genesis,on_deck);
+      keys, this_context);
 
     DevcashNode this_node(controller, this_context);
 
@@ -94,8 +92,7 @@ int main(int argc, char* argv[])
         return false;
       }
       LOG_INFO << "Sanity checks passed";
-      keys.initKeys();
-      out = this_node.RunNetworkTest(this_context.current_node_);
+      out = this_node.RunNode(in_raw);
     }
 
     //We do need to output the resulting blockchain for analysis

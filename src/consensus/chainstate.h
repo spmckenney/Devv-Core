@@ -78,7 +78,6 @@ public:
 */
   bool clear();
 
- private:
   std::map<std::string, std::vector<long>> stateMap_;
   std::mutex lock_;
 };

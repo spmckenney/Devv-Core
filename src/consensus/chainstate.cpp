@@ -11,6 +11,8 @@
 #include <map>
 #include <mutex>
 
+#include "chainstate.h"
+
 namespace Devcash
 {
 

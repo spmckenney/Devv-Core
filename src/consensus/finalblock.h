@@ -21,14 +21,11 @@ class FinalBlock : public DCBlock {
       DCValidationBlock& vs,
       unsigned int blockHeight);
   FinalBlock();
+  FinalBlock(DCBlock& other, unsigned int blockHeight);
   FinalBlock(const FinalBlock& other);
-  FinalBlock(FinalBlock& other);
   virtual ~FinalBlock() {};
 
   bool validateBlock(KeyRing &keys);
-
- private:
-  DCState& chain_state_ = (*new DCState());
 
 };
 

@@ -36,6 +36,7 @@ class DCBlock {
 
   std::vector<Devcash::DCTransaction> vtx_;
   DCValidationBlock vals_;
+  DCState block_state_;
 
   uint32_t vSize_;
   uint32_t sumSize_;
@@ -49,7 +50,7 @@ class DCBlock {
 
 /** Constructor */
   DCBlock();
-  DCBlock(std::string rawBlock);
+  DCBlock(std::string rawBlock, KeyRing& keys);
   DCBlock(const DCBlock& other);
   DCBlock(std::vector<Devcash::DCTransaction>& txs,
       DCValidationBlock& validations);
@@ -86,6 +87,26 @@ class DCBlock {
     return this;
   }
 
+  bool compare(const DCBlock& other) {
+    if (hashPrevBlock_ == other.hashPrevBlock_
+        && txSize_ == other.txSize_
+        && sumSize_ == other.sumSize_) return true;
+    return false;
+  }
+
+  bool copyHeaders(const DCBlock& other) {
+    this->nVersion_ = other.nVersion_;
+    this->hashPrevBlock_ = other.hashPrevBlock_;
+    this->hashMerkleRoot_ = other.hashMerkleRoot_;
+    this->nBytes_ = other.nBytes_;
+    this->nTime_ = other.nTime_;
+    this->txSize_ = other.txSize_;
+    this->sumSize_ = other.sumSize_;
+    this->vSize_ = other.vSize_;
+  }
+
+  bool setBlockState(const DCState& prior_state);
+
 /** Validates this block.
  *  @pre OpenSSL is initialized and ecKey contains a public key
  *  @note Invalid transactions are removed.
@@ -94,7 +115,7 @@ class DCBlock {
  *  @return true iff at least once transaction in this block validated.
  *  @return false if this block has no valid transactions
 */
-  bool validate(DCState& chainState, KeyRing& keys);
+  bool validate(KeyRing& keys);
 
 /** Signs this block.
  *  @pre OpenSSL is initialized and ecKey contains a private key
@@ -102,14 +123,15 @@ class DCBlock {
  *  @return true iff the block was signed.
  *  @return false otherwise
 */
-  bool signBlock(EC_KEY* ecKey);
+  bool signBlock(EC_KEY* ecKey, std::string myAddr);
 
 /** Finalizes this block.
  *  Creates the header, calculates the Merkle root, sets the blocktime (nTime_)
+ *  @param prevHash a string of the previous block's hash
  *  @return true iff the block was finalized.
  *  @return false otherwise
 */
-  bool finalize();
+  bool finalize(std::string prevHash);
 
 /** Resets this block. */
   void SetNull()

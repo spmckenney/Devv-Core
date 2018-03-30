@@ -33,23 +33,36 @@ class oracleInterface {
   };
 
   static int getCoinIndexByType(std::string coinType) {
-    if (coinType == "dcash" || coinType == "dnero") {
+    if (coinType == "dcash" || coinType == "dnero" || coinType == "0") {
       return(0);
-    } else if (coinType == "dneroavailable") {
+    } else if (coinType == "dneroavailable"  || coinType == "1") {
       return(1);
-    } else if (coinType == "dnerowallet") {
+    } else if (coinType == "dnerowallet" || coinType == "2") {
       return(2);
-    } else if (coinType == "id") {
+    } else if (coinType == "id" || coinType == "3") {
       return(3);
-    } else if (coinType == "vote") {
+    } else if (coinType == "vote" || coinType == "4") {
       return(4);
-    } else if (coinType == "api") {
+    } else if (coinType == "api" || coinType == "5") {
       return(5);
-    } else if (coinType == "data") {
+    } else if (coinType == "data" || coinType == "6") {
       return(6);
     } else { //invalid/unknown type
       return(-1);
     }
+  }
+
+  static std::string getCoinTypeByIndex(int coinIndex) {
+    switch (coinIndex) {
+      case 0: return "dnero";
+      case 1: return "dneroavailable";
+      case 2: return "dnerowallet";
+      case 3: return "id";
+      case 4: return "vote";
+      case 5: return "api";
+      case 6: return "data";
+    }
+    return "invalid";
   }
 
 /**
