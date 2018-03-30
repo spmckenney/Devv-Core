@@ -253,11 +253,11 @@ void DevcashController::seedTransactions(std::string txs) {
           }
           std::string txSubstr(toParse.substr(dex, eDex-dex+2));
           postAdvanceTransactions(txSubstr);
-          //seeds_.push_back(txSubstr);
+          seeds_.push_back(txSubstr);
           break;
         } else {
           std::string txSubstr(toParse.substr(dex, eDex-dex+2));
-          //seeds_.push_back(txSubstr);
+          seeds_.push_back(txSubstr);
           postAdvanceTransactions(txSubstr);
           dex = toParse.find("[", eDex);
         }
