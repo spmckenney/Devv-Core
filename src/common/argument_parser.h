@@ -13,6 +13,8 @@
 
 namespace Devcash {
 
+enum eDebugMode {off, on, toy};
+
 struct devcash_options {
   std::string bind_endpoint;
   std::vector<std::string> host_vector{};
@@ -22,6 +24,7 @@ struct devcash_options {
   unsigned int num_validator_threads;
   std::string scan_file;
   std::string write_file;
+  eDebugMode debug_mode;
 };
 
 std::unique_ptr<struct devcash_options> parse_options(int argc, char** argv) {
@@ -41,7 +44,8 @@ and listen to multiple other t1_example programs so almost any size\n\
 network could be build and tested.\n\nAllowed options");
     desc.add_options()
       ("help", "produce help message")
-      ("mode", po::value<std::string>()->required(), "Devcash mode (T1|T2|scan)")
+      ("debug-mode", po::value<std::string>(), "Debug mode (on|toy|perf) for testing")
+      ("mode", po::value<std::string>(), "Devcash mode (T1|T2|scan)")
       ("node-index", po::value<unsigned int>(), "Index of this node")
       ("num-consensus-threads", po::value<unsigned int>(), "Number of consensus threads")
       ("num-validator-threads", po::value<unsigned int>(), "Number of validation threads")
@@ -70,9 +74,23 @@ network could be build and tested.\n\nAllowed options");
       } else if (mode == "T2") {
         options->mode = T2;
       }
-      LOG_DEBUG << "Mode: " << options->mode;
+      LOG_DEBUG << "mode: " << options->mode;
     } else {
-      LOG_DEBUG << "Mode was not set.";
+      LOG_DEBUG << "mode was not set.";
+    }
+
+    if (vm.count("debug-mode")) {
+      std::string debug_mode = vm["debug-mode"].as<std::string>();
+      if (debug_mode == "on") {
+        options->debug_mode = on;
+      } else if (debug_mode == "toy") {
+        options->debug_mode = toy;
+      } else {
+        options->debug_mode = off;
+      }
+      LOG_DEBUG << "debug_mode: " << options->debug_mode;
+    } else {
+      LOG_DEBUG << "debug_mode was not set.";
     }
 
     if (vm.count("node-index")) {
