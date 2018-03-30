@@ -96,6 +96,11 @@ class TransactionClient final {
    */
   void StartClient();
 
+  /**
+   *
+   */
+  void ListenTo(std::string& filter);
+
  private:
   // process received message
   void ProcessIncomingMessage() noexcept;
@@ -107,13 +112,16 @@ class TransactionClient final {
   zmq::context_t& context_;
 
   // subscriber socket
-  std::unique_ptr<zmq::socket_t> sub_socket_;
+  std::unique_ptr<zmq::socket_t> sub_socket_ = nullptr;
 
   // Used to run the client service in a background thread
-  std::unique_ptr<std::thread> client_thread_;
+  std::unique_ptr<std::thread> client_thread_ = nullptr;
 
-  /// List of callbacks to call when a message arrives
+  // List of callbacks to call when a message arrives
   DevcashMessageCallback callback_;
+
+  //
+  std::vector<std::string> filter_vector_;
 };
 
 } // namespace io

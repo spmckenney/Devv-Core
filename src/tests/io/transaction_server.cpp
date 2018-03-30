@@ -38,11 +38,11 @@ main(int argc, char** argv) {
 
   LOG_INFO << "Binding to " << bind_endpoint;
 
-  std::string message;
+  std::string my_uri;
   if (argc > 2) {
-    message = argv[2];
+    my_uri = argv[2];
   } else {
-    message = "my-uri";
+    my_uri = "my-uri";
   }
 
 
@@ -60,11 +60,12 @@ main(int argc, char** argv) {
     sleep(1);
     auto devcash_message = std::make_unique<Devcash::DevcashMessage>();
     devcash_message->index = 15;
-    devcash_message->uri = "Hello!";
+    devcash_message->uri = my_uri;
     devcash_message->message_type = Devcash::eMessageType::VALID;
     devcash_message->SetData(test);
+    Devcash::LogDevcashMessageSummary(*devcash_message);
 
-    LOG_INFO << "Sending message: " << message;
+    //LOG_INFO << "Sending message: " << message;
     server.QueueMessage(std::move(devcash_message));
   }
 

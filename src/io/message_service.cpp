@@ -24,36 +24,16 @@ TransactionServer::TransactionServer(
 
 void
 TransactionServer::SendMessage(DevcashMessageUniquePtr dc_message) noexcept {
-
-  LOG_DEBUG << "Sending message1: " << dc_message->uri;
+  LOG_DEBUG << "SendMessage(): Sending message: " << dc_message->uri;
   auto buffer = serialize(*dc_message);
-  //zmq::message_t uri(&(message->uri), sizeof(uri));
-  LOG_DEBUG << "Sending message2: " << dc_message->uri;
+  s_sendmore(*pub_socket_, dc_message->uri);
   s_send(*pub_socket_, buffer);
-
-  /*
-  zmq::message_t message(sizeof(dc_message->message_type));
-  memcpy(message.data(), &dc_message->message_type, sizeof(dc_message->message_type));
-  pub_socket_.send(message);
-  */
-
-  //zmq_send(&pub_socket_, &message->message_type, sizeof(message->message_type), 0);
-
-  /*
-  auto rc = pub_socket_.sendThriftObj(thrift_message, serializer_);
-  if (rc.hasError()) {
-    LOG(ERROR) << "Send message failed: " << rc.error();
-    return;
-  } else {
-    LOG(info) << "Sent message";
-  }
-  */
 }
 
 void
 TransactionServer::QueueMessage(DevcashMessageUniquePtr message) noexcept
 {
-  LOG_DEBUG << "QueueMessage: Queueing";
+  LOG_DEBUG << "QueueMessage: Queueing()";
   message_queue_.push(std::move(message));
 }
 
@@ -93,64 +73,30 @@ TransactionClient::AddConnection(const std::string& endpoint) {
 
 void
 TransactionClient::ProcessIncomingMessage() noexcept {
+  LOG_DEBUG << "ProcessIncomingMessage(): Waiting for message";
+  /* Block until a message is available to be received from socket */
 
-  //auto devcash_message = std::make_unique<DevcashMessage>();
+  auto uri = s_recv(*sub_socket_);
+  LOG_DEBUG << "Received - envelope message: " << uri;
+  auto devcash_message = deserialize(s_vrecv(*sub_socket_));
+  LOG_DEBUG << "ProcessIncomingMessage(): Received a message";
 
-/* Create an empty ØMQ message to hold the message part
-    zmq_msg_t part;
-    int rc = zmq_msg_init(&part);
-    assert (rc == 0);
-*/
+  LogDevcashMessageSummary(*devcash_message);
 
-    LOG_DEBUG << "Waiting for uri";
-    /* Block until a message is available to be received from socket */
-    auto devcash_message = deserialize(s_vrecv(*sub_socket_));
-
-    /*zmq::message_t message;
-    sub_socket_->recv(&message);
-
-    int size = message.size();
-    std::string uri(static_cast<char *>(message.data()), size);
-
-    devcash_message->uri = uri;
-    */
-    LogDevcashMessageSummary(*devcash_message);
-
-    //rc = zmq_recv (&sub_socket_, &devcash_message->uri_size, 0);
-    //assert (rc == 0);
-    /* Determine if more message parts are to follow */
-    /*
-    rc = zmq_getsockopt (&sub_socket_, ZMQ_RCVMORE, &more, &more_size);
-    LOG(info) << "rc: " << rc;
-    LOG(info) << "more: " << more;
-    assert (rc == 1);
-
-    rc = zmq_recv(&sub_socket_, &devcash_message->message_type,
-    sizeof(devcash_message->message_type), 0);
-  */
-  /*
-    auto thrift_object =
-    sub_socket_.recvThriftObj<thrift::DevcashMessage>(serializer_);
-    if (thrift_object.hasError()) {
-    LOG(ERROR) << "read thrift request failed: " << thrift_object.error();
-    return;
-    } else {
-    LOG(info) << "Received Thrift Object";
-    }
-    const auto& thrift_devcash_message = thrift_object.value();
-
-    auto message = MakeDevcashMessage(thrift_devcash_message);
-  */
   callback_(std::move(devcash_message));
 }
 
 void
 TransactionClient::Run() {
   sub_socket_ = std::unique_ptr<zmq::socket_t>(new zmq::socket_t(context_, ZMQ_SUB));
-  sub_socket_->setsockopt( ZMQ_SUBSCRIBE, "", 0);
 
   for (auto endpoint : peer_urls_) {
     sub_socket_->connect(endpoint);
+    for ( auto filter : filter_vector_) {
+      LOG_DEBUG << "sub_socket_->setsockopt(ZMQ_SUBSCRIBE, " << filter.c_str() << ", " << filter.size() << ")";
+      sub_socket_->setsockopt(ZMQ_SUBSCRIBE, filter.c_str(), filter.size());
+    }
+
   }
 
   for (;;) {
@@ -161,7 +107,12 @@ TransactionClient::Run() {
 void
 TransactionClient::StartClient() {
   LOG_DEBUG << "Starting TransactionClient thread";
-  client_thread_ = std::unique_ptr<std::thread>(new std::thread([this]() { this->Run(); }));
+  client_thread_ = std::make_unique<std::thread>([this]() { this->Run(); });
+}
+
+void
+TransactionClient::ListenTo(std::string& filter) {
+  filter_vector_.push_back(filter);
 }
 
 void
