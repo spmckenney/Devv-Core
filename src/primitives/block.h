@@ -106,6 +106,7 @@ class DCBlock {
   }
 
   bool setBlockState(const DCState& prior_state);
+  bool addTransaction(std::string txStr, KeyRing& keys);
 
 /** Validates this block.
  *  @pre OpenSSL is initialized and ecKey contains a public key

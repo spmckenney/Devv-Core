@@ -226,7 +226,7 @@ bool DCTransaction::isValid(DCState& chainState, KeyRing& keys, DCSummary& summa
     long nValueOut = 0;
 
     if (nonce_ < 1) {
-      LOG_WARNING << "Error: nonce is required\n";
+      LOG_WARNING << "Error: nonce is required";
       return(false);
     }
 
@@ -255,11 +255,11 @@ bool DCTransaction::isValid(DCState& chainState, KeyRing& keys, DCSummary& summa
             +std::to_string(it->amount_);
         if (it->amount_ < 0) {
           if (!senderAddr.empty()) {
-            LOG_WARNING << "Multiple senders in transaction!\n";
+            LOG_WARNING << "Multiple senders in transaction!";
             return false;
           }
           if ((oper_ == Exchange) && (it->amount_ > chainState.getAmount(it->coinIndex_, it->addr_))) {
-            LOG_WARNING << "Coins not available at addr.\n";
+            LOG_WARNING << "Coins not available at addr.";
             return false;
           }
           senderAddr = it->addr_;
@@ -275,7 +275,7 @@ bool DCTransaction::isValid(DCState& chainState, KeyRing& keys, DCSummary& summa
     msg += "],\""+kNONCE_TAG+"\":"+std::to_string(nonce_);
     if (nValueOut != 0) {
       LOG_WARNING << "Error: transaction amounts are asymmetric. (sum="+std::to_string(nValueOut)+")";
-      return(false);
+      return false;
     }
 
     if ((oper_ != Exchange) && (!keys.isINN(senderAddr))) {
@@ -290,13 +290,13 @@ bool DCTransaction::isValid(DCState& chainState, KeyRing& keys, DCSummary& summa
       LOG_DEBUG << "Validation message is: "+msg;
       LOG_DEBUG << "Sender addr is: "+senderAddr;
       LOG_DEBUG << "Signature is: "+sig_;
-      return(false);
+      return false;
     }
-    return(true);
+    return true;
   } CASH_CATCH (const std::exception& e) {
     LOG_WARNING << FormatException(&e, "transaction");
   }
-  return(false);
+  return false;
 }
 
 long DCTransaction::getValueOut() const

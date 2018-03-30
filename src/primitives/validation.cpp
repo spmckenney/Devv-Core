@@ -104,15 +104,13 @@ bool DCSummary::addItem(std::string addr, long coinType, DCSummaryItem item) {
         DCSummaryItem the_item = existing.at(coinType);
         the_item.delta += item.delta;
         the_item.delay = std::max(the_item.delay, item.delay);
-        std::pair<long, DCSummaryItem> one_item(coinType, the_item);
-        existing.insert(one_item);
+        existing.at(coinType) = the_item;
       } else {
         std::pair<long, DCSummaryItem> one_item(coinType, item);
         existing.insert(one_item);
       }
-      std::pair<std::string,
-        std::unordered_map<long, DCSummaryItem>> one_summary(addr, existing);
-      summary_.insert(one_summary);
+      summary_.at(addr) = existing;
+      std::unordered_map<long, DCSummaryItem> posteri(summary_.at(addr));
     } else {
       std::pair<long, DCSummaryItem> new_pair(coinType, item);
       std::unordered_map<long, DCSummaryItem> new_summary;
