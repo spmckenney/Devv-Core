@@ -98,9 +98,9 @@ class DCSummary {
   */
   bool isSane();
 
-   typedef boost::container::flat_map<std::string, coinmap> SummaryMap;
-   SummaryMap summary_;
-   std::mutex lock_;
+  typedef boost::container::flat_map<std::string, coinmap> SummaryMap;
+  SummaryMap summary_;
+  std::mutex lock_;
 };
 
 class DCValidationBlock {

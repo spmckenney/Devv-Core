@@ -47,7 +47,7 @@ DCBlock::DCBlock()
 }
 
 //note the order of elements is assumed, which is fast, but not proper JSON
-DCBlock::DCBlock(std::string rawBlock, DCState& chain_state, KeyRing& keys)
+DCBlock::DCBlock(std::string rawBlock, KeyRing& keys)
   :  vSize_(0)
   , sumSize_(0)
   , txSize_(0)
@@ -95,9 +95,10 @@ DCBlock::DCBlock(std::string rawBlock, DCState& chain_state, KeyRing& keys)
       vals_ = *(new DCValidationBlock(valSection));
 
       LOG_DEBUG << std::to_string(vtx_.size())+" new transactions.";
+
       for (std::vector<DCTransaction>::iterator iter = vtx_.begin();
           iter != vtx_.end(); ++iter) {
-        if (!iter->isValid(chain_state, keys, vals_.summaryObj_)) {
+        if (!iter->isValid(block_state_, keys, vals_.summaryObj_)) {
           LOG_WARNING << "Invalid transaction:"+iter->ToJSON();
         }
       }
@@ -129,6 +130,11 @@ DCBlock::DCBlock(const DCBlock& other)
   , txSize_(0)
   , nTime_(0)
   , nBytes_(0) {
+}
+
+bool DCBlock::setBlockState(const DCState& prior_state) {
+  block_state_.stateMap_ = prior_state.stateMap_;
+  return true;
 }
 
 bool DCBlock::validate(KeyRing& keys) {

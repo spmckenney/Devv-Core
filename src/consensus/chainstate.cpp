@@ -6,11 +6,12 @@
  */
 
 #include "chainstate.h"
-#include "common/logger.h"
 
 #include <stdint.h>
 #include <map>
 #include <mutex>
+
+#include "chainstate.h"
 
 namespace Devcash
 {
@@ -19,9 +20,6 @@ using namespace Devcash;
 
 bool DCState::addCoin(SmartCoin& coin) {
   std::lock_guard<std::mutex> lock(lock_);
-  LOG_DEBUG << "Addr: "+coin.addr_;
-  LOG_DEBUG << "Type: "+std::to_string(coin.type_);
-  LOG_DEBUG << "Amount: "+std::to_string(coin.amount_);
   auto it = stateMap_.find(coin.addr_);
   if (it != stateMap_.end()) {
     it->second[coin.type_] += coin.amount_;

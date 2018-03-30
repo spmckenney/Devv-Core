@@ -46,14 +46,14 @@ using namespace Devcash;
 
   void DevcashControllerWorker::start() {
     CASH_TRY {
-      for (int w = 0; w < validator_num_; w++) {
+      /*for (int w = 0; w < validator_num_; w++) {
         validator_pool_.create_thread(
             boost::bind(&DevcashControllerWorker::ValidatorLoop, this));
       }
       for (int w = 0; w < consensus_num_; w++) {
         consensus_pool_.create_thread(
             boost::bind(&DevcashControllerWorker::ConsensusLoop, this));
-      }
+      }*/
     } CASH_CATCH (const std::exception& e) {
       LOG_WARNING << FormatException(&e, "Worker.start");
     }

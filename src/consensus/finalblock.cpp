@@ -18,7 +18,6 @@ FinalBlock::FinalBlock() :
 FinalBlock::FinalBlock(const FinalBlock& other)
   : DCBlock()
   , block_height_(other.block_height_)
-  , chain_state_(other.chain_state_)
 {
 }
 

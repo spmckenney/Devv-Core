@@ -42,7 +42,8 @@ bool DevcashController::CreateNextProposal() {
   if (block_height%context_.peer_count == context_.current_node_) {
     LOG_INFO << "This node's turn to create proposal.";
     ProposedPtr upcoming_ptr = std::make_shared<ProposedBlock>(""
-        , upcoming_chain_.size(), next_proposal->getChainState(), keys_);
+        , upcoming_chain_.size(), keys_);
+    upcoming_ptr->setBlockState(next_proposal->block_state_);
     upcoming_chain_.push_back(upcoming_ptr);
     ProposedPtr proposal_ptr = std::make_shared<ProposedBlock>(next_proposal->vtx_
         , next_proposal->vals_, next_proposal->block_height_);
@@ -78,7 +79,6 @@ void DevcashController::ValidatorCallback(DevcashMessageUniquePtr ptr) {
   if (ptr->message_type == TRANSACTION_ANNOUNCEMENT) {
     DevcashMessage msg(*ptr.get());
     DCTransaction new_tx(bin2Str(msg.data));
-    DCState current_state = upcoming_chain_.back()->chain_state_;
     upcoming_chain_.back()->addTransaction(new_tx, keys_);
   } else {
     LOG_DEBUG << "Unexpected message @ validator, to consensus.\n";
@@ -96,7 +96,8 @@ void DevcashController::ConsensusCallback(DevcashMessageUniquePtr ptr) {
     std::string final_block_str = bin2Str(msg.data);
     LOG_DEBUG << "Got final block: "+final_block_str;
     ProposedPtr highest_proposal = proposed_chain_.back();
-    DCBlock new_block(final_block_str, highest_proposal->chain_state_, keys_);
+    DCBlock new_block(final_block_str, keys_);
+    new_block.setBlockState(highest_proposal->block_state_);
 
     highest_proposal->vals_.addValidation(new_block.vals_);
     highest_proposal->finalize(getHighestMerkleRoot());
@@ -119,9 +120,11 @@ void DevcashController::ConsensusCallback(DevcashMessageUniquePtr ptr) {
     LOG_DEBUG << "Received block proposal: "+raw_str;
     ProposedPtr upcoming_top = upcoming_chain_.back();
     ProposedPtr upcoming_ptr = std::make_shared<ProposedBlock>(""
-        , upcoming_chain_.size(), upcoming_top->getChainState(), keys_);
+        , upcoming_chain_.size(), keys_);
+    upcoming_ptr->setBlockState(upcoming_top->block_state_);
     ProposedPtr new_proposal = std::make_shared<ProposedBlock>(raw_str, upcoming_chain_.size()
-        , upcoming_top->getChainState(), keys_);
+        , keys_);
+    new_proposal->setBlockState(upcoming_top->block_state_);
     upcoming_chain_.push_back(upcoming_ptr);
     if (new_proposal->validateBlock(keys_)) {
       LOG_DEBUG << "Proposed block is valid.";
@@ -160,8 +163,8 @@ void DevcashController::ConsensusCallback(DevcashMessageUniquePtr ptr) {
       final_chain_.push_back(top_block);
 
       ProposedPtr upcoming = std::make_shared<ProposedBlock>(""
-          , upcoming_chain_.size()
-          , proposed_chain_.back()->getChainState(), keys_);
+          , upcoming_chain_.size(), keys_);
+      upcoming->setBlockState(proposed_chain_.back()->block_state_);
       upcoming_chain_.push_back(upcoming);
       std::string final_str = top_block->ToJSON();
       LOG_DEBUG << "Final block: "+final_str;
@@ -249,7 +252,7 @@ void DevcashController::seedTransactions(std::string txs) {
         }
       }
       LOG_INFO << "Seeded input for "+std::to_string(seeds_.size())+" blocks.";
-      postTransactions();
+      //postTransactions();
     } else {
       LOG_FATAL << "Input has wrong syntax!";
       stopAll();

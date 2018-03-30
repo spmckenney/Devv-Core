@@ -19,25 +19,15 @@ public:
   unsigned int block_height_;
 
   ProposedBlock();
-  ProposedBlock(const ProposedBlock& other);
   ProposedBlock(std::string blockStr,
-      int blockHeight, DCState chainState, KeyRing& keys);
+      int blockHeight, KeyRing& keys);
   ProposedBlock(std::vector<DCTransaction>& txs,
       DCValidationBlock& vs,
       unsigned int blockHeight);
   ProposedBlock(std::vector<DCTransaction>& txs,
       DCValidationBlock& vs,
-      FinalBlock previousBlock,
-      DCState chainState);
+      FinalBlock previousBlock);
   virtual ~ProposedBlock() {};
-
-  DCState getChainState() {
-    return chain_state_;
-  }
-
-  void setChainState(DCState chainState) {
-    chain_state_ = chainState;
-  }
 
   void setBlockHeight(unsigned int blockHeight) {
     block_height_=blockHeight;
@@ -47,8 +37,6 @@ public:
 
   bool validateBlock(KeyRing& keys);
   bool signBlock(EC_KEY* eckey, std::string myAddr);
-
-  DCState chain_state_;
 
 };
 

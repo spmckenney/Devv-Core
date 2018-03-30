@@ -36,6 +36,7 @@ class DCBlock {
 
   std::vector<Devcash::DCTransaction> vtx_;
   DCValidationBlock vals_;
+  DCState block_state_;
 
   uint32_t vSize_;
   uint32_t sumSize_;
@@ -49,7 +50,7 @@ class DCBlock {
 
 /** Constructor */
   DCBlock();
-  DCBlock(std::string rawBlock, DCState& chain_state, KeyRing& keys);
+  DCBlock(std::string rawBlock, KeyRing& keys);
   DCBlock(const DCBlock& other);
   DCBlock(std::vector<Devcash::DCTransaction>& txs,
       DCValidationBlock& validations);
@@ -96,6 +97,8 @@ class DCBlock {
         && vSize_ == other.vSize_) return true;
     return false;
   }
+
+  bool setBlockState(const DCState& prior_state);
 
 /** Validates this block.
  *  @pre OpenSSL is initialized and ecKey contains a public key

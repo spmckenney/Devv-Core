@@ -27,9 +27,6 @@ class FinalBlock : public DCBlock {
 
   bool validateBlock(KeyRing &keys);
 
- private:
-  DCState& chain_state_ = (*new DCState());
-
 };
 
 } /* namespace Devcash */

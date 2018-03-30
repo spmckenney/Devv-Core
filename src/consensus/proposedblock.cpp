@@ -15,14 +15,7 @@ using namespace Devcash;
 
 ProposedBlock::ProposedBlock() :
         DCBlock(),
-        block_height_(0),
-        chain_state_()
-{
-}
-
-ProposedBlock::ProposedBlock(const ProposedBlock& other)
-  : DCBlock(), block_height_(other.block_height_)
-  , chain_state_(other.chain_state_)
+        block_height_(0)
 {
 }
 
@@ -35,25 +28,21 @@ ProposedBlock::ProposedBlock(std::vector<DCTransaction>& txs,
 }
 
 ProposedBlock::ProposedBlock(std::string blockStr,
-    int blockHeight, DCState chainState, KeyRing& keys)
+    int blockHeight, KeyRing& keys)
     :  block_height_(blockHeight)
-    , chain_state_(chainState)
-    , DCBlock(blockStr, chain_state_, keys)
+    , DCBlock(blockStr, keys)
 {
 }
 
 ProposedBlock::ProposedBlock(std::vector<DCTransaction>& txs,
     DCValidationBlock& vs,
-    FinalBlock previousBlock,
-    DCState chainState)
+    FinalBlock previousBlock)
     : DCBlock(txs, vs)
-    , block_height_(previousBlock.block_height_+1)
-    , chain_state_(chainState) {
-
+    , block_height_(previousBlock.block_height_+1) {
 }
 
 bool ProposedBlock::addTransaction(DCTransaction newTx, KeyRing& keys) {
-  if (newTx.isValid(chain_state_, keys, DCBlock::vals_.summaryObj_)) {
+  if (newTx.isValid(DCBlock::block_state_, keys, DCBlock::vals_.summaryObj_)) {
     DCBlock::vtx_.push_back(newTx);
   } else {
     LOG_WARNING << "Invalid transaction:"+newTx.ToJSON();
