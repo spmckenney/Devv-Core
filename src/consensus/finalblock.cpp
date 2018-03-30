@@ -7,6 +7,8 @@
 
 #include "finalblock.h"
 
+#include "proposedblock.h"
+
 namespace Devcash {
 
 FinalBlock::FinalBlock() :
@@ -28,15 +30,15 @@ FinalBlock::FinalBlock(std::vector<DCTransaction>& txs,
     , block_height_(blockHeight) {
 }
 
-FinalBlock::FinalBlock(FinalBlock& other)
+FinalBlock::FinalBlock(DCBlock& other, unsigned int blockHeight)
   : DCBlock(other.vtx_, other.vals_)
-  , block_height_(other.block_height_)
+  , block_height_(blockHeight)
 {
+  DCBlock::copyHeaders(other);
 }
 
 bool FinalBlock::validateBlock(KeyRing& keys) {
-  if (!DCBlock::validate(keys)) return false;
-  return true;
+  return (DCBlock::validate(keys));
 }
 
 } /* namespace Devcash */

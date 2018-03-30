@@ -103,6 +103,14 @@ eOpType mapOpType(std::string oper) {
   CASH_THROW("Invalid operation: "+oper);
 }
 
+std::string indexOpType(eOpType oper) {
+  if (oper == eOpType::Create) return(std::to_string(0));
+  if (oper == eOpType::Modify) return(std::to_string(1));
+  if (oper == eOpType::Exchange) return(std::to_string(2));
+  if (oper == eOpType::Delete) return(std::to_string(3));
+  return "-1";
+}
+
 bool DCTransaction::isOpType(std::string oper) {
   if ("create"==oper) return(oper_ == eOpType::Create);
   if ("modify"==oper) return(oper_ == eOpType::Modify);
@@ -123,6 +131,7 @@ DCTransaction::DCTransaction(std::string jsonTx)
       std::string opTemp(jsonFinder(jsonTx, kOPER_TAG, pos));
       size_t temp = pos;
       oper_ = mapOpType(opTemp);
+
       std::string typeStr(jsonFinder(jsonTx, kTYPE_TAG, temp));
       if (!typeStr.empty()) {
         coinDex = oracleInterface::getCoinIndexByType(typeStr);
@@ -302,7 +311,7 @@ long DCTransaction::getValueOut() const
 std::string DCTransaction::getCanonicalForm() {
   std::string out;
   out = "{\""+kOPER_TAG+"\":"+
-      std::to_string(static_cast<unsigned int>(oper_))+",\""+
+      indexOpType(oper_)+",\""+
       kXFER_TAG+"\":[";
   bool isFirst = true;
   for (auto it = xfers_.begin(); it != xfers_.end(); ++it) {
@@ -330,7 +339,7 @@ std::string DCTransaction::ComputeHash() const
 std::string DCTransaction::ToJSON() const
 {
   std::string out = "{\""+kOPER_TAG+"\":"
-      +std::to_string(static_cast<unsigned int>(oper_))+",\"";
+      +indexOpType(oper_)+",\"";
   out+=kXFER_TAG+"\":[";
   json xferArray = json::array();
   bool isFirst = true;

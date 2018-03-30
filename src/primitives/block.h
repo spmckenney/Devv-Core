@@ -89,13 +89,20 @@ class DCBlock {
 
   bool compare(const DCBlock& other) {
     if (hashPrevBlock_ == other.hashPrevBlock_
-        && hashMerkleRoot_ == other.hashMerkleRoot_
-        && nBytes_ == other.nBytes_
-        && nTime_ == other.nTime_
         && txSize_ == other.txSize_
-        && sumSize_ == other.sumSize_
-        && vSize_ == other.vSize_) return true;
+        && sumSize_ == other.sumSize_) return true;
     return false;
+  }
+
+  bool copyHeaders(const DCBlock& other) {
+    this->nVersion_ = other.nVersion_;
+    this->hashPrevBlock_ = other.hashPrevBlock_;
+    this->hashMerkleRoot_ = other.hashMerkleRoot_;
+    this->nBytes_ = other.nBytes_;
+    this->nTime_ = other.nTime_;
+    this->txSize_ = other.txSize_;
+    this->sumSize_ = other.sumSize_;
+    this->vSize_ = other.vSize_;
   }
 
   bool setBlockState(const DCState& prior_state);
