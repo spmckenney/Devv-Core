@@ -33,7 +33,7 @@ public:
     block_height_=blockHeight;
   }
 
-  bool addTransaction(DCTransaction newTx, KeyRing& keys);
+  bool addTransaction(std::string txStr, KeyRing& keys);
 
   bool validateBlock(KeyRing& keys);
   bool signBlock(EC_KEY* eckey, std::string myAddr);

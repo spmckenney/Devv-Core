@@ -175,22 +175,17 @@ std::string DevcashNode::RunScanner(std::string inStr) {
 
 std::string DevcashNode::RunNode(std::string& inStr)
 {
-  std::string out("");
+  std::string out;
   CASH_TRY {
     control_.seedTransactions(inStr);
     LOG_INFO << "Start controller.";
     //TODO: start timing here
-    bool success = control_.start();
+    out += control_.start();
 
-    if (success) {
-      LOG_INFO << "Run succeeded.";
-      //TODO: end timing here
-    } else {
-      LOG_INFO << "Run failed.";
-    }
+    //TODO: end timing here
 
     LOG_INFO << "Starting shutdown";
-    //StartShutdown();
+    StartShutdown();
 
   } CASH_CATCH (const std::exception& e) {
     LOG_FATAL << FormatException(&e, "DevcashNode.RunScanner");

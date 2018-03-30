@@ -163,6 +163,43 @@ bool DCBlock::validate(KeyRing& keys) {
   return true;
 }
 
+bool DCBlock::addTransaction(std::string txStr, KeyRing& keys) {
+  CASH_TRY {
+    DCTransaction new_tx(txStr);
+    long nValueOut = 0;
+
+    if (new_tx.nonce_ < 1) {
+      LOG_WARNING << "Error: nonce is required";
+      return(false);
+    }
+
+    std::string senderAddr;
+
+    for (auto it = new_tx.xfers_.begin(); it != new_tx.xfers_.end(); ++it) {
+      nValueOut += it->amount_;
+        if (it->amount_ < 0) {
+          if (!senderAddr.empty()) {
+            LOG_WARNING << "Multiple senders in transaction!";
+            return false;
+          }
+          senderAddr = it->addr_;
+        }
+        SmartCoin next_flow(it->coinIndex_, it->addr_, it->amount_);
+        block_state_.addCoin(next_flow);
+        vals_.summaryObj_.addItem(it->addr_, it->coinIndex_, it->amount_, it->delay_);
+    }
+    if (nValueOut != 0) {
+      LOG_WARNING << "Error: transaction amounts are asymmetric. (sum="+std::to_string(nValueOut)+")";
+      return false;
+    }
+    vtx_.push_back(new_tx);
+    return true;
+  } CASH_CATCH (const std::exception& e) {
+    LOG_WARNING << FormatException(&e, "transaction");
+  }
+  return false;
+}
+
 bool DCBlock::signBlock(EC_KEY* eckey, std::string myAddr) {
   std::string sumBlock = vals_.summaryObj_.toCanonical();
   LOG_DEBUG << "Validator signs: "+sumBlock;

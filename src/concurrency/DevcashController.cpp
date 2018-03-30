@@ -80,8 +80,9 @@ void DevcashController::ValidatorCallback(DevcashMessageUniquePtr ptr) {
   LOG_DEBUG << "DevcashController::ValidatorCallback()";
   if (ptr->message_type == TRANSACTION_ANNOUNCEMENT) {
     DevcashMessage msg(*ptr.get());
-    DCTransaction new_tx(bin2Str(msg.data));
-    upcoming_chain_.back()->addTransaction(new_tx, keys_);
+    std::string tx_str = bin2Str(msg.data);
+    LOG_DEBUG << "New transaction: "+tx_str;
+    upcoming_chain_.back()->addTransaction(tx_str, keys_);
   } else {
     LOG_DEBUG << "Unexpected message @ validator, to consensus.\n";
     pushConsensus(std::move(ptr));
@@ -286,18 +287,21 @@ bool DevcashController::postTransactions() {
       size_t eDex = someTxs.find(kSIG_TAG, dex);
       eDex = someTxs.find("}", eDex);
       std::string oneTx = someTxs.substr(dex-1, eDex-dex+2);
-      DCTransaction new_tx(oneTx);
-      upcoming->addTransaction(new_tx, keys_);
+      upcoming->addTransaction(oneTx, keys_);
       counter++;
       while (someTxs.at(eDex+1) != ']' && eDex < someTxs.size()-2) {
         dex = someTxs.find("{", eDex);
         eDex = someTxs.find(kSIG_TAG, dex);
         eDex = someTxs.find("}", eDex);
-        oneTx = someTxs.substr(dex, eDex-dex);
-        DCTransaction next_tx(oneTx);
-        upcoming->addTransaction(next_tx, keys_);
+        oneTx = someTxs.substr(dex, eDex-dex+1);
+        LOG_DEBUG << "One tx: "+oneTx;
+        upcoming->addTransaction(oneTx, keys_);
         counter++;
       }
+      ProposedPtr next_proposal = upcoming_chain_.back();
+      unsigned int block_height = final_chain_.size();
+      LOG_INFO << "POST Upcoming #"+std::to_string(block_height)+" has "
+          +std::to_string(next_proposal->vtx_.size())+" transactions.";
       LOG_DEBUG << std::to_string(counter)+" transactions posted upcoming.";
     } else { //all input processed by the chain
       return false;
@@ -337,7 +341,8 @@ void DevcashController::StartToy(unsigned int node_index) {
   }
 }
 
-bool DevcashController::start() {
+std::string DevcashController::start() {
+  std::string out;
   workers_->start();
 
   client_.AttachCallback([this](DevcashMessageUniquePtr ptr) {
@@ -379,23 +384,24 @@ bool DevcashController::start() {
 
 
   //Loop for long runs
-  /* bool transactions_to_post = postTransactions();
-   * auto ms = kMAIN_WAIT_INTERVAL;
+  bool transactions_to_post = postTransactions();
+  auto ms = kMAIN_WAIT_INTERVAL;
   while (true) {
     LOG_DEBUG << "Sleeping for " << ms;
     boost::this_thread::sleep_for(boost::chrono::milliseconds(ms));
     if (transactions_to_post)
       transactions_to_post = postTransactions();
     if (final_chain_.size() >= seeds_.size() ) {
-      return true; //EXIT_SUCCESS
+      break;
     }
-    //EXIT_FAILURE
-    if (shutdown) return false;
-   }
-   *
-   */
+    if (shutdown) break;
+  }
 
-  return true;
+  for(size_t i=0; i < final_chain_.size(); ++i) {
+    out += final_chain_.at(i)->ToJSON();
+  }
+
+  return out;
 }
 
 void DevcashController::stopAll() {
