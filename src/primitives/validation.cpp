@@ -99,7 +99,6 @@ bool DCSummary::addItem(std::string addr, long coinType, DCSummaryItem item) {
   CASH_TRY {
     std::lock_guard<std::mutex> lock(lock_);
     if (summary_.count(addr) > 0) {
-      LOG_DEBUG << "Addr exists";
       std::unordered_map<long, DCSummaryItem> existing(summary_.at(addr));
       if (existing.count(coinType) > 0) {
         DCSummaryItem the_item = existing.at(coinType);
@@ -115,7 +114,6 @@ bool DCSummary::addItem(std::string addr, long coinType, DCSummaryItem item) {
         std::unordered_map<long, DCSummaryItem>> one_summary(addr, existing);
       summary_.insert(one_summary);
     } else {
-      LOG_DEBUG << "Addr does not exist";
       std::pair<long, DCSummaryItem> new_pair(coinType, item);
       std::unordered_map<long, DCSummaryItem> new_summary;
       new_summary.insert(new_pair);

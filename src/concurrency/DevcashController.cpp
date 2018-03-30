@@ -37,7 +37,7 @@ std::string DevcashController::getHighestMerkleRoot() {
 bool DevcashController::CreateNextProposal() {
   ProposedPtr next_proposal = upcoming_chain_.back();
   unsigned int block_height = final_chain_.size();
-  LOG_INFO << "Proposal #"+std::to_string(block_height)+" has "
+  LOG_INFO << "Upcoming #"+std::to_string(block_height)+" has "
       +std::to_string(next_proposal->vtx_.size())+" transactions.";
   if (block_height%context_.peer_count == context_.current_node_) {
     LOG_INFO << "This node's turn to create proposal.";
@@ -54,7 +54,9 @@ bool DevcashController::CreateNextProposal() {
     proposal->validate(keys_);
     proposal->signBlock(keys_.getNodeKey(context_.current_node_),
         context_.kNODE_ADDRs[context_.current_node_]);
-    std::vector<uint8_t> data(str2Bin(proposal->ToJSON()));
+    std::string proposal_str = proposal->ToJSON();
+    LOG_DEBUG << "Propose Block: "+proposal_str;
+    std::vector<uint8_t> data(str2Bin(proposal_str));
   auto propose_msg = std::make_unique<DevcashMessage>("peers", PROPOSAL_BLOCK, data);
     server_.QueueMessage(std::move(propose_msg));
     return true;
@@ -109,6 +111,8 @@ void DevcashController::ConsensusCallback(DevcashMessageUniquePtr ptr) {
       CreateNextProposal();
     } else {
       LOG_FATAL << "Final block is inconsistent with chain.";
+      LOG_DEBUG << "Highest Proposal: "+highest_proposal->ToJSON();
+      LOG_DEBUG << "Final block: "+new_block.ToJSON();
       stopAll();
     }
   } else if (ptr->message_type == PROPOSAL_BLOCK) {
@@ -153,15 +157,19 @@ void DevcashController::ConsensusCallback(DevcashMessageUniquePtr ptr) {
     DevcashMessage msg(*ptr.get());
     std::string rawVal = bin2Str(msg.data);
     LOG_DEBUG << "Received block validation: "+rawVal;
+    unsigned int block_height = final_chain_.size();
+    if (block_height%context_.peer_count != context_.current_node_) {
+      LOG_WARNING << "Got a VALID message, but this node did not propose!";
+      return;
+    }
     DCValidationBlock validation(rawVal);
     ProposedBlock highest_proposal = *proposed_chain_.back().get();
     highest_proposal.vals_.addValidation(validation);
     if (highest_proposal.vals_.GetValidationCount() > 1) {
       highest_proposal.finalize(getHighestMerkleRoot());
-      FinalPtr top_block =std::make_shared<FinalBlock>(highest_proposal.vtx_
-          , highest_proposal.vals_, highest_proposal.block_height_);
+      FinalPtr top_block =std::make_shared<FinalBlock>(highest_proposal
+          , highest_proposal.block_height_);
       final_chain_.push_back(top_block);
-
       ProposedPtr upcoming = std::make_shared<ProposedBlock>(""
           , upcoming_chain_.size(), keys_);
       upcoming->setBlockState(proposed_chain_.back()->block_state_);
@@ -252,7 +260,7 @@ void DevcashController::seedTransactions(std::string txs) {
         }
       }
       LOG_INFO << "Seeded input for "+std::to_string(seeds_.size())+" blocks.";
-      //postTransactions();
+      postTransactions();
     } else {
       LOG_FATAL << "Input has wrong syntax!";
       stopAll();
@@ -266,28 +274,28 @@ bool DevcashController::postTransactions() {
   CASH_TRY {
     unsigned int upcoming_height = upcoming_chain_.size();
     LOG_DEBUG << "Seed block height "+std::to_string(seeds_at_)+
-        " ready for height: "+std::to_string(upcoming_height);
+        " ready for height: "+std::to_string(upcoming_height-1);
     if (seeds_at_ > upcoming_height) return true;
     int counter = 0;
     if (seeds_.size() > upcoming_height) {
       LOG_DEBUG << "Posting block height "+std::to_string(seeds_at_);
       std::string someTxs = seeds_.at(seeds_at_);
+      ProposedPtr upcoming = upcoming_chain_.at(seeds_at_);
       seeds_at_++;
       size_t dex = someTxs.find("\""+kOPER_TAG+"\":", 0);
       size_t eDex = someTxs.find(kSIG_TAG, dex);
       eDex = someTxs.find("}", eDex);
       std::string oneTx = someTxs.substr(dex-1, eDex-dex+2);
-      DCTransaction* new_tx = new DCTransaction(oneTx);
-      ProposedPtr upcoming = upcoming_chain_.back();
-      upcoming->addTransaction(*new_tx, keys_);
+      DCTransaction new_tx(oneTx);
+      upcoming->addTransaction(new_tx, keys_);
       counter++;
       while (someTxs.at(eDex+1) != ']' && eDex < someTxs.size()-2) {
         dex = someTxs.find("{", eDex);
         eDex = someTxs.find(kSIG_TAG, dex);
         eDex = someTxs.find("}", eDex);
         oneTx = someTxs.substr(dex, eDex-dex);
-        new_tx = new DCTransaction(oneTx);
-        upcoming->addTransaction(*new_tx, keys_);
+        DCTransaction next_tx(oneTx);
+        upcoming->addTransaction(next_tx, keys_);
         counter++;
       }
       LOG_DEBUG << std::to_string(counter)+" transactions posted upcoming.";
@@ -342,9 +350,38 @@ bool DevcashController::start() {
 
   CreateNextProposal();
 
-  /*bool transactions_to_post = true;
-  auto ms = kMAIN_WAIT_INTERVAL;
-  //while (true) {
+  //run as node 0
+  /*std::string valid("\"sum\":{\"02514038DA1905561BF9043269B8515C1E7C4E79B011291B4CBED5B18DAECB71E4\":[(0,10)],\"035C0841F8F62271F3058F37B32193360322BBF0C4E85E00F07BCB10492E91A2BD\":[(0,10)],\"7242DC4F1D89513CBA236C895B117BC7D0ABD6DC8336E202D93FB266E582C79624\":[(0,-20)]},\"vals\":[\"04B14F28DA8C0389BC385BA3865DB3FC7FAFA8FA4715C0ADAADAC52F2EB3E7FDCD695B439F9ACDCC90E55C1F9C48D7EB5B3BFD6C64EC89B1A6108F4B1B01A3FCA4\":\"30440220661C2A266DD00E1850172AFC11BBB9772FAA687B00D21A0FDB4EC6FB1EF14516022000EEF25E079C694304BD33BF1DAA8A3C58EF612BF95DCB4BC7F1754707B60D84\",\"04158913328E4469124B33A5D421665A36891B7BCB8183A22CC3D78239A89073FEB7432E6477663CDE2E032A56687617800B97FC0EBD9F3AC30F683B6C4A89D1D8\":\"304402203631D6DE6614642A2356E04A5A80BDEF8BEB1E4D5411BE77088036E04883C21A022071B0D47AA66F5A243861068D5597256D2D378E405FFB2BC479A62632044A2BE4\"]");
+  std::vector<uint8_t> data(str2Bin(valid));
+  auto v = DevcashMessageUniquePtr(
+            new DevcashMessage("peers", VALID, data));
+  ConsensusCallback(std::move(v));
+  LOG_DEBUG << "Valid test complete.";*/
+  //end run as node 0
+
+  //run as node 1/2
+  std::string validBlock("{\"prev\":\"\",\"merkle\":\"\",\"bytes\":0,\"time\":0,\"txlen\":0,\"sumlen\":0,\"vlen\":0,\"txs\":[{\"oper\":0,\"xfer\":[{\"addr\":\"7242DC4F1D89513CBA236C895B117BC7D0ABD6DC8336E202D93FB266E582C79624\",\"type\":0,\"amount\":-20},{\"addr\":\"02514038DA1905561BF9043269B8515C1E7C4E79B011291B4CBED5B18DAECB71E4\",\"type\":0,\"amount\":10},{\"addr\":\"035C0841F8F62271F3058F37B32193360322BBF0C4E85E00F07BCB10492E91A2BD\",\"type\":0,\"amount\":10}],\"nonce\":1521706664,\"sig\":\"304402206C7179523F204125D3C63F9817460B211784B071B608625933E646F46CD5BAD10220088BBA2D10EE2EBA3A1D5BB40A323D5CBD2CD7946A315104F4FAA2A3B582DFF0\"}],\"sum\":{\"02514038DA1905561BF9043269B8515C1E7C4E79B011291B4CBED5B18DAECB71E4\":[(0,10)],\"035C0841F8F62271F3058F37B32193360322BBF0C4E85E00F07BCB10492E91A2BD\":[(0,10)],\"7242DC4F1D89513CBA236C895B117BC7D0ABD6DC8336E202D93FB266E582C79624\":[(0,-20)]},\"vals\":[\"04158913328E4469124B33A5D421665A36891B7BCB8183A22CC3D78239A89073FEB7432E6477663CDE2E032A56687617800B97FC0EBD9F3AC30F683B6C4A89D1D8\":\"304402203631D6DE6614642A2356E04A5A80BDEF8BEB1E4D5411BE77088036E04883C21A022071B0D47AA66F5A243861068D5597256D2D378E405FFB2BC479A62632044A2BE4\"]}");
+  std::vector<uint8_t> data(str2Bin(validBlock));
+  auto valid = DevcashMessageUniquePtr(
+          new DevcashMessage("peers", PROPOSAL_BLOCK, data));
+  ConsensusCallback(std::move(valid));
+  LOG_DEBUG << "Proposal test complete.";
+
+  postTransactions();
+
+  std::string final_block("{\"prev\":\"Genesis\",\"merkle\":\"8AB95FBBF98096B40FD613022D89641ABB21ECD285CFFA521E22F3955644E0EC\",\"bytes\":1796,\"time\":1522385072962,\"txlen\":485,\"sumlen\":236,\"vlen\":1075,\"txs\":[{\"oper\":0,\"xfer\":[{\"addr\":\"7242DC4F1D89513CBA236C895B117BC7D0ABD6DC8336E202D93FB266E582C79624\",\"type\":0,\"amount\":-20},{\"addr\":\"02514038DA1905561BF9043269B8515C1E7C4E79B011291B4CBED5B18DAECB71E4\",\"type\":0,\"amount\":10},{\"addr\":\"035C0841F8F62271F3058F37B32193360322BBF0C4E85E00F07BCB10492E91A2BD\",\"type\":0,\"amount\":10}],\"nonce\":1521706664,\"sig\":\"304402206C7179523F204125D3C63F9817460B211784B071B608625933E646F46CD5BAD10220088BBA2D10EE2EBA3A1D5BB40A323D5CBD2CD7946A315104F4FAA2A3B582DFF0\"}],\"sum\":{\"02514038DA1905561BF9043269B8515C1E7C4E79B011291B4CBED5B18DAECB71E4\":[(0,10)],\"035C0841F8F62271F3058F37B32193360322BBF0C4E85E00F07BCB10492E91A2BD\":[(0,10)],\"7242DC4F1D89513CBA236C895B117BC7D0ABD6DC8336E202D93FB266E582C79624\":[(0,-20)]},\"vals\":[\"04B14F28DA8C0389BC385BA3865DB3FC7FAFA8FA4715C0ADAADAC52F2EB3E7FDCD695B439F9ACDCC90E55C1F9C48D7EB5B3BFD6C64EC89B1A6108F4B1B01A3FCA4\":\"30440220661C2A266DD00E1850172AFC11BBB9772FAA687B00D21A0FDB4EC6FB1EF14516022000EEF25E079C694304BD33BF1DAA8A3C58EF612BF95DCB4BC7F1754707B60\",\"04158913328E4469124B33A5D421665A36891B7BCB8183A22CC3D78239A89073FEB7432E6477663CDE2E032A56687617800B97FC0EBD9F3AC30F683B6C4A89D\":\"304402203631D6DE6614642A2356E04A5A80BDEF8BEB1E4D5411BE77088036E04883C21A022071B0D47AA66F5A243861068D5597256D2D378E405FFB2BC479A62632044A2B\",\"04158913328E4469124B33A5D421665A36891B7BCB8183A22CC3D78239A89073FEB7432E6477663CDE2E032A56687617800B97FC0EBD9F3AC30F683B6C4A89D1D8\":\"3046022100D1D889E2EC239A5512CBA5952DE72E2C53B4E04F5522B59E87EE1F3FC5C40802022100B49AD415EF15EB8035D76BACC3F755AB323274C2C2A0FFCB9FCC369531D2B363\"]}");
+  std::vector<uint8_t> final_data(str2Bin(final_block));
+  auto v = DevcashMessageUniquePtr(
+           new DevcashMessage("peers", FINAL_BLOCK, final_data));
+  ConsensusCallback(std::move(v));
+  LOG_DEBUG << "Final block test complete.";
+  //end run as node 1/2
+
+
+  //Loop for long runs
+  /* bool transactions_to_post = postTransactions();
+   * auto ms = kMAIN_WAIT_INTERVAL;
+  while (true) {
     LOG_DEBUG << "Sleeping for " << ms;
     boost::this_thread::sleep_for(boost::chrono::milliseconds(ms));
     if (transactions_to_post)
@@ -354,33 +391,9 @@ bool DevcashController::start() {
     }
     //EXIT_FAILURE
     if (shutdown) return false;
-  //}
+   }
    *
    */
-
-
-  std::string validBlock("{\"prev\":\"\",\"merkle\":\"\",\"bytes\":0,\"time\":0,\"txlen\":0,\"sumlen\":0,\"vlen\":0,\"txs\":[{\"oper\":0,\"xfer\":[{\"addr\":\"7242DC4F1D89513CBA236C895B117BC7D0ABD6DC8336E202D93FB266E582C79624\",\"type\":0,\"amount\":-20},{\"addr\":\"02514038DA1905561BF9043269B8515C1E7C4E79B011291B4CBED5B18DAECB71E4\",\"type\":0,\"amount\":10},{\"addr\":\"035C0841F8F62271F3058F37B32193360322BBF0C4E85E00F07BCB10492E91A2BD\",\"type\":0,\"amount\":10}],\"nonce\":1521706664,\"sig\":\"304402206C7179523F204125D3C63F9817460B211784B071B608625933E646F46CD5BAD10220088BBA2D10EE2EBA3A1D5BB40A323D5CBD2CD7946A315104F4FAA2A3B582DFF0\"}],\"sum\":{\"02514038DA1905561BF9043269B8515C1E7C4E79B011291B4CBED5B18DAECB71E4\":[(0,10)],\"035C0841F8F62271F3058F37B32193360322BBF0C4E85E00F07BCB10492E91A2BD\":[(0,10)],\"7242DC4F1D89513CBA236C895B117BC7D0ABD6DC8336E202D93FB266E582C79624\":[(0,-20)]},\"vals\":[\"04158913328E4469124B33A5D421665A36891B7BCB8183A22CC3D78239A89073FEB7432E6477663CDE2E032A56687617800B97FC0EBD9F3AC30F683B6C4A89D1D8\":\"30440220777A4E029CB67C20332425A1519514A08BACDE59FFFB1E81AC94DC7A7636F89A022078E7B2D4AF6400F72293B4AB7FE6D608BCAA83129C66A5E27527BEB82D9C6B04\"]}");
-  std::vector<uint8_t> data(str2Bin(validBlock));
-  auto valid = DevcashMessageUniquePtr(
-          new DevcashMessage("peers", PROPOSAL_BLOCK, data));
-  //pushConsensus(std::move(valid));
-  ConsensusCallback(std::move(valid));
-  LOG_DEBUG << "Proposal test pushed.";
-
-  /*std::string valid("\"sum\":{\"02514038DA1905561BF9043269B8515C1E7C4E79B011291B4CBED5B18DAECB71E4\":[(0,10)],\"035C0841F8F62271F3058F37B32193360322BBF0C4E85E00F07BCB10492E91A2BD\":[(0,10)],\"7242DC4F1D89513CBA236C895B117BC7D0ABD6DC8336E202D93FB266E582C79624\":[(0,-20)]},\"vals\":[\"0462CAF2CC08A7763A7F7B51590D016499079116E37892195E2AC8DE2DA54834D346558C56EE496104A4B533507948CEC5D8128AD2EDAE63BA0DC29F5D1D5AA5F3\":\"3046022100C6E6B8E1F1A5E64B7B5601D7D94FB8C0AEEB61F829C94DB2680A2BF6627FF36A022100B141E7370B4DD8086A94C4496F48A1F6D9A560678EF5EC0170444B15076FC9CB\",\"04158913328E4469124B33A5D421665A36891B7BCB8183A22CC3D78239A89073FEB7432E6477663CDE2E032A56687617800B97FC0EBD9F3AC30F683B6C4A89D1D8\":\"30440220777A4E029CB67C20332425A1519514A08BACDE59FFFB1E81AC94DC7A7636F89A022078E7B2D4AF6400F72293B4AB7FE6D608BCAA83129C66A5E27527BEB82D9C6B04\"]");
-  std::vector<uint8_t> data(str2Bin(valid));
-  auto v = DevcashMessageUniquePtr(
-            new DevcashMessage("peers", VALID, data));
-  ConsensusCallback(std::move(v));
-    //pushConsensus(std::move(v));
-    LOG_DEBUG << "Valid test pushed.";*/
-
-  /*std::string final_block("{\"prev\":\"\",\"merkle\":\"\",\"bytes\":0,\"time\":0,\"txlen\":0,\"sumlen\":0,\"vlen\":0,\"txs\":[],\"sum\":{},\"vals\":[\"0462CAF2CC08A7763A7F7B51590D016499079116E37892195E2AC8DE2DA54834D346558C56EE496104A4B533507948CEC5D8128AD2EDAE63BA0DC29F5D1D5AA5F3\":\"3046022100C6E6B8E1F1A5E64B7B5601D7D94FB8C0AEEB61F829C94DB2680A2BF6627FF36A022100B141E7370B4DD8086A94C4496F48A1F6D9A560678EF5EC0170444B15076FC\",\"04158913328E4469124B33A5D421665A36891B7BCB8183A22CC3D78239A89073FEB7432E6477663CDE2E032A56687617800B97FC0EBD9F3AC30F683B6C4A89D\":\"30440220777A4E029CB67C20332425A1519514A08BACDE59FFFB1E81AC94DC7A7636F89A022078E7B2D4AF6400F72293B4AB7FE6D608BCAA83129C66A5E27527BEB82D9C6B\"]}");
-  std::vector<uint8_t> data2(str2Bin(final_block));
-    auto v = DevcashMessageUniquePtr(
-              new DevcashMessage("peers", FINAL_BLOCK, data2));
-    //ConsensusCallback(std::move(v));
-    LOG_DEBUG << "Final block test pushed.";*/
 
   return true;
 }
