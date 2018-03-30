@@ -92,6 +92,9 @@ int main(int argc, char* argv[])
         return false;
       }
       LOG_INFO << "Sanity checks passed";
+      if (options->debug_mode == eDebugMode::toy) {
+        this_node.RunNetworkTest(options->node_index);
+      }
       out = this_node.RunNode(in_raw);
     }
 

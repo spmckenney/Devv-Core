@@ -312,6 +312,7 @@ bool DevcashController::postTransactions() {
 void DevcashController::StartToy(unsigned int node_index) {
   workers_->start();
 
+  LOG_DEBUG << "READY? StartToy()";
   client_.AttachCallback([this](DevcashMessageUniquePtr ptr) {
       if (ptr->message_type == TRANSACTION_ANNOUNCEMENT) {
           pushValidator(std::move(ptr));
@@ -324,10 +325,14 @@ void DevcashController::StartToy(unsigned int node_index) {
   client_.StartClient();
 
 
+  std::string uri = "RemoteURI-" + std::to_string(node_index);
+  client_.ListenTo(uri);
+  std::string peer = "peer";
+  client_.ListenTo(peer);
+
   sleep(10);
 
   for (;;) {
-    std::string uri = "RemoteURI-" + std::to_string(node_index);
     std::vector<uint8_t> data(100);
     auto startMsg = std::make_unique<DevcashMessage>(uri,
                                                      TRANSACTION_ANNOUNCEMENT,
