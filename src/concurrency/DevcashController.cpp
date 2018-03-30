@@ -276,7 +276,7 @@ bool DevcashController::postTransactions() {
     unsigned int upcoming_height = upcoming_chain_.size();
     LOG_DEBUG << "Seed block height "+std::to_string(seeds_at_)+
         " ready for height: "+std::to_string(upcoming_height-1);
-    if (seeds_at_ > upcoming_height) return true;
+    if (seeds_at_ > upcoming_height-1) return true;
     int counter = 0;
     if (seeds_.size() > upcoming_height) {
       LOG_DEBUG << "Posting block height "+std::to_string(seeds_at_);
