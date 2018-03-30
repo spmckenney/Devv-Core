@@ -22,11 +22,11 @@
 #define SRC_PRIMITIVES_VALIDATION_H_
 
 #include <stdint.h>
-#include <map>
 #include <mutex>
 #include <unordered_map>
 #include <vector>
 #include <string>
+#include <boost/container/flat_map.hpp>
 
 namespace Devcash
 {
@@ -98,7 +98,8 @@ class DCSummary {
   */
   bool isSane();
 
-   std::map<std::string, coinmap> summary_;
+   typedef boost::container::flat_map<std::string, coinmap> SummaryMap;
+   SummaryMap summary_;
    std::mutex lock_;
 };
 
