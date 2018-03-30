@@ -139,8 +139,7 @@ bool DevcashNode::SanityChecks()
       return false;
     }
 
-    //std::string msg("hello");
-    std::string msg("\"oper\":\"exchange\",\"type\":\"dnero\",\"xfer\":[{\"addr\":\"035C0841F8F62271F3058F37B32193360322BBF0C4E85E00F07BCB10492E91A2BD\",\"amount\":-10},{\"addr\":\"02514038DA1905561BF9043269B8515C1E7C4E79B011291B4CBED5B18DAECB71E4\",\"amount\":2},{\"addr\":\"035C0841F8F62271F3058F37B32193360322BBF0C4E85E00F07BCB10492E91A2BD\",\"amount\":8}],\"nonce\":1518021688");
+    std::string msg("hello");
     std::string hash(strHash(msg));
 
     EC_KEY* loadkey = loadEcKey(ctx,
