@@ -41,15 +41,9 @@ ProposedBlock::ProposedBlock(std::vector<DCTransaction>& txs,
     , block_height_(previousBlock.block_height_+1) {
 }
 
-bool ProposedBlock::addTransaction(DCTransaction newTx, KeyRing& keys) {
-  LOG_DEBUG << "Add transaction: "+newTx.ToJSON();
-  /*if (newTx.isValid(DCBlock::block_state_, keys, DCBlock::vals_.summaryObj_)) {
-    DCBlock::vtx_.push_back(newTx);
-  } else {
-    LOG_WARNING << "Invalid transaction:"+newTx.ToJSON();
-    return false;
-  }*/
-  return true;
+bool ProposedBlock::addTransaction(std::string txStr, KeyRing& keys) {
+  LOG_DEBUG << "Add transaction: "+txStr;
+  return DCBlock::addTransaction(txStr, keys);
 }
 
 bool ProposedBlock::validateBlock(KeyRing& keys) {

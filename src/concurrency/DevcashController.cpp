@@ -14,12 +14,12 @@
 #include <string>
 
 #include "DevcashWorker.h"
-#include "common/devcash_context.h"
-#include "common/util.h"
-#include "io/message_service.h"
-#include "consensus/finalblock.h"
-#include "consensus/proposedblock.h"
-#include "consensus/KeyRing.h"
+#include "../common/devcash_context.h"
+#include "../common/util.h"
+#include "../io/message_service.h"
+#include "../consensus/finalblock.h"
+#include "../consensus/proposedblock.h"
+#include "../consensus/KeyRing.h"
 
 namespace Devcash {
 
@@ -35,16 +35,16 @@ std::string DevcashController::getHighestMerkleRoot() {
 }
 
 bool DevcashController::CreateNextProposal() {
-  ProposedPtr next_proposal = upcoming_chain_.back();
   unsigned int block_height = final_chain_.size();
+  ProposedPtr next_proposal = upcoming_chain_.at(block_height);
   LOG_INFO << "Upcoming #"+std::to_string(block_height)+" has "
       +std::to_string(next_proposal->vtx_.size())+" transactions.";
   if (block_height%context_.peer_count == context_.current_node_) {
     LOG_INFO << "This node's turn to create proposal.";
-    ProposedPtr upcoming_ptr = std::make_shared<ProposedBlock>(""
+    /*ProposedPtr upcoming_ptr = std::make_shared<ProposedBlock>(""
         , upcoming_chain_.size(), keys_);
     upcoming_ptr->setBlockState(next_proposal->block_state_);
-    upcoming_chain_.push_back(upcoming_ptr);
+    upcoming_chain_.push_back(upcoming_ptr);*/
     ProposedPtr proposal_ptr = std::make_shared<ProposedBlock>(next_proposal->vtx_
         , next_proposal->vals_, next_proposal->block_height_);
     proposed_chain_.push_back(proposal_ptr);
@@ -57,7 +57,7 @@ bool DevcashController::CreateNextProposal() {
     std::string proposal_str = proposal->ToJSON();
     LOG_DEBUG << "Propose Block: "+proposal_str;
     std::vector<uint8_t> data(str2Bin(proposal_str));
-  auto propose_msg = std::make_unique<DevcashMessage>("peers", PROPOSAL_BLOCK, data);
+  auto propose_msg = make_unique<DevcashMessage>("peers", PROPOSAL_BLOCK, data);
     server_.QueueMessage(std::move(propose_msg));
     return true;
   } else if (waiting_ == 0) {
@@ -80,8 +80,9 @@ void DevcashController::ValidatorCallback(DevcashMessageUniquePtr ptr) {
   LOG_DEBUG << "DevcashController::ValidatorCallback()";
   if (ptr->message_type == TRANSACTION_ANNOUNCEMENT) {
     DevcashMessage msg(*ptr.get());
-    DCTransaction new_tx(bin2Str(msg.data));
-    upcoming_chain_.back()->addTransaction(new_tx, keys_);
+    std::string tx_str = bin2Str(msg.data);
+    LOG_DEBUG << "New transaction: "+tx_str;
+    upcoming_chain_.back()->addTransaction(tx_str, keys_);
   } else {
     LOG_DEBUG << "Unexpected message @ validator, to consensus.\n";
     pushConsensus(std::move(ptr));
@@ -122,14 +123,14 @@ void DevcashController::ConsensusCallback(DevcashMessageUniquePtr ptr) {
     DevcashMessage msg(*ptr.get());
     std::string raw_str = bin2Str(msg.data);
     LOG_DEBUG << "Received block proposal: "+raw_str;
-    ProposedPtr upcoming_top = upcoming_chain_.back();
-    ProposedPtr upcoming_ptr = std::make_shared<ProposedBlock>(""
+    unsigned int block_height = final_chain_.size();
+    ProposedPtr next_proposal = upcoming_chain_.at(block_height);
+    /*ProposedPtr upcoming_ptr = std::make_shared<ProposedBlock>(""
         , upcoming_chain_.size(), keys_);
-    upcoming_ptr->setBlockState(upcoming_top->block_state_);
-    ProposedPtr new_proposal = std::make_shared<ProposedBlock>(raw_str, upcoming_chain_.size()
+    upcoming_ptr->setBlockState(upcoming_top->block_state_);*/
+    ProposedPtr new_proposal = std::make_shared<ProposedBlock>(raw_str, final_chain_.size()
         , keys_);
-    new_proposal->setBlockState(upcoming_top->block_state_);
-    upcoming_chain_.push_back(upcoming_ptr);
+    new_proposal->setBlockState(next_proposal->block_state_);
     if (new_proposal->validateBlock(keys_)) {
       LOG_DEBUG << "Proposed block is valid.";
       proposed_chain_.push_back(new_proposal);
@@ -177,7 +178,7 @@ void DevcashController::ConsensusCallback(DevcashMessageUniquePtr ptr) {
       std::string final_str = top_block->ToJSON();
       LOG_DEBUG << "Final block: "+final_str;
       std::vector<uint8_t> data(str2Bin(final_str));
-      auto finalBlock = std::make_unique<DevcashMessage>("peers", FINAL_BLOCK, data);
+      auto finalBlock = make_unique<DevcashMessage>("peers", FINAL_BLOCK, data);
       server_.QueueMessage(std::move(finalBlock));
     } else {
       unsigned int vals = proposed_chain_.back()->vals_.GetValidationCount();
@@ -251,16 +252,18 @@ void DevcashController::seedTransactions(std::string txs) {
             stopAll();
           }
           std::string txSubstr(toParse.substr(dex, eDex-dex+2));
+          postAdvanceTransactions(txSubstr);
           seeds_.push_back(txSubstr);
           break;
         } else {
           std::string txSubstr(toParse.substr(dex, eDex-dex+2));
           seeds_.push_back(txSubstr);
+          postAdvanceTransactions(txSubstr);
           dex = toParse.find("[", eDex);
         }
       }
       LOG_INFO << "Seeded input for "+std::to_string(seeds_.size())+" blocks.";
-      postTransactions();
+      //postTransactions();
     } else {
       LOG_FATAL << "Input has wrong syntax!";
       stopAll();
@@ -270,12 +273,52 @@ void DevcashController::seedTransactions(std::string txs) {
   }
 }
 
+bool DevcashController::postAdvanceTransactions(std::string inputTxs) {
+  CASH_TRY {
+    int counter = 0;
+    LOG_DEBUG << "Posting block height "+std::to_string(seeds_at_);
+    if (upcoming_chain_.size()-1 < seeds_at_) {
+      ProposedPtr next_proposal = upcoming_chain_.back();
+      ProposedPtr upcoming_ptr = std::make_shared<ProposedBlock>(""
+              , upcoming_chain_.size(), keys_);
+          upcoming_ptr->setBlockState(next_proposal->block_state_);
+          upcoming_chain_.push_back(upcoming_ptr);
+    }
+    ProposedPtr upcoming = upcoming_chain_.at(seeds_at_);
+    seeds_at_++;
+    size_t dex = inputTxs.find("\""+kOPER_TAG+"\":", 0);
+    size_t eDex = inputTxs.find(kSIG_TAG, dex);
+    eDex = inputTxs.find("}", eDex);
+    std::string oneTx = inputTxs.substr(dex-1, eDex-dex+2);
+    upcoming->addTransaction(oneTx, keys_);
+    counter++;
+    while (inputTxs.at(eDex+1) != ']' && eDex < inputTxs.size()-2) {
+      dex = inputTxs.find("{", eDex);
+      eDex = inputTxs.find(kSIG_TAG, dex);
+      eDex = inputTxs.find("}", eDex);
+      oneTx = inputTxs.substr(dex, eDex-dex+1);
+      LOG_DEBUG << "One tx: "+oneTx;
+      upcoming->addTransaction(oneTx, keys_);
+      counter++;
+    }
+    ProposedPtr next_proposal = upcoming_chain_.back();
+    unsigned int block_height = upcoming_chain_.size();
+    LOG_INFO << "POST Upcoming #"+std::to_string(block_height)+" has "
+        +std::to_string(next_proposal->vtx_.size())+" transactions.";
+    LOG_DEBUG << std::to_string(counter)+" transactions posted upcoming.";
+    return true;
+  } CASH_CATCH (const std::exception& e) {
+    LOG_WARNING << FormatException(&e, "DevcashController.postTransactions");
+  }
+  return false;
+}
+
 bool DevcashController::postTransactions() {
   CASH_TRY {
     unsigned int upcoming_height = upcoming_chain_.size();
     LOG_DEBUG << "Seed block height "+std::to_string(seeds_at_)+
         " ready for height: "+std::to_string(upcoming_height-1);
-    if (seeds_at_ > upcoming_height) return true;
+    if (seeds_at_ > upcoming_height-1) return true;
     int counter = 0;
     if (seeds_.size() > upcoming_height) {
       LOG_DEBUG << "Posting block height "+std::to_string(seeds_at_);
@@ -286,18 +329,21 @@ bool DevcashController::postTransactions() {
       size_t eDex = someTxs.find(kSIG_TAG, dex);
       eDex = someTxs.find("}", eDex);
       std::string oneTx = someTxs.substr(dex-1, eDex-dex+2);
-      DCTransaction new_tx(oneTx);
-      upcoming->addTransaction(new_tx, keys_);
+      upcoming->addTransaction(oneTx, keys_);
       counter++;
       while (someTxs.at(eDex+1) != ']' && eDex < someTxs.size()-2) {
         dex = someTxs.find("{", eDex);
         eDex = someTxs.find(kSIG_TAG, dex);
         eDex = someTxs.find("}", eDex);
-        oneTx = someTxs.substr(dex, eDex-dex);
-        DCTransaction next_tx(oneTx);
-        upcoming->addTransaction(next_tx, keys_);
+        oneTx = someTxs.substr(dex, eDex-dex+1);
+        LOG_DEBUG << "One tx: "+oneTx;
+        upcoming->addTransaction(oneTx, keys_);
         counter++;
       }
+      ProposedPtr next_proposal = upcoming_chain_.back();
+      unsigned int block_height = final_chain_.size();
+      LOG_INFO << "POST Upcoming #"+std::to_string(block_height)+" has "
+          +std::to_string(next_proposal->vtx_.size())+" transactions.";
       LOG_DEBUG << std::to_string(counter)+" transactions posted upcoming.";
     } else { //all input processed by the chain
       return false;
@@ -334,7 +380,7 @@ void DevcashController::StartToy(unsigned int node_index) {
 
   for (;;) {
     std::vector<uint8_t> data(100);
-    auto startMsg = std::make_unique<DevcashMessage>(uri,
+    auto startMsg = make_unique<DevcashMessage>(uri,
                                                      TRANSACTION_ANNOUNCEMENT,
                                                      data);
     server_.QueueMessage(std::move(startMsg));
@@ -342,7 +388,8 @@ void DevcashController::StartToy(unsigned int node_index) {
   }
 }
 
-bool DevcashController::start() {
+std::string DevcashController::start() {
+  std::string out;
   workers_->start();
 
   client_.AttachCallback([this](DevcashMessageUniquePtr ptr) {
@@ -384,23 +431,24 @@ bool DevcashController::start() {
 
 
   //Loop for long runs
-  /* bool transactions_to_post = postTransactions();
-   * auto ms = kMAIN_WAIT_INTERVAL;
+  bool transactions_to_post = postTransactions();
+  auto ms = kMAIN_WAIT_INTERVAL;
   while (true) {
     LOG_DEBUG << "Sleeping for " << ms;
     boost::this_thread::sleep_for(boost::chrono::milliseconds(ms));
     if (transactions_to_post)
       transactions_to_post = postTransactions();
     if (final_chain_.size() >= seeds_.size() ) {
-      return true; //EXIT_SUCCESS
+      break;
     }
-    //EXIT_FAILURE
-    if (shutdown) return false;
-   }
-   *
-   */
+    if (shutdown) break;
+  }
 
-  return true;
+  for(size_t i=0; i < final_chain_.size(); ++i) {
+    out += final_chain_.at(i)->ToJSON();
+  }
+
+  return out;
 }
 
 void DevcashController::stopAll() {

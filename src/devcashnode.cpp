@@ -139,8 +139,7 @@ bool DevcashNode::SanityChecks()
       return false;
     }
 
-    //std::string msg("hello");
-    std::string msg("\"oper\":\"exchange\",\"type\":\"dnero\",\"xfer\":[{\"addr\":\"035C0841F8F62271F3058F37B32193360322BBF0C4E85E00F07BCB10492E91A2BD\",\"amount\":-10},{\"addr\":\"02514038DA1905561BF9043269B8515C1E7C4E79B011291B4CBED5B18DAECB71E4\",\"amount\":2},{\"addr\":\"035C0841F8F62271F3058F37B32193360322BBF0C4E85E00F07BCB10492E91A2BD\",\"amount\":8}],\"nonce\":1518021688");
+    std::string msg("hello");
     std::string hash(strHash(msg));
 
     EC_KEY* loadkey = loadEcKey(ctx,
@@ -175,22 +174,17 @@ std::string DevcashNode::RunScanner(std::string inStr) {
 
 std::string DevcashNode::RunNode(std::string& inStr)
 {
-  std::string out("");
+  std::string out;
   CASH_TRY {
     control_.seedTransactions(inStr);
     LOG_INFO << "Start controller.";
     //TODO: start timing here
-    bool success = control_.start();
+    out += control_.start();
 
-    if (success) {
-      LOG_INFO << "Run succeeded.";
-      //TODO: end timing here
-    } else {
-      LOG_INFO << "Run failed.";
-    }
+    //TODO: end timing here
 
     LOG_INFO << "Starting shutdown";
-    //StartShutdown();
+    StartShutdown();
 
   } CASH_CATCH (const std::exception& e) {
     LOG_FATAL << FormatException(&e, "DevcashNode.RunScanner");
