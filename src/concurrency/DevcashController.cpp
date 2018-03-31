@@ -21,6 +21,8 @@
 #include "../consensus/proposedblock.h"
 #include "../consensus/KeyRing.h"
 
+typedef std::chrono::milliseconds millisecs;
+
 namespace Devcash {
 
 using namespace Devcash;
@@ -37,9 +39,11 @@ std::string DevcashController::getHighestMerkleRoot() {
 bool DevcashController::CreateNextProposal() {
   unsigned int block_height = final_chain_.size();
   ProposedPtr next_proposal = upcoming_chain_.at(block_height);
+
   LOG_INFO << "Upcoming #"+std::to_string(block_height)+" has "
-      +std::to_string(next_proposal->vtx_.size())+" transactions.";
-  if (block_height%context_.peer_count == context_.current_node_) {
+    +std::to_string(next_proposal->vtx_.size())+" transactions.";
+
+  if (block_height%context_.get_peer_count() == context_.get_current_node()) {
     LOG_INFO << "This node's turn to create proposal.";
     /*ProposedPtr upcoming_ptr = std::make_shared<ProposedBlock>(""
         , upcoming_chain_.size(), keys_);
@@ -52,22 +56,22 @@ bool DevcashController::CreateNextProposal() {
     LOG_INFO << "Proposal #"+std::to_string(block_height)+" has "
         +std::to_string(proposal->vtx_.size())+" transactions.";
     proposal->validate(keys_);
-    proposal->signBlock(keys_.getNodeKey(context_.current_node_),
-        context_.kNODE_ADDRs[context_.current_node_]);
+    proposal->signBlock(keys_.getNodeKey(context_.get_current_node()),
+        context_.kNODE_ADDRs[context_.get_current_node()]);
     std::string proposal_str = proposal->ToJSON();
     LOG_DEBUG << "Propose Block: "+proposal_str;
     std::vector<uint8_t> data(str2Bin(proposal_str));
-  auto propose_msg = make_unique<DevcashMessage>("peers", PROPOSAL_BLOCK, data);
+    auto propose_msg = std::make_unique<DevcashMessage>("peers", PROPOSAL_BLOCK, data);
     server_.QueueMessage(std::move(propose_msg));
     return true;
   } else if (waiting_ == 0) {
-    std::chrono::milliseconds ms = std::chrono::duration_cast<std::chrono::milliseconds>
-      (std::chrono::system_clock::now().time_since_epoch());
+    millisecs ms =
+      std::chrono::duration_cast<millisecs>(std::chrono::system_clock::now().time_since_epoch());
     waiting_ = ms.count();
   } else {
-    std::chrono::milliseconds ms = std::chrono::duration_cast<std::chrono::milliseconds>
-          (std::chrono::system_clock::now().time_since_epoch());
-     if (ms.count() > waiting_+kPROPOSAL_TIMEOUT) {
+    millisecs ms =
+      std::chrono::duration_cast<millisecs>(std::chrono::system_clock::now().time_since_epoch());
+    if (ms.count() > static_cast<int>(waiting_ + kPROPOSAL_TIMEOUT)) {
        LOG_FATAL << "Proposal timed out at block #"
            +std::to_string(block_height);
        stopAll();
@@ -134,14 +138,17 @@ void DevcashController::ConsensusCallback(DevcashMessageUniquePtr ptr) {
     if (new_proposal->validateBlock(keys_)) {
       LOG_DEBUG << "Proposed block is valid.";
       proposed_chain_.push_back(new_proposal);
-      new_proposal->signBlock(keys_.getNodeKey(context_.current_node_),
-          context_.kNODE_ADDRs[context_.current_node_]);
-      int proposer = proposed_chain_.size()%context_.peer_count;
+      new_proposal->signBlock(keys_.getNodeKey(context_.get_current_node()),
+          context_.kNODE_ADDRs[context_.get_current_node()]);
+      int proposer = proposed_chain_.size()%context_.get_peer_count();
       raw_str = new_proposal->vals_.ToJSON();
       LOG_DEBUG << "Validation: "+raw_str;
       std::vector<uint8_t> data(str2Bin(raw_str));
-      auto valid = std::unique_ptr<DevcashMessage>(
-        new DevcashMessage("RemoteURI-"+proposer, VALID,data));
+
+      std::string remote_uri = context_.get_uri_from_index(proposer);
+      auto valid = std::make_unique<DevcashMessage>(remote_uri,
+                                                    VALID,
+                                                    data);
       server_.QueueMessage(std::move(valid));
     } else {
       LOG_FATAL << "Proposed Block is invalid!\n"+
@@ -159,7 +166,7 @@ void DevcashController::ConsensusCallback(DevcashMessageUniquePtr ptr) {
     std::string rawVal = bin2Str(msg.data);
     LOG_DEBUG << "Received block validation: "+rawVal;
     unsigned int block_height = final_chain_.size();
-    if (block_height%context_.peer_count != context_.current_node_) {
+    if (block_height%context_.get_peer_count() != context_.get_current_node()) {
       LOG_WARNING << "Got a VALID message, but this node did not propose!";
       return;
     }
@@ -178,7 +185,7 @@ void DevcashController::ConsensusCallback(DevcashMessageUniquePtr ptr) {
       std::string final_str = top_block->ToJSON();
       LOG_DEBUG << "Final block: "+final_str;
       std::vector<uint8_t> data(str2Bin(final_str));
-      auto finalBlock = make_unique<DevcashMessage>("peers", FINAL_BLOCK, data);
+      auto finalBlock = std::make_unique<DevcashMessage>("peers", FINAL_BLOCK, data);
       server_.QueueMessage(std::move(finalBlock));
     } else {
       unsigned int vals = proposed_chain_.back()->vals_.GetValidationCount();
@@ -194,18 +201,18 @@ void DevcashController::ConsensusCallback(DevcashMessageUniquePtr ptr) {
 
 void DevcashController::ValidatorToyCallback(DevcashMessageUniquePtr ptr) {
   LOG_DEBUG << "DevcashController::ValidatorToyCallback()";
-  if (validator_flipper) {
+  if (validator_flipper_) {
     pushConsensus(std::move(ptr));
   }
-  validator_flipper = !validator_flipper;
+  validator_flipper_ = !validator_flipper_;
 }
 
 void DevcashController::ConsensusToyCallback(DevcashMessageUniquePtr ptr) {
   LOG_DEBUG << "DevcashController()::ConsensusToyCallback()";
-  if (consensus_flipper) {
+  if (consensus_flipper_) {
     server_.QueueMessage(std::move(ptr));
   }
-  consensus_flipper = !consensus_flipper;
+  consensus_flipper_ = !consensus_flipper_;
 }
 
 DevcashController::DevcashController(io::TransactionServer& server,
@@ -273,7 +280,7 @@ void DevcashController::seedTransactions(std::string txs) {
   }
 }
 
-bool DevcashController::postAdvanceTransactions(std::string inputTxs) {
+bool DevcashController::postAdvanceTransactions(const std::string& inputTxs) {
   CASH_TRY {
     int counter = 0;
     LOG_DEBUG << "Posting block height "+std::to_string(seeds_at_);
@@ -318,7 +325,7 @@ bool DevcashController::postTransactions() {
     unsigned int upcoming_height = upcoming_chain_.size();
     LOG_DEBUG << "Seed block height "+std::to_string(seeds_at_)+
         " ready for height: "+std::to_string(upcoming_height-1);
-    if (seeds_at_ > upcoming_height-1) return true;
+    if (seeds_at_ > upcoming_height) return true;
     int counter = 0;
     if (seeds_.size() > upcoming_height) {
       LOG_DEBUG << "Posting block height "+std::to_string(seeds_at_);
@@ -380,15 +387,15 @@ void DevcashController::StartToy(unsigned int node_index) {
 
   for (;;) {
     std::vector<uint8_t> data(100);
-    auto startMsg = make_unique<DevcashMessage>(uri,
+    auto startMsg = std::make_unique<DevcashMessage>(uri,
                                                      TRANSACTION_ANNOUNCEMENT,
                                                      data);
     server_.QueueMessage(std::move(startMsg));
-    sleep(60);
+    sleep(10);
   }
 }
 
-std::string DevcashController::start() {
+std::string DevcashController::Start() {
   std::string out;
   workers_->start();
 
@@ -400,48 +407,28 @@ std::string DevcashController::start() {
       }
   });
 
+  client_.ListenTo("peer");
+  client_.ListenTo(context_.get_uri());
+
+  server_.StartServer();
+  client_.StartClient();
+
+  LOG_INFO << "Starting a control sleep";
+  sleep(10);
   CreateNextProposal();
 
-  //run as node 0
-  /*std::string valid("\"sum\":{\"02514038DA1905561BF9043269B8515C1E7C4E79B011291B4CBED5B18DAECB71E4\":[(0,10)],\"035C0841F8F62271F3058F37B32193360322BBF0C4E85E00F07BCB10492E91A2BD\":[(0,10)],\"7242DC4F1D89513CBA236C895B117BC7D0ABD6DC8336E202D93FB266E582C79624\":[(0,-20)]},\"vals\":[\"04B14F28DA8C0389BC385BA3865DB3FC7FAFA8FA4715C0ADAADAC52F2EB3E7FDCD695B439F9ACDCC90E55C1F9C48D7EB5B3BFD6C64EC89B1A6108F4B1B01A3FCA4\":\"30440220661C2A266DD00E1850172AFC11BBB9772FAA687B00D21A0FDB4EC6FB1EF14516022000EEF25E079C694304BD33BF1DAA8A3C58EF612BF95DCB4BC7F1754707B60D84\",\"04158913328E4469124B33A5D421665A36891B7BCB8183A22CC3D78239A89073FEB7432E6477663CDE2E032A56687617800B97FC0EBD9F3AC30F683B6C4A89D1D8\":\"304402203631D6DE6614642A2356E04A5A80BDEF8BEB1E4D5411BE77088036E04883C21A022071B0D47AA66F5A243861068D5597256D2D378E405FFB2BC479A62632044A2BE4\"]");
-  std::vector<uint8_t> data(str2Bin(valid));
-  auto v = DevcashMessageUniquePtr(
-            new DevcashMessage("peers", VALID, data));
-  ConsensusCallback(std::move(v));
-  LOG_DEBUG << "Valid test complete.";*/
-  //end run as node 0
-
-  //run as node 1/2
-  /*std::string validBlock("{\"prev\":\"\",\"merkle\":\"\",\"bytes\":0,\"time\":0,\"txlen\":0,\"sumlen\":0,\"vlen\":0,\"txs\":[{\"oper\":0,\"xfer\":[{\"addr\":\"7242DC4F1D89513CBA236C895B117BC7D0ABD6DC8336E202D93FB266E582C79624\",\"type\":0,\"amount\":-20},{\"addr\":\"02514038DA1905561BF9043269B8515C1E7C4E79B011291B4CBED5B18DAECB71E4\",\"type\":0,\"amount\":10},{\"addr\":\"035C0841F8F62271F3058F37B32193360322BBF0C4E85E00F07BCB10492E91A2BD\",\"type\":0,\"amount\":10}],\"nonce\":1521706664,\"sig\":\"304402206C7179523F204125D3C63F9817460B211784B071B608625933E646F46CD5BAD10220088BBA2D10EE2EBA3A1D5BB40A323D5CBD2CD7946A315104F4FAA2A3B582DFF0\"}],\"sum\":{\"02514038DA1905561BF9043269B8515C1E7C4E79B011291B4CBED5B18DAECB71E4\":[(0,10)],\"035C0841F8F62271F3058F37B32193360322BBF0C4E85E00F07BCB10492E91A2BD\":[(0,10)],\"7242DC4F1D89513CBA236C895B117BC7D0ABD6DC8336E202D93FB266E582C79624\":[(0,-20)]},\"vals\":[\"04158913328E4469124B33A5D421665A36891B7BCB8183A22CC3D78239A89073FEB7432E6477663CDE2E032A56687617800B97FC0EBD9F3AC30F683B6C4A89D1D8\":\"304402203631D6DE6614642A2356E04A5A80BDEF8BEB1E4D5411BE77088036E04883C21A022071B0D47AA66F5A243861068D5597256D2D378E405FFB2BC479A62632044A2BE4\"]}");
-  std::vector<uint8_t> data(str2Bin(validBlock));
-  auto valid = DevcashMessageUniquePtr(
-          new DevcashMessage("peers", PROPOSAL_BLOCK, data));
-  ConsensusCallback(std::move(valid));
-  LOG_DEBUG << "Proposal test complete.";
-
-  postTransactions();
-
-  std::string final_block("{\"prev\":\"Genesis\",\"merkle\":\"8AB95FBBF98096B40FD613022D89641ABB21ECD285CFFA521E22F3955644E0EC\",\"bytes\":1796,\"time\":1522385072962,\"txlen\":485,\"sumlen\":236,\"vlen\":1075,\"txs\":[{\"oper\":0,\"xfer\":[{\"addr\":\"7242DC4F1D89513CBA236C895B117BC7D0ABD6DC8336E202D93FB266E582C79624\",\"type\":0,\"amount\":-20},{\"addr\":\"02514038DA1905561BF9043269B8515C1E7C4E79B011291B4CBED5B18DAECB71E4\",\"type\":0,\"amount\":10},{\"addr\":\"035C0841F8F62271F3058F37B32193360322BBF0C4E85E00F07BCB10492E91A2BD\",\"type\":0,\"amount\":10}],\"nonce\":1521706664,\"sig\":\"304402206C7179523F204125D3C63F9817460B211784B071B608625933E646F46CD5BAD10220088BBA2D10EE2EBA3A1D5BB40A323D5CBD2CD7946A315104F4FAA2A3B582DFF0\"}],\"sum\":{\"02514038DA1905561BF9043269B8515C1E7C4E79B011291B4CBED5B18DAECB71E4\":[(0,10)],\"035C0841F8F62271F3058F37B32193360322BBF0C4E85E00F07BCB10492E91A2BD\":[(0,10)],\"7242DC4F1D89513CBA236C895B117BC7D0ABD6DC8336E202D93FB266E582C79624\":[(0,-20)]},\"vals\":[\"04B14F28DA8C0389BC385BA3865DB3FC7FAFA8FA4715C0ADAADAC52F2EB3E7FDCD695B439F9ACDCC90E55C1F9C48D7EB5B3BFD6C64EC89B1A6108F4B1B01A3FCA4\":\"30440220661C2A266DD00E1850172AFC11BBB9772FAA687B00D21A0FDB4EC6FB1EF14516022000EEF25E079C694304BD33BF1DAA8A3C58EF612BF95DCB4BC7F1754707B60\",\"04158913328E4469124B33A5D421665A36891B7BCB8183A22CC3D78239A89073FEB7432E6477663CDE2E032A56687617800B97FC0EBD9F3AC30F683B6C4A89D\":\"304402203631D6DE6614642A2356E04A5A80BDEF8BEB1E4D5411BE77088036E04883C21A022071B0D47AA66F5A243861068D5597256D2D378E405FFB2BC479A62632044A2B\",\"04158913328E4469124B33A5D421665A36891B7BCB8183A22CC3D78239A89073FEB7432E6477663CDE2E032A56687617800B97FC0EBD9F3AC30F683B6C4A89D1D8\":\"3046022100D1D889E2EC239A5512CBA5952DE72E2C53B4E04F5522B59E87EE1F3FC5C40802022100B49AD415EF15EB8035D76BACC3F755AB323274C2C2A0FFCB9FCC369531D2B363\"]}");
-  std::vector<uint8_t> final_data(str2Bin(final_block));
-  auto v = DevcashMessageUniquePtr(
-           new DevcashMessage("peers", FINAL_BLOCK, final_data));
-  ConsensusCallback(std::move(v));
-  LOG_DEBUG << "Final block test complete.";*/
-  //end run as node 1/2
-
-
-  //Loop for long runs
+  // Loop for long runs
   bool transactions_to_post = postTransactions();
   auto ms = kMAIN_WAIT_INTERVAL;
   while (true) {
     LOG_DEBUG << "Sleeping for " << ms;
-    boost::this_thread::sleep_for(boost::chrono::milliseconds(ms));
+    std::this_thread::sleep_for(millisecs(ms));
     if (transactions_to_post)
       transactions_to_post = postTransactions();
     if (final_chain_.size() >= seeds_.size() ) {
       break;
     }
-    if (shutdown) break;
+    if (shutdown_) break;
   }
 
   for(size_t i=0; i < final_chain_.size(); ++i) {
@@ -452,7 +439,7 @@ std::string DevcashController::start() {
 }
 
 void DevcashController::stopAll() {
-  shutdown = true;
+  shutdown_ = true;
   workers_->stopAll();
 }
 

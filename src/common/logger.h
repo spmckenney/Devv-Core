@@ -48,7 +48,7 @@ static void init_log(void)
 // just a helper macro used by the macros below - don't use it in your code
 #define LOG(severity) \
   BOOST_LOG_SEV(logger::get(), boost::log::trivial::severity) \
-  << __FILENAME__ << ":" << __LINE__ << " TID[" << std::this_thread::get_id() << "] -> "
+  << __FILE__ << ":" << __LINE__ << " TID[" << std::this_thread::get_id() << "] -> "
 
 // ===== log macros =====
 #define LOG_TRACE LOG(trace)

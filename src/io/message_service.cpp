@@ -93,7 +93,8 @@ TransactionClient::Run() {
   for (auto endpoint : peer_urls_) {
     sub_socket_->connect(endpoint);
     for ( auto filter : filter_vector_) {
-      LOG_DEBUG << "sub_socket_->setsockopt(ZMQ_SUBSCRIBE, " << filter.c_str() << ", " << filter.size() << ")";
+      LOG_DEBUG << "ZMQ_SUBSCRIBE: '" << endpoint
+                << ":" << filter << "'";
       sub_socket_->setsockopt(ZMQ_SUBSCRIBE, filter.c_str(), filter.size());
     }
 
@@ -111,7 +112,7 @@ TransactionClient::StartClient() {
 }
 
 void
-TransactionClient::ListenTo(std::string& filter) {
+TransactionClient::ListenTo(const std::string& filter) {
   filter_vector_.push_back(filter);
 }
 

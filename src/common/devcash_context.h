@@ -25,10 +25,49 @@ static const int kACTIVATION_ROUNDS = 334;
 static const unsigned int kPROPOSAL_TIMEOUT = 60000;
 static const int kVALIDATION_PERCENT = 51;
 
-class DevcashContext {
- public:
+struct DevcashContext {
+
+  /**
+   * Default constructor
+   */
+  DevcashContext() : current_node_(-1),app_mode_(scan) {}
+
+  /**
+   * Constructor
+   */
+  DevcashContext(unsigned int current_node, eAppMode mode)
+    : current_node_(current_node)
+    , app_mode_(mode)
+    , uri_(get_uri_from_index(current_node))
+  {}
+
+  /**
+   * Constructor
+   */
+  DevcashContext(std::string innPk,
+                 std::string innPubKey,
+                 std::vector<std::string>& addrPks,
+                 std::vector<std::string>& addrPubKeys,
+                 std::vector<std::string>& nodePks,
+                 std::vector<std::string>& nodePubKeys,
+                 int thisNode,
+                 eAppMode mode,
+                 std::string& uri)
+    : kINN_KEY(innPk)
+    , kINN_ADDR(innPubKey)
+    , kADDRs(addrPks)
+    , kADDR_KEYs(addrPubKeys)
+    , kNODE_KEYs(nodePks)
+    , kNODE_ADDRs(nodePubKeys)
+    , current_node_(thisNode)
+    , app_mode_(mode)
+    , uri_(uri)
+  {}
+
   const std::string kINN_KEY = "-----BEGIN ENCRYPTED PRIVATE KEY-----\nMIHeMEkGCSqGSIb3DQEFDTA8MBsGCSqGSIb3DQEFDDAOBAgBcpJHkg56mAICCAAw\nHQYJYIZIAWUDBAECBBCHa2RxQu9uIGCnJXiJjMF2BIGQcnO7UeEAHFauiaheEQPW\nn5cgO1sAlY7r3kMWgX4d5qu0DnEVzNN6F4RkQDbyvWwS1YHzdVn17oynnqtL9RS6\nqYrt1xhFFwp6Z+R/uqSk+3xZgMSYf2wpUJ9pqhm0JBTqOelZ37yF57+585ez4ujD\nA1gnH1w36y5hnZqRWVvi3eRXxCr5wqF8dNwFuxLpAuse\n-----END ENCRYPTED PRIVATE KEY-----";
+
   const std::string kINN_ADDR = "0242DC4F1D89513CBA236C895B117BC7D0ABD6DC8336E202D93FB266E582C79624";
+
   const std::vector<std::string> kADDRs = {
       "02514038DA1905561BF9043269B8515C1E7C4E79B011291B4CBED5B18DAECB71E4",
       "035C0841F8F62271F3058F37B32193360322BBF0C4E85E00F07BCB10492E91A2BD",
@@ -37,6 +76,7 @@ class DevcashContext {
       "025054C2E2C8878B5F0573332CD6556BEB3962E723E35C77582125D766DCBDA567",
       "022977B063FF1AA08758B0F5CBDA720CBC055DFE991741C4F01F110ECAB5789D03"
   };
+
   const std::vector<std::string> kADDR_KEYs = {
       "-----BEGIN ENCRYPTED PRIVATE KEY-----\nMIHeMEkGCSqGSIb3DQEFDTA8MBsGCSqGSIb3DQEFDDAOBAh8ZjsVLSSMlgICCAAw\nHQYJYIZIAWUDBAECBBBcQGPzeImxYCj108A3DM8CBIGQjDAPienFMoBGwid4R5BL\nwptYiJbxAfG7EtQ0SIXqks8oBIDre0n7wd+nq3NRecDANwSzCdyC3IeCdKx87eEf\nkspgo8cjNlEKUVVg9NR2wbVp5+UClmQH7LCsZB5HAxF4ijHaSDNe5hD6gOZqpXi3\nf5eNexJ2fH+OqKd5T9kytJyoK3MAXFS9ckt5JxRlp6bf\n-----END ENCRYPTED PRIVATE KEY-----",
       "-----BEGIN ENCRYPTED PRIVATE KEY-----\nMIHeMEkGCSqGSIb3DQEFDTA8MBsGCSqGSIb3DQEFDDAOBAj26KaMMBcx8gICCAAw\nHQYJYIZIAWUDBAECBBCAi3UqcRVw4celU/EfTYlwBIGQNWD5TjggnHK2yqDOq9uh\nRhQ9ZYWecLKFzirki+/nLdlk+MBIGQIZ/Ra4LStBc6pu0hv6HAEzjt9hhOAh2dLG\n28kieREpPY1vvNpfv3w9cQ5aH0iFoQXCxjwluGOpUBEmc212U56XivOE5DGchx81\nKxLIpWF4c8Jb3dwBdL4GuKCbt+x7AK+Hjj6XnUAhiNGN\n-----END ENCRYPTED PRIVATE KEY-----",
@@ -45,33 +85,43 @@ class DevcashContext {
       "-----BEGIN ENCRYPTED PRIVATE KEY-----\nMIHeMEkGCSqGSIb3DQEFDTA8MBsGCSqGSIb3DQEFDDAOBAh1BrpIaOV33AICCAAw\nHQYJYIZIAWUDBAECBBDJH6sU+1WQnLPNGK5Dwz1DBIGQg08MOyvhVV3UohqZ5Agy\nNNX7TMdmWC1rel35ur6GWM77Cl4uZvT4P56hinbrrtH4En5VUQTF70JVaCyzf5X9\nqGXKxOyFez4mWEK9gQWsYfFQSsjU+DW6Z6wb7pscwFQ4zL4o2+61M8PTTMm6WoyD\nd+9aeJvaUSIvYTWFkiHPuz52Uhyguyp+qcad/yokx7eI\n-----END ENCRYPTED PRIVATE KEY-----",
       "-----BEGIN ENCRYPTED PRIVATE KEY-----\nMIHeMEkGCSqGSIb3DQEFDTA8MBsGCSqGSIb3DQEFDDAOBAg/scbUqllDxgICCAAw\nHQYJYIZIAWUDBAECBBAPtIhz2lR4u4SoxGiwuEJnBIGQr0cLlguY/h/juBrESEq4\nk6TuOSyqg64tr7E/wRclcIP3CHpnQBvlyd2M3Rq2WCGOObhrJ7MvvoSk4Bm/evWO\nbgDW7HqC84OdNr49nJe/+1RyS8OglA+TFQi0HEQIHn+ePtygDpIdeyKGdXZkqbaN\npbioudfHPQ5Lv2CsEBmSvR6Eb/DyxOuz7JZtoSd55T3F\n-----END ENCRYPTED PRIVATE KEY-----"
   };
+
   const std::vector<std::string> kNODE_KEYs = {
       "-----BEGIN ENCRYPTED PRIVATE KEY-----\nMIHeMEkGCSqGSIb3DQEFDTA8MBsGCSqGSIb3DQEFDDAOBAhNiEofOPlL+AICCAAw\nHQYJYIZIAWUDBAECBBD1Og0jylm8xZp8YhvPePIaBIGQq8W9dHr+rmuwGQ3Jl324\nq3Bkk7JVFWutewCV4kQ1+h5ZdjMulglCLzC52IIGp7ZhesPys4WtVRA/SH0MwaIy\nAe6fcONjAIXJhy+AbG9HQ4xQLMwy76bFOJowkPN3Lk6xAfgIzdwliX8IA/HbG+PI\nqmw/unWjEslvadDLSuPZLRXKaUeMvttI7oZ7Sf7+O46d\n-----END ENCRYPTED PRIVATE KEY-----",
       "-----BEGIN ENCRYPTED PRIVATE KEY-----\nMIHeMEkGCSqGSIb3DQEFDTA8MBsGCSqGSIb3DQEFDDAOBAgHxfK/19g1OwICCAAw\nHQYJYIZIAWUDBAECBBBPOPI3ivjR3QUlnYaXF98TBIGQySq++0wFbYEAltbr2f3L\neovYXbBPWvXhL8+lFt1McSmVKaYIH014/7oJlz7nSBjUB5X0Y95iweQfDfCdSABK\nT4s46LvlcBd3Rq2GatHiCMuC3P/Q1du7dRBkQih5/Y32E3w2A+RIyg0+kyK8bfHM\nZyoQpAkTcYqzNnLfT4cd0b/EGu6oRQyk9YFYW5g+u+tF\n-----END ENCRYPTED PRIVATE KEY-----",
       "-----BEGIN ENCRYPTED PRIVATE KEY-----\nMIHeMEkGCSqGSIb3DQEFDTA8MBsGCSqGSIb3DQEFDDAOBAjGudWSMspaRwICCAAw\nHQYJYIZIAWUDBAECBBAa34VLNuJcsmZ6G0KvvusFBIGQY/uYVOM9zTs98p4N29qg\nI6XBprHCu+qGeEXGIEgXBSK6iDk6hW3BCnz5T74neqkDzPJK+t+bXDCRzu4eKU47\ncpPYtz04w5NLXAJjqHEXQA+uW7CIA+9NireczsLO2hfx/PsA3/MTOehzYxGKy2gu\nxOnxfeOwNioI3TPbVdZ/mw2T/7WdRIJeEqErb2Wt09Np\n-----END ENCRYPTED PRIVATE KEY-----"
   };
+
   const std::vector<std::string> kNODE_ADDRs = {
       "04158913328E4469124B33A5D421665A36891B7BCB8183A22CC3D78239A89073FEB7432E6477663CDE2E032A56687617800B97FC0EBD9F3AC30F683B6C4A89D1D8",
       "0462CAF2CC08A7763A7F7B51590D016499079116E37892195E2AC8DE2DA54834D346558C56EE496104A4B533507948CEC5D8128AD2EDAE63BA0DC29F5D1D5AA5F3",
       "04B14F28DA8C0389BC385BA3865DB3FC7FAFA8FA4715C0ADAADAC52F2EB3E7FDCD695B439F9ACDCC90E55C1F9C48D7EB5B3BFD6C64EC89B1A6108F4B1B01A3FCA4"
   };
 
-  const size_t peer_count = 3;
+  size_t get_peer_count() const { return peer_count_; }
+  unsigned int  get_current_node() const { return current_node_; }
+  eAppMode get_app_mode() const { return app_mode_; }
+  std::string get_uri() const { return uri_; }
 
+  std::string get_uri_from_index(unsigned int node_index) {
+    return (uri_prefix_ + std::to_string(node_index));
+  }
+
+private:
+  /** Number of connected peers */
+  const size_t peer_count_ = 3;
+
+  // Node indes of this process
   unsigned int current_node_;
+
+  // Process mode
   eAppMode app_mode_ = scan;
 
-  DevcashContext() : current_node_(-1),app_mode_(scan) {}
+  // Prefix for devcash uris
+  std::string uri_prefix_ = "RemoteURI-";
 
-  DevcashContext(unsigned int currentNode, eAppMode mode) : current_node_(currentNode), app_mode_(mode) {}
-
-  DevcashContext(std::string innPk, std::string innPubKey,
-    std::vector<std::string> addrPks,std::vector<std::string> addrPubKeys,
-    std::vector<std::string> nodePks,std::vector<std::string> nodePubKeys,
-    int thisNode, eAppMode mode) : kINN_KEY(innPk),
-    kINN_ADDR(innPubKey), kADDRs(addrPks), kADDR_KEYs(addrPubKeys),
-    kNODE_KEYs(nodePks), kNODE_ADDRs(nodePubKeys), current_node_(thisNode),
-    app_mode_(mode) {}
+  // This processes uri
+  std::string uri_;
 };
 
 } /* namespace Devcash */

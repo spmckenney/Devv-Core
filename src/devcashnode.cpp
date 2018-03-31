@@ -120,10 +120,10 @@ bool initCrypto()
 
 bool DevcashNode::Init()
 {
-  if (app_context_.current_node_ >= app_context_.kNODE_KEYs.size() ||
-      app_context_.current_node_ >= app_context_.kNODE_ADDRs.size()) {
+  if (app_context_.get_current_node() >= app_context_.kNODE_KEYs.size() ||
+      app_context_.get_current_node() >= app_context_.kNODE_ADDRs.size()) {
     LOG_FATAL << "Invalid node index: " <<
-      std::to_string(app_context_.current_node_);
+      std::to_string(app_context_.get_current_node());
     return false;
   }
   return initCrypto();
@@ -179,10 +179,12 @@ std::string DevcashNode::RunNode(std::string& inStr)
     control_.seedTransactions(inStr);
     LOG_INFO << "Start controller.";
     //TODO: start timing here
-    out += control_.start();
+    out += control_.Start();
 
     //TODO: end timing here
 
+    LOG_INFO << "Starting main sleep";
+    std::this_thread::sleep_for(std::chrono::milliseconds(600000));
     LOG_INFO << "Starting shutdown";
     StartShutdown();
 

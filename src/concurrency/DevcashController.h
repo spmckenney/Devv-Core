@@ -37,7 +37,11 @@ class DevcashController {
 
   void seedTransactions(std::string txs);
   void StartToy(unsigned int node_index);
-  std::string start();
+
+  /**
+   * Start the workers and comm threads
+   */
+  std::string Start();
   void stopAll();
   void pushConsensus(std::unique_ptr<DevcashMessage> ptr);
   void pushValidator(std::unique_ptr<DevcashMessage> ptr);
@@ -61,17 +65,17 @@ class DevcashController {
   std::vector<std::string> seeds_;
   unsigned int seeds_at_;
   DevcashControllerWorker* workers_;
-  bool validator_flipper = true;
-  bool consensus_flipper = true;
+  bool validator_flipper_ = true;
+  bool consensus_flipper_ = true;
 
  private:
-  bool shutdown = false;
-  uint64_t waiting_ = 0;
   bool postTransactions();
-  bool postAdvanceTransactions(std::string inputTxs);
+  bool postAdvanceTransactions(const std::string& inputTxs);
   std::string getHighestMerkleRoot();
   bool CreateNextProposal();
 
+  bool shutdown_ = false;
+  uint64_t waiting_ = 0;
 };
 
 } /* namespace Devcash */

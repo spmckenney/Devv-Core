@@ -163,7 +163,7 @@ bool DCBlock::validate(KeyRing& keys) {
   return true;
 }
 
-bool DCBlock::addTransaction(std::string txStr, KeyRing& keys) {
+bool DCBlock::addTransaction(std::string txStr, KeyRing&) {
   CASH_TRY {
     DCTransaction new_tx(txStr);
     long nValueOut = 0;

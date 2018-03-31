@@ -99,7 +99,7 @@ class TransactionClient final {
   /**
    *
    */
-  void ListenTo(std::string& filter);
+  void ListenTo(const std::string& filter);
 
  private:
   // process received message

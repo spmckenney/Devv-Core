@@ -94,7 +94,7 @@ class DCBlock {
     return false;
   }
 
-  bool copyHeaders(const DCBlock& other) {
+  void copyHeaders(const DCBlock& other) {
     this->nVersion_ = other.nVersion_;
     this->hashPrevBlock_ = other.hashPrevBlock_;
     this->hashMerkleRoot_ = other.hashMerkleRoot_;
