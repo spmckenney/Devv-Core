@@ -14,12 +14,12 @@
 #include <string>
 
 #include "DevcashWorker.h"
-#include "../common/devcash_context.h"
-#include "../common/util.h"
-#include "../io/message_service.h"
-#include "../consensus/finalblock.h"
-#include "../consensus/proposedblock.h"
-#include "../consensus/KeyRing.h"
+#include "common/devcash_context.h"
+#include "common/util.h"
+#include "io/message_service.h"
+#include "consensus/finalblock.h"
+#include "consensus/proposedblock.h"
+#include "consensus/KeyRing.h"
 
 typedef std::chrono::milliseconds millisecs;
 
