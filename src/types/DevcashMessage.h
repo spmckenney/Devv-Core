@@ -72,7 +72,9 @@ template <typename T>
 inline void append(std::vector<uint8_t>& buf, const T& obj) {
   unsigned int pos = buf.size();
   buf.resize(pos + sizeof(obj));
-  memcpy(&buf[pos], &obj, sizeof(obj));
+  //LOG_DEBUG << "Appending size: " << sizeof(obj) << " at index "
+  //          << pos << ", new size " << buf.size();
+  std::memcpy(buf.data()+pos, &obj, sizeof(obj));
 }
 
 /**
@@ -84,7 +86,7 @@ inline void append(std::vector<uint8_t>& buf, const std::string& obj) {
   unsigned int size = obj.size();
   append(buf, size);
   // Serialize the string
-  std::copy(obj.begin(), obj.end(), std::back_inserter(buf));
+  buf.insert(buf.end(), obj.begin(), obj.end());
 }
 
 /**
@@ -93,8 +95,8 @@ inline void append(std::vector<uint8_t>& buf, const std::string& obj) {
 template <>
 inline void append(std::vector<uint8_t>& buf, const std::vector<uint8_t>& obj) {
   // Serialize the size of the vector
-  unsigned int size = obj.size();
-  append(buf, size);
+  unsigned int source_size = obj.size();
+  append(buf, source_size);
   // Serialize the vector
   buf.insert(buf.end(), obj.begin(), obj.end());
 }
@@ -129,7 +131,7 @@ static std::vector<uint8_t> serialize(const DevcashMessage& msg) {
 template <typename T>
 inline unsigned int extract(T& dest, const std::vector<uint8_t>& buffer, unsigned int index) {
   assert(buffer.size() >= index + sizeof(dest));
-  dest = static_cast<T>(buffer[index]);
+  std::memcpy(&dest, &buffer[index], sizeof(dest));
   return(index + sizeof(dest));
 }
 
@@ -160,7 +162,7 @@ inline unsigned int extract(std::vector<uint8_t>& dest,
   unsigned int new_index = extract(size, buffer, index);
   assert(buffer.size() >= new_index + size);
   dest.insert(dest.end(), buffer.begin() + new_index, buffer.begin() + new_index + size);
- return(new_index + size);
+  return(new_index + size);
 }
 
 /**
@@ -188,6 +190,7 @@ static DevcashMessageUniquePtr deserialize(const std::vector<uint8_t>& bytes) {
   //LOG_DEBUG << "uri: " <<  message->uri << " buffer_index " << buffer_index;
   // data
   buffer_index = extract(message->data, bytes, buffer_index);
+  //LOG_DEBUG << "buf_size: " << " buffer_index " << message->data.size();
 
   return(message);
 }
