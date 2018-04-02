@@ -140,7 +140,7 @@ void DevcashController::ConsensusCallback(DevcashMessageUniquePtr ptr) {
       proposed_chain_.push_back(new_proposal);
       new_proposal->signBlock(keys_.getNodeKey(context_.get_current_node()),
           context_.kNODE_ADDRs[context_.get_current_node()]);
-      int proposer = proposed_chain_.size()%context_.get_peer_count();
+      int proposer = (proposed_chain_.size()-1)%context_.get_peer_count();
       raw_str = new_proposal->vals_.ToJSON();
       LOG_DEBUG << "Validation: "+raw_str;
       std::vector<uint8_t> data(str2Bin(raw_str));
