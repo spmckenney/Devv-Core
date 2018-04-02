@@ -86,7 +86,7 @@ DCBlock::DCBlock(std::string rawBlock, KeyRing& keys)
         dex++;
         eDex = rawBlock.find(kSIG_TAG, dex);
         eDex = rawBlock.find("}", eDex);
-        oneTx = rawBlock.substr(dex, eDex-dex);
+        oneTx = rawBlock.substr(dex-1, eDex-dex+2);
         vtx_.push_back(DCTransaction(oneTx));
       }
 
