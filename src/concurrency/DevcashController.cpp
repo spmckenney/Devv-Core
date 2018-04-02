@@ -31,7 +31,9 @@ std::string DevcashController::getHighestMerkleRoot() {
   unsigned int block_height = final_chain_.size();
   std::string prevHash = "Genesis";
   if (block_height > 0) {
-    prevHash = final_chain_.at(block_height-1)->hashMerkleRoot_;
+    prevHash = final_chain_.back()->hashMerkleRoot_;
+    if (prevHash == "") LOG_FATAL << "Previous block (#"
+      +std::to_string(final_chain_.back()->block_height_)+") Merkle missing!";
   }
   return prevHash;
 }
@@ -112,6 +114,7 @@ void DevcashController::ConsensusCallback(DevcashMessageUniquePtr ptr) {
     if (highest_proposal->compare(new_block)) {
       FinalPtr top_block = FinalPtr(new FinalBlock(highest_proposal->vtx_
           , highest_proposal->vals_, highest_proposal->block_height_));
+      top_block->copyHeaders(new_block);
       final_chain_.push_back(top_block);
       CreateNextProposal();
     } else {
@@ -177,6 +180,7 @@ void DevcashController::ConsensusCallback(DevcashMessageUniquePtr ptr) {
       highest_proposal.finalize(getHighestMerkleRoot());
       FinalPtr top_block =std::make_shared<FinalBlock>(highest_proposal
           , highest_proposal.block_height_);
+      top_block->copyHeaders(highest_proposal);
       final_chain_.push_back(top_block);
       ProposedPtr upcoming = std::make_shared<ProposedBlock>(""
           , upcoming_chain_.size(), keys_);
