@@ -31,13 +31,12 @@ struct OpString
     eOpType flag;
 };
 
-const OpString kOpTypes[] =
-{
-  {"create", eOpType::Create},
-  {"modify", eOpType::Modify},
-  {"exchange", eOpType::Exchange},
-  {"delete", eOpType::Delete}
-};
+std::string OpType2String(eOpType e) {
+  if (e == eOpType::Create) return("create");
+  if (e == eOpType::Modify) return("modify");
+  if (e == eOpType::Exchange) return("exchange");
+  if (e == eOpType::Delete) return("delete");
+}
 
 DCTransfer::DCTransfer(std::string& jsonTx, int defaultCoinType)
   : addr_(""), amount_(0), coinIndex_(-1), delay_(0) {
@@ -129,10 +128,12 @@ DCTransaction::DCTransaction(std::string jsonTx)
       int coinDex = -1;
       size_t pos = 0;
       std::string opTemp(jsonFinder(jsonTx, kOPER_TAG, pos));
+      LOG_INFO << "oper: "+opTemp;
       size_t temp = pos;
       oper_ = mapOpType(opTemp);
 
       std::string typeStr(jsonFinder(jsonTx, kTYPE_TAG, temp));
+      LOG_INFO << "Type: "+typeStr;
       if (!typeStr.empty()) {
         coinDex = oracleInterface::getCoinIndexByType(typeStr);
       }
@@ -155,7 +156,9 @@ DCTransaction::DCTransaction(std::string jsonTx)
         xfers_.push_back(*t);
       }
       nonce_ = std::stoul(jsonFinder(jsonTx, kNONCE_TAG, pos));
+      LOG_INFO << "Nonce: "+std::to_string(nonce_);
       sig_ = jsonFinder(jsonTx, kSIG_TAG, pos);
+      LOG_INFO << "Sig: "+sig_;
       LOG_DEBUG << "Transaction signature: "+sig_;
     } else {
       LOG_WARNING << "Invalid transaction input:"+jsonTx+"\n----------------\n";
@@ -231,7 +234,7 @@ bool DCTransaction::isValid(DCState& chainState, KeyRing& keys, DCSummary& summa
     }
 
     std::string msg = "\""+kOPER_TAG+"\":\""
-        +kOpTypes[oper_].jsonVal+"\",\""+kTYPE_TAG
+        +OpType2String(oper_)+"\",\""+kTYPE_TAG
         +"\":\""+oracleInterface::getCoinTypeByIndex(xfers_[0].coinIndex_)
         +"\",\""+kXFER_TAG+"\":[";
     bool isFirst = true;
