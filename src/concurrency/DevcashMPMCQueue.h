@@ -1,12 +1,12 @@
 /*
- * DevCashSPSCQueue.h implements a ring queue for pointers to Devcash messages.
+ * DevCashMPMCQueue.h implements a ring queue for pointers to Devcash messages.
  *
  *  Created on: Mar 17, 2018
  *      Author: Shawn McKenny
  */
 
-#ifndef CONCURRENCY_DEVCASHSPSCQUEUE_H_
-#define CONCURRENCY_DEVCASHSPSCQUEUE_H_
+#ifndef CONCURRENCY_DEVCASHMPMCQUEUE_H_
+#define CONCURRENCY_DEVCASHMPMCQUEUE_H_
 
 #include <array>
 #include <condition_variable>
@@ -14,7 +14,7 @@
 #include <chrono>
 #include <thread>
 
-#include <boost/lockfree/spsc_queue.hpp>
+#include "concurrency/blockingconcurrentqueue.h"
 
 #include "types/DevcashMessage.h"
 #include "common/logger.h"
@@ -22,20 +22,20 @@
 namespace Devcash {
 
 /**
- * Single producer / single consumer queue.
+ * Multiple producer / multiple consumer queue.
  */
-class DevcashSPSCQueue {
+class DevcashMPMCQueue {
  public:
   //static const int kDEFAULT_RING_SIZE = 1024;
 
   /* Constructors/Destructors */
-  DevcashSPSCQueue() {
+  DevcashMPMCQueue() {
   }
-  virtual ~DevcashSPSCQueue() {};
+  virtual ~DevcashMPMCQueue() {};
 
   /* Disallow copy and assign */
-  DevcashSPSCQueue(DevcashSPSCQueue const&) = delete;
-  DevcashSPSCQueue& operator=(DevcashSPSCQueue const&) = delete;
+  DevcashMPMCQueue(DevcashMPMCQueue const&) = delete;
+  DevcashMPMCQueue& operator=(DevcashMPMCQueue const&) = delete;
 
   /** Push the pointer for a message to this queue.
    * @note once the pointer is moved the old variable becomes a nullptr.
@@ -43,10 +43,10 @@ class DevcashSPSCQueue {
    * @return true iff the unique_ptr was queued
    * @return false otherwise
    */
-  bool push(std::unique_ptr<DevcashMessage> pointer) {
+  bool push(DevcashMessageUniquePtr pointer) {
     DevcashMessage* ptr = pointer.release();
     //LOG_DEBUG << "pushing: " << ptr << " " << ptr->uri;
-    while (!spsc_queue_.push(ptr)) {
+    while (!queue_.enqueue(ptr)) {
       //std::this_thread::sleep_for (std::chrono::milliseconds(1));
     }
     return true;
@@ -56,12 +56,10 @@ class DevcashSPSCQueue {
    * @return unique_ptr to a DevcashMessage once one is queued.
    * @return nullptr, if any error
    */
-  std::unique_ptr<DevcashMessage> pop() {
+  DevcashMessageUniquePtr pop() {
     DevcashMessage* ptr;
 
-    while (!spsc_queue_.pop(ptr)) {
-      //std::this_thread::sleep_for (std::chrono::milliseconds(1));
-    }
+    queue_.wait_dequeue(ptr);
 
     //LOG_DEBUG << "popped: " << ptr << " " << ptr->uri;
     std::unique_ptr<DevcashMessage> pointer(ptr);
@@ -69,9 +67,9 @@ class DevcashSPSCQueue {
   }
 
  private:
-  boost::lockfree::spsc_queue<DevcashMessage*, boost::lockfree::capacity<1024> > spsc_queue_;
+  moodycamel::BlockingConcurrentQueue<DevcashMessage*> queue_;
 };
 
 } /* namespace Devcash */
 
-#endif /* CONCURRENCY_DEVCASHSPSCQUEUE_H_ */
+#endif /* CONCURRENCY_DEVCASHMPMCQUEUE_H_ */

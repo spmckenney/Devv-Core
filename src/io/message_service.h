@@ -10,6 +10,7 @@
 
 #include "types/DevcashMessage.h"
 #include "concurrency/DevcashSPSCQueue.h"
+#include "concurrency/DevcashMPMCQueue.h"
 
 namespace Devcash {
 namespace io {
@@ -70,7 +71,7 @@ class TransactionServer final {
   std::unique_ptr<std::thread> server_thread_;
 
   // Used to queue outgoing messages
-  DevcashSPSCQueue message_queue_;
+  DevcashMPMCQueue message_queue_;
 };
 
 /**
