@@ -314,7 +314,7 @@ bool DevcashController::postAdvanceTransactions(const std::string& inputTxs) {
     }
     ProposedPtr next_proposal = upcoming_chain_.back();
     unsigned int block_height = upcoming_chain_.size();
-    LOG_INFO << "POST Upcoming #"+std::to_string(block_height)+" has "
+    LOG_DEBUG << "POST Upcoming #"+std::to_string(block_height)+" has "
         +std::to_string(next_proposal->vtx_.size())+" transactions.";
     LOG_DEBUG << std::to_string(counter)+" transactions posted upcoming.";
     return true;
