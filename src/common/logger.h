@@ -21,8 +21,10 @@
 #include <boost/log/sinks/text_file_backend.hpp>
 #include <boost/log/sinks/text_ostream_backend.hpp>
 #include <boost/log/attributes/named_scope.hpp>
+#include <cstdlib>
+
 // the logs are also written to LOGFILE
-#define LOGFILE "logfile.log"
+#define LOGFILE "/tmp/devcash.log"
 
 // just log messages with severity >= SEVERITY_THRESHOLD are written
 #define SEVERITY_THRESHOLD logging::trivial::warning
@@ -33,22 +35,53 @@ typedef boost::log::sources::severity_logger_mt<boost::log::trivial::severity_le
 // register a global logger
 BOOST_LOG_GLOBAL_LOGGER(logger, logger_t)
 
-static void init_log(void)
-{
+static boost::log::trivial::severity_level GetLogLevel() {
+  const char* env_p = std::getenv("DEVCASH_OUTPUT_LOGLEVEL");
+
+  if ( env_p == nullptr) {
+    return boost::log::trivial::info;
+  }
+
+  std::string env_ps(env_p);
+  std::transform(env_ps.begin(), env_ps.end(), env_ps.begin(), ::tolower);
+
+  if (env_ps.find("trace") != std::string::npos) {
+    return boost::log::trivial::trace;
+  } else if (env_ps.find("debug") != std::string::npos) {
+    return boost::log::trivial::debug;
+  } else if (env_ps.find("info") != std::string::npos) {
+    return boost::log::trivial::info;
+  } else if (env_ps.find("warn") != std::string::npos) {
+    return boost::log::trivial::warning;
+  } else if (env_ps.find("error") != std::string::npos) {
+    return boost::log::trivial::error;
+  } else if (env_ps.find("fatal") != std::string::npos) {
+    return boost::log::trivial::fatal;
+  } else {
+    return boost::log::trivial::info;
+  }
+}
+
+static void init_log(void) {
   /* init boost log
    * 1. Add common attributes
    * 2. set log filter to trace
    */
   boost::log::add_common_attributes();
-  boost::log::core::get()->add_global_attribute("Scope",
-                                                boost::log::attributes::named_scope());
-  boost::log::core::get()->set_filter(boost::log::trivial::severity >= boost::log::trivial::trace);
+  boost::log::core::get()->set_filter(boost::log::trivial::severity >= GetLogLevel());
+}
+
+static inline std::string file_cut(const char* file) {
+  std::string s(file);
+  auto p = s.rfind("src");
+  auto st = s.substr(p);
+  return st;
 }
 
 // just a helper macro used by the macros below - don't use it in your code
 #define LOG(severity) \
   BOOST_LOG_SEV(logger::get(), boost::log::trivial::severity) \
-  << __FILE__ << ":" << __LINE__ << " TID[" << std::this_thread::get_id() << "] -> "
+  << file_cut(__FILE__) << ":" << __LINE__ << " -> "
 
 // ===== log macros =====
 #define LOG_TRACE LOG(trace)

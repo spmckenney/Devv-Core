@@ -36,6 +36,8 @@ std::string OpType2String(eOpType e) {
   if (e == eOpType::Modify) return("modify");
   if (e == eOpType::Exchange) return("exchange");
   if (e == eOpType::Delete) return("delete");
+  LOG_ERROR << "OpType2String: returning empty string";
+  return("");
 }
 
 DCTransfer::DCTransfer(std::string& jsonTx, int defaultCoinType)
@@ -128,12 +130,12 @@ DCTransaction::DCTransaction(std::string jsonTx)
       int coinDex = -1;
       size_t pos = 0;
       std::string opTemp(jsonFinder(jsonTx, kOPER_TAG, pos));
-      LOG_INFO << "oper: "+opTemp;
+      LOG_DEBUG << "oper: "+opTemp;
       size_t temp = pos;
       oper_ = mapOpType(opTemp);
 
       std::string typeStr(jsonFinder(jsonTx, kTYPE_TAG, temp));
-      LOG_INFO << "Type: "+typeStr;
+      LOG_DEBUG << "Type: "+typeStr;
       if (!typeStr.empty()) {
         coinDex = oracleInterface::getCoinIndexByType(typeStr);
       }
@@ -156,9 +158,9 @@ DCTransaction::DCTransaction(std::string jsonTx)
         xfers_.push_back(*t);
       }
       nonce_ = std::stoul(jsonFinder(jsonTx, kNONCE_TAG, pos));
-      LOG_INFO << "Nonce: "+std::to_string(nonce_);
+      LOG_DEBUG << "Nonce: "+std::to_string(nonce_);
       sig_ = jsonFinder(jsonTx, kSIG_TAG, pos);
-      LOG_INFO << "Sig: "+sig_;
+      LOG_DEBUG << "Sig: "+sig_;
       LOG_DEBUG << "Transaction signature: "+sig_;
     } else {
       LOG_WARNING << "Invalid transaction input:"+jsonTx+"\n----------------\n";
