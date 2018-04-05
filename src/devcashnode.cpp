@@ -70,7 +70,7 @@ void DevcashNode::Shutdown()
   fRequestShutdown = true;
   //TODO: how to stop zmq?
   LOG_INFO << "Shutting down DevCash";
-  //control_.stopAll();
+  control_.StopAll();
 }
 
 /*DevcashNode::DevcashNode(eAppMode mode
@@ -184,7 +184,7 @@ std::string DevcashNode::RunNode(std::string& inStr)
     //TODO: end timing here
 
     LOG_INFO << "Starting main sleep";
-    std::this_thread::sleep_for(std::chrono::milliseconds(600000));
+    std::this_thread::sleep_for(std::chrono::milliseconds(5000));
     LOG_INFO << "Starting shutdown";
     StartShutdown();
 

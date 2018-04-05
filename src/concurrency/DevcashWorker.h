@@ -30,8 +30,8 @@ class DevcashControllerWorker {
 
   virtual ~DevcashControllerWorker() {
     continue_ = false;
-    validators_.clearBlockers();
-    consensus_.clearBlockers();
+    validators_.ClearBlockers();
+    consensus_.ClearBlockers();
     validator_pool_.join_all();
     consensus_pool_.join_all();
   }
@@ -49,7 +49,7 @@ class DevcashControllerWorker {
    * @return true iff all threads in this pool joined.
    * @return false if some error occurred.
    */
-  bool stopAll();
+  bool StopAll();
 
   void pushValidator(std::unique_ptr<DevcashMessage> message);
 
@@ -64,8 +64,8 @@ class DevcashControllerWorker {
   const int consensus_num_ = kDEFAULT_WORKERS;
   boost::thread_group validator_pool_;
   boost::thread_group consensus_pool_;
-  DevcashRingQueue validators_;
-  DevcashRingQueue consensus_;
+  DevcashMPMCQueue validators_;
+  DevcashMPMCQueue consensus_;
   std::atomic<bool> continue_;  //signals all threads to stop gracefully
   DevcashController* controller_;
   bool toy_mode_ = false;

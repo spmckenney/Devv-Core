@@ -2,11 +2,20 @@
 
 node=$1
 
+# export DEVCASH_OUTPUT_LOGLEVEL=debug
+# export DEVCASH_OUTPUT_LOGLEVEL=info
+# export DEVCASH_OUTPUT_LOGLEVEL=warning
+
 mode="T1"
 debug_mode="toy"
 num_threads=1
 proto="tcp"
-scan_file="${HOME}/dmnt/devcash-core/opt/1000txs"
+scan_file="${HOME}/dmnt/devcash-core/opt/05txs"
+#scan_file="${HOME}/dmnt/devcash-core/opt/21txs"
+#scan_file="${HOME}/dmnt/devcash-core/opt/100txs"
+#scan_file="${HOME}/dmnt/devcash-core/opt/1000txs"
+#scan_file="${HOME}/dmnt/devcash-core/opt/1002txs"
+#scan_file="${HOME}/dmnt/devcash-core/opt/10k.txs"
 #scan_file="${HOME}/dmnt/devcash-core/opt/20k_txs"
 
 node0_ip="dc001"
@@ -51,9 +60,9 @@ esac
 
 cmd="./devcash --node-index ${node} \
 --debug-mode off \
---mode T1 \
---num-consensus-threads 1 \
---num-validator-threads 1 \
+--mode T2 \
+--num-consensus-threads 10 \
+--num-validator-threads 10 \
 --scan-file ${scan_file} \
 --host-list ${hostA[$node]} \
 --host-list ${hostB[$node]} \

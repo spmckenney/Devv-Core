@@ -42,7 +42,7 @@ class DevcashController {
    * Start the workers and comm threads
    */
   std::string Start();
-  void stopAll();
+  void StopAll();
   void pushConsensus(std::unique_ptr<DevcashMessage> ptr);
   void pushValidator(std::unique_ptr<DevcashMessage> ptr);
 

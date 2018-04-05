@@ -45,6 +45,10 @@ bool DevcashController::CreateNextProposal() {
   LOG_INFO << "Upcoming #"+std::to_string(block_height)+" has "
     +std::to_string(next_proposal->vtx_.size())+" transactions.";
 
+  if (!(block_height % 100) || !((block_height + 1) % 100)) {
+    LOG_WARNING << "Processing @ final_chain_.size: (" << std::to_string(block_height) << ")";
+  }
+
   if (block_height%context_.get_peer_count() == context_.get_current_node()) {
     LOG_INFO << "This node's turn to create proposal.";
     /*ProposedPtr upcoming_ptr = std::make_shared<ProposedBlock>(""
@@ -55,8 +59,10 @@ bool DevcashController::CreateNextProposal() {
         , next_proposal->vals_, next_proposal->block_height_);
     proposed_chain_.push_back(proposal_ptr);
     ProposedPtr proposal = proposed_chain_.back();
-    LOG_INFO << "Proposal #"+std::to_string(block_height)+" has "
-        +std::to_string(proposal->vtx_.size())+" transactions.";
+
+    LOG_INFO << "Proposal #" + std::to_string(block_height) + " has "
+        + std::to_string(proposal->vtx_.size()) + " transactions.";
+
     proposal->validate(keys_);
     proposal->signBlock(keys_.getNodeKey(context_.get_current_node()),
         context_.kNODE_ADDRs[context_.get_current_node()]);
@@ -77,7 +83,7 @@ bool DevcashController::CreateNextProposal() {
     if (ms.count() > static_cast<int>(waiting_ + kPROPOSAL_TIMEOUT)) {
        LOG_FATAL << "Proposal timed out at block #"
            +std::to_string(block_height);
-       stopAll();
+       StopAll();
      }
   }
   return false;
@@ -85,6 +91,7 @@ bool DevcashController::CreateNextProposal() {
 
 void DevcashController::ValidatorCallback(DevcashMessageUniquePtr ptr) {
   LOG_DEBUG << "DevcashController::ValidatorCallback()";
+  if (shutdown_) return;
   if (ptr->message_type == TRANSACTION_ANNOUNCEMENT) {
     DevcashMessage msg(*ptr.get());
     std::string tx_str = bin2Str(msg.data);
@@ -98,6 +105,7 @@ void DevcashController::ValidatorCallback(DevcashMessageUniquePtr ptr) {
 
 void DevcashController::ConsensusCallback(DevcashMessageUniquePtr ptr) {
   LOG_DEBUG << "DevcashController()::ConsensusCallback()";
+  if (shutdown_) return;
   if (ptr->message_type == FINAL_BLOCK) {
     //Make highest proposed block final
     //check if propose next
@@ -122,7 +130,7 @@ void DevcashController::ConsensusCallback(DevcashMessageUniquePtr ptr) {
       LOG_FATAL << "Final block is inconsistent with chain.";
       LOG_DEBUG << "Highest Proposal: "+highest_proposal->ToJSON();
       LOG_DEBUG << "Final block: "+new_block.ToJSON();
-      stopAll();
+      StopAll();
     }
   } else if (ptr->message_type == PROPOSAL_BLOCK) {
     //validate block
@@ -157,7 +165,7 @@ void DevcashController::ConsensusCallback(DevcashMessageUniquePtr ptr) {
     } else {
       LOG_FATAL << "Proposed Block is invalid!\n"+
           new_proposal->ToJSON()+"\n----END of BLOCK-------\n";
-      stopAll();
+      StopAll();
     }
     LOG_DEBUG << "finished processing proposal";
   } else if (ptr->message_type == TRANSACTION_ANNOUNCEMENT) {
@@ -209,6 +217,7 @@ void DevcashController::ConsensusCallback(DevcashMessageUniquePtr ptr) {
 
 void DevcashController::ValidatorToyCallback(DevcashMessageUniquePtr ptr) {
   LOG_DEBUG << "DevcashController::ValidatorToyCallback()";
+  assert(ptr);
   if (validator_flipper_) {
     pushConsensus(std::move(ptr));
   }
@@ -217,6 +226,7 @@ void DevcashController::ValidatorToyCallback(DevcashMessageUniquePtr ptr) {
 
 void DevcashController::ConsensusToyCallback(DevcashMessageUniquePtr ptr) {
   LOG_DEBUG << "DevcashController()::ConsensusToyCallback()";
+  assert(ptr);
   if (consensus_flipper_) {
     server_.QueueMessage(std::move(ptr));
   }
@@ -264,7 +274,7 @@ void DevcashController::seedTransactions(std::string txs) {
           eDex = toParse.find("}]]");
           if (eDex == std::string::npos) {
             LOG_FATAL << "Invalid input.";
-            stopAll();
+            StopAll();
           }
           std::string txSubstr(toParse.substr(dex, eDex-dex+2));
           postAdvanceTransactions(txSubstr);
@@ -281,10 +291,10 @@ void DevcashController::seedTransactions(std::string txs) {
       //postTransactions();
     } else {
       LOG_FATAL << "Input has wrong syntax!";
-      stopAll();
+      StopAll();
     }
   } CASH_CATCH (const std::exception& e) {
-    LOG_WARNING << FormatException(&e, "DevcashController.seedTransactions");
+    LOG_ERROR << FormatException(&e, "DevcashController.seedTransactions");
   }
 }
 
@@ -422,7 +432,7 @@ std::string DevcashController::Start() {
   client_.StartClient();
 
   LOG_INFO << "Starting a control sleep";
-  sleep(10);
+  sleep(2);
   CreateNextProposal();
 
   // Loop for long runs
@@ -433,7 +443,8 @@ std::string DevcashController::Start() {
     std::this_thread::sleep_for(millisecs(ms));
     if (transactions_to_post)
       transactions_to_post = postTransactions();
-    if (final_chain_.size() >= (seeds_.size()-1) ) {
+    if (final_chain_.size() >= seeds_.size()-1) {
+      LOG_WARNING << "final_chain_.size() >= seeds_.size(), break()ing";
       break;
     }
     if (shutdown_) break;
@@ -446,9 +457,15 @@ std::string DevcashController::Start() {
   return out;
 }
 
-void DevcashController::stopAll() {
+void DevcashController::StopAll() {
+  LOG_DEBUG << "DevcashController::StopAll()";
   shutdown_ = true;
-  workers_->stopAll();
+  std::this_thread::sleep_for(std::chrono::milliseconds(5000));
+  client_.StopClient();
+  server_.StopServer();
+  std::this_thread::sleep_for(std::chrono::milliseconds(100));
+  workers_->StopAll();
+  std::this_thread::sleep_for(std::chrono::milliseconds(100));
 }
 
 void DevcashController::pushValidator(DevcashMessageUniquePtr ptr) {

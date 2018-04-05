@@ -81,7 +81,7 @@ static inline std::string file_cut(const char* file) {
 // just a helper macro used by the macros below - don't use it in your code
 #define LOG(severity) \
   BOOST_LOG_SEV(logger::get(), boost::log::trivial::severity) \
-  << file_cut(__FILE__) << ":" << __LINE__ << " -> "
+  << file_cut(__FILE__) << ":" << __LINE__ << " " << __FUNCTION__ << " -> "
 
 // ===== log macros =====
 #define LOG_TRACE LOG(trace)

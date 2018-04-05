@@ -13,7 +13,7 @@
 
 namespace Devcash {
 
-static const int kDEFAULT_WORKERS = 10;
+static const int kDEFAULT_WORKERS = 128;
 static const int kVALIDATOR_THREADS = 10;
 static const int kCONSENSUS_THREADS = 10;
 //millis of sleep between main shut down checks

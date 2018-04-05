@@ -60,6 +60,7 @@ class DevcashRingQueue {
    * @return false otherwise
    */
   bool push(std::unique_ptr<DevcashMessage> pointer) {
+    assert(pointer);
     CASH_TRY {
       std::unique_lock<std::mutex> lock(pushLock_);
       while (isFull_) {
@@ -130,6 +131,7 @@ class DevcashRingQueue {
         isEmpty_ = false;
         empty_.notify_one();
       }
+      assert(out);
       return out;
     } CASH_CATCH (const std::exception& e) {
       LOG_WARNING << FormatException(&e, "DevcashRingQueue.pop");

@@ -17,6 +17,7 @@
 #include "concurrency/blockingconcurrentqueue.h"
 
 #include "types/DevcashMessage.h"
+#include "common/devcash_context.h"
 #include "common/logger.h"
 
 namespace Devcash {
@@ -26,10 +27,9 @@ namespace Devcash {
  */
 class DevcashMPMCQueue {
  public:
-  //static const int kDEFAULT_RING_SIZE = 1024;
-
   /* Constructors/Destructors */
-  DevcashMPMCQueue() {
+  DevcashMPMCQueue(size_t capacity = kDEFAULT_WORKERS)
+    : queue_(capacity) {
   }
   virtual ~DevcashMPMCQueue() {};
 
@@ -57,17 +57,25 @@ class DevcashMPMCQueue {
    * @return nullptr, if any error
    */
   DevcashMessageUniquePtr pop() {
-    DevcashMessage* ptr;
+    DevcashMessage* ptr = nullptr;
 
-    queue_.wait_dequeue(ptr);
+    // Keep looping while wait is false (timeout) and keep_popping is true
+    while (!queue_.wait_dequeue_timed(ptr, std::chrono::milliseconds(5))) {
+      if (!keep_popping_) break;
+    }
 
     //LOG_DEBUG << "popped: " << ptr << " " << ptr->uri;
     std::unique_ptr<DevcashMessage> pointer(ptr);
     return pointer;
   }
 
+  void ClearBlockers() {
+    keep_popping_ = false;
+  }
+
  private:
   moodycamel::BlockingConcurrentQueue<DevcashMessage*> queue_;
+  bool keep_popping_ = true;
 };
 
 } /* namespace Devcash */
