@@ -21,6 +21,7 @@
 #include <openssl/err.h>
 #include <openssl/pem.h>
 #include <openssl/crypto.h>
+#include <boost/thread/thread.hpp>
 
 #ifndef WIN32
 #include <signal.h>
@@ -33,7 +34,6 @@
 #include "common/ossladapter.h"
 #include "common/util.h"
 #include "concurrency/DevcashController.h"
-#include "concurrency/DevcashWorkerPool.h"
 #include "io/zhelpers.hpp"
 #include "oracles/api.h"
 #include "oracles/data.h"
