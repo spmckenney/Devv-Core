@@ -1,0 +1,131 @@
+FROM ubuntu:16.04
+
+# System packages
+RUN apt-get update && apt-get install -y \
+    gdb \
+    lldb \
+    valgrind \
+    unzip \
+    git \
+    emacs \
+    htop \
+    bash-completion \
+    automake \
+    libtool \
+    pkg-config \
+    g++ \
+    wget \
+    clang \
+    clang-format \
+    aptitude \
+    cmake \
+    cmake-curses-gui \
+    cmake-extras \
+    extra-cmake-modules
+
+# Bitcoin dependencies
+RUN apt-get install -y \
+    libdb-dev \
+    libdb++-dev \
+    libqt5gui5 \
+    qtbase5-dev \
+    libboost-all-dev \
+    bsdmainutils \
+    libssl-dev \
+    libevent-dev
+
+# Python3 and virtualenv
+RUN apt-get install -y \
+    python3 \
+    python3-pip \
+    libpng-dev \
+    libpng++-dev \
+    python3-crypto-dbg \
+    python-crypto-doc \
+    python-cryptography-doc \
+    python3-cryptography-vectors \
+    python-dbus-doc \
+    python3-dbus-dbg \
+    python-secretstorage-doc \
+    python-setuptools-doc
+
+# ZeroMQ
+RUN apt-get install -y \
+    libzmqpp-dev
+
+RUN apt-get install -y \
+    software-properties-common
+
+# Python3 virtualenvwrapper
+RUN pip3 install --upgrade pip setuptools
+RUN pip3 install virtualenvwrapper
+COPY install_virtualenvwrapper.sh /tmp/
+RUN /bin/bash -c "/tmp/install_virtualenvwrapper.sh"
+
+# matplotlib numpy
+RUN apt-get install -y \
+    libfreetype6-dev \
+    libjpeg-dev \
+    libopenblas-dev
+
+# Utilities
+RUN apt-get install -y \
+    netcat \
+    net-tools \
+    iputils-ping \
+    telnet
+
+# fbzmq
+# I left the redundant packages here to preserve
+# dependency tracking. i.e. we know fbzmq needs
+# these
+RUN apt-get install -y \
+    libdouble-conversion-dev \
+    libssl-dev \
+    cmake \
+    make \
+    zip \
+    git \
+    autoconf \
+    autoconf-archive \
+    automake \
+    libtool \
+    g++ \
+    libboost-all-dev \
+    libevent-dev \
+    flex \
+    bison \
+    liblz4-dev \
+    liblzma-dev \
+    scons \
+    libkrb5-dev \
+    libsnappy-dev \
+    libsasl2-dev \
+    libnuma-dev \
+    pkg-config \
+    zlib1g-dev \
+    binutils-dev \
+    libjemalloc-dev \
+    libiberty-dev \
+    python-setuptools \
+    python3-setuptools \
+    python-pip
+
+RUN apt-get install -y sudo
+
+# Cleanup
+RUN apt-get clean autoclean
+
+RUN groupadd --gid 1002 dcrunner
+RUN useradd -d /home/dcrunner --uid 1002 -m --gid 1002 dcrunner
+COPY bashrc /home/dcrunner/.bashrc
+
+EXPOSE 55556
+
+RUN echo "dcrunner ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
+
+WORKDIR /home/dcrunner
+
+# https://denibertovic.com/posts/handling-permissions-with-docker-volumes/
+COPY entrypoint.sh /tmp/entrypoint.sh
+ENTRYPOINT ["/tmp/entrypoint.sh"]
