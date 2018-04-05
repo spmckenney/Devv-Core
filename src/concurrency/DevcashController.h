@@ -67,6 +67,8 @@ class DevcashController {
   DevcashControllerWorker* workers_;
   bool validator_flipper_ = true;
   bool consensus_flipper_ = true;
+  std::mutex valid_lock_;
+  bool accepting_valids_ = false;
 
  private:
   bool postTransactions();

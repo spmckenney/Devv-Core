@@ -64,6 +64,7 @@ bool DevcashController::CreateNextProposal() {
     LOG_DEBUG << "Propose Block: "+proposal_str;
     std::vector<uint8_t> data(str2Bin(proposal_str));
     auto propose_msg = std::make_unique<DevcashMessage>("peers", PROPOSAL_BLOCK, data);
+    accepting_valids_ = true;
     server_.QueueMessage(std::move(propose_msg));
     return true;
   } else if (waiting_ == 0) {
@@ -168,6 +169,8 @@ void DevcashController::ConsensusCallback(DevcashMessageUniquePtr ptr) {
     DevcashMessage msg(*ptr.get());
     std::string rawVal = bin2Str(msg.data);
     LOG_DEBUG << "Received block validation: "+rawVal;
+    if (!accepting_valids_) return;
+    std::lock_guard<std::mutex> lock(valid_lock_);
     unsigned int block_height = final_chain_.size();
     if (block_height%context_.get_peer_count() != context_.get_current_node()) {
       LOG_WARNING << "Got a VALID message, but this node did not propose!";
@@ -177,6 +180,7 @@ void DevcashController::ConsensusCallback(DevcashMessageUniquePtr ptr) {
     ProposedBlock highest_proposal = *proposed_chain_.back().get();
     highest_proposal.vals_.addValidation(validation);
     if (highest_proposal.vals_.GetValidationCount() > 1) {
+      accepting_valids_ = false;
       highest_proposal.finalize(getHighestMerkleRoot());
       FinalPtr top_block =std::make_shared<FinalBlock>(highest_proposal
           , highest_proposal.block_height_);
@@ -314,7 +318,7 @@ bool DevcashController::postAdvanceTransactions(const std::string& inputTxs) {
     }
     ProposedPtr next_proposal = upcoming_chain_.back();
     unsigned int block_height = upcoming_chain_.size();
-    LOG_DEBUG << "POST Upcoming #"+std::to_string(block_height)+" has "
+    LOG_INFO << "POST Upcoming #"+std::to_string(block_height)+" has "
         +std::to_string(next_proposal->vtx_.size())+" transactions.";
     LOG_DEBUG << std::to_string(counter)+" transactions posted upcoming.";
     return true;
