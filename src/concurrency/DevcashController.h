@@ -31,6 +31,7 @@ class DevcashController {
                     io::TransactionClient& client,
                     const int validatorCount,
                     const int consensusWorkerCount,
+                    const int repeatFor,
                     KeyRing& keys,
                     DevcashContext& context);
   virtual ~DevcashController() {};
@@ -57,6 +58,7 @@ class DevcashController {
   io::TransactionClient& client_;
   const int validator_count_;
   const int consensus_count_;
+  const int repeat_for_ = 1;
   KeyRing& keys_;
   DevcashContext& context_;
   std::vector<FinalPtr> final_chain_;

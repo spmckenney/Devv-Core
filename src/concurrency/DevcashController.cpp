@@ -235,14 +235,16 @@ void DevcashController::ConsensusToyCallback(DevcashMessageUniquePtr ptr) {
 
 DevcashController::DevcashController(io::TransactionServer& server,
                                      io::TransactionClient& client,
-                                     int validatorCount,
-                                     int consensusWorkerCount,
+                                     const int validatorCount,
+                                     const int consensusWorkerCount,
+                                     const int repeatFor,
                                      KeyRing& keys,
                                      DevcashContext& context)
   : server_(server)
   , client_(client)
   , validator_count_(validatorCount)
   , consensus_count_(consensusWorkerCount)
+  , repeat_for_(repeatFor)
   , keys_(keys)
   , context_(context)
   , seeds_at_(0)
@@ -277,8 +279,11 @@ void DevcashController::seedTransactions(std::string txs) {
             StopAll();
           }
           std::string txSubstr(toParse.substr(dex, eDex-dex+2));
-          postAdvanceTransactions(txSubstr);
-          seeds_.push_back(txSubstr);
+          while (repeat_for_ > 1) {
+            repeat_for_--;
+            postAdvanceTransactions(txSubstr);
+            seeds_.push_back(txSubstr);
+          }
           break;
         } else {
           std::string txSubstr(toParse.substr(dex, eDex-dex+2));

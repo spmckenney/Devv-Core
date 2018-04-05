@@ -24,6 +24,7 @@ struct devcash_options {
   unsigned int num_validator_threads;
   std::string scan_file;
   std::string write_file;
+  unsigned int repeat_for;
   eDebugMode debug_mode;
 };
 
@@ -54,6 +55,7 @@ network could be build and tested.\n\nAllowed options");
       ("bind-endpoint", po::value<std::string>(), "Endpoint for server (i.e. tcp://*:5556)")
       ("scan-file", po::value<std::string>(), "Initial transaction or blockchain input file")
       ("output", po::value<std::string>(), "Blockchain output path in binary JSON or CBOR")
+      ("repeat-for", po::value<unsigned int>(), "Repeat final input transaction this many times")
       ;
 
     po::variables_map vm;
@@ -143,6 +145,14 @@ network could be build and tested.\n\nAllowed options");
       LOG_INFO << "Output file: " << options->write_file;
     } else {
       LOG_INFO << "Output file was not set.";
+    }
+
+    if (vm.count("repeat-for")) {
+      options->repeat_for = vm["repeat-for"].as<unsigned int>();
+      LOG_INFO << "Repeat for: " << options->num_consensus_threads;
+    } else {
+      LOG_INFO << "Repeat for was not set, defaulting to 1";
+      options->repeat_for = 1;
     }
 
   }
