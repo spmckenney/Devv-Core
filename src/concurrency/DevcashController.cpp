@@ -280,7 +280,7 @@ void DevcashController::seedTransactions(std::string txs) {
           }
           std::string txSubstr(toParse.substr(dex, eDex-dex+2));
           int countdown = repeat_for_;
-          while (countdown > 1) {
+          while (countdown > 0) {
             countdown--;
             postAdvanceTransactions(txSubstr);
             seeds_.push_back(txSubstr);
