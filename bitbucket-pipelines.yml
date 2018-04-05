@@ -4,7 +4,7 @@ pipelines:
   default:
     - step:
         script:
-          - ssh bitbucket@portal.computefaster.com -p 13022 ./amd-test.sh
-    - step:
-        script:
-          - ssh bitbucket@portal.computefaster.com -p 11022 ./p8-test.sh
+          - ssh bitbucket@portal.computefaster.com -p 13022 ./build-devcash.sh $BITBUCKET_BRANCH
+ #   - step:
+ #       script:
+ #         - ssh bitbucket@portal.computefaster.com -p 11022 ./p8-test.sh
