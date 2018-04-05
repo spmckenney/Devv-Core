@@ -433,7 +433,7 @@ std::string DevcashController::Start() {
     std::this_thread::sleep_for(millisecs(ms));
     if (transactions_to_post)
       transactions_to_post = postTransactions();
-    if (final_chain_.size() >= seeds_.size() ) {
+    if (final_chain_.size() >= (seeds_.size()-1) ) {
       break;
     }
     if (shutdown_) break;
