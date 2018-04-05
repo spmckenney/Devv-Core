@@ -122,7 +122,7 @@ void DevcashController::ConsensusCallback(DevcashMessageUniquePtr ptr) {
 
     if (highest_proposal->compare(new_block)) {
       FinalPtr top_block = FinalPtr(new FinalBlock(highest_proposal->vtx_
-          , highest_proposal->vals_, highest_proposal->block_height_));
+          , top_block.vals_, highest_proposal->block_height_));
       top_block->copyHeaders(new_block);
       final_chain_.push_back(top_block);
       CreateNextProposal();
