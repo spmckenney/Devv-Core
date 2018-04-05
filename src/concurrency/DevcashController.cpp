@@ -279,8 +279,9 @@ void DevcashController::seedTransactions(std::string txs) {
             StopAll();
           }
           std::string txSubstr(toParse.substr(dex, eDex-dex+2));
-          while (repeat_for_ > 1) {
-            repeat_for_--;
+          int countdown = repeat_for_;
+          while (countdown > 1) {
+            countdown--;
             postAdvanceTransactions(txSubstr);
             seeds_.push_back(txSubstr);
           }
