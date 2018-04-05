@@ -100,7 +100,6 @@ using namespace Devcash;
   void DevcashControllerWorker::pushConsensus(std::unique_ptr<DevcashMessage> message) {
     LOG_DEBUG << "DevcashControllerWorker::pushConsensus()";
     CASH_TRY {
-      (std::move(message));
       consensus_.push(std::move(message));
       //controller_->ConsensusCallback(std::move(message));
     } CASH_CATCH (const std::exception& e) {
