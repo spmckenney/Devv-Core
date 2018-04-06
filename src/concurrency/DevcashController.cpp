@@ -38,55 +38,48 @@ std::string DevcashController::getHighestMerkleRoot() {
   return prevHash;
 }
 
-bool DevcashController::CreateNextProposal() {
-  unsigned int block_height = final_chain_.size();
-  ProposedPtr next_proposal = upcoming_chain_.at(block_height);
+DevcashMessageUniquePtr CreateNextProposal(unsigned int block_height,
+                        const ProposedBlock& next_proposal,
+                        const DevcashContext& context,
+                        const KeyRing& keys,
+                        std::vector<ProposedPtr>& proposed_chain) {
 
   LOG_INFO << "Upcoming #"+std::to_string(block_height)+" has "
-    +std::to_string(next_proposal->vtx_.size())+" transactions.";
+    +std::to_string(next_proposal.vtx_.size())+" transactions.";
 
   if (!(block_height % 100) || !((block_height + 1) % 100)) {
     LOG_WARNING << "Processing @ final_chain_.size: (" << std::to_string(block_height) << ")";
   }
 
-  if (block_height%context_.get_peer_count() == context_.get_current_node()) {
-    LOG_INFO << "This node's turn to create proposal.";
-    /*ProposedPtr upcoming_ptr = std::make_shared<ProposedBlock>(""
-        , upcoming_chain_.size(), keys_);
+  LOG_INFO << "This node's turn to create proposal.";
+  /*ProposedPtr upcoming_ptr = std::make_shared<ProposedBlock>(""
+    , upcoming_chain_.size(), keys_);
     upcoming_ptr->setBlockState(next_proposal->block_state_);
     upcoming_chain_.push_back(upcoming_ptr);*/
-    ProposedPtr proposal_ptr = std::make_shared<ProposedBlock>(next_proposal->vtx_
-        , next_proposal->vals_, next_proposal->block_height_);
-    proposed_chain_.push_back(proposal_ptr);
-    ProposedPtr proposal = proposed_chain_.back();
 
-    LOG_INFO << "Proposal #" + std::to_string(block_height) + " has "
-        + std::to_string(proposal->vtx_.size()) + " transactions.";
+  // (spmckenney) I'm not sure why proposal_pushed onto the proposed_chain_
+  // and then immediately popped into new pointer...
+  ProposedPtr proposal_ptr = std::make_shared<ProposedBlock>(next_proposal.vtx_,
+                                                             next_proposal.GetValidationBlock(),
+                                                             next_proposal.block_height_);
+  proposed_chain.push_back(proposal_ptr);
+  ProposedPtr proposal = proposed_chain.back();
 
-    proposal->validate(keys_);
-    proposal->signBlock(keys_.getNodeKey(context_.get_current_node()),
-        context_.kNODE_ADDRs[context_.get_current_node()]);
-    std::string proposal_str = proposal->ToJSON();
-    LOG_DEBUG << "Propose Block: "+proposal_str;
-    std::vector<uint8_t> data(str2Bin(proposal_str));
-    auto propose_msg = std::make_unique<DevcashMessage>("peers", PROPOSAL_BLOCK, data);
-    accepting_valids_ = true;
-    server_.QueueMessage(std::move(propose_msg));
-    return true;
-  } else if (waiting_ == 0) {
-    millisecs ms =
-      std::chrono::duration_cast<millisecs>(std::chrono::system_clock::now().time_since_epoch());
-    waiting_ = ms.count();
-  } else {
-    millisecs ms =
-      std::chrono::duration_cast<millisecs>(std::chrono::system_clock::now().time_since_epoch());
-    if (ms.count() > static_cast<int>(waiting_ + kPROPOSAL_TIMEOUT)) {
-       LOG_FATAL << "Proposal timed out at block #"
-           +std::to_string(block_height);
-       StopAll();
-     }
-  }
-  return false;
+  LOG_INFO << "Proposal #" + std::to_string(block_height) + " has "
+    + std::to_string(proposal->vtx_.size()) + " transactions.";
+
+  // Validate and sign
+  proposal->validate(keys);
+  proposal->signBlock(keys.getNodeKey(context.get_current_node()),
+                      context.kNODE_ADDRs[context.get_current_node()]);
+
+  std::string proposal_str = proposal->ToJSON();
+  LOG_DEBUG << "Propose Block: "+proposal_str;
+  std::vector<uint8_t> data(str2Bin(proposal_str));
+
+  // Create message
+  auto propose_msg = std::make_unique<DevcashMessage>("peers", PROPOSAL_BLOCK, data);
+  return propose_msg;
 }
 
 void DevcashController::ValidatorCallback(DevcashMessageUniquePtr ptr) {
@@ -117,15 +110,39 @@ void DevcashController::ConsensusCallback(DevcashMessageUniquePtr ptr) {
     DCBlock new_block(final_block_str, keys_);
     new_block.setBlockState(highest_proposal->block_state_);
 
-    highest_proposal->vals_.addValidation(new_block.vals_);
+    highest_proposal->GetValidationBlock().addValidation(new_block.GetValidationBlock());
     highest_proposal->finalize(getHighestMerkleRoot());
 
     if (highest_proposal->compare(new_block)) {
-      FinalPtr top_block = FinalPtr(new FinalBlock(highest_proposal->vtx_
-          , highest_proposal->vals_, highest_proposal->block_height_));
+      FinalPtr top_block = FinalPtr(new FinalBlock(highest_proposal->vtx_,
+                                                   highest_proposal->GetValidationBlock(),
+                                                   highest_proposal->block_height_));
       top_block->copyHeaders(new_block);
       final_chain_.push_back(top_block);
-      CreateNextProposal();
+
+      if ((final_chain_.size() % context_.get_peer_count()) == context_.get_current_node()) {
+        LOG_INFO << "This node's turn to create proposal.";
+        server_.QueueMessage(CreateNextProposal(final_chain_.size(),
+                                                *upcoming_chain_.at(final_chain_.size()),
+                                                context_,
+                                                keys_,
+                                                proposed_chain_));
+        accepting_valids_ = true;
+      } else if (waiting_ == 0) {
+        millisecs ms =
+          std::chrono::duration_cast<millisecs>(std::chrono::system_clock::now().time_since_epoch());
+        waiting_ = ms.count();
+      } else {
+        millisecs ms =
+          std::chrono::duration_cast<millisecs>(std::chrono::system_clock::now().time_since_epoch());
+        if (ms.count() > static_cast<int>(waiting_ + kPROPOSAL_TIMEOUT)) {
+          LOG_FATAL << "Proposal timed out at block #"
+            +std::to_string(final_chain_.size());
+          StopAll();
+        }
+      }
+
+
     } else {
       LOG_FATAL << "Final block is inconsistent with chain.";
       LOG_DEBUG << "Highest Proposal: "+highest_proposal->ToJSON();
@@ -153,7 +170,7 @@ void DevcashController::ConsensusCallback(DevcashMessageUniquePtr ptr) {
       new_proposal->signBlock(keys_.getNodeKey(context_.get_current_node()),
           context_.kNODE_ADDRs[context_.get_current_node()]);
       int proposer = (proposed_chain_.size()-1)%context_.get_peer_count();
-      raw_str = new_proposal->vals_.ToJSON();
+      raw_str = new_proposal->GetValidationBlock().ToJSON();
       LOG_DEBUG << "Validation: "+raw_str;
       std::vector<uint8_t> data(str2Bin(raw_str));
 
@@ -186,8 +203,8 @@ void DevcashController::ConsensusCallback(DevcashMessageUniquePtr ptr) {
     }
     DCValidationBlock validation(rawVal);
     ProposedBlock highest_proposal = *proposed_chain_.back().get();
-    highest_proposal.vals_.addValidation(validation);
-    if (highest_proposal.vals_.GetValidationCount() > 1) {
+    highest_proposal.GetValidationBlock().addValidation(validation);
+    if (highest_proposal.GetValidationBlock().GetValidationCount() > 1) {
       accepting_valids_ = false;
       highest_proposal.finalize(getHighestMerkleRoot());
       FinalPtr top_block =std::make_shared<FinalBlock>(highest_proposal
@@ -204,7 +221,7 @@ void DevcashController::ConsensusCallback(DevcashMessageUniquePtr ptr) {
       auto finalBlock = std::make_unique<DevcashMessage>("peers", FINAL_BLOCK, data);
       server_.QueueMessage(std::move(finalBlock));
     } else {
-      unsigned int vals = proposed_chain_.back()->vals_.GetValidationCount();
+      unsigned int vals = proposed_chain_.back()->GetValidationBlock().GetValidationCount();
       LOG_INFO << "Block proposal validated "+std::to_string(vals)+" times.\n";
     }
   } else if (ptr->message_type == REQUEST_BLOCK) {
@@ -438,7 +455,27 @@ std::string DevcashController::Start() {
 
   LOG_INFO << "Starting a control sleep";
   sleep(2);
-  CreateNextProposal();
+      if ((final_chain_.size() % context_.get_peer_count()) == context_.get_current_node()) {
+        LOG_INFO << "This node's turn to create proposal.";
+        server_.QueueMessage(CreateNextProposal(final_chain_.size(),
+                                                *upcoming_chain_.at(final_chain_.size()),
+                                                context_,
+                                                keys_,
+                                                proposed_chain_));
+        accepting_valids_ = true;
+      } else if (waiting_ == 0) {
+        millisecs ms =
+          std::chrono::duration_cast<millisecs>(std::chrono::system_clock::now().time_since_epoch());
+        waiting_ = ms.count();
+      } else {
+        millisecs ms =
+          std::chrono::duration_cast<millisecs>(std::chrono::system_clock::now().time_since_epoch());
+        if (ms.count() > static_cast<int>(waiting_ + kPROPOSAL_TIMEOUT)) {
+          LOG_FATAL << "Proposal timed out at block #"
+            +std::to_string(final_chain_.size());
+          StopAll();
+        }
+      }
 
   // Loop for long runs
   bool transactions_to_post = postTransactions();

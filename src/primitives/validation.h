@@ -68,7 +68,8 @@ class DCSummary {
    *  @param item a chain state vector summary of transactions.
    *  @return true iff the summary was added
   */
-  bool addItem(std::string addr, long coinType, DCSummaryItem item);
+  bool addItem(const std::string& addr, long coinType, const DCSummaryItem& item);
+
   /** Adds a summary record to this block.
    *  @param addr the addresses involved in this change
    *  @param coinType the type number for this coin
@@ -76,7 +77,7 @@ class DCSummary {
    *  @param delay the delay in seconds before this transaction can be received
    *  @return true iff the summary was added
   */
-  bool addItem(std::string addr, long coinType, long delta, long delay=0);
+  bool addItem(const std::string& addr, long coinType, long delta, long delay=0);
 
   /** Adds multiple summary records to this block.
    *  @param addr the addresses involved in these changes
@@ -89,14 +90,14 @@ class DCSummary {
   /**
    *  @return a canonical string summarizing these changes.
   */
-  std::string toCanonical();
+  std::string toCanonical() const;
 
-  size_t getByteSize();
+  size_t getByteSize() const;
 
   /**
    *  @return true iff, the summary passes sanity checks
   */
-  bool isSane();
+  bool isSane() const;
 
   typedef boost::container::flat_map<std::string, coinmap> SummaryMap;
   SummaryMap summary_;

@@ -23,21 +23,21 @@ FinalBlock::FinalBlock(const FinalBlock& other)
 {
 }
 
-FinalBlock::FinalBlock(std::vector<DCTransaction>& txs,
-    DCValidationBlock& vs,
+FinalBlock::FinalBlock(const std::vector<DCTransaction>& txs,
+    const DCValidationBlock& vs,
     unsigned int blockHeight)
     : DCBlock(txs, vs)
     , block_height_(blockHeight) {
 }
 
-FinalBlock::FinalBlock(DCBlock& other, unsigned int blockHeight)
-  : DCBlock(other.vtx_, other.vals_)
+FinalBlock::FinalBlock(const DCBlock& other, unsigned int blockHeight)
+  : DCBlock(other.vtx_, other.GetValidationBlock())
   , block_height_(blockHeight)
 {
   DCBlock::copyHeaders(other);
 }
 
-bool FinalBlock::validateBlock(KeyRing& keys) {
+bool FinalBlock::validateBlock(const KeyRing& keys) {
   return (DCBlock::validate(keys));
 }
 

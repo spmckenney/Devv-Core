@@ -75,7 +75,7 @@ class DCTransfer {
 /** Gets this transfer in a canonical form.
  * @return a string defining this transaction in canonical form.
  */
-  std::string getCanonical();
+  std::string getCanonical() const;
 
 /** Compare transfers */
   friend bool operator==(const DCTransfer& a, const DCTransfer& b)
@@ -128,8 +128,8 @@ class DCTransaction {
 
 /** Constructors */
   DCTransaction();
-  explicit DCTransaction(std::string jsonTx);
-  explicit DCTransaction(std::vector<uint8_t> cbor);
+  explicit DCTransaction(const std::string& jsonTx);
+  explicit DCTransaction(const std::vector<uint8_t>& cbor);
   DCTransaction(const DCTransaction& tx);
 
   /** Sets this to a null/invalid transaction. */
@@ -147,7 +147,7 @@ class DCTransaction {
  * @return true iff the transaction is valid
  * @return false otherwise
  */
-  bool isValid(DCState& state, KeyRing& keys, DCSummary& summary) const;
+  bool isValid(DCState& state, const KeyRing& keys, DCSummary& summary) const;
   std::string ComputeHash() const;
 
 /** Returns the hash of this transaction.
@@ -211,7 +211,7 @@ class DCTransaction {
 /** Returns a canonical string representation of this transaction.
  * @return a canonical string representation of this transaction.
 */
-  std::string getCanonicalForm();
+  std::string getCanonicalForm() const;
 
 /** Returns a JSON string representing this transaction.
  * @return a JSON string representing this transaction.
@@ -228,7 +228,7 @@ class DCTransaction {
  * @return true iff the transaction is this type
  * @return false, otherwise
 */
-  bool isOpType(std::string oper);
+  bool isOpType(const std::string& oper);
 
  private:
   eOpType oper_;

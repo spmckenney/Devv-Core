@@ -18,7 +18,7 @@ namespace Devcash
 
 using namespace Devcash;
 
-bool DCState::addCoin(SmartCoin& coin) {
+bool DCState::addCoin(const SmartCoin& coin) {
   std::lock_guard<std::mutex> lock(lock_);
   auto it = stateMap_.find(coin.addr_);
   if (it != stateMap_.end()) {
@@ -27,7 +27,7 @@ bool DCState::addCoin(SmartCoin& coin) {
   return(true);
 }
 
-long DCState::getAmount(int type, const std::string addr) {
+long DCState::getAmount(int type, const std::string& addr) const {
   auto it = stateMap_.find(addr);
   if (it != stateMap_.end()) {
     return it->second[type];
@@ -35,7 +35,7 @@ long DCState::getAmount(int type, const std::string addr) {
   return(0);
 }
 
-bool DCState::moveCoin(SmartCoin& start, SmartCoin& end) {
+bool DCState::moveCoin(SmartCoin& start, SmartCoin& end) const {
   std::lock_guard<std::mutex> lock(lock_);
   if (start.type_ != end.type_) return(false);
   if (start.amount_ != end.amount_) return(false);

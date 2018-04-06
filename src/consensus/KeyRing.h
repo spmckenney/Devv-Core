@@ -21,9 +21,9 @@ class KeyRing {
   virtual ~KeyRing() {};
 
   bool initKeys();
-  EC_KEY* getKey(std::string addr);
-  bool isINN(std::string addr);
-  EC_KEY* getNodeKey(int index);
+  EC_KEY* getKey(const std::string& addr) const;
+  bool isINN(const std::string& addr) const;
+  EC_KEY* getNodeKey(int index) const;
 
  private:
   DevcashContext context_;

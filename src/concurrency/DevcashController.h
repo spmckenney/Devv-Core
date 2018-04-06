@@ -53,12 +53,13 @@ class DevcashController {
   void ConsensusToyCallback(std::unique_ptr<DevcashMessage> ptr);
   void ValidatorToyCallback(std::unique_ptr<DevcashMessage> ptr);
 
- protected:
+
+private:
   io::TransactionServer& server_;
   io::TransactionClient& client_;
   const int validator_count_;
   const int consensus_count_;
-  const int repeat_for_ = 1;
+  int repeat_for_ = 1;
   KeyRing& keys_;
   DevcashContext& context_;
   std::vector<FinalPtr> final_chain_;
@@ -72,15 +73,19 @@ class DevcashController {
   std::mutex valid_lock_;
   bool accepting_valids_ = false;
 
- private:
   bool postTransactions();
   bool postAdvanceTransactions(const std::string& inputTxs);
   std::string getHighestMerkleRoot();
-  bool CreateNextProposal();
 
   bool shutdown_ = false;
   uint64_t waiting_ = 0;
 };
+
+DevcashMessageUniquePtr CreateNextProposal(unsigned int block_height,
+                                           const ProposedBlock& next_proposal,
+                                           const DevcashContext& context,
+                                           const KeyRing& keys,
+                                           std::vector<ProposedPtr>& proposed_chain);
 
 } /* namespace Devcash */
 

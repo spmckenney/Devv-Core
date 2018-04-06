@@ -47,7 +47,7 @@ DCBlock::DCBlock()
 }
 
 //note the order of elements is assumed, which is fast, but not proper JSON
-DCBlock::DCBlock(std::string rawBlock, KeyRing& keys)
+DCBlock::DCBlock(const std::string& rawBlock, const KeyRing& keys)
   :  vSize_(0)
   , sumSize_(0)
   , txSize_(0)
@@ -110,8 +110,8 @@ DCBlock::DCBlock(std::string rawBlock, KeyRing& keys)
   }
 }
 
-DCBlock::DCBlock(std::vector<DCTransaction>& txs,
-                 DCValidationBlock& validations)
+DCBlock::DCBlock(const std::vector<DCTransaction>& txs,
+                 const DCValidationBlock& validations)
   : vtx_(txs)
   , vals_(validations)
   , vSize_(0)
@@ -137,7 +137,7 @@ bool DCBlock::setBlockState(const DCState& prior_state) {
   return true;
 }
 
-bool DCBlock::validate(KeyRing& keys) {
+bool DCBlock::validate(const KeyRing& keys) const {
   if (vtx_.size() < 1) {
     LOG_WARNING << "Trying to validate empty block.";
     return false;
@@ -264,7 +264,7 @@ std::vector<uint8_t> DCBlock::ToCBOR() const
   return json::to_cbor(ToJSON());
 }
 
-std::string DCBlock::ToCBOR_str() {
+std::string DCBlock::ToCBOR_str() const {
   std::vector<uint8_t> b = ToCBOR();
   int len = b.size();
   std::stringstream ss;

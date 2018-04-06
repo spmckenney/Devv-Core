@@ -86,7 +86,7 @@ DCTransfer::DCTransfer(const DCTransfer &other) : addr_(other.addr_),
     amount_(other.amount_), coinIndex_(other.coinIndex_), delay_(other.delay_){
 }
 
-std::string DCTransfer::getCanonical()
+std::string DCTransfer::getCanonical() const
 {
   std::string out("\""+kADDR_TAG+"\":\""+addr_+"\",\""+kTYPE_TAG+"\":"+std::to_string(coinIndex_)+",\""+kAMOUNT_TAG+"\":"
       +std::to_string(amount_));
@@ -112,7 +112,7 @@ std::string indexOpType(eOpType oper) {
   return "-1";
 }
 
-bool DCTransaction::isOpType(std::string oper) {
+bool DCTransaction::isOpType(const std::string& oper) {
   if ("create"==oper) return(oper_ == eOpType::Create);
   if ("modify"==oper) return(oper_ == eOpType::Modify);
   if ("exchange"==oper) return(oper_ == eOpType::Exchange);
@@ -123,7 +123,7 @@ bool DCTransaction::isOpType(std::string oper) {
 DCTransaction::DCTransaction() : nonce_(0), sig_(""), oper_(eOpType::Create) {
 }
 
-DCTransaction::DCTransaction(std::string jsonTx)
+DCTransaction::DCTransaction(const std::string& jsonTx)
   : nonce_(0), sig_(""), oper_(eOpType::Create ){
   CASH_TRY {
     if (jsonTx.at(0) == '{') {
@@ -194,7 +194,7 @@ DCTransaction::DCTransaction(std::string jsonTx)
   }
 }*/
 
-DCTransaction::DCTransaction(std::vector<uint8_t> cbor) {
+DCTransaction::DCTransaction(const std::vector<uint8_t>& cbor) {
   CASH_TRY {
     json jsonObj = json::from_cbor(cbor);
     std::string opTemp = jsonObj[kOPER_TAG];
@@ -226,7 +226,7 @@ DCTransaction::DCTransaction(const DCTransaction& tx)
 {
 }
 
-bool DCTransaction::isValid(DCState& chainState, KeyRing& keys, DCSummary& summary) const {
+bool DCTransaction::isValid(DCState& chainState, const KeyRing& keys, DCSummary& summary) const {
   CASH_TRY {
     long nValueOut = 0;
 
@@ -313,7 +313,7 @@ long DCTransaction::getValueOut() const
   return nValueOut;
 }
 
-std::string DCTransaction::getCanonicalForm() {
+std::string DCTransaction::getCanonicalForm() const {
   std::string out;
   out = "{\""+kOPER_TAG+"\":"+
       indexOpType(oper_)+",\""+

@@ -80,7 +80,7 @@ bool KeyRing::initKeys() {
   }
 }
 
-EC_KEY* KeyRing::getKey(std::string addr) {
+EC_KEY* KeyRing::getKey(const std::string& addr) const {
   if (addr[0] == '7') {
     auto it = keyMap_.find(context_.kINN_ADDR);
     if (it != keyMap_.end()) return it->second;
@@ -94,11 +94,11 @@ EC_KEY* KeyRing::getKey(std::string addr) {
   CASH_THROW("Key for '"+addr+"'is missing!");
 }
 
-bool KeyRing::isINN(std::string addr) {
+bool KeyRing::isINN(const std::string& addr) const {
   return(addr[0] == '7');
 }
 
-EC_KEY* KeyRing::getNodeKey(int index) {
+EC_KEY* KeyRing::getNodeKey(int index) const {
   auto it = keyMap_.find(context_.kNODE_ADDRs[index]);
   if (it != keyMap_.end()) return it->second;
   LOG_WARNING << "Node["+std::to_string(index)+"] key is missing!\n";
