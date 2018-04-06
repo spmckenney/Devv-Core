@@ -20,6 +20,8 @@ class FinalBlock : public DCBlock {
   FinalBlock(const std::vector<DCTransaction>& txs,
       const DCValidationBlock& vs,
       unsigned int blockHeight);
+  FinalBlock(const std::string& blockStr,
+      int blockHeight, const KeyRing& keys);
   FinalBlock();
   FinalBlock(const DCBlock& other, unsigned int blockHeight);
   FinalBlock(const FinalBlock& other);

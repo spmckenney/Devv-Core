@@ -85,7 +85,8 @@ DevcashMessageUniquePtr CreateNextProposal(unsigned int block_height,
                                            const ProposedBlock& next_proposal,
                                            const DevcashContext& context,
                                            const KeyRing& keys,
-                                           std::vector<ProposedPtr>& proposed_chain);
+                                           std::vector<ProposedPtr>& proposed_chain,
+                                           std::vector<ProposedPtr>& upcoming_chain);
 
 } /* namespace Devcash */
 

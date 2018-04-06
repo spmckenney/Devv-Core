@@ -23,6 +23,13 @@ FinalBlock::FinalBlock(const FinalBlock& other)
 {
 }
 
+FinalBlock::FinalBlock(const std::string& blockStr,
+    int blockHeight, const KeyRing& keys)
+    :  DCBlock(blockStr, keys)
+    , block_height_(blockHeight)
+{
+}
+
 FinalBlock::FinalBlock(const std::vector<DCTransaction>& txs,
     const DCValidationBlock& vs,
     unsigned int blockHeight)
