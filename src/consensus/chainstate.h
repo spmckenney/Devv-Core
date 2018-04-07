@@ -63,7 +63,7 @@ public:
  *  @return true if the coins were moved successfully
  *  @return false otherwise
 */
-  bool moveCoin(SmartCoin& start, SmartCoin& end) const;
+  bool moveCoin(const SmartCoin& start, const SmartCoin& end) const;
 
 /** Deletes a coin from the state.
  *  @param reference to the coin to delete

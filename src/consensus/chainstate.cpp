@@ -35,7 +35,7 @@ long DCState::getAmount(int type, const std::string& addr) const {
   return(0);
 }
 
-bool DCState::moveCoin(SmartCoin& start, SmartCoin& end) const {
+bool DCState::moveCoin(const SmartCoin& start, const SmartCoin& end) const {
   std::lock_guard<std::mutex> lock(lock_);
   if (start.type_ != end.type_) return(false);
   if (start.amount_ != end.amount_) return(false);

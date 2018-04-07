@@ -27,13 +27,13 @@ namespace Devcash {
 
 using namespace Devcash;
 
-std::string DevcashController::getHighestMerkleRoot() {
-  unsigned int block_height = final_chain_.size();
+std::string getHighestMerkleRoot(const std::vector<FinalPtr>& final_chain) {
+  unsigned int block_height = final_chain.size();
   std::string prevHash = "Genesis";
   if (block_height > 0) {
-    prevHash = final_chain_.back()->hashMerkleRoot_;
+    prevHash = final_chain.back()->hashMerkleRoot_;
     if (prevHash == "") LOG_FATAL << "Previous block (#"
-      +std::to_string(final_chain_.back()->block_height_)+") Merkle missing!";
+      +std::to_string(final_chain.back()->block_height_)+") Merkle missing!";
   }
   return prevHash;
 }
@@ -100,65 +100,87 @@ void DevcashController::ValidatorCallback(DevcashMessageUniquePtr ptr) {
   }
 }
 
+bool HandleFinalBlock(DevcashMessageUniquePtr ptr,
+                      const DevcashContext& context,
+                      const KeyRing& keys,
+                      std::vector<ProposedPtr>& proposed_chain,
+                      std::vector<ProposedPtr>& upcoming_chain,
+                      std::vector<FinalPtr>& final_chain,
+                      std::function<void(DevcashMessageUniquePtr)> callback) {
+  //Make highest proposed block final
+  //check if propose next
+  //if so, send proposal with all pending valid txs
+  DevcashMessage msg(*ptr.get());
+  std::string final_block_str = bin2Str(msg.data);
+  LOG_DEBUG << "Got final block: "+final_block_str;
+  ProposedPtr highest_proposal = proposed_chain.back();
+  DCBlock new_block(final_block_str, keys);
+  new_block.setBlockState(highest_proposal->block_state_);
+
+  highest_proposal->GetValidationBlock().addValidation(new_block.GetValidationBlock());
+  highest_proposal->finalize(getHighestMerkleRoot(final_chain));
+
+  // Did we send a message
+  bool sent_message = false;
+
+  if (highest_proposal->compare(new_block)) {
+    // (nick@cs) the final block needs to have the validations in the order specified
+    // by the remote node that finalized, so use final_block_str instead of highest_proposal
+    FinalPtr top_block = FinalPtr(new FinalBlock(final_block_str,
+                                                 highest_proposal->block_height_,
+                                                 keys));
+    /*FinalPtr top_block = FinalPtr(new FinalBlock(highest_proposal->vtx_,
+      highest_proposal->GetValidationBlock(),
+      highest_proposal->block_height_));*/
+    top_block->copyHeaders(new_block);
+    final_chain.push_back(top_block);
+
+    if ((final_chain.size() % context.get_peer_count()) == context.get_current_node()) {
+      LOG_INFO << "This node's turn to create proposal.";
+      callback(std::move(CreateNextProposal(final_chain.size(),
+                                  *upcoming_chain.at(final_chain.size()),
+                                  context,
+                                  keys,
+                                  proposed_chain,
+                                            upcoming_chain)));
+      // FIXME(spmckenney) accepting_valids_ = true;
+      sent_message = true;
+    }/* else if (waiting_ == 0) {
+      millisecs ms =
+        std::chrono::duration_cast<millisecs>(std::chrono::system_clock::now().time_since_epoch());
+      waiting_ = ms.count();
+    } else {
+        millisecs ms =
+        std::chrono::duration_cast<millisecs>(std::chrono::system_clock::now().time_since_epoch());
+      if (ms.count() > static_cast<int>(waiting_ + kPROPOSAL_TIMEOUT)) {
+        LOG_FATAL << "Proposal timed out at block #"
+          +std::to_string(final_chain.size());
+        // FIXME(spmckenney) handle LOG_FATAL and shutdown
+        // StopAll();
+        }
+
+        } */
+  } else {
+    LOG_DEBUG << "Highest Proposal: "+highest_proposal->ToJSON();
+    LOG_DEBUG << "Final block: "+new_block.ToJSON();
+    LOG_FATAL << "Final block is inconsistent with chain.";
+    // FIXME(spmckenney): handle LOG_FATAL and shutdown
+    // StopAll();
+  }
+  return sent_message;
+}
+
 void DevcashController::ConsensusCallback(DevcashMessageUniquePtr ptr) {
   LOG_DEBUG << "DevcashController()::ConsensusCallback()";
   if (shutdown_) return;
   if (ptr->message_type == FINAL_BLOCK) {
-    //Make highest proposed block final
-    //check if propose next
-    //if so, send proposal with all pending valid txs
-    DevcashMessage msg(*ptr.get());
-    std::string final_block_str = bin2Str(msg.data);
-    LOG_DEBUG << "Got final block: "+final_block_str;
-    ProposedPtr highest_proposal = proposed_chain_.back();
-    DCBlock new_block(final_block_str, keys_);
-    new_block.setBlockState(highest_proposal->block_state_);
-
-    highest_proposal->GetValidationBlock().addValidation(new_block.GetValidationBlock());
-    highest_proposal->finalize(getHighestMerkleRoot());
-
-    if (highest_proposal->compare(new_block)) {
-      // (nick@cs) the final block needs to have the validations in the order specified
-      // by the remote node that finalized, so use final_block_str instead of highest_proposal
-      FinalPtr top_block = FinalPtr(new FinalBlock(final_block_str,
-                                                   highest_proposal->block_height_,
-                                                   keys_));
-      /*FinalPtr top_block = FinalPtr(new FinalBlock(highest_proposal->vtx_,
-                                                   highest_proposal->GetValidationBlock(),
-                                                   highest_proposal->block_height_));*/
-      top_block->copyHeaders(new_block);
-      final_chain_.push_back(top_block);
-
-      if ((final_chain_.size() % context_.get_peer_count()) == context_.get_current_node()) {
-        LOG_INFO << "This node's turn to create proposal.";
-        server_.QueueMessage(CreateNextProposal(final_chain_.size(),
-                                                *upcoming_chain_.at(final_chain_.size()),
-                                                context_,
-                                                keys_,
-                                                proposed_chain_,
-                                                upcoming_chain_));
-        accepting_valids_ = true;
-      } else if (waiting_ == 0) {
-        millisecs ms =
-          std::chrono::duration_cast<millisecs>(std::chrono::system_clock::now().time_since_epoch());
-        waiting_ = ms.count();
-      } else {
-        millisecs ms =
-          std::chrono::duration_cast<millisecs>(std::chrono::system_clock::now().time_since_epoch());
-        if (ms.count() > static_cast<int>(waiting_ + kPROPOSAL_TIMEOUT)) {
-          LOG_FATAL << "Proposal timed out at block #"
-            +std::to_string(final_chain_.size());
-          StopAll();
-        }
-      }
-
-
-    } else {
-      LOG_FATAL << "Final block is inconsistent with chain.";
-      LOG_DEBUG << "Highest Proposal: "+highest_proposal->ToJSON();
-      LOG_DEBUG << "Final block: "+new_block.ToJSON();
-      StopAll();
-    }
+    auto res = HandleFinalBlock(std::move(ptr),
+                                context_,
+                                keys_,
+                                proposed_chain_,
+                                upcoming_chain_,
+                                final_chain_,
+                                [this](DevcashMessageUniquePtr p) { this->server_.QueueMessage(std::move(p));});
   } else if (ptr->message_type == PROPOSAL_BLOCK) {
     //validate block
     //if valid, push VALID message
@@ -213,7 +235,7 @@ void DevcashController::ConsensusCallback(DevcashMessageUniquePtr ptr) {
     highest_proposal.GetValidationBlock().addValidation(validation);
     if (highest_proposal.GetValidationBlock().GetValidationCount() > 1) {
       accepting_valids_ = false;
-      highest_proposal.finalize(getHighestMerkleRoot());
+      highest_proposal.finalize(getHighestMerkleRoot(final_chain_));
       FinalPtr top_block =std::make_shared<FinalBlock>(highest_proposal
           , highest_proposal.block_height_);
       top_block->copyHeaders(highest_proposal);

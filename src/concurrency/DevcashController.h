@@ -75,7 +75,6 @@ private:
 
   bool postTransactions();
   bool postAdvanceTransactions(const std::string& inputTxs);
-  std::string getHighestMerkleRoot();
 
   bool shutdown_ = false;
   uint64_t waiting_ = 0;
@@ -87,6 +86,16 @@ DevcashMessageUniquePtr CreateNextProposal(unsigned int block_height,
                                            const KeyRing& keys,
                                            std::vector<ProposedPtr>& proposed_chain,
                                            std::vector<ProposedPtr>& upcoming_chain);
+
+bool HandleFinalBlock(DevcashMessageUniquePtr ptr,
+                      const DevcashContext& context,
+                      const KeyRing& keys,
+                      std::vector<ProposedPtr>& proposed_chain,
+                      std::vector<ProposedPtr>& upcoming_chain,
+                      std::vector<FinalPtr>& final_chain,
+                      std::function<void(DevcashMessageUniquePtr)> callback);
+
+std::string getHighestMerkleRoot(const std::vector<FinalPtr>& final_chain);
 
 } /* namespace Devcash */
 
