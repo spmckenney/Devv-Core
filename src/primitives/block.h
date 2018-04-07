@@ -33,9 +33,6 @@ namespace Devcash
 
 class DCBlock {
 
-private:
-  DCValidationBlock vals_;
-
 public:
 
   const DCValidationBlock& GetValidationBlock() const {
@@ -143,7 +140,7 @@ public:
  *  @return true iff the block was finalized.
  *  @return false otherwise
 */
-  bool finalize(std::string prevHash);
+  bool finalize(const std::string& prevHash);
 
 /** Resets this block. */
   void SetNull()
@@ -171,6 +168,9 @@ public:
  *  @return a CBOR representation of this block as a hex string.
 */
   std::string ToCBOR_str() const;
+
+private:
+  DCValidationBlock vals_;
 };
 
 } //end namespace Devcash

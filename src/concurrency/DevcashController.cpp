@@ -142,7 +142,7 @@ bool HandleFinalBlock(DevcashMessageUniquePtr ptr,
                                   context,
                                   keys,
                                   proposed_chain,
-                                            upcoming_chain)));
+                                  upcoming_chain)));
       // FIXME(spmckenney) accepting_valids_ = true;
       sent_message = true;
     }/* else if (waiting_ == 0) {
@@ -213,6 +213,50 @@ bool HandleProposalBlock(DevcashMessageUniquePtr ptr,
   return sent_message;
 }
 
+bool HandleValidationBlock(DevcashMessageUniquePtr ptr,
+                           const DevcashContext& context,
+                           const KeyRing& keys,
+                           const std::vector<ProposedPtr>& proposed_chain,
+                           std::vector<ProposedPtr>& upcoming_chain,
+                           std::vector<FinalPtr>& final_chain,
+                           std::function<void(DevcashMessageUniquePtr)> callback) {
+  bool sent_message = false;
+  //increment validation count
+  //if count >= validationPercent, finalize block
+  DevcashMessage msg(*ptr.get());
+  std::string rawVal = bin2Str(msg.data);
+  LOG_DEBUG << "Received block validation: " + rawVal;
+  unsigned int block_height = final_chain.size();
+  if (block_height % context.get_peer_count() != context.get_current_node()) {
+    LOG_WARNING << "Got a VALID message, but this node did not propose!";
+    return sent_message;
+  }
+  DCValidationBlock validation(rawVal);
+  ProposedBlock highest_proposal = *proposed_chain.back().get();
+  highest_proposal.GetValidationBlock().addValidation(validation);
+  if (highest_proposal.GetValidationBlock().GetValidationCount() > 1) {
+    highest_proposal.finalize(GetHighestMerkleRoot(final_chain));
+    FinalPtr top_block =std::make_shared<FinalBlock>(highest_proposal
+                        , highest_proposal.block_height_);
+    top_block->copyHeaders(highest_proposal);
+    final_chain.push_back(top_block);
+    ProposedPtr upcoming = std::make_shared<ProposedBlock>(""
+                           , upcoming_chain.size(), keys);
+    upcoming->setBlockState(proposed_chain.back()->block_state_);
+    upcoming_chain.push_back(upcoming);
+    std::string final_str = top_block->ToJSON();
+    LOG_DEBUG << "Final block: "+final_str;
+    std::vector<uint8_t> data(str2Bin(final_str));
+    auto finalBlock = std::make_unique<DevcashMessage>("peers", FINAL_BLOCK, data);
+    callback(std::move(finalBlock));
+    sent_message = true;
+  } else {
+    unsigned int vals = proposed_chain.back()->GetValidationBlock().GetValidationCount();
+    LOG_INFO << "Block proposal validated "+std::to_string(vals)+" times.\n";
+  }
+  return sent_message;
+}
+
 void DevcashController::ConsensusCallback(DevcashMessageUniquePtr ptr) {
   LOG_DEBUG << "DevcashController()::ConsensusCallback()";
   if (shutdown_) return;
@@ -241,40 +285,16 @@ void DevcashController::ConsensusCallback(DevcashMessageUniquePtr ptr) {
     LOG_DEBUG << "Unexpected message @ consensus, to validator.\n";
     PushValidator(std::move(ptr));
   } else if (ptr->message_type == VALID) {
-    //increment validation count
-    //if count >= validationPercent, finalize block
-    DevcashMessage msg(*ptr.get());
-    std::string rawVal = bin2Str(msg.data);
-    LOG_DEBUG << "Received block validation: "+rawVal;
-    if (!accepting_valids_) return;
-    std::lock_guard<std::mutex> lock(valid_lock_);
-    unsigned int block_height = final_chain_.size();
-    if (block_height%context_.get_peer_count() != context_.get_current_node()) {
-      LOG_WARNING << "Got a VALID message, but this node did not propose!";
-      return;
-    }
-    DCValidationBlock validation(rawVal);
-    ProposedBlock highest_proposal = *proposed_chain_.back().get();
-    highest_proposal.GetValidationBlock().addValidation(validation);
-    if (highest_proposal.GetValidationBlock().GetValidationCount() > 1) {
+    if (accepting_valids_) {
+      std::lock_guard<std::mutex> lock(valid_lock_);
+      auto res = HandleValidationBlock(std::move(ptr),
+                                       context_,
+                                       keys_,
+                                       proposed_chain_,
+                                       upcoming_chain_,
+                                       final_chain_,
+                                       [this](DevcashMessageUniquePtr p) { this->server_.QueueMessage(std::move(p));});     
       accepting_valids_ = false;
-      highest_proposal.finalize(GetHighestMerkleRoot(final_chain_));
-      FinalPtr top_block =std::make_shared<FinalBlock>(highest_proposal
-          , highest_proposal.block_height_);
-      top_block->copyHeaders(highest_proposal);
-      final_chain_.push_back(top_block);
-      ProposedPtr upcoming = std::make_shared<ProposedBlock>(""
-          , upcoming_chain_.size(), keys_);
-      upcoming->setBlockState(proposed_chain_.back()->block_state_);
-      upcoming_chain_.push_back(upcoming);
-      std::string final_str = top_block->ToJSON();
-      LOG_DEBUG << "Final block: "+final_str;
-      std::vector<uint8_t> data(str2Bin(final_str));
-      auto finalBlock = std::make_unique<DevcashMessage>("peers", FINAL_BLOCK, data);
-      server_.QueueMessage(std::move(finalBlock));
-    } else {
-      unsigned int vals = proposed_chain_.back()->GetValidationBlock().GetValidationCount();
-      LOG_INFO << "Block proposal validated "+std::to_string(vals)+" times.\n";
     }
   } else if (ptr->message_type == REQUEST_BLOCK) {
     //provide blocks since requested height

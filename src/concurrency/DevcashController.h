@@ -103,6 +103,14 @@ bool HandleProposalBlock(DevcashMessageUniquePtr ptr,
                          const std::vector<FinalPtr>& final_chain,
                          std::function<void(DevcashMessageUniquePtr)> callback);
 
+bool HandleValidationBlock(DevcashMessageUniquePtr ptr,
+                           const DevcashContext& context,
+                           const KeyRing& keys,
+                           const std::vector<ProposedPtr>& proposed_chain,
+                           std::vector<ProposedPtr>& upcoming_chain,
+                           std::vector<FinalPtr>& final_chain,
+                           std::function<void(DevcashMessageUniquePtr)> callback);
+
 std::string GetHighestMerkleRoot(const std::vector<FinalPtr>& final_chain);
 
 } /* namespace Devcash */

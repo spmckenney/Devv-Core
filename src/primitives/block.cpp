@@ -209,7 +209,7 @@ bool DCBlock::signBlock(EC_KEY* eckey, std::string myAddr) {
   return true;
 }
 
-bool DCBlock::finalize(std::string prevHash) {
+bool DCBlock::finalize(const std::string& prevHash) {
   std::string txHashes("");
   uint32_t tx_size = 0;
   uint32_t sum_bytes = vals_.summaryObj_.getByteSize();
