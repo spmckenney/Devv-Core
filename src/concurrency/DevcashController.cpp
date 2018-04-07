@@ -181,6 +181,10 @@ void DevcashController::ConsensusCallback(DevcashMessageUniquePtr ptr) {
                                 upcoming_chain_,
                                 final_chain_,
                                 [this](DevcashMessageUniquePtr p) { this->server_.QueueMessage(std::move(p));});
+    if (res) {
+      accepting_valids_ = true;
+    }
+
   } else if (ptr->message_type == PROPOSAL_BLOCK) {
     //validate block
     //if valid, push VALID message
