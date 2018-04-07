@@ -176,7 +176,7 @@ std::string DevcashNode::RunNode(std::string& inStr)
 {
   std::string out;
   CASH_TRY {
-    control_.seedTransactions(inStr);
+    control_.SeedTransactions(inStr);
     LOG_INFO << "Start controller.";
     //TODO: start timing here
     out += control_.Start();

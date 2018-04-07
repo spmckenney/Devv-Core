@@ -103,7 +103,7 @@ struct DevcashContext {
   eAppMode get_app_mode() const { return app_mode_; }
   std::string get_uri() const { return uri_; }
 
-  std::string get_uri_from_index(unsigned int node_index) {
+  std::string get_uri_from_index(unsigned int node_index) const {
     return (uri_prefix_ + std::to_string(node_index));
   }
 

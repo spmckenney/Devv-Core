@@ -36,7 +36,7 @@ class DevcashController {
                     DevcashContext& context);
   virtual ~DevcashController() {};
 
-  void seedTransactions(std::string txs);
+  void SeedTransactions(std::string txs);
   void StartToy(unsigned int node_index);
 
   /**
@@ -44,8 +44,8 @@ class DevcashController {
    */
   std::string Start();
   void StopAll();
-  void pushConsensus(std::unique_ptr<DevcashMessage> ptr);
-  void pushValidator(std::unique_ptr<DevcashMessage> ptr);
+  void PushConsensus(std::unique_ptr<DevcashMessage> ptr);
+  void PushValidator(std::unique_ptr<DevcashMessage> ptr);
 
   void ConsensusCallback(std::unique_ptr<DevcashMessage> ptr);
   void ValidatorCallback(std::unique_ptr<DevcashMessage> ptr);
@@ -73,8 +73,8 @@ private:
   std::mutex valid_lock_;
   bool accepting_valids_ = false;
 
-  bool postTransactions();
-  bool postAdvanceTransactions(const std::string& inputTxs);
+  bool PostTransactions();
+  bool PostAdvanceTransactions(const std::string& inputTxs);
 
   bool shutdown_ = false;
   uint64_t waiting_ = 0;
@@ -95,7 +95,15 @@ bool HandleFinalBlock(DevcashMessageUniquePtr ptr,
                       std::vector<FinalPtr>& final_chain,
                       std::function<void(DevcashMessageUniquePtr)> callback);
 
-std::string getHighestMerkleRoot(const std::vector<FinalPtr>& final_chain);
+bool HandleProposalBlock(DevcashMessageUniquePtr ptr,
+                         const DevcashContext& context,
+                         const KeyRing& keys,
+                         std::vector<ProposedPtr>& proposed_chain,
+                         const std::vector<ProposedPtr>& upcoming_chain,
+                         const std::vector<FinalPtr>& final_chain,
+                         std::function<void(DevcashMessageUniquePtr)> callback);
+
+std::string GetHighestMerkleRoot(const std::vector<FinalPtr>& final_chain);
 
 } /* namespace Devcash */
 
