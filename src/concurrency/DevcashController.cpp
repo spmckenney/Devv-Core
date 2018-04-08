@@ -293,7 +293,7 @@ void DevcashController::ConsensusCallback(DevcashMessageUniquePtr ptr) {
                                        proposed_chain_,
                                        upcoming_chain_,
                                        final_chain_,
-                                       [this](DevcashMessageUniquePtr p) { this->server_.QueueMessage(std::move(p));});     
+                                       [this](DevcashMessageUniquePtr p) { this->server_.QueueMessage(std::move(p));});
       accepting_valids_ = false;
     }
   } else if (ptr->message_type == REQUEST_BLOCK) {
@@ -368,7 +368,7 @@ void DevcashController::SeedTransactions(std::string txs) {
             StopAll();
           }
           std::string txSubstr(toParse.substr(dex, eDex-dex+2));
-          while (repeat_for_ > 1) {
+          while (repeat_for_ > 0) {
             repeat_for_--;
             PostAdvanceTransactions(txSubstr);
             seeds_.push_back(txSubstr);
