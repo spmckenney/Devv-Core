@@ -3,8 +3,8 @@
  *
  *  Created on: Mar 23, 2018
  *      Author: Nick Williams
+ *      Updated: Shawn McKenney <shawn.mckenney@emmion.com>
  */
-
 #include "DevcashController.h"
 
 #include <condition_variable>
@@ -51,9 +51,18 @@ DevcashController::DevcashController(io::TransactionServer& server,
   LOG_INFO << "Crypto Keys initialized.";
 
   ProposedPtr upcoming = std::make_shared<ProposedBlock>();
-  LOG_TRACE << "upcoming_chain.push_back()";
   upcoming_chain_.push_back(upcoming);
   LOG_INFO << "Upcoming chain created";
+
+  proposal_closure_ = [this](unsigned int block_height) {
+    MaybeCreateNextProposal(block_height,
+                            this->context_,
+                            this->keys_,
+                            this->proposed_chain_,
+                            this->upcoming_chain_,
+                            this->pending_proposal_,
+                            [this](DevcashMessageUniquePtr p) { this->server_.QueueMessage(std::move(p));});
+  };
 }
 
 std::string GetHighestMerkleRoot(const FinalBlockchain& final_chain) {
@@ -65,60 +74,6 @@ std::string GetHighestMerkleRoot(const FinalBlockchain& final_chain) {
       +std::to_string(final_chain.back()->block_height_)+") Merkle missing!";
   }
   return prev_hash;
-}
-
-DevcashMessageUniquePtr CreateNextProposal(unsigned int block_height,
-                        const DevcashContext& context,
-                        const KeyRing& keys,
-                        ProposedBlockchain& proposed_chain,
-                        ProposedBlockchain& upcoming_chain) {
-  auto next_proposal = *upcoming_chain.at(block_height);
-
-  LOG_TRACE << "DevcashController()::CreateNextProposal(): begin";
-  LOG_INFO << "Upcoming #"+std::to_string(block_height)+" has "
-    +std::to_string(next_proposal.vtx_.size())+" transactions.";
-
-  if (!(block_height % 100) || !((block_height + 1) % 100)) {
-    LOG_WARNING << "Processing @ final_chain_.size: (" << std::to_string(block_height) << ")";
-  }
-
-  // (nick@cs) we need to create a new block in the upcoming chain that accepts
-  // incoming transactions from other validation workers before we copy the
-  // previous back() of upcoming_chain into proposed_chain
-  // In fact, this should happen before we get the next_proposal reference
-  // in case a validator worker is currently adding a transaction to it.
-  ProposedPtr upcoming_ptr = std::make_shared<ProposedBlock>(""
-    , block_height+1, keys);
-  upcoming_ptr->SetBlockState(next_proposal.GetBlockState());
-
-  LOG_TRACE << "upcoming_chain.push_back()";
-  upcoming_chain.push_back(upcoming_ptr);
-
-  // (spmckenney) I'm not sure why proposal_pushed onto the proposed_chain_
-  // and then immediately popped into new pointer...
-  ProposedPtr proposal_ptr = std::make_shared<ProposedBlock>(next_proposal.vtx_,
-                                                             next_proposal.GetValidationBlock(),
-                                                             next_proposal.block_height_);
-
-  LOG_INFO << "Proposal #" + std::to_string(block_height) + " has "
-    + std::to_string(proposal_ptr->vtx_.size()) + " transactions.";
-
-  // Validate and sign
-  proposal_ptr->validate(keys);
-  proposal_ptr->signBlock(keys.getNodeKey(context.get_current_node()),
-                      context.kNODE_ADDRs[context.get_current_node()]);
-
-  std::string proposal_str = proposal_ptr->ToJSON();
-
-  LOG_TRACE << "proposed_chain.push_back()";
-  proposed_chain.push_back(proposal_ptr);
-  LOG_DEBUG << "Propose Block: "+proposal_str;
-  std::vector<uint8_t> data(str2Bin(proposal_str));
-
-  // Create message
-  auto propose_msg = std::make_unique<DevcashMessage>("peers", PROPOSAL_BLOCK, data);
-  LOG_TRACE << "DevcashController()::CreateNextProposal(): complete";
-  return propose_msg;
 }
 
 void DevcashController::ValidatorCallback(DevcashMessageUniquePtr ptr) {
@@ -142,9 +97,9 @@ bool HandleFinalBlock(DevcashMessageUniquePtr ptr,
                       ProposedBlockchain& upcoming_chain,
                       FinalBlockchain& final_chain,
                       std::function<void(DevcashMessageUniquePtr)> callback) {
-  //Make highest proposed block final
-  //check if propose next
-  //if so, send proposal with all pending valid txs
+  // Make highest proposed block final
+  // check if propose next
+  // if so, send proposal with all pending valid txs
   DevcashMessage msg(*ptr.get());
   std::string final_block_str = bin2Str(msg.data);
   LOG_DEBUG << "Got final block: " + final_block_str;
@@ -164,37 +119,9 @@ bool HandleFinalBlock(DevcashMessageUniquePtr ptr,
     FinalPtr top_block = FinalPtr(new FinalBlock(final_block_str,
                                                  highest_proposal->block_height_,
                                                  keys));
-    /*FinalPtr top_block = FinalPtr(new FinalBlock(highest_proposal->vtx_,
-      highest_proposal->GetValidationBlock(),
-      highest_proposal->block_height_));*/
+
     top_block->copyHeaders(new_block);
-    LOG_TRACE << "final_chain.push_back()";
     final_chain.push_back(top_block);
-
-    if ((final_chain.size() % context.get_peer_count()) == context.get_current_node()) {
-      LOG_INFO << "This node's turn to create proposal.";
-      callback(std::move(CreateNextProposal(final_chain.size(),
-                                  context,
-                                  keys,
-                                  proposed_chain,
-                                  upcoming_chain)));
-      // FIXME(spmckenney) accepting_valids_ = true;
-      sent_message = true;
-    }/* else if (waiting_ == 0) {
-      millisecs ms =
-        std::chrono::duration_cast<millisecs>(std::chrono::system_clock::now().time_since_epoch());
-      waiting_ = ms.count();
-    } else {
-        millisecs ms =
-        std::chrono::duration_cast<millisecs>(std::chrono::system_clock::now().time_since_epoch());
-      if (ms.count() > static_cast<int>(waiting_ + kPROPOSAL_TIMEOUT)) {
-        LOG_FATAL << "Proposal timed out at block #"
-          +std::to_string(final_chain.size());
-        // FIXME(spmckenney) handle LOG_FATAL and shutdown
-        // StopAll();
-        }
-
-        } */
   } else {
     LOG_DEBUG << "Highest Proposal: "+highest_proposal->ToJSON();
     LOG_DEBUG << "Final block: "+new_block.ToJSON();
@@ -204,6 +131,7 @@ bool HandleFinalBlock(DevcashMessageUniquePtr ptr,
   }
   return sent_message;
 }
+
 bool HandleProposalBlock(DevcashMessageUniquePtr ptr,
                          const DevcashContext& context,
                          const KeyRing& keys,
@@ -211,29 +139,34 @@ bool HandleProposalBlock(DevcashMessageUniquePtr ptr,
                          const ProposedBlockchain& upcoming_chain,
                          const FinalBlockchain& final_chain,
                          std::function<void(DevcashMessageUniquePtr)> callback) {
-  //validate block
-  //if valid, push VALID message
+  Timer timer;
+
   bool sent_message = false;
   DevcashMessage msg(*ptr.get());
+  LOG_TRACE << "timer -1 (" << timer() << ")";
   std::string raw_str = bin2Str(msg.data);
+  LOG_TRACE << "timer 0 (" << timer() << ")";
   LOG_DEBUG << "Received block proposal: " + raw_str;
   unsigned int block_height = final_chain.size();
   ProposedPtr next_proposal = upcoming_chain.at(block_height);
   ProposedPtr new_proposal = std::make_shared<ProposedBlock>(raw_str,
                                                              final_chain.size(),
                                                              keys);
+  LOG_TRACE << "timer 1 (" << timer() << ")";
   new_proposal->SetBlockState(next_proposal->GetBlockState());
   if (new_proposal->validateBlock(keys)) {
+    LOG_TRACE << "timer 2 (" << timer() << ")";
     LOG_DEBUG << "Proposed block is valid.";
-    LOG_TRACE << "proposed_chain.push_back()";
     proposed_chain.push_back(new_proposal);
     new_proposal->signBlock(keys.getNodeKey(context.get_current_node()),
                             context.kNODE_ADDRs[context.get_current_node()]);
+    LOG_TRACE << "timer 3 (" << timer() << ")";
     int proposer = (proposed_chain.size() - 1) % context.get_peer_count();
     raw_str = new_proposal->GetValidationBlock().ToJSON();
     LOG_DEBUG << "Validation: " + raw_str;
     std::vector<uint8_t> data(str2Bin(raw_str));
 
+    LOG_TRACE << "timer 4 (" << timer() << ")";
     std::string remote_uri = context.get_uri_from_index(proposer);
     auto valid = std::make_unique<DevcashMessage>(remote_uri,
                                                   VALID,
@@ -243,9 +176,9 @@ bool HandleProposalBlock(DevcashMessageUniquePtr ptr,
   } else {
     LOG_FATAL << "Proposed Block is invalid!\n"+
               new_proposal->ToJSON()+"\n----END of BLOCK-------\n";
-    //StopAll();
   }
   LOG_DEBUG << "finished processing proposal";
+  LOG_TRACE << "timer 5 (" << timer() << ")";
   return sent_message;
 }
 
@@ -281,13 +214,14 @@ bool HandleValidationBlock(DevcashMessageUniquePtr ptr,
     FinalPtr top_block =std::make_shared<FinalBlock>(highest_proposal
                         , highest_proposal.block_height_);
     top_block->copyHeaders(highest_proposal);
-    LOG_TRACE << "final_chain.push_back()";
+
     final_chain.push_back(top_block);
+
     ProposedPtr upcoming = std::make_shared<ProposedBlock>(""
                            , upcoming_chain.size(), keys);
     upcoming->SetBlockState(proposed_chain.back()->GetBlockState());
-    LOG_TRACE << "upcoming_chain.push_back()";
     upcoming_chain.push_back(upcoming);
+
     std::string final_str = top_block->ToJSON();
     LOG_DEBUG << "Final block: "+final_str;
     std::vector<uint8_t> data(str2Bin(final_str));
@@ -301,58 +235,85 @@ bool HandleValidationBlock(DevcashMessageUniquePtr ptr,
   return sent_message;
 }
 
+/**
+ * ConsensusCallback
+ *
+ * Master callback to handle incoming messages requiring consensus
+ */
 void DevcashController::ConsensusCallback(DevcashMessageUniquePtr ptr) {
   LOG_DEBUG << "DevcashController()::ConsensusCallback()";
   if (shutdown_) return;
-  if (ptr->message_type == FINAL_BLOCK) {
-    LOG_TRACE << "DevcashController()::ConsensusCallback(): FINAL_BLOCK begin";
-    auto res = HandleFinalBlock(std::move(ptr),
-                                context_,
-                                keys_,
-                                proposed_chain_,
-                                upcoming_chain_,
-                                final_chain_,
-                                [this](DevcashMessageUniquePtr p) { this->server_.QueueMessage(std::move(p));});
-    if (res) {
-      accepting_valids_ = true;
+
+  // FIXME(spmckenney): I removed the response timeout logic
+  // TODO: Add message response timeout logic
+
+  // Start trace timer
+  Timer timer;
+  switch (ptr->message_type) {
+    case (eMessageType::FINAL_BLOCK) : {
+      LOG_TRACE << "DevcashController()::ConsensusCallback(): FINAL_BLOCK begin";
+      auto res = HandleFinalBlock(std::move(ptr),
+                                  context_,
+                                  keys_,
+                                  proposed_chain_,
+                                  upcoming_chain_,
+                                  final_chain_,
+                                  [this](DevcashMessageUniquePtr p) { this->server_.QueueMessage(std::move(p));});
+      LOG_TRACE << "DevcashController()::ConsensusCallback(): FINAL_BLOCK complete: " << timer();
+      proposal_closure_(final_chain_.size());
+      LOG_TRACE << "DevcashController()::ConsensusCallback(): PROPOSAL_CLOSURE complete: " << timer();
+      break;
     }
-    LOG_TRACE << "DevcashController()::ConsensusCallback(): FINAL_BLOCK complete";
-  } else if (ptr->message_type == PROPOSAL_BLOCK) {
-    LOG_TRACE << "DevcashController()::ConsensusCallback(): PROPOSAL_BLOCK begin";
-    auto res = HandleProposalBlock(std::move(ptr),
-                                   context_,
-                                   keys_,
-                                   proposed_chain_,
-                                   upcoming_chain_,
-                                   final_chain_,
-                                   [this](DevcashMessageUniquePtr p) { this->server_.QueueMessage(std::move(p));});
-    waiting_ = 0;
-    LOG_TRACE << "DevcashController()::ConsensusCallback(): PROPOSAL_BLOCK complete";
-  } else if (ptr->message_type == TRANSACTION_ANNOUNCEMENT) {
-    LOG_TRACE << "DevcashController()::ConsensusCallback(): TRANSACTION_ANNOUNCEMENT begin";
-    LOG_DEBUG << "Unexpected message @ consensus, to validator";
-    PushValidator(std::move(ptr));
-    LOG_TRACE << "DevcashController()::ConsensusCallback(): TRANSACTION_ANNOUNCEMENT complete";
-  } else if (ptr->message_type == VALID) {
-    LOG_TRACE << "DevcashController()::ConsensusCallback(): VALIDATION (" << accepting_valids_ << ") begin";
-    std::lock_guard<std::mutex> lock(valid_lock_);
-    LOG_TRACE << "DevcashController()::ConsensusCallback(): VALIDATION (" << accepting_valids_ << ") lock acquired";
-    if (accepting_valids_) {
-      auto res = HandleValidationBlock(std::move(ptr),
-                                       context_,
-                                       keys_,
-                                       proposed_chain_,
-                                       upcoming_chain_,
-                                       final_chain_,
-                                       [this](DevcashMessageUniquePtr p) { this->server_.QueueMessage(std::move(p));});
-      accepting_valids_ = false;
+    case (eMessageType::PROPOSAL_BLOCK) : {
+      LOG_TRACE << "DevcashController()::ConsensusCallback(): PROPOSAL_BLOCK begin";
+      auto res = HandleProposalBlock(std::move(ptr),
+                                     context_,
+                                     keys_,
+                                     proposed_chain_,
+                                     upcoming_chain_,
+                                     final_chain_,
+                                     [this](DevcashMessageUniquePtr p) { this->server_.QueueMessage(std::move(p));});
+      waiting_ = 0;
+      LOG_TRACE << "DevcashController()::ConsensusCallback(): PROPOSAL_BLOCK complete: " << timer();
+      break;
     }
-    LOG_TRACE << "DevcashController()::ConsensusCallback(): VALIDATION (" << accepting_valids_ << ") complete";
-  } else if (ptr->message_type == REQUEST_BLOCK) {
-    LOG_DEBUG << "DevcashController()::ConsensusCallback(): REQUEST_BLOCK";
-    //provide blocks since requested height
-  } else {
-    LOG_ERROR << "DevcashController()::ConsensusCallback(): Unexpected message, ignore.\n";
+    case (eMessageType::TRANSACTION_ANNOUNCEMENT) : {
+      LOG_TRACE << "DevcashController()::ConsensusCallback(): TRANSACTION_ANNOUNCEMENT begin";
+      LOG_DEBUG << "Unexpected message @ consensus, to validator";
+      PushValidator(std::move(ptr));
+      LOG_TRACE << "DevcashController()::ConsensusCallback(): TRANSACTION_ANNOUNCEMENT complete: << timer()";
+      break;
+    }
+    case (eMessageType::VALID) : {
+      LOG_TRACE << "DevcashController()::ConsensusCallback(): VALIDATION (" << pending_proposal_.load() << ") begin";
+      std::lock_guard<std::mutex> lock(valid_lock_);
+
+      LOG_TRACE << "DevcashController()::ConsensusCallback(): VALIDATION ("
+                << pending_proposal_.load() << ") lock acquired: "<< timer();
+
+      // If we have a proposed block pending
+      if (pending_proposal_.load()) {
+        auto res = HandleValidationBlock(std::move(ptr),
+                                         context_,
+                                         keys_,
+                                         proposed_chain_,
+                                         upcoming_chain_,
+                                         final_chain_,
+                                         [this](DevcashMessageUniquePtr p) { this->server_.QueueMessage(std::move(p));});
+        pending_proposal_.store(false);
+      }
+      LOG_TRACE << "DevcashController()::ConsensusCallback(): VALIDATION ("
+                << pending_proposal_.load() << ") complete: " << timer();
+      break;
+    }
+    case (eMessageType::REQUEST_BLOCK) : {
+      LOG_DEBUG << "DevcashController()::ConsensusCallback(): REQUEST_BLOCK";
+      // provide blocks since requested height
+      break;
+    }
+    default : {
+      LOG_ERROR << "DevcashController()::ConsensusCallback(): Unexpected message, ignore.\n";
+    }
   }
 }
 
@@ -428,7 +389,6 @@ bool DevcashController::PostAdvanceTransactions(const std::string& inputTxs) {
       ProposedPtr upcoming_ptr = std::make_shared<ProposedBlock>(""
               , upcoming_chain_.size(), keys_);
           upcoming_ptr->SetBlockState(next_proposal->GetBlockState());
-          LOG_TRACE << "upcoming_chain.push_back()";
           upcoming_chain_.push_back(upcoming_ptr);
     }
     ProposedPtr upcoming = upcoming_chain_.at(seeds_at_);
@@ -555,27 +515,30 @@ std::string DevcashController::Start() {
 
   LOG_INFO << "Starting a control sleep";
   sleep(2);
-      if ((final_chain_.size() % context_.get_peer_count()) == context_.get_current_node()) {
-        LOG_INFO << "This node's turn to create proposal.";
-        server_.QueueMessage(CreateNextProposal(final_chain_.size(),
-                                                context_,
-                                                keys_,
-                                                proposed_chain_,
-                                                upcoming_chain_));
-        accepting_valids_ = true;
-      } else if (waiting_ == 0) {
-        millisecs ms =
-          std::chrono::duration_cast<millisecs>(std::chrono::system_clock::now().time_since_epoch());
-        waiting_ = ms.count();
-      } else {
-        millisecs ms =
-          std::chrono::duration_cast<millisecs>(std::chrono::system_clock::now().time_since_epoch());
-        if (ms.count() > static_cast<int>(waiting_ + kPROPOSAL_TIMEOUT)) {
-          LOG_FATAL << "Proposal timed out at block #"
-            +std::to_string(final_chain_.size());
-          StopAll();
-        }
-      }
+
+  if ((final_chain_.size() % context_.get_peer_count()) == context_.get_current_node()) {
+    LOG_INFO << "This node's turn to create proposal.";
+    MaybeCreateNextProposal(final_chain_.size(),
+                            context_,
+                            keys_,
+                            proposed_chain_,
+                            upcoming_chain_,
+                            pending_proposal_,
+                            [this](DevcashMessageUniquePtr p) { this->server_.QueueMessage(std::move(p));});
+
+  } else if (waiting_ == 0) {
+    millisecs ms =
+      std::chrono::duration_cast<millisecs>(std::chrono::system_clock::now().time_since_epoch());
+    waiting_ = ms.count();
+  } else {
+    millisecs ms =
+      std::chrono::duration_cast<millisecs>(std::chrono::system_clock::now().time_since_epoch());
+    if (ms.count() > static_cast<int>(waiting_ + kPROPOSAL_TIMEOUT)) {
+      LOG_FATAL << "Proposal timed out at block #"
+        +std::to_string(final_chain_.size());
+      StopAll();
+    }
+  }
 
   // Loop for long runs
   bool transactions_to_post = PostTransactions();
@@ -618,6 +581,76 @@ void DevcashController::PushValidator(DevcashMessageUniquePtr ptr) {
 void DevcashController::PushConsensus(DevcashMessageUniquePtr ptr) {
   LOG_DEBUG << "DevcashController::PushConsensus()";
   workers_->pushConsensus(std::move(ptr));
+}
+
+void MaybeCreateNextProposal(unsigned int block_height,
+                             const DevcashContext& context,
+                             const KeyRing& keys,
+                             ProposedBlockchain& proposed_chain,
+                             ProposedBlockchain& upcoming_chain,
+                             std::atomic<bool>& pending_proposal,
+                             std::function<void(DevcashMessageUniquePtr)> callback) {
+
+  if ((block_height % context.get_peer_count()) == context.get_current_node()) {
+    LOG_INFO << "This node's turn to create proposal.";
+  } else {
+    LOG_INFO << "Not this node's turn to create proposal.";
+    return;
+  }
+
+  if (pending_proposal.load()) {
+    LOG_ERROR << "Won't create proposal, pending_proposal == true";
+  }
+
+  LOG_TRACE << "DevcashController()::CreateNextProposal(" << block_height << "): begin";
+  Timer timer;
+
+  auto next_proposal = *upcoming_chain.at(block_height);
+
+  LOG_INFO << "Upcoming #"+std::to_string(block_height)+" has "
+    +std::to_string(next_proposal.vtx_.size())+" transactions.";
+
+  if (!(block_height % 100) || !((block_height + 1) % 100)) {
+    LOG_WARNING << "Processing @ final_chain_.size: (" << std::to_string(block_height) << ")";
+  }
+
+  // (nick@cs) we need to create a new block in the upcoming chain that accepts
+  // incoming transactions from other validation workers before we copy the
+  // previous back() of upcoming_chain into proposed_chain
+  // In fact, this should happen before we get the next_proposal reference
+  // in case a validator worker is currently adding a transaction to it.
+  ProposedPtr upcoming_ptr = std::make_shared<ProposedBlock>(""
+    , block_height+1, keys);
+  upcoming_ptr->SetBlockState(next_proposal.GetBlockState());
+
+  upcoming_chain.push_back(upcoming_ptr);
+
+  // (spmckenney) I'm not sure why proposal_pushed onto the proposed_chain_
+  // and then immediately popped into new pointer...
+  ProposedPtr proposal_ptr = std::make_shared<ProposedBlock>(next_proposal.vtx_,
+                                                             next_proposal.GetValidationBlock(),
+                                                             next_proposal.block_height_);
+
+  LOG_INFO << "Proposal #" + std::to_string(block_height) + " has "
+    + std::to_string(proposal_ptr->vtx_.size()) + " transactions.";
+
+  // Validate and sign
+  proposal_ptr->validate(keys);
+  proposal_ptr->signBlock(keys.getNodeKey(context.get_current_node()),
+                      context.kNODE_ADDRs[context.get_current_node()]);
+
+  std::string proposal_str = proposal_ptr->ToJSON();
+
+  proposed_chain.push_back(proposal_ptr);
+  LOG_DEBUG << "Propose Block: "+proposal_str;
+  std::vector<uint8_t> data(str2Bin(proposal_str));
+
+  // Create message
+  auto propose_msg = std::make_unique<DevcashMessage>("peers", PROPOSAL_BLOCK, data);
+  LOG_TRACE << "DevcashController()::CreateNextProposal(): complete: " << timer();
+  callback(std::move(propose_msg));
+  pending_proposal.store(true);
+  return;
 }
 
 } //end namespace Devcash

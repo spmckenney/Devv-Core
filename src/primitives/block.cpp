@@ -38,7 +38,7 @@ static const std::string kSUM_TAG = "sum";
 static const std::string kVAL_TAG = "vals";
 
 DCBlock::DCBlock()
-  :  vSize_(0)
+  : vSize_(0)
   , sumSize_(0)
   , txSize_(0)
   , nTime_(0)
@@ -54,9 +54,11 @@ DCBlock::DCBlock(const std::string& rawBlock, const KeyRing& keys)
   , nTime_(0)
   , nBytes_(0)
 {
+  Timer timer;
   CASH_TRY {
     if (rawBlock.at(0) == '{') {
       size_t pos = 0;
+      LOG_TRACE << "json 1 (" << timer() << ")";
       hashPrevBlock_ =jsonFinder(rawBlock, kPREV_HASH_TAG, pos);
       LOG_DEBUG << "Previous: "+hashPrevBlock_;
       hashMerkleRoot_=jsonFinder(rawBlock, kMERKLE_TAG, pos);
@@ -72,6 +74,7 @@ DCBlock::DCBlock(const std::string& rawBlock, const KeyRing& keys)
       vSize_=std::stoul(jsonFinder(rawBlock, kVAL_SIZE_TAG, pos));
       LOG_DEBUG << "vSize: "+std::to_string(vSize_);
 
+      LOG_TRACE << "json 2 (" << timer() << ")";
       size_t dex = rawBlock.find("\""+kTXS_TAG+"\":[", pos);
       dex += kTXS_TAG.size()+4;
       size_t eDex = rawBlock.find(kSIG_TAG, dex);
@@ -80,6 +83,8 @@ DCBlock::DCBlock(const std::string& rawBlock, const KeyRing& keys)
       LOG_DEBUG << "One transaction: "+oneTx;
       DCTransaction new_tx(oneTx);
       vtx_.push_back(DCTransaction(oneTx));
+
+      LOG_TRACE << "json 3 (" << timer() << ")";
       while (rawBlock.at(eDex+1) != ']' && eDex < rawBlock.size()-2) {
         pos = eDex;
         dex = rawBlock.find("{", pos);
@@ -90,18 +95,21 @@ DCBlock::DCBlock(const std::string& rawBlock, const KeyRing& keys)
         vtx_.push_back(DCTransaction(oneTx));
       }
 
+      LOG_TRACE << "json 4 (" << timer() << ")";
       std::string valSection = rawBlock.substr(eDex+2);
       LOG_DEBUG << "Parse validation section: "+valSection;
       vals_ = *(new DCValidationBlock(valSection));
 
       LOG_DEBUG << std::to_string(vtx_.size())+" new transactions.";
 
+      LOG_TRACE << "json 4.5 (" << timer() << ")";
       for (std::vector<DCTransaction>::iterator iter = vtx_.begin();
           iter != vtx_.end(); ++iter) {
         if (!iter->isValid(block_state_, keys, vals_.summaryObj_)) {
           LOG_WARNING << "Invalid transaction:"+iter->ToJSON();
         }
       }
+      LOG_TRACE << "json 5 (" << timer() << ")";
     } else {
       LOG_WARNING << "Invalid block input:"+rawBlock+"\n----------------\n";
     }
@@ -144,7 +152,7 @@ bool DCBlock::validate(const KeyRing& keys) const {
   }
 
   if (!vals_.summaryObj_.isSane()) {
-    LOG_WARNING << "Summary is invalid in block.validate()!\n";
+    LOG_WARNING << "Summary is invalid in block.validate()!";
     LOG_DEBUG << "Summary state: "+vals_.summaryObj_.toCanonical();
     return false;
   }
