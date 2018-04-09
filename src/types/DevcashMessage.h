@@ -195,11 +195,8 @@ static DevcashMessageUniquePtr deserialize(const std::vector<uint8_t>& bytes) {
   return(message);
 }
 
-/**
- * Stream the message to the logger
- */
-static void LogDevcashMessageSummary(const DevcashMessage& message) {
 
+static std::string GetMessageType (const DevcashMessage& message) {
   std::string message_type_string;
   switch (message.message_type) {
   case(eMessageType::FINAL_BLOCK):
@@ -221,7 +218,15 @@ static void LogDevcashMessageSummary(const DevcashMessage& message) {
     message_type_string = "ERROR_DEFAULT";
     break;
   }
+  return message_type_string;
+}
 
+/**
+ * Stream the message to the logger
+ */
+static void LogDevcashMessageSummary(const DevcashMessage& message) {
+
+  auto message_type_string = GetMessageType(message);
   LOG_INFO << "DevcashMessage: " <<
     "URI: " << message.uri << " | " <<
     "TYPE: " << message_type_string << " | " <<

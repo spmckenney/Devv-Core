@@ -38,6 +38,7 @@ void
 TransactionServer::QueueMessage(DevcashMessageUniquePtr message) noexcept
 {
   LOG_DEBUG << "QueueMessage: Queueing()";
+  LOG_TRACE << "Sending message(" << GetMessageType(*message) << ") to " << message->uri;
   message_queue_.push(std::move(message));
 }
 
@@ -112,11 +113,12 @@ TransactionClient::ProcessIncomingMessage() noexcept {
   if (mess.size() == 0) return;
 
   auto devcash_message = deserialize(mess);
-  LOG_DEBUG << "ProcessIncomingMessage(): Received a message";
+  LOG_TRACE << "ProcessIncomingMessage(): Received a message";
 
   LogDevcashMessageSummary(*devcash_message);
 
   callback_(std::move(devcash_message));
+  LOG_TRACE << "ProcessIncomingMessage(): Complete";
 }
 
 void

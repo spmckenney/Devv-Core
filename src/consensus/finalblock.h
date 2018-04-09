@@ -31,6 +31,8 @@ class FinalBlock : public DCBlock {
 
 };
 
+typedef std::shared_ptr<FinalBlock> FinalPtr;
+
 } /* namespace Devcash */
 
 #endif /* CONSENSUS_FINALBLOCK_H_ */

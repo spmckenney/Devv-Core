@@ -40,6 +40,8 @@ public:
 
 };
 
+typedef std::shared_ptr<ProposedBlock> ProposedPtr;
+
 } /* namespace Devcash */
 
 #endif /* CONSENSUS_PROPOSEDBLOCK_H_ */

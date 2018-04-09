@@ -132,7 +132,7 @@ DCBlock::DCBlock(const DCBlock& other)
   , nBytes_(0) {
 }
 
-bool DCBlock::setBlockState(const DCState& prior_state) {
+bool DCBlock::SetBlockState(const DCState& prior_state) {
   block_state_.stateMap_ = prior_state.stateMap_;
   return true;
 }

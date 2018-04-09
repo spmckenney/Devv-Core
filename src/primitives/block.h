@@ -44,7 +44,6 @@ public:
   }
 
   std::vector<Devcash::DCTransaction> vtx_;
-  DCState block_state_;
 
   uint32_t vSize_;
   uint32_t sumSize_;
@@ -113,7 +112,16 @@ public:
     this->vSize_ = other.vSize_;
   }
 
-  bool setBlockState(const DCState& prior_state);
+  DCState& GetBlockState() {
+    return block_state_;
+  }
+
+  const DCState& GetBlockState() const {
+    return block_state_;
+  }
+
+  bool SetBlockState(const DCState& prior_state);
+
   bool addTransaction(std::string txStr, KeyRing& keys);
 
 /** Validates this block.
@@ -171,6 +179,8 @@ public:
 
 private:
   DCValidationBlock vals_;
+  DCState block_state_;
+
 };
 
 } //end namespace Devcash

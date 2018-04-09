@@ -4,13 +4,11 @@
  *  Created on: Mar 21, 2018
  *      Author: Nick Williams
  */
-
 #ifndef CONCURRENCY_DEVCASHCONTROLLER_H_
 #define CONCURRENCY_DEVCASHCONTROLLER_H_
 
 #include "consensus/chainstate.h"
-#include "consensus/finalblock.h"
-#include "consensus/proposedblock.h"
+#include "consensus/blockchain.h"
 #include "consensus/KeyRing.h"
 #include "io/message_service.h"
 #include <condition_variable>
@@ -19,9 +17,6 @@
 #include <thread>
 
 namespace Devcash {
-
-typedef std::shared_ptr<FinalBlock> FinalPtr;
-typedef std::shared_ptr<ProposedBlock> ProposedPtr;
 
 class DevcashControllerWorker;
 
@@ -62,9 +57,9 @@ private:
   int repeat_for_ = 1;
   KeyRing& keys_;
   DevcashContext& context_;
-  std::vector<FinalPtr> final_chain_;
-  std::vector<ProposedPtr> proposed_chain_;
-  std::vector<ProposedPtr> upcoming_chain_;
+  FinalBlockchain final_chain_;
+  ProposedBlockchain proposed_chain_;
+  ProposedBlockchain upcoming_chain_;
   std::vector<std::string> seeds_;
   unsigned int seeds_at_;
   DevcashControllerWorker* workers_;
@@ -81,37 +76,36 @@ private:
 };
 
 DevcashMessageUniquePtr CreateNextProposal(unsigned int block_height,
-                                           const ProposedBlock& next_proposal,
                                            const DevcashContext& context,
                                            const KeyRing& keys,
-                                           std::vector<ProposedPtr>& proposed_chain,
-                                           std::vector<ProposedPtr>& upcoming_chain);
+                                           ProposedBlockchain& proposed_chain,
+                                           ProposedBlockchain& upcoming_chain);
 
 bool HandleFinalBlock(DevcashMessageUniquePtr ptr,
                       const DevcashContext& context,
                       const KeyRing& keys,
-                      std::vector<ProposedPtr>& proposed_chain,
-                      std::vector<ProposedPtr>& upcoming_chain,
-                      std::vector<FinalPtr>& final_chain,
+                      ProposedBlockchain& proposed_chain,
+                      ProposedBlockchain& upcoming_chain,
+                      FinalBlockchain& final_chain,
                       std::function<void(DevcashMessageUniquePtr)> callback);
 
 bool HandleProposalBlock(DevcashMessageUniquePtr ptr,
                          const DevcashContext& context,
                          const KeyRing& keys,
-                         std::vector<ProposedPtr>& proposed_chain,
-                         const std::vector<ProposedPtr>& upcoming_chain,
-                         const std::vector<FinalPtr>& final_chain,
+                         ProposedBlockchain& proposed_chain,
+                         const ProposedBlockchain& upcoming_chain,
+                         const FinalBlockchain& final_chain,
                          std::function<void(DevcashMessageUniquePtr)> callback);
 
 bool HandleValidationBlock(DevcashMessageUniquePtr ptr,
                            const DevcashContext& context,
                            const KeyRing& keys,
-                           const std::vector<ProposedPtr>& proposed_chain,
-                           std::vector<ProposedPtr>& upcoming_chain,
-                           std::vector<FinalPtr>& final_chain,
+                           const ProposedBlockchain& proposed_chain,
+                           ProposedBlockchain& upcoming_chain,
+                           FinalBlockchain& final_chain,
                            std::function<void(DevcashMessageUniquePtr)> callback);
 
-std::string GetHighestMerkleRoot(const std::vector<FinalPtr>& final_chain);
+std::string GetHighestMerkleRoot(const FinalBlockchain& final_chain);
 
 } /* namespace Devcash */
 
