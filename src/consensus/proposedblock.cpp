@@ -19,23 +19,23 @@ ProposedBlock::ProposedBlock() :
 {
 }
 
-ProposedBlock::ProposedBlock(std::vector<DCTransaction>& txs,
-    DCValidationBlock& vs,
+ProposedBlock::ProposedBlock(const std::vector<DCTransaction>& txs,
+    const DCValidationBlock& vs,
     unsigned int blockHeight)
     : DCBlock(txs, vs)
     , block_height_(blockHeight)
 {
 }
 
-ProposedBlock::ProposedBlock(std::string blockStr,
-    int blockHeight, KeyRing& keys)
+ProposedBlock::ProposedBlock(const std::string& blockStr,
+    int blockHeight, const KeyRing& keys)
     :  DCBlock(blockStr, keys)
     , block_height_(blockHeight)
 {
 }
 
-ProposedBlock::ProposedBlock(std::vector<DCTransaction>& txs,
-    DCValidationBlock& vs,
+ProposedBlock::ProposedBlock(const std::vector<DCTransaction>& txs,
+    const DCValidationBlock& vs,
     FinalBlock previousBlock)
     : DCBlock(txs, vs)
     , block_height_(previousBlock.block_height_+1) {
@@ -46,7 +46,7 @@ bool ProposedBlock::addTransaction(std::string txStr, KeyRing& keys) {
   return DCBlock::addTransaction(txStr, keys);
 }
 
-bool ProposedBlock::validateBlock(KeyRing& keys) {
+bool ProposedBlock::validateBlock(const KeyRing& keys) const {
   return(DCBlock::validate(keys));
 }
 

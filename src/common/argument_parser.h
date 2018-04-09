@@ -24,6 +24,7 @@ struct devcash_options {
   unsigned int num_validator_threads;
   std::string scan_file;
   std::string write_file;
+  unsigned int repeat_for;
   eDebugMode debug_mode;
 };
 
@@ -54,6 +55,7 @@ network could be build and tested.\n\nAllowed options");
       ("bind-endpoint", po::value<std::string>(), "Endpoint for server (i.e. tcp://*:5556)")
       ("scan-file", po::value<std::string>(), "Initial transaction or blockchain input file")
       ("output", po::value<std::string>(), "Blockchain output path in binary JSON or CBOR")
+      ("repeat-for", po::value<unsigned int>(), "Repeat final input transaction this many times")
       ;
 
     po::variables_map vm;
@@ -61,7 +63,7 @@ network could be build and tested.\n\nAllowed options");
     po::notify(vm);
 
     if (vm.count("help")) {
-      LOG_DEBUG << desc << "\n";
+      std::cout << desc << "\n";
       return nullptr;
     }
 
@@ -74,9 +76,9 @@ network could be build and tested.\n\nAllowed options");
       } else if (mode == "T2") {
         options->mode = T2;
       }
-      LOG_DEBUG << "mode: " << options->mode;
+      LOG_INFO << "mode: " << options->mode;
     } else {
-      LOG_DEBUG << "mode was not set.";
+      LOG_INFO << "mode was not set.";
     }
 
     if (vm.count("debug-mode")) {
@@ -88,61 +90,69 @@ network could be build and tested.\n\nAllowed options");
       } else {
         options->debug_mode = off;
       }
-      LOG_DEBUG << "debug_mode: " << options->debug_mode;
+      LOG_INFO << "debug_mode: " << options->debug_mode;
     } else {
-      LOG_DEBUG << "debug_mode was not set.";
+      LOG_INFO << "debug_mode was not set.";
     }
 
     if (vm.count("node-index")) {
       options->node_index = vm["node-index"].as<unsigned int>();
-      LOG_DEBUG << "Node index: " << options->node_index;
+      LOG_INFO << "Node index: " << options->node_index;
     } else {
-      LOG_DEBUG << "Node index was not set.";
+      LOG_INFO << "Node index was not set.";
     }
 
     if (vm.count("num-consensus-threads")) {
       options->num_consensus_threads = vm["num-consensus-threads"].as<unsigned int>();
-      LOG_DEBUG << "Num consensus threads: " << options->num_consensus_threads;
+      LOG_INFO << "Num consensus threads: " << options->num_consensus_threads;
     } else {
-      LOG_DEBUG << "Num consensus threads was not set, defaulting to 10";
+      LOG_INFO << "Num consensus threads was not set, defaulting to 10";
       options->num_consensus_threads = 10;
     }
 
     if (vm.count("num-validator-threads")) {
       options->num_validator_threads = vm["num-validator-threads"].as<unsigned int>();
-      LOG_DEBUG << "Num validator threads: " << options->num_validator_threads;
+      LOG_INFO << "Num validator threads: " << options->num_validator_threads;
     } else {
-      LOG_DEBUG << "Num validator threads was not set, defaulting to 10";
+      LOG_INFO << "Num validator threads was not set, defaulting to 10";
       options->num_validator_threads = 10;
     }
 
     if (vm.count("bind-endpoint")) {
       options->bind_endpoint = vm["bind-endpoint"].as<std::string>();
-      LOG_DEBUG << "Bind URI: " << options->bind_endpoint;
+      LOG_INFO << "Bind URI: " << options->bind_endpoint;
     } else {
-      LOG_DEBUG << "Bind URI was not set";
+      LOG_INFO << "Bind URI was not set";
     }
 
     if (vm.count("host-list")) {
       options->host_vector = vm["host-list"].as<std::vector<std::string>>();
-      LOG_DEBUG << "Node URIs:";
+      LOG_INFO << "Node URIs:";
       for (auto i : options->host_vector) {
-        LOG_DEBUG << "  " << i;
+        LOG_INFO << "  " << i;
       }
     }
 
     if (vm.count("scan-file")) {
       options->scan_file = vm["scan-file"].as<std::string>();
-      LOG_DEBUG << "Scan file: " << options->scan_file;
+      LOG_INFO << "Scan file: " << options->scan_file;
     } else {
-      LOG_DEBUG << "Scan file was not set.";
+      LOG_INFO << "Scan file was not set.";
     }
 
     if (vm.count("output")) {
       options->write_file = vm["output"].as<std::string>();
-      LOG_DEBUG << "Output file: " << options->write_file;
+      LOG_INFO << "Output file: " << options->write_file;
     } else {
-      LOG_DEBUG << "Output file was not set.";
+      LOG_INFO << "Output file was not set.";
+    }
+
+    if (vm.count("repeat-for")) {
+      options->repeat_for = vm["repeat-for"].as<unsigned int>();
+      LOG_INFO << "Repeat for: " << options->num_consensus_threads;
+    } else {
+      LOG_INFO << "Repeat for was not set, defaulting to 1";
+      options->repeat_for = 1;
     }
 
   }

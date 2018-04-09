@@ -84,9 +84,13 @@ int StreamWriteStr(const std::string &str, std::ostream* fout)
 std::string ReadFile(const std::string& filePath)
 {
   std::ifstream file(filePath);
-  if (!file.good()) LOG_WARNING << "File "+filePath+" could not be found";
-  if (!file.is_open())
-    LOG_WARNING << "File "+filePath+" could not be opened, check permissions";
+  if (!file.good()) {
+    LOG_ERROR << "File "+filePath+" could not be found";
+  }
+
+  if (!file.is_open()) {
+    LOG_ERROR << "File "+filePath+" could not be opened, check permissions";
+  }
 
   std::string output("");
   for(std::string line; std::getline(file, line);) {

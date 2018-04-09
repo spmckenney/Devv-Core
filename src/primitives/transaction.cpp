@@ -31,13 +31,14 @@ struct OpString
     eOpType flag;
 };
 
-const OpString kOpTypes[] =
-{
-  {"create", eOpType::Create},
-  {"modify", eOpType::Modify},
-  {"exchange", eOpType::Exchange},
-  {"delete", eOpType::Delete}
-};
+std::string OpType2String(eOpType e) {
+  if (e == eOpType::Create) return("create");
+  if (e == eOpType::Modify) return("modify");
+  if (e == eOpType::Exchange) return("exchange");
+  if (e == eOpType::Delete) return("delete");
+  LOG_ERROR << "OpType2String: returning empty string";
+  return("");
+}
 
 DCTransfer::DCTransfer(std::string& jsonTx, int defaultCoinType)
   : addr_(""), amount_(0), coinIndex_(-1), delay_(0) {
@@ -85,7 +86,7 @@ DCTransfer::DCTransfer(const DCTransfer &other) : addr_(other.addr_),
     amount_(other.amount_), coinIndex_(other.coinIndex_), delay_(other.delay_){
 }
 
-std::string DCTransfer::getCanonical()
+std::string DCTransfer::getCanonical() const
 {
   std::string out("\""+kADDR_TAG+"\":\""+addr_+"\",\""+kTYPE_TAG+"\":"+std::to_string(coinIndex_)+",\""+kAMOUNT_TAG+"\":"
       +std::to_string(amount_));
@@ -111,7 +112,7 @@ std::string indexOpType(eOpType oper) {
   return "-1";
 }
 
-bool DCTransaction::isOpType(std::string oper) {
+bool DCTransaction::isOpType(const std::string& oper) {
   if ("create"==oper) return(oper_ == eOpType::Create);
   if ("modify"==oper) return(oper_ == eOpType::Modify);
   if ("exchange"==oper) return(oper_ == eOpType::Exchange);
@@ -122,17 +123,19 @@ bool DCTransaction::isOpType(std::string oper) {
 DCTransaction::DCTransaction() : nonce_(0), sig_(""), oper_(eOpType::Create) {
 }
 
-DCTransaction::DCTransaction(std::string jsonTx)
+DCTransaction::DCTransaction(const std::string& jsonTx)
   : nonce_(0), sig_(""), oper_(eOpType::Create ){
   CASH_TRY {
     if (jsonTx.at(0) == '{') {
       int coinDex = -1;
       size_t pos = 0;
       std::string opTemp(jsonFinder(jsonTx, kOPER_TAG, pos));
+      LOG_DEBUG << "oper: "+opTemp;
       size_t temp = pos;
       oper_ = mapOpType(opTemp);
 
       std::string typeStr(jsonFinder(jsonTx, kTYPE_TAG, temp));
+      LOG_DEBUG << "Type: "+typeStr;
       if (!typeStr.empty()) {
         coinDex = oracleInterface::getCoinIndexByType(typeStr);
       }
@@ -155,7 +158,9 @@ DCTransaction::DCTransaction(std::string jsonTx)
         xfers_.push_back(*t);
       }
       nonce_ = std::stoul(jsonFinder(jsonTx, kNONCE_TAG, pos));
+      LOG_DEBUG << "Nonce: "+std::to_string(nonce_);
       sig_ = jsonFinder(jsonTx, kSIG_TAG, pos);
+      LOG_DEBUG << "Sig: "+sig_;
       LOG_DEBUG << "Transaction signature: "+sig_;
     } else {
       LOG_WARNING << "Invalid transaction input:"+jsonTx+"\n----------------\n";
@@ -189,7 +194,7 @@ DCTransaction::DCTransaction(std::string jsonTx)
   }
 }*/
 
-DCTransaction::DCTransaction(std::vector<uint8_t> cbor) {
+DCTransaction::DCTransaction(const std::vector<uint8_t>& cbor) {
   CASH_TRY {
     json jsonObj = json::from_cbor(cbor);
     std::string opTemp = jsonObj[kOPER_TAG];
@@ -221,7 +226,7 @@ DCTransaction::DCTransaction(const DCTransaction& tx)
 {
 }
 
-bool DCTransaction::isValid(DCState& chainState, KeyRing& keys, DCSummary& summary) const {
+bool DCTransaction::isValid(DCState& chainState, const KeyRing& keys, DCSummary& summary) const {
   CASH_TRY {
     long nValueOut = 0;
 
@@ -231,7 +236,7 @@ bool DCTransaction::isValid(DCState& chainState, KeyRing& keys, DCSummary& summa
     }
 
     std::string msg = "\""+kOPER_TAG+"\":\""
-        +kOpTypes[oper_].jsonVal+"\",\""+kTYPE_TAG
+        +OpType2String(oper_)+"\",\""+kTYPE_TAG
         +"\":\""+oracleInterface::getCoinTypeByIndex(xfers_[0].coinIndex_)
         +"\",\""+kXFER_TAG+"\":[";
     bool isFirst = true;
@@ -308,7 +313,7 @@ long DCTransaction::getValueOut() const
   return nValueOut;
 }
 
-std::string DCTransaction::getCanonicalForm() {
+std::string DCTransaction::getCanonicalForm() const {
   std::string out;
   out = "{\""+kOPER_TAG+"\":"+
       indexOpType(oper_)+",\""+

@@ -16,7 +16,6 @@
 
 #include "common/devcash_context.h"
 #include "concurrency/DevcashController.h"
-#include "concurrency/WorkerTypes.h"
 #include "io/message_service.h"
 
 namespace Devcash
@@ -35,13 +34,6 @@ class DevcashNode {
 
   /** Shut down immediately. */
   void Shutdown();
-
-  DevcashNode(eAppMode mode
-              , int node_index
-              , ConsensusWorker& consensus
-              , ValidatorWorker& validator
-              , io::TransactionClient& client
-              , io::TransactionServer& server);
 
   DevcashNode(DevcashController& devcash, DevcashContext& context);
 

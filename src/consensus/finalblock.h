@@ -17,17 +17,21 @@ class FinalBlock : public DCBlock {
  public:
   unsigned int block_height_ = 0;
 
-  FinalBlock(std::vector<DCTransaction>& txs,
-      DCValidationBlock& vs,
+  FinalBlock(const std::vector<DCTransaction>& txs,
+      const DCValidationBlock& vs,
       unsigned int blockHeight);
+  FinalBlock(const std::string& blockStr,
+      int blockHeight, const KeyRing& keys);
   FinalBlock();
-  FinalBlock(DCBlock& other, unsigned int blockHeight);
+  FinalBlock(const DCBlock& other, unsigned int blockHeight);
   FinalBlock(const FinalBlock& other);
   virtual ~FinalBlock() {};
 
-  bool validateBlock(KeyRing &keys);
+  bool validateBlock(const KeyRing &keys);
 
 };
+
+typedef std::shared_ptr<FinalBlock> FinalPtr;
 
 } /* namespace Devcash */
 

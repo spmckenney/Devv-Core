@@ -95,7 +95,7 @@ DCSummary::DCSummary(const DCSummary& other)
   : summary_(other.summary_) {
 }
 
-bool DCSummary::addItem(std::string addr, long coinType, DCSummaryItem item) {
+bool DCSummary::addItem(const std::string& addr, long coinType, const DCSummaryItem& item) {
   CASH_TRY {
     std::lock_guard<std::mutex> lock(lock_);
     if (summary_.count(addr) > 0) {
@@ -126,7 +126,7 @@ bool DCSummary::addItem(std::string addr, long coinType, DCSummaryItem item) {
   }
 }
 
-bool DCSummary::addItem(std::string addr, long coinType, long delta,
+bool DCSummary::addItem(const std::string& addr, long coinType, long delta,
     long delay) {
   DCSummaryItem item(delta, delay);
   return addItem(addr, coinType, item);
@@ -164,7 +164,7 @@ bool DCSummary::addItems(std::string addr,
   }
 }
 
-std::string DCSummary::toCanonical() {
+std::string DCSummary::toCanonical() const {
   std::string out = "{";
   bool first_addr = true;
   for (auto iter = summary_.begin(); iter != summary_.end(); ++iter) {
@@ -190,12 +190,12 @@ std::string DCSummary::toCanonical() {
   return out;
 }
 
-size_t DCSummary::getByteSize() {
+size_t DCSummary::getByteSize() const {
   return toCanonical().size();
 }
 
 /* All transactions must be symmetric wrt coin type */
-bool DCSummary::isSane() {
+bool DCSummary::isSane() const {
   CASH_TRY {
     if (summary_.empty()) return false;
     long coinTotal = 0;

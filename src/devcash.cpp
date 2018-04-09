@@ -71,7 +71,7 @@ int main(int argc, char* argv[])
     DevcashController controller(*server,
                                  *client,
       options->num_validator_threads, options->num_consensus_threads,
-      keys, this_context);
+      options->repeat_for, keys, this_context);
 
     DevcashNode this_node(controller, this_context);
 

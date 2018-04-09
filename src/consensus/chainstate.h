@@ -48,14 +48,14 @@ public:
  *  @return true if the coin was added successfully
  *  @return false otherwise
 */
-  bool addCoin(SmartCoin& coin);
+  bool addCoin(const SmartCoin& coin);
 
 /** Gets the number of coins at a particular location.
  *  @param type the coin type to check
  *  @param the address to check
  *  @return the number of this type of coins at this address
 */
-  long getAmount(int type, const std::string addr);
+  long getAmount(int type, const std::string& addr) const;
 
 /** Moves a coin from one address to another
  *  @param start references where the coins will be removed
@@ -63,7 +63,7 @@ public:
  *  @return true if the coins were moved successfully
  *  @return false otherwise
 */
-  bool moveCoin(SmartCoin& start, SmartCoin& end);
+  bool moveCoin(const SmartCoin& start, const SmartCoin& end) const;
 
 /** Deletes a coin from the state.
  *  @param reference to the coin to delete
@@ -79,7 +79,7 @@ public:
   bool clear();
 
   std::map<std::string, std::vector<long>> stateMap_;
-  std::mutex lock_;
+  mutable std::mutex lock_;
 };
 
 } //namespace Devcash

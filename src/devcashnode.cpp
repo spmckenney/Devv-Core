@@ -21,6 +21,7 @@
 #include <openssl/err.h>
 #include <openssl/pem.h>
 #include <openssl/crypto.h>
+#include <boost/thread/thread.hpp>
 
 #ifndef WIN32
 #include <signal.h>
@@ -33,7 +34,6 @@
 #include "common/ossladapter.h"
 #include "common/util.h"
 #include "concurrency/DevcashController.h"
-#include "concurrency/DevcashWorkerPool.h"
 #include "io/zhelpers.hpp"
 #include "oracles/api.h"
 #include "oracles/data.h"
@@ -70,7 +70,7 @@ void DevcashNode::Shutdown()
   fRequestShutdown = true;
   //TODO: how to stop zmq?
   LOG_INFO << "Shutting down DevCash";
-  //control_.stopAll();
+  control_.StopAll();
 }
 
 /*DevcashNode::DevcashNode(eAppMode mode
@@ -120,10 +120,10 @@ bool initCrypto()
 
 bool DevcashNode::Init()
 {
-  if (app_context_.current_node_ >= app_context_.kNODE_KEYs.size() ||
-      app_context_.current_node_ >= app_context_.kNODE_ADDRs.size()) {
+  if (app_context_.get_current_node() >= app_context_.kNODE_KEYs.size() ||
+      app_context_.get_current_node() >= app_context_.kNODE_ADDRs.size()) {
     LOG_FATAL << "Invalid node index: " <<
-      std::to_string(app_context_.current_node_);
+      std::to_string(app_context_.get_current_node());
     return false;
   }
   return initCrypto();
@@ -176,13 +176,15 @@ std::string DevcashNode::RunNode(std::string& inStr)
 {
   std::string out;
   CASH_TRY {
-    control_.seedTransactions(inStr);
+    control_.SeedTransactions(inStr);
     LOG_INFO << "Start controller.";
     //TODO: start timing here
-    out += control_.start();
+    out += control_.Start();
 
     //TODO: end timing here
 
+    LOG_INFO << "Starting main sleep";
+    std::this_thread::sleep_for(std::chrono::milliseconds(5000));
     LOG_INFO << "Starting shutdown";
     StartShutdown();
 

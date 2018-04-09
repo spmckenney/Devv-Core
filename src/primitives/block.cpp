@@ -38,7 +38,7 @@ static const std::string kSUM_TAG = "sum";
 static const std::string kVAL_TAG = "vals";
 
 DCBlock::DCBlock()
-  :  vSize_(0)
+  : vSize_(0)
   , sumSize_(0)
   , txSize_(0)
   , nTime_(0)
@@ -47,16 +47,18 @@ DCBlock::DCBlock()
 }
 
 //note the order of elements is assumed, which is fast, but not proper JSON
-DCBlock::DCBlock(std::string rawBlock, KeyRing& keys)
+DCBlock::DCBlock(const std::string& rawBlock, const KeyRing& keys)
   :  vSize_(0)
   , sumSize_(0)
   , txSize_(0)
   , nTime_(0)
   , nBytes_(0)
 {
+  Timer timer;
   CASH_TRY {
     if (rawBlock.at(0) == '{') {
       size_t pos = 0;
+      LOG_TRACE << "json 1 (" << timer() << ")";
       hashPrevBlock_ =jsonFinder(rawBlock, kPREV_HASH_TAG, pos);
       LOG_DEBUG << "Previous: "+hashPrevBlock_;
       hashMerkleRoot_=jsonFinder(rawBlock, kMERKLE_TAG, pos);
@@ -72,6 +74,7 @@ DCBlock::DCBlock(std::string rawBlock, KeyRing& keys)
       vSize_=std::stoul(jsonFinder(rawBlock, kVAL_SIZE_TAG, pos));
       LOG_DEBUG << "vSize: "+std::to_string(vSize_);
 
+      LOG_TRACE << "json 2 (" << timer() << ")";
       size_t dex = rawBlock.find("\""+kTXS_TAG+"\":[", pos);
       dex += kTXS_TAG.size()+4;
       size_t eDex = rawBlock.find(kSIG_TAG, dex);
@@ -80,28 +83,33 @@ DCBlock::DCBlock(std::string rawBlock, KeyRing& keys)
       LOG_DEBUG << "One transaction: "+oneTx;
       DCTransaction new_tx(oneTx);
       vtx_.push_back(DCTransaction(oneTx));
+
+      LOG_TRACE << "json 3 (" << timer() << ")";
       while (rawBlock.at(eDex+1) != ']' && eDex < rawBlock.size()-2) {
         pos = eDex;
         dex = rawBlock.find("{", pos);
         dex++;
         eDex = rawBlock.find(kSIG_TAG, dex);
         eDex = rawBlock.find("}", eDex);
-        oneTx = rawBlock.substr(dex, eDex-dex);
+        oneTx = rawBlock.substr(dex-1, eDex-dex+2);
         vtx_.push_back(DCTransaction(oneTx));
       }
 
+      LOG_TRACE << "json 4 (" << timer() << ")";
       std::string valSection = rawBlock.substr(eDex+2);
       LOG_DEBUG << "Parse validation section: "+valSection;
       vals_ = *(new DCValidationBlock(valSection));
 
       LOG_DEBUG << std::to_string(vtx_.size())+" new transactions.";
 
+      LOG_TRACE << "json 4.5 (" << timer() << ")";
       for (std::vector<DCTransaction>::iterator iter = vtx_.begin();
           iter != vtx_.end(); ++iter) {
         if (!iter->isValid(block_state_, keys, vals_.summaryObj_)) {
           LOG_WARNING << "Invalid transaction:"+iter->ToJSON();
         }
       }
+      LOG_TRACE << "json 5 (" << timer() << ")";
     } else {
       LOG_WARNING << "Invalid block input:"+rawBlock+"\n----------------\n";
     }
@@ -110,8 +118,8 @@ DCBlock::DCBlock(std::string rawBlock, KeyRing& keys)
   }
 }
 
-DCBlock::DCBlock(std::vector<DCTransaction>& txs,
-                 DCValidationBlock& validations)
+DCBlock::DCBlock(const std::vector<DCTransaction>& txs,
+                 const DCValidationBlock& validations)
   : vtx_(txs)
   , vals_(validations)
   , vSize_(0)
@@ -132,19 +140,19 @@ DCBlock::DCBlock(const DCBlock& other)
   , nBytes_(0) {
 }
 
-bool DCBlock::setBlockState(const DCState& prior_state) {
+bool DCBlock::SetBlockState(const DCState& prior_state) {
   block_state_.stateMap_ = prior_state.stateMap_;
   return true;
 }
 
-bool DCBlock::validate(KeyRing& keys) {
+bool DCBlock::validate(const KeyRing& keys) const {
   if (vtx_.size() < 1) {
     LOG_WARNING << "Trying to validate empty block.";
     return false;
   }
 
   if (!vals_.summaryObj_.isSane()) {
-    LOG_WARNING << "Summary is invalid in block.validate()!\n";
+    LOG_WARNING << "Summary is invalid in block.validate()!";
     LOG_DEBUG << "Summary state: "+vals_.summaryObj_.toCanonical();
     return false;
   }
@@ -163,7 +171,7 @@ bool DCBlock::validate(KeyRing& keys) {
   return true;
 }
 
-bool DCBlock::addTransaction(std::string txStr, KeyRing& keys) {
+bool DCBlock::addTransaction(std::string txStr, KeyRing&) {
   CASH_TRY {
     DCTransaction new_tx(txStr);
     long nValueOut = 0;
@@ -209,7 +217,7 @@ bool DCBlock::signBlock(EC_KEY* eckey, std::string myAddr) {
   return true;
 }
 
-bool DCBlock::finalize(std::string prevHash) {
+bool DCBlock::finalize(const std::string& prevHash) {
   std::string txHashes("");
   uint32_t tx_size = 0;
   uint32_t sum_bytes = vals_.summaryObj_.getByteSize();
@@ -264,7 +272,7 @@ std::vector<uint8_t> DCBlock::ToCBOR() const
   return json::to_cbor(ToJSON());
 }
 
-std::string DCBlock::ToCBOR_str() {
+std::string DCBlock::ToCBOR_str() const {
   std::vector<uint8_t> b = ToCBOR();
   int len = b.size();
   std::stringstream ss;

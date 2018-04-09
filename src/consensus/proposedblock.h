@@ -19,13 +19,13 @@ public:
   unsigned int block_height_;
 
   ProposedBlock();
-  ProposedBlock(std::string blockStr,
-      int blockHeight, KeyRing& keys);
-  ProposedBlock(std::vector<DCTransaction>& txs,
-      DCValidationBlock& vs,
+  ProposedBlock(const std::string& blockStr,
+      int blockHeight, const KeyRing& keys);
+  ProposedBlock(const std::vector<DCTransaction>& txs,
+      const DCValidationBlock& vs,
       unsigned int blockHeight);
-  ProposedBlock(std::vector<DCTransaction>& txs,
-      DCValidationBlock& vs,
+  ProposedBlock(const std::vector<DCTransaction>& txs,
+      const DCValidationBlock& vs,
       FinalBlock previousBlock);
   virtual ~ProposedBlock() {};
 
@@ -35,10 +35,12 @@ public:
 
   bool addTransaction(std::string txStr, KeyRing& keys);
 
-  bool validateBlock(KeyRing& keys);
+  bool validateBlock(const KeyRing& keys) const;
   bool signBlock(EC_KEY* eckey, std::string myAddr);
 
 };
+
+typedef std::shared_ptr<ProposedBlock> ProposedPtr;
 
 } /* namespace Devcash */
 

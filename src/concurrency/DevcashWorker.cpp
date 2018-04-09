@@ -73,13 +73,16 @@ using namespace Devcash;
    * @return true iff all threads in this pool joined.
    * @return false if some error occurred.
    */
-  bool DevcashControllerWorker::stopAll() {
+  bool DevcashControllerWorker::StopAll() {
+    LOG_DEBUG << "DevcashControllerWorker::StopAll()";
     CASH_TRY {
       continue_ = false;
-      validators_.clearBlockers();
-      consensus_.clearBlockers();
+      validators_.ClearBlockers();
+      consensus_.ClearBlockers();
+      std::this_thread::sleep_for(std::chrono::milliseconds(100));
       validator_pool_.join_all();
       consensus_pool_.join_all();
+      std::this_thread::sleep_for(std::chrono::milliseconds(100));
       return true;
     } CASH_CATCH (const std::exception& e) {
       LOG_WARNING << FormatException(&e, "Worker.stopAll");
@@ -91,7 +94,6 @@ using namespace Devcash;
     LOG_DEBUG << "DevcashControllerWorker::pushValidator()";
     CASH_TRY {
       validators_.push(std::move(message));
-      //controller_->ValidatorCallback(std::move(message));
     } CASH_CATCH (const std::exception& e) {
       LOG_WARNING << FormatException(&e, "Worker.push");
     }
@@ -100,9 +102,7 @@ using namespace Devcash;
   void DevcashControllerWorker::pushConsensus(std::unique_ptr<DevcashMessage> message) {
     LOG_DEBUG << "DevcashControllerWorker::pushConsensus()";
     CASH_TRY {
-      (std::move(message));
       consensus_.push(std::move(message));
-      //controller_->ConsensusCallback(std::move(message));
     } CASH_CATCH (const std::exception& e) {
       LOG_WARNING << FormatException(&e, "Worker.push");
     }
@@ -112,8 +112,6 @@ using namespace Devcash;
     LOG_DEBUG << "DevcashControllerWorker::ValidatorLoop(): Validator Ready";
     CASH_TRY {
       while (continue_) {
-        validators_.popGuard();
-        if (!continue_) break;
         if (!toy_mode_) {
           controller_->ValidatorCallback(std::move(validators_.pop()));
         } else {
@@ -129,8 +127,6 @@ using namespace Devcash;
     LOG_DEBUG << "DevcashControllerWorker::ConsensusLoop(): Consensus Worker Ready";
     CASH_TRY {
       while (continue_) {
-        consensus_.popGuard();
-        if (!continue_) break;
         if (!toy_mode_) {
           controller_->ConsensusCallback(std::move(consensus_.pop()));
         } else {

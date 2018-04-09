@@ -10,6 +10,7 @@
 
 #include "types/DevcashMessage.h"
 #include "concurrency/DevcashSPSCQueue.h"
+#include "concurrency/DevcashMPMCQueue.h"
 
 namespace Devcash {
 namespace io {
@@ -53,6 +54,11 @@ class TransactionServer final {
    */
   void StartServer();
 
+  /**
+   * Stops the server and exits the server thread
+   */
+  void StopServer();
+
  private:
   // Initialize ZMQ sockets
   void Run() noexcept;
@@ -64,13 +70,17 @@ class TransactionServer final {
   zmq::context_t& context_;
 
   // publication socket
-  std::unique_ptr<zmq::socket_t> pub_socket_;
+  std::unique_ptr<zmq::socket_t> pub_socket_ = nullptr;
 
   // Used to run the server service in a background thread
-  std::unique_ptr<std::thread> server_thread_;
+  std::unique_ptr<std::thread> server_thread_ = nullptr;
 
   // Used to queue outgoing messages
-  DevcashSPSCQueue message_queue_;
+  DevcashMPMCQueue message_queue_;
+
+  // Set to true when server thread starts and
+  // false when a shutdown is requested
+  bool keep_running_ = false;
 };
 
 /**
@@ -97,9 +107,14 @@ class TransactionClient final {
   void StartClient();
 
   /**
-   *
+   * Create a listening filter
    */
-  void ListenTo(std::string& filter);
+  void ListenTo(const std::string& filter);
+
+  /**
+   * Stops the client and exits the thread
+   */
+  void StopClient();
 
  private:
   // process received message
@@ -120,8 +135,12 @@ class TransactionClient final {
   // List of callbacks to call when a message arrives
   DevcashMessageCallback callback_;
 
-  //
+  // List of strings to filter incoming messages
   std::vector<std::string> filter_vector_;
+
+  // Set to true when client thread starts and
+  // false when a shutdown is requested
+  bool keep_running_ = false;
 };
 
 } // namespace io

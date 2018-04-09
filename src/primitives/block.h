@@ -32,11 +32,18 @@ namespace Devcash
 {
 
 class DCBlock {
- public:
+
+public:
+
+  const DCValidationBlock& GetValidationBlock() const {
+    return vals_;
+  }
+
+  DCValidationBlock& GetValidationBlock() {
+    return vals_;
+  }
 
   std::vector<Devcash::DCTransaction> vtx_;
-  DCValidationBlock vals_;
-  DCState block_state_;
 
   uint32_t vSize_;
   uint32_t sumSize_;
@@ -50,10 +57,10 @@ class DCBlock {
 
 /** Constructor */
   DCBlock();
-  DCBlock(std::string rawBlock, KeyRing& keys);
+  DCBlock(const std::string& rawBlock, const KeyRing& keys);
   DCBlock(const DCBlock& other);
-  DCBlock(std::vector<Devcash::DCTransaction>& txs,
-      DCValidationBlock& validations);
+  DCBlock(const std::vector<Devcash::DCTransaction>& txs,
+      const DCValidationBlock& validations);
 
   DCBlock* operator=(DCBlock&& other)
   {
@@ -87,14 +94,14 @@ class DCBlock {
     return this;
   }
 
-  bool compare(const DCBlock& other) {
+  bool compare(const DCBlock& other) const {
     if (hashPrevBlock_ == other.hashPrevBlock_
         && txSize_ == other.txSize_
         && sumSize_ == other.sumSize_) return true;
     return false;
   }
 
-  bool copyHeaders(const DCBlock& other) {
+  void copyHeaders(const DCBlock& other) {
     this->nVersion_ = other.nVersion_;
     this->hashPrevBlock_ = other.hashPrevBlock_;
     this->hashMerkleRoot_ = other.hashMerkleRoot_;
@@ -105,7 +112,16 @@ class DCBlock {
     this->vSize_ = other.vSize_;
   }
 
-  bool setBlockState(const DCState& prior_state);
+  DCState& GetBlockState() {
+    return block_state_;
+  }
+
+  const DCState& GetBlockState() const {
+    return block_state_;
+  }
+
+  bool SetBlockState(const DCState& prior_state);
+
   bool addTransaction(std::string txStr, KeyRing& keys);
 
 /** Validates this block.
@@ -116,7 +132,7 @@ class DCBlock {
  *  @return true iff at least once transaction in this block validated.
  *  @return false if this block has no valid transactions
 */
-  bool validate(KeyRing& keys);
+  bool validate(const KeyRing& keys) const;
 
 /** Signs this block.
  *  @pre OpenSSL is initialized and ecKey contains a private key
@@ -132,7 +148,7 @@ class DCBlock {
  *  @return true iff the block was finalized.
  *  @return false otherwise
 */
-  bool finalize(std::string prevHash);
+  bool finalize(const std::string& prevHash);
 
 /** Resets this block. */
   void SetNull()
@@ -159,7 +175,12 @@ class DCBlock {
 /** Returns a CBOR representation of this block as a hex string.
  *  @return a CBOR representation of this block as a hex string.
 */
-  std::string ToCBOR_str();
+  std::string ToCBOR_str() const;
+
+private:
+  DCValidationBlock vals_;
+  DCState block_state_;
+
 };
 
 } //end namespace Devcash
