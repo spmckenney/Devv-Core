@@ -1,52 +1,62 @@
 // Devcash blockchain primitives
 
-namespace Devcash.flatbuffers.primitives;
+namespace Devcash.primitives;
 
-struct Transfer {
+struct int128 {
+  least_sig_word  : int64;
+  most_sig_word   : int64;
+}
+
+struct int256 {
+  least_sig_int128 : int128;
+  most_sig_int128  : int128;
+}
+
+table StringStringMap {
+  key    : string;
+  value  : string;
+}
+
+table Transfer {
   addr        : string;
   amount      : int64;
   coin_index  : int16;
   delay       : int64;
 }
 
-struct Transaction {
+table Transaction {
   nonce  : int32;
   xfers  : [Transfer];
   sig    : string;
 }
 
-struct StringHashMap {
-  hash    : string;
-  string  : string;
+table Validation {
+  summary_map  : [StringStringMap];
 }
 
-struct Validation {
-  summary_map  : [StringHashMap];
-}
-
-struct SummaryItem {
+table SummaryItem {
   delta   : int64;
   delay   : int64;
 }
 
-struct CoinMap {
+table CoinMap {
   coin     : int16;
   summary  : SummaryItem;
 }
 
-struct Summary {
+table Summary {
   summary_str  : string;
   coin_map     : CoinMap;
 }
 
-struct ChainState {
+table ChainState {
   hash   : string;
   chain  : int64;
 }
 
-struct Block {
+table Block {
   version_num      : int16;
-  hash_prev_block  : int256
+  hash_prev_block  : int256;
   hash_merkle_root : int256;
   num_bytes        : int32;
   time             : int64;
@@ -58,7 +68,7 @@ struct Block {
   validations      : [Validation];
 }
 
-struct BlockChain {
-  chain  : [Block]
+table BlockChain {
+  chain  : [Block];
   state  : ChainState;
 }
