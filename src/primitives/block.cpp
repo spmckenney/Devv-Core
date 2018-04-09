@@ -57,10 +57,10 @@ DCBlock::DCBlock(const std::string& rawBlock, const KeyRing& keys)
   CASH_TRY {
     if (rawBlock.at(0) == '{') {
       size_t pos = 0;
-      hashPrevBlock_ =jsonFinder(rawBlock, kPREV_HASH_TAG, pos);
-      LOG_DEBUG << "Previous: "+hashPrevBlock_;
-      hashMerkleRoot_=jsonFinder(rawBlock, kMERKLE_TAG, pos);
-      LOG_DEBUG << "Merkle: "+hashMerkleRoot_;
+      hashPrevBlock_.assign(jsonFinder(rawBlock, kPREV_HASH_TAG, pos));
+      LOG_DEBUG << "Previous: " << hashPrevBlock_;
+      hashMerkleRoot_.assign(jsonFinder(rawBlock, kMERKLE_TAG, pos));
+      LOG_DEBUG << "Merkle: " << hashMerkleRoot_;
       nBytes_=std::stoul(jsonFinder(rawBlock, kBYTES_TAG, pos));
       LOG_DEBUG << "Bytes: "+std::to_string(nBytes_);
       nTime_=std::stoul(jsonFinder(rawBlock, kTIME_TAG, pos));
@@ -209,7 +209,7 @@ bool DCBlock::signBlock(EC_KEY* eckey, std::string myAddr) {
   return true;
 }
 
-bool DCBlock::finalize(const std::string& prevHash) {
+bool DCBlock::finalize(const uint256_t& prevHash) {
   std::string txHashes("");
   uint32_t tx_size = 0;
   uint32_t sum_bytes = vals_.summaryObj_.getByteSize();
@@ -223,7 +223,7 @@ bool DCBlock::finalize(const std::string& prevHash) {
   std::string txSubHash(strHash(txHashes));
   std::string valHashes(vals_.GetHash());
   hashPrevBlock_=prevHash;
-  hashMerkleRoot_=strHash(txSubHash+strHash(valHashes));
+  hashMerkleRoot_.assign(strHash(txSubHash+strHash(valHashes)));
 
   std::chrono::milliseconds ms = std::chrono::duration_cast<std::chrono::milliseconds>
     (std::chrono::system_clock::now().time_since_epoch());
@@ -238,8 +238,12 @@ bool DCBlock::finalize(const std::string& prevHash) {
 
 std::string DCBlock::ToJSON() const
 {
-  std::string out = "{\""+kPREV_HASH_TAG+"\":\""+hashPrevBlock_+"\",";
-  out += "\""+kMERKLE_TAG+"\":\""+hashMerkleRoot_+"\",";
+  std::ostringstream prev_stream;
+  prev_stream << hashPrevBlock_;
+  std::string out = "{\""+kPREV_HASH_TAG+"\":\""+prev_stream.str()+"\",";
+  std::ostringstream merkle_stream;
+  merkle_stream << hashMerkleRoot_;
+  out += "\""+kMERKLE_TAG+"\":\""+merkle_stream.str()+"\",";
   out += "\""+kBYTES_TAG+"\":"+std::to_string(nBytes_)+",";
   out += "\""+kTIME_TAG+"\":"+std::to_string(nTime_)+",";
   out += "\""+kTX_SIZE_TAG+"\":"+std::to_string(txSize_)+",";

@@ -105,7 +105,7 @@ bool HandleValidationBlock(DevcashMessageUniquePtr ptr,
                            FinalBlockchain& final_chain,
                            std::function<void(DevcashMessageUniquePtr)> callback);
 
-std::string GetHighestMerkleRoot(const FinalBlockchain& final_chain);
+uint256_t GetHighestMerkleRoot(const FinalBlockchain& final_chain);
 
 } /* namespace Devcash */
 

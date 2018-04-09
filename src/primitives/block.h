@@ -24,12 +24,16 @@
 #ifndef DEVCASH_PRIMITIVES_BLOCK_H
 #define DEVCASH_PRIMITIVES_BLOCK_H
 
+#include <boost/multiprecision/cpp_int.hpp>
+
 #include "transaction.h"
 #include "validation.h"
 #include "consensus/KeyRing.h"
 
 namespace Devcash
 {
+
+typedef boost::multiprecision::uint256_t uint256_t;
 
 class DCBlock {
 
@@ -52,8 +56,8 @@ public:
   uint32_t nBytes_;
 
   short nVersion_ = 0;
-  std::string hashPrevBlock_;
-  std::string hashMerkleRoot_;
+  uint256_t hashPrevBlock_;
+  uint256_t hashMerkleRoot_;
 
 /** Constructor */
   DCBlock();
@@ -124,6 +128,10 @@ public:
 
   bool addTransaction(std::string txStr, KeyRing& keys);
 
+  uint256_t getMerkleRoot() {
+    return hashMerkleRoot_;
+  }
+
 /** Validates this block.
  *  @pre OpenSSL is initialized and ecKey contains a public key
  *  @note Invalid transactions are removed.
@@ -148,14 +156,14 @@ public:
  *  @return true iff the block was finalized.
  *  @return false otherwise
 */
-  bool finalize(const std::string& prevHash);
+  bool finalize(const uint256_t& prevHash);
 
 /** Resets this block. */
   void SetNull()
   {
     nVersion_ = 0;
-    hashPrevBlock_ = "";
-    hashMerkleRoot_ = "";
+    hashPrevBlock_ = 0;
+    hashMerkleRoot_ = 0;
     nTime_ = 0;
     nBytes_ = 0;
     txSize_ = 0;

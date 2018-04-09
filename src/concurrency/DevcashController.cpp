@@ -56,15 +56,16 @@ DevcashController::DevcashController(io::TransactionServer& server,
   LOG_INFO << "Upcoming chain created";
 }
 
-std::string GetHighestMerkleRoot(const FinalBlockchain& final_chain) {
-  unsigned int block_height = final_chain.size();
+uint256_t GetHighestMerkleRoot(const FinalBlockchain& final_chain) {
+  return final_chain.getHighestMerkleRoot();
+  /*unsigned int block_height = final_chain.size();
   std::string prev_hash = "Genesis";
   if (block_height > 0) {
     prev_hash = final_chain.back()->hashMerkleRoot_;
     if (prev_hash == "") LOG_FATAL << "Previous block (#"
       +std::to_string(final_chain.back()->block_height_)+") Merkle missing!";
   }
-  return prev_hash;
+  return prev_hash;*/
 }
 
 DevcashMessageUniquePtr CreateNextProposal(unsigned int block_height,
