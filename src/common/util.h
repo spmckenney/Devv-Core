@@ -220,6 +220,28 @@ std::unique_ptr<T> make_unique( Args&& ...args )
     return std::unique_ptr<T>( new T( std::forward<Args>(args)... ) );
 }
 
+/**
+ * Time. A simple timer class.
+ */
+class Timer
+{
+public:
+  Timer() { clock_gettime(CLOCK_REALTIME, &beg_); }
+
+  double operator()() { return elapsed(); }
+
+  double elapsed() {
+    clock_gettime(CLOCK_REALTIME, &end_);
+    return end_.tv_sec - beg_.tv_sec +
+      (end_.tv_nsec - beg_.tv_nsec) / 1000000.;
+  }
+
+  void reset() { clock_gettime(CLOCK_REALTIME, &beg_); }
+
+private:
+  timespec beg_, end_;
+};
+
 } //end namespace Devcash
 
 #endif // DEVCASH_UTIL_H

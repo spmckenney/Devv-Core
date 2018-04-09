@@ -66,8 +66,9 @@ private:
   bool validator_flipper_ = true;
   bool consensus_flipper_ = true;
   std::mutex valid_lock_;
-  bool accepting_valids_ = false;
+  std::atomic<bool> pending_proposal_;
 
+  std::function<void(unsigned int)> proposal_closure_;
   bool PostTransactions();
   bool PostAdvanceTransactions(const std::string& inputTxs);
 
@@ -75,11 +76,13 @@ private:
   uint64_t waiting_ = 0;
 };
 
-DevcashMessageUniquePtr CreateNextProposal(unsigned int block_height,
-                                           const DevcashContext& context,
-                                           const KeyRing& keys,
-                                           ProposedBlockchain& proposed_chain,
-                                           ProposedBlockchain& upcoming_chain);
+void MaybeCreateNextProposal(unsigned int block_height,
+                             const DevcashContext& context,
+                             const KeyRing& keys,
+                             ProposedBlockchain& proposed_chain,
+                             ProposedBlockchain& upcoming_chain,
+                             std::atomic<bool>& pending_proposal,
+                             std::function<void(DevcashMessageUniquePtr)> callback);
 
 bool HandleFinalBlock(DevcashMessageUniquePtr ptr,
                       const DevcashContext& context,
