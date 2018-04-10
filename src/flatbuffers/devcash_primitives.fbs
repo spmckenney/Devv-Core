@@ -12,57 +12,62 @@ struct int256 {
   most_sig_int128  : int128;
 }
 
-table StringStringMap {
-  key    : string;
-  value  : string;
-}
-
 table Transfer {
-  addr        : string;
+  addr        : [byte]; //33 bytes
   amount      : int64;
-  coin_index  : int16;
+  coin_index  : int64;
   delay       : int64;
 }
 
-table Transaction {
-  nonce  : int32;
+table Transaction {  
   xfers  : [Transfer];
-  sig    : string;
+  nonce  : [byte]; //length encoded in byte as per CBOR type 2 or calculated
+  sig    : [byte]; //72 bytes
+}
+
+table ValidationMap {
+  addr   : [byte]; //33 bytes
+  sig    : [byte]; //72 bytes
 }
 
 table Validation {
-  summary_map  : [StringStringMap];
+  summary_map  : [ValidationMap];
 }
 
 table SummaryItem {
-  delta   : int64;
   delay   : int64;
+  delta   : int64;  
 }
 
 table CoinMap {
-  coin     : int16;
+  coin     : int64;
   summary  : SummaryItem;
 }
 
 table Summary {
-  summary_str  : string;
-  coin_map     : CoinMap;
+  addr         : [byte]; //33 bytes
+  coin_map     : [CoinMap];
+}
+
+table StateMap {  //like CoinMap, but no delay values
+  coin     : int64;
+  amount   : int64;
 }
 
 table ChainState {
-  hash   : string;
-  chain  : int64;
+  addr      : [byte]; //33 bytes
+  state_map : [StateMap];
 }
 
 table Block {
-  version_num      : int16;
+  version_num      : int8;
   hash_prev_block  : int256;
   hash_merkle_root : int256;
-  num_bytes        : int32;
+  num_bytes        : int64;
   time             : int64;
-  tx_size          : int32;
-  summary_size     : int32;
-  vector_size      : int32;
+  tx_size          : int64;
+  summary_size     : int64;
+  valid_size       : int64;
   transactions     : [Transaction];
   summaries        : [Summary];
   validations      : [Validation];
