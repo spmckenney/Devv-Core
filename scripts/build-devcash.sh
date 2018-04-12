@@ -40,9 +40,7 @@ cd ../..
 docker_container=x86_64-ubuntu16.04-devcash-v${container_version}
 
 # Unpack the tarball for the build image onto the ramdisk (using this to build)
-ssh $build_host \
-  /opt/local/bin/ch-tar2dir /z/c-cloud/tars/${docker_container}.tar.gz /mnt/ramdisk
+srun /opt/local/bin/ch-tar2dir /z/c-cloud/tars/${docker_container}.tar.gz /mnt/ramdisk
 
-# Now, run the build script 
-ssh $build_host \
-  /opt/local/bin/ch-run /mnt/ramdisk/${docker_container} -- sh -c "cd /home/bitbucket/Devel/${build_host}/${repo}/src; mkdir -p build; cd build; cmake ..; make -j $build_cores"
+# Now, run the build script
+srun /opt/local/bin/ch-run /mnt/ramdisk/${docker_container} -- sh -c "cd /home/bitbucket/Devel/${build_host}/${repo}/src; mkdir -p build; cd build; cmake ..; make -j $build_cores"
