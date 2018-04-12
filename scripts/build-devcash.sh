@@ -45,5 +45,4 @@ ssh $build_host \
 
 # Now, run the build script 
 ssh $build_host \
-  /opt/local/bin/ch-run /mnt/ramdisk/${docker_container} -- \
-  sh -c "cd ~/Devel/${build_host}/${repo}/src; mkdir -p build; cd build; cmake ..; make -j $build_cores"
+  /opt/local/bin/ch-run /mnt/ramdisk/${docker_container} -- sh -c "cd /home/bitbucket/Devel/${build_host}/${repo}/src; mkdir -p build; cd build; cmake ..; make -j $build_cores"
