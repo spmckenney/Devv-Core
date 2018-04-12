@@ -46,12 +46,12 @@ if [ $? -eq 1 ]; then
   srun /opt/local/bin/ch-tar2dir /z/c-cloud/tars/${docker_container}.tar.gz /mnt/ramdisk
 fi
 echo "Updating group ownership and permissions"
-srun chgrp -R charlie /mnt/ramdisk/${docker_container} 2>&1 > /dev/null
-srun chmod -R g+w /mnt/ramdisk/${docker_container} 2>&1 > /dev/null
+srun /usr/bin/chgrp -R charlie /mnt/ramdisk/${docker_container} 2>&1 > /dev/null
+srun /usr/bin/chmod -R g+w /mnt/ramdisk/${docker_container} 2>&1 > /dev/null
 
 # Now, run the build script
 srun /opt/local/bin/ch-run /mnt/ramdisk/${docker_container} -- sh -c "cd ~/Devel/${build_host}/${repo}/src; mkdir -p build; cd build; cmake ..; make -j $build_cores"
 
 # If we can, remove the image...
 echo "Trying to remove ramdisk image, if possible..."
-srun rm -rf /mnt/ramdisk/${docker_container} 2>&1 > /dev/null
+srun /usr/bin/rm -rf /mnt/ramdisk/${docker_container} 2>&1 > /dev/null
