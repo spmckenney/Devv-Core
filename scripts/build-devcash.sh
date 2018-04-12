@@ -44,3 +44,6 @@ srun /opt/local/bin/ch-tar2dir /z/c-cloud/tars/${docker_container}.tar.gz /mnt/r
 
 # Now, run the build script
 srun /opt/local/bin/ch-run /mnt/ramdisk/${docker_container} -- sh -c "cd ~/Devel/${build_host}/${repo}/src; mkdir -p build; cd build; cmake ..; make -j $build_cores"
+
+# Clean up containter space in ramdisk after run
+srun rm -f /mnt/ramdisk/${docker_containter}
