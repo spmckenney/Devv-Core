@@ -10,5 +10,6 @@ cd flatbuffers
 git checkout v1.9.0
 cmake -DCMAKE_INSTALL_PREFIX=/usr/local
 make -j4 && sudo make install
+sudo cp flat* /usr/local/bin
 
 exit 0
