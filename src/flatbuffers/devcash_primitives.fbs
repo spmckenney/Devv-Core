@@ -1,6 +1,6 @@
 // Devcash blockchain primitives
 
-namespace Devcash.primitives;
+namespace Devcash.Primitives;
 
 struct int128 {
   least_sig_word  : int64;

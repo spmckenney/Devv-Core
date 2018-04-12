@@ -8,6 +8,8 @@ set (CMAKE_CXX_STANDARD_REQUIRED ON)
 set (DevCash_VERSION_MAJOR 0)
 set (DevCash_VERSION_MINOR 2)
 
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "$ENV{HOME}/dmnt/devcash-core/install/lib/cmake/flatbuffers")
+
 enable_testing()
 
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" OR
@@ -46,6 +48,10 @@ file(GLOB primitives_SRC
 
 # External third-party libraries
 find_library(ZMQ zmq)
+
+find_package(Flatbuffers CONFIG REQUIRED)
+include_directories("$ENV{HOME}/dmnt/devcash-core/install/include")
+include_directories(${Flatbuffers_INCLUDE_DIR})
 
 file(GLOB_RECURSE devcash_headers "*.h*")
 set (devcash_includes "")
@@ -260,5 +266,14 @@ add_executable(zmq_envelope_subscriber
   )
 
 target_link_libraries(zmq_envelope_subscriber
+  ${ZMQ}
+  )
+
+# # # fbs_finalblock
+add_executable(fbs_finalblock
+  tests/flatbuffers/fbs_finalblock.cpp
+  )
+
+target_link_libraries(fbs_finalblock
   ${ZMQ}
   )
