@@ -43,4 +43,4 @@ docker_container=x86_64-ubuntu16.04-devcash-v${container_version}
 srun /opt/local/bin/ch-tar2dir /z/c-cloud/tars/${docker_container}.tar.gz /mnt/ramdisk
 
 # Now, run the build script
-srun /opt/local/bin/ch-run /mnt/ramdisk/${docker_container} -- sh -c "cd /home/bitbucket/Devel/${build_host}/${repo}/src; mkdir -p build; cd build; cmake ..; make -j $build_cores"
+srun /opt/local/bin/ch-run /mnt/ramdisk/${docker_container} -- sh -c "cd ~/Devel/${build_host}/${repo}/src; mkdir -p build; cd build; cmake ..; make -j $build_cores"
