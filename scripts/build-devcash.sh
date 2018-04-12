@@ -9,7 +9,7 @@ repo=devcash-core
 # Find root directory of the script location
 script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
-# Read current container version from config file
+# Read current container version from config file (at root of repo)
 container_version=`cat ${script_dir}/../.container_version`
 
 # Find hostname we're going to build on
