@@ -19,7 +19,7 @@ table Transfer {
   delay       : int64;
 }
 
-table Transaction {  
+table Transaction {
   xfers  : [Transfer];
   nonce  : [byte]; //length encoded in byte as per CBOR type 2 or calculated
   sig    : [byte]; //72 bytes
@@ -36,7 +36,7 @@ table Validation {
 
 table SummaryItem {
   delay   : int64;
-  delta   : int64;  
+  delta   : int64;
 }
 
 table CoinMap {
@@ -59,7 +59,7 @@ table ChainState {
   state_map : [StateMap];
 }
 
-table Block {
+table FinalBlock {
   version_num      : int8;
   hash_prev_block  : int256;
   hash_merkle_root : int256;
@@ -71,6 +71,37 @@ table Block {
   transactions     : [Transaction];
   summaries        : [Summary];
   validations      : [Validation];
+}
+
+table ProposalBlock {
+  version_num      : int8;
+  hash_prev_block  : int256;
+  hash_merkle_root : int256;
+  num_bytes        : int64;
+  time             : int64;
+  tx_size          : int64;
+  summary_size     : int64;
+  valid_size       : int64;
+  transactions     : [Transaction];
+  summaries        : [Summary];
+  validations      : [Validation];
+}
+
+table UpcomingBlock {
+  version_num      : int8;
+  hash_prev_block  : int256;
+  hash_merkle_root : int256;
+  num_bytes        : int64;
+  time             : int64;
+  tx_size          : int64;
+  summary_size     : int64;
+  valid_size       : int64;
+  transactions     : [Transaction];
+  summaries        : [Summary];
+}
+
+table TransactionAnnouncement {
+  transactions   : [Transaction];
 }
 
 table BlockChain {
