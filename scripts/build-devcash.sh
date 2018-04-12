@@ -10,7 +10,7 @@ repo=devcash-core
 script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 # Read current container version from config file
-container_version=`cat ../.container_version`
+container_version=`cat ${script_dir}/../.container_version`
 
 # Find hostname we're going to build on
 build_host=$SLURM_NODELIST
