@@ -21,7 +21,7 @@ table Transfer {
 
 table Transaction {
   xfers  : [Transfer];
-  nonce  : [byte]; //length encoded in byte as per CBOR type 2 or calculated
+  nonce  : [byte]; //length encoded in prefix using CBOR type 2 definition
   sig    : [byte]; //72 bytes
 }
 
@@ -89,13 +89,9 @@ table ProposalBlock {
 
 table UpcomingBlock {
   version_num      : int8;
-  hash_prev_block  : int256;
-  hash_merkle_root : int256;
   num_bytes        : int64;
-  time             : int64;
   tx_size          : int64;
   summary_size     : int64;
-  valid_size       : int64;
   transactions     : [Transaction];
   summaries        : [Summary];
 }
@@ -104,7 +100,17 @@ table TransactionAnnouncement {
   transactions   : [Transaction];
 }
 
-table BlockChain {
-  chain  : [Block];
+table UpcomingChain {
+  chain  : [UpcomingBlock];
+  state  : ChainState;
+}
+
+table ProposalChain {
+  chain  : [ProposalBlock];
+  state  : ChainState;
+}
+
+table FinalChain {
+  chain  : [FinalBlock];
   state  : ChainState;
 }
