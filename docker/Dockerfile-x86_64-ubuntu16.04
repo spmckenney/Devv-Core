@@ -120,9 +120,16 @@ RUN groupadd --gid 1002 dcrunner
 RUN useradd -d /home/dcrunner --uid 1002 -m --gid 1002 dcrunner
 COPY bashrc /home/dcrunner/.bashrc
 
-EXPOSE 55556
-
 RUN echo "dcrunner ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
+
+RUN mkdir /home/dcrunner/src
+RUN chown dcrunner:dcrunner /home/dcrunner/src
+COPY install_flatbuffers.sh /home/dcrunner/src
+WORKDIR /home/dcrunner/src
+
+RUN sudo -H -u dcrunner -g dcrunner ./install_flatbuffers.sh
+
+EXPOSE 55556
 
 WORKDIR /home/dcrunner
 
