@@ -46,7 +46,7 @@ table CoinMap {
 
 table Summary {
   addr         : [byte]; //33 bytes
-  coin_map     : [CoinMap];
+  coin_maps    : [CoinMap];
 }
 
 table StateMap {  //like CoinMap, but no delay values
@@ -72,6 +72,7 @@ table FinalBlock {
   summaries        : [Summary];
   validations      : [Validation];
 }
+//root_type FinalBlock;
 
 table ProposalBlock {
   version_num      : int8;
@@ -114,3 +115,6 @@ table FinalChain {
   chain  : [FinalBlock];
   state  : ChainState;
 }
+
+//root_type FinalChain;
+root_type FinalBlock;

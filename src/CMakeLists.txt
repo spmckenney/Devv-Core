@@ -30,6 +30,21 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 include_directories(${CMAKE_SOURCE_DIR})
 include_directories(${CMAKE_BINARY_DIR})
 
+set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+
+include(BuildFlatBuffers)
+
+build_flatbuffers(
+  "devcash_primitives.fbs"
+  "${CMAKE_SOURCE_DIR}/flatbuffers"
+  "flatbuffers_lib"
+  ""
+  ""
+  ""
+  ""
+  ""
+  )
+
 file(GLOB_RECURSE dcSources "*.cpp")
 file(GLOB_RECURSE dcHeaders "*.h*")
 set (dcInclude "")
