@@ -1,10 +1,10 @@
-# Initial pipeline test. Gain access to AMD Headnode.
+# Build and Benchmark CI Pipeline for DevCash
 image: python
 pipelines:
   default:
     - step:
         script:
-          - ssh bitbucket@portal.computefaster.com -p 13022 ./build-devcash.sh $BITBUCKET_BRANCH
+          - ssh bitbucket@portal.computefaster.com -p 13022 "salloc -N 1 ~/Devel/devcash/devcash-core/scripts/build-devcash.sh $BITBUCKET_BRANCH"
  #   - step:
  #       script:
  #         - ssh bitbucket@portal.computefaster.com -p 11022 ./p8-test.sh
