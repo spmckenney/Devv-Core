@@ -1,6 +1,6 @@
 // Devcash blockchain primitives
 
-namespace Devcash.Primitives;
+namespace Devcash.fbs;
 
 struct int128 {
   least_sig_word  : int64;
@@ -59,42 +59,34 @@ table ChainState {
   state_map : [StateMap];
 }
 
-table FinalBlock {
+table TransactionSummaryBlock
+{
   version_num      : int8;
-  hash_prev_block  : int256;
-  hash_merkle_root : int256;
   num_bytes        : int64;
-  time             : int64;
-  tx_size          : int64;
-  summary_size     : int64;
-  valid_size       : int64;
   transactions     : [Transaction];
   summaries        : [Summary];
+}
+
+table TSVBlock
+{
+  hash_prev_block  : int256;
+  hash_merkle_root : int256;
   validations      : [Validation];
+  time             : int64;
+  ts_block         : TransactionSummaryBlock;
+}
+
+table FinalBlock {
+  tsv_block   : TSVBlock;
 }
 //root_type FinalBlock;
 
 table ProposalBlock {
-  version_num      : int8;
-  hash_prev_block  : int256;
-  hash_merkle_root : int256;
-  num_bytes        : int64;
-  time             : int64;
-  tx_size          : int64;
-  summary_size     : int64;
-  valid_size       : int64;
-  transactions     : [Transaction];
-  summaries        : [Summary];
-  validations      : [Validation];
+  tsv_block_   : TSVBlock;
 }
 
 table UpcomingBlock {
-  version_num      : int8;
-  num_bytes        : int64;
-  tx_size          : int64;
-  summary_size     : int64;
-  transactions     : [Transaction];
-  summaries        : [Summary];
+  ts_block      : TransactionSummaryBlock;
 }
 
 table TransactionAnnouncement {
