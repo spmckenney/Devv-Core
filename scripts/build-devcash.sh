@@ -51,7 +51,10 @@ srun /usr/bin/chmod -R g+w /mnt/ramdisk/${docker_container} 2>&1 > /dev/null
 
 # Now, run the build script
 srun /opt/local/bin/ch-run /mnt/ramdisk/${docker_container} -- sh -c "cd ~/Devel/${build_host}/${repo}/src; mkdir -p build; cd build; cmake ..; make -j $build_cores"
+return_status=$?
 
 # If we can, remove the image...
 echo "Trying to remove ramdisk image, if possible..."
 srun /usr/bin/rm -rf /mnt/ramdisk/${docker_container} 2>&1 > /dev/null
+
+exit $return_status
