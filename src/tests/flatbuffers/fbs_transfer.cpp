@@ -2,6 +2,7 @@
  * Copyright 2018 Devv.io
  * Author: Shawn McKenney <shawn.mckenney@emmion.com>
  */
+#include <iostream>
 #include "flatbuffers/fbs_strategy.h"
 #include "flatbuffers/FbsManager.h"
 
@@ -15,7 +16,8 @@ int main(int /*argc*/, const char * /*argv*/ []) {
   // flatbuffers::FlatBufferBuilder builder;
   // auto manager = data_manager_factory.GetManager();
 
-  flatbuffers::Offset<flatbuffers::Vector<int8_t>> addr(33);
+  //flatbuffers::Offset<flatbuffers::Vector<int8_t>> addr(33);
+  Devcash::Buffer addr(33);
 
   auto transfer1 = data_manager.CreateTransfer(addr
                                                , 1
@@ -35,6 +37,5 @@ int main(int /*argc*/, const char * /*argv*/ []) {
   bool is_equal2 = (transfer1 == transfer2);
 
 
-  std::cout << "bool1: " << is_equal1 << " bool2: " << is_equal2;
-
+  std::cout << "bool1: " << is_equal1 << " bool2: " << is_equal2 << "\n";
 }

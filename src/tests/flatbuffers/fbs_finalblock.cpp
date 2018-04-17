@@ -22,7 +22,9 @@ int main(int /*argc*/, const char * /*argv*/ []) {
                                        , 2
                                        , 0);
 
-  //auto transfer2 = flatbuffers::GetMutableRoot<Transfer>(builder.GetBufferPointer());
+  auto transfer2 = reinterpret_cast<const Transfer *>(builder.GetCurrentBufferPointer() + builder.GetSize() - transfer.o);
+
+  std::cout << "transfer2: " << transfer2->coin_index() << "\n";
   //transfer2->mutate_amount(10);
 
   flatbuffers::Offset<flatbuffers::Vector<int8_t>> nonce(20);
@@ -71,6 +73,7 @@ int main(int /*argc*/, const char * /*argv*/ []) {
   auto validation_maps = builder.CreateVector(validation_map_vector);
 
   std::vector<flatbuffers::Offset<Transaction>> transaction_vector;
+  transaction_vector.push_back(transaction);
   transaction_vector.push_back(transaction);
   auto transactions = builder.CreateVector(transaction_vector);
 

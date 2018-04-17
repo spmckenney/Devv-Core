@@ -26,4 +26,7 @@ private:
   DataManagerImpl data_manager_;
 };
 
+typedef int8_t Byte;
+typedef std::vector<Byte> Buffer;
+
 } // namespace Devcash

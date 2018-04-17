@@ -296,5 +296,9 @@ add_executable(fbs_transfer
   )
 
 target_link_libraries(fbs_transfer
+  io
+  common
   ${ZMQ}
+  ${OPENSSL_LIBRARIES}
+  ${Boost_LIBRARIES}
   )

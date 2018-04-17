@@ -21,15 +21,15 @@ public:
 
   //Devcash::FinalBlockManagerSharedPtr CreateFinalBlock();
 
-  TransferType CreateTransfer(Buffer address,
+  TransferType CreateTransfer(Buffer& address,
                               int64_t amount,
                               int64_t coin_index,
                               int64_t delay) {
-    return(TransferType(fbs::CreateTransfer(builder_,
-                                            address,
-                                            amount,
-                                            coin_index,
-                                            delay)));
+    return(TransferType(builder_,
+                        address,
+                        amount,
+                        coin_index,
+                        delay));
   }
   /**
    * Creates an initialized SummaryItem.
