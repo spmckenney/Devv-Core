@@ -11,12 +11,6 @@ using namespace Devcash;
 int main(int /*argc*/, const char * /*argv*/ []) {
 
   DataManager<FlatBufferStrategy> data_manager;
-
-  // Build up a serialized buffer
-  // flatbuffers::FlatBufferBuilder builder;
-  // auto manager = data_manager_factory.GetManager();
-
-  //flatbuffers::Offset<flatbuffers::Vector<int8_t>> addr(33);
   Devcash::Buffer addr(33);
 
   auto transfer1 = data_manager.CreateTransfer(addr

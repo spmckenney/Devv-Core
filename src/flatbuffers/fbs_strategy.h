@@ -21,15 +21,18 @@ struct FlatBufferStrategy {
  * Returns a pointer to an object given the Offset<object>
  */
 template <typename Type>
-Type* GetPointer(flatbuffers::FlatBufferBuilder& builder, const flatbuffers::Offset<Type>& object) {
+Type* GetMutablePointer(flatbuffers::FlatBufferBuilder& builder, const flatbuffers::Offset<Type>& object) {
   return (reinterpret_cast<Type *>(builder.GetCurrentBufferPointer() + builder.GetSize() - object.o));
 }
 
-  /*
+template <typename Type>
+Type* GetPointer(flatbuffers::FlatBufferBuilder& builder, flatbuffers::Offset<Type>& object) {
+  return (reinterpret_cast<Type *>(builder.GetCurrentBufferPointer() + builder.GetSize() - object.o));
+}
+
 template <typename Type>
 const Type* GetPointer(flatbuffers::FlatBufferBuilder& builder, const flatbuffers::Offset<Type>& object) {
   return (reinterpret_cast<const Type *>(builder.GetCurrentBufferPointer() + builder.GetSize() - object.o));
-
-  }*/
+}
 
 } // namespace Devcash

@@ -21,7 +21,7 @@ public:
            int64_t amount,
            int64_t coin_index,
            int64_t delay) :
-    transfer_(GetPointer(builder,
+    transfer_(GetMutablePointer(builder,
                          fbs::CreateTransferDirect(builder,
                                                    &address,
                                                    amount,
