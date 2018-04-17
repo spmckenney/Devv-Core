@@ -24,6 +24,53 @@ public:
 
   Transaction(size_t num_transfers);
 
+  /** Comparison Operators */
+  friend bool operator==(const TransactionType& a, const TransactionType& b)
+  {
+    return a.hash_ == b.hash_;
+  }
+
+  friend bool operator!=(const TransactionType& a, const TransactionType& b)
+  {
+    return a.hash_ != b.hash_;
+  }
+
+  /** Assignment Operators */
+  TransactionType* operator=(TransactionType&& other)
+  {
+    if (this->transaction_ != &other.transaction_) {
+      this->transaction_ = other.transaction_;
+      this->hash_ = other.hash_;
+      this->jsonStr_ = other.jsonStr_;
+      this->oper_ = other.oper_;
+      this->nonce_ = other.nonce_;
+      this->sig_ = other.sig_;
+      this->xfers_ = std::move(other.xfers_);
+    }
+    return this;
+  }
+
+  TransactionType* operator=(const TransactionType& other)
+  {
+    if (this != &other) {
+      this->hash_ = other.hash_;
+      this->jsonStr_ = other.jsonStr_;
+      this->oper_ = other.oper_;
+      this->nonce_ = other.nonce_;
+      this->sig_ = other.sig_;
+      this->xfers_ = std::move(other.xfers_);
+    }
+    return this;
+  }
+
+  int64_t nonce() {
+    return(transaction_.nonce());
+  }
+
+  void set_nonce(int64_t nonce) {
+    transaction_.set_nonce(nonce);
+  }
+
   /**
    * Get a transfer at a location
    */
@@ -76,44 +123,6 @@ public:
   }
 
   uint64_t GetByteSize() const {
-  }
-
-  /** Comparison Operators */
-  friend bool operator==(const TransactionType& a, const TransactionType& b)
-  {
-    return a.hash_ == b.hash_;
-  }
-
-  friend bool operator!=(const TransactionType& a, const TransactionType& b)
-  {
-    return a.hash_ != b.hash_;
-  }
-
-  /** Assignment Operators */
-  TransactionType* operator=(TransactionType&& other)
-  {
-    if (this->transaction_ != &other.transaction_) {
-      this->hash_ = other.hash_;
-      this->jsonStr_ = other.jsonStr_;
-      this->oper_ = other.oper_;
-      this->nonce_ = other.nonce_;
-      this->sig_ = other.sig_;
-      this->xfers_ = std::move(other.xfers_);
-    }
-    return this;
-  }
-
-  TransactionType* operator=(const TransactionType& other)
-  {
-    if (this != &other) {
-      this->hash_ = other.hash_;
-      this->jsonStr_ = other.jsonStr_;
-      this->oper_ = other.oper_;
-      this->nonce_ = other.nonce_;
-      this->sig_ = other.sig_;
-      this->xfers_ = std::move(other.xfers_);
-    }
-    return this;
   }
 
 /**

@@ -7,16 +7,16 @@
 #include "flatbuffers/fbs_strategy.h"
 #include "flatbuffers/FbsTransfer.h"
 
-template <typename FlatBufferManager, typename InPlaceStrategy>
+template <typename FlatBufferManager, typename InPlace>
 class FbsTransaction {
 public:
-  typedef flatbuffers::Vector<flatbuffers::Offset<fbs::Transfer>> TransferListType
+  typedef flatbuffers::Offset<fbs::Transfer> TransferType;
+  typedef flatbuffers::Vector<TransferType> TransferListType
 
-  const StorageManager::TransferType& GetTransferAt(size_t transfer_index) const {
-    return(
-
-  FlatBufferManager& AddTransfer();
+  const TransferType& GetTransferAt(size_t transfer_index) const {
+    return(transaction_.xfers()->at(transfer_index));
+  }
 
 private:
-   TransferListType transfers_
+  FlatBufferManager::TransactionType transaction_;
 };

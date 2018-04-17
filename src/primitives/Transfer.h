@@ -2,7 +2,11 @@
  * Copyright 2018 Devv.io
  * Author: Shawn McKenney <shawn.mckenney@emmion.com>
  */
-#include <primitives/strategy.h>
+#pragma once
+#include <string>
+#include "primitives/strategy.h"
+
+namespace Devcash {
 
 struct TransferImpl {
   std::vector<int8_t> addr;
@@ -13,30 +17,44 @@ struct TransferImpl {
 
 struct BasicStrategy {
   typedef TransferImpl TransferType;
-}{
+};
+
 /**
  * Transfer
  */
-template <typename StorageManager, typename StorageStrategy>
+template <typename StorageManager>
 class Transfer {
 public:
   // Type of this class
-  typedef StorageManager<StorageStrategy>::TransferType TransferType;
+  typedef typename StorageManager::TransferType TransferType;
 
   // Type of implementation struct
-  typedef StorageManager<StorageStrategy>::TransferTypeImpl TransferTypeImpl;
+  typedef typename StorageManager::TransferTypeImpl TransferTypeImpl;
+
+  typedef typename StorageManager::BufferType BufferType;
 
   /**
    * Constructor
    */
-  void Transfer(StorageManager::Buffer address,
-                int64_t amount,
-                int64_t coin_index,
-                int64_t delay);
+  Transfer(BufferType address,
+           int64_t amount,
+           int64_t coin_index,
+           int64_t delay);
 
-  StorageManager::Buffer address();
+  BufferType address();
 
-  void set_address(Buffer address) {
+  /** Compare transfers */
+  friend bool operator==(const TransferType& a, const TransferType& b)
+  {
+      return (a.transfer_ = b.transfer_);
+  }
+
+  friend bool operator!=(const TransferType& a, const TransferType& b)
+  {
+    return !(a.transfer_ == b.transfer_);
+  }
+
+  void set_address(BufferType address) {
     transfer_.set_address(address);
   }
 
@@ -64,23 +82,13 @@ public:
     transfer_.set_delay(delay);
   }
 
-  std::string GetCanonical() const {
-  }
-
-  /** Compare transfers */
-  friend bool operator==(const TransferType& a, const TransferType& b)
-  {
-      return (a.transfer_ = b.transfer_);
-  }
-
-  friend bool operator!=(const TransferType& a, const TransferType& b)
-  {
-    return !(a.transfer_ == b.transfer_);
+  std::string GetCanonicalForm() const {
+    return(GetCanonicalForm(transfer_));
   }
 
   void SetNull() {
     transfer_.set_address("");
-    transver_.set_amount = 0;
+    transfer_.set_amount = 0;
   }
 
   void IsNull() {
@@ -90,3 +98,5 @@ public:
 private:
   TransferTypeImpl transfer_;
 };
+
+} // namespace Devcash

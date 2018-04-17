@@ -3,7 +3,7 @@
  */
 #include "flatbuffers/devcash_primitives_generated.h"  // Already includes "flatbuffers/flatbuffers.h".
 
-using namespace Devcash::Primitives;
+using namespace Devcash::fbs;
 
 // Example how to use FlatBuffers to create and read binary buffers.
 
@@ -77,26 +77,27 @@ int main(int /*argc*/, const char * /*argv*/ []) {
   auto int_128 = int128(one, two);
   auto int_256 = int256(int_128, int_128);
 
-  auto final_block = CreateFinalBlock(builder
-                                      , 1
-                                      , &int_256
-                                      , &int_256
-                                      , 10
-                                      , 11
-                                      , 12
-                                      , 13
-                                      , 14
-                                      , transactions
-                                      , summaries
-                                      , validations
-                                      );
+  auto ts_block = CreateTransactionSummaryBlock(builder
+                                                , 10 // version
+                                                , 100 // num_bytes
+                                                , transactions
+                                                , summaries);
 
+  auto tsv_block = CreateTSVBlock(builder
+                                  , &int_256 // hash_prev
+                                  , &int_256 // hash_merkle_root
+                                  , validations
+                                  , 11 // time
+                                  , ts_block);
+
+
+  auto final_block = CreateFinalBlock(builder, tsv_block);
 
   builder.Finish(final_block);
 
   //auto final1 = GetFinalBlock(builder.GetBufferPointer());
   auto final1 = flatbuffers::GetRoot<FinalBlock>(builder.GetBufferPointer());
 
-  auto s = final1->validations()->size();
+  auto s = final1->tsv_block()->validations()->size();
 
 }

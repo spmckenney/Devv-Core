@@ -289,3 +289,12 @@ add_executable(fbs_finalblock
 target_link_libraries(fbs_finalblock
   ${ZMQ}
   )
+
+# # # fbs_transfer
+add_executable(fbs_transfer
+  tests/flatbuffers/fbs_transfer.cpp
+  )
+
+target_link_libraries(fbs_transfer
+  ${ZMQ}
+  )

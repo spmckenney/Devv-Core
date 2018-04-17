@@ -4,20 +4,39 @@
  */
 #pragma once
 
-#include <flatbuffers/fbs_strategy.h>
+#include "flatbuffers/fbs_strategy.h"
+#include "flatbuffers/FbsManager.h"
+#include "primitives/Transfer.h"
 
-typedef <>
-class FBSTransfer<FlatBufferManager, InPlace> {
+namespace Devcash {
+
+template <>
+class Transfer<FlatBufferStrategy> {
 public:
-  void FBSTransfer(FlatBufferManager::Buffer address,
-                int64_t amount,
-                int64_t coin_index,
-                int64_t delay);
+  typedef FlatBufferStrategy FBS;
+
+  Transfer(flatbuffers::FlatBufferBuilder builder,
+           FBS::Buffer address,
+           int64_t amount,
+           int64_t coin_index,
+           int64_t delay) :
+    transfer_(builder,
+              address,
+              amount,
+              coin_index,
+              delay))
+  {
+  }
+
+  Transfer(flatbuffers::Offset<Devcash::fbs::Transfer> transfer) :
+    transfer_(transfer)
+  {
+  }
 
   /**
    * Assignment operator
    */
-  Transfer* operator=(DCTransfer&& other)
+  Transfer* operator=(Transfer&& other)
   {
     if (this != &other) {
       this->set_address(other.address());
@@ -31,7 +50,7 @@ public:
   /**
    * Assignment move operator
    */
-  DCTransfer* operator=(const DCTransfer& other)
+  Transfer* operator=(const Transfer& other)
   {
     if (this != &other) {
       this->set_address(other.address());
@@ -42,11 +61,11 @@ public:
     return this;
   }
 
-  ConstBuffer address() {
+  FBS::ConstBuffer address() {
     return(transfer_.addr());
   }
 
-  void set_address(ConstBuffer addr) {
+  void set_address(FBS::ConstBuffer addr) {
     *transfer_.mutaable_addr() = addr;
   }
 
@@ -74,8 +93,11 @@ public:
     transfer_.mutate_delay(delay);
   }
 
-  void SetNull {
+  void SetNull() {
+  }
 
 private:
-    FlatBufferManager::FBSTransferType transfer_;
+    FBS::TransferType transfer_;
 };
+
+} // namespace Devcash
