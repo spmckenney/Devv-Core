@@ -25,7 +25,7 @@ public:
                               int64_t amount,
                               int64_t coin_index,
                               int64_t delay) {
-    return(TransferlType(fbs::CreateTransfer(builder_,
+    return(TransferType(fbs::CreateTransfer(builder_,
                                             address,
                                             amount,
                                             coin_index,

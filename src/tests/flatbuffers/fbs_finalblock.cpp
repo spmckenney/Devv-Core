@@ -2,6 +2,7 @@
  *
  */
 #include "flatbuffers/devcash_primitives_generated.h"  // Already includes "flatbuffers/flatbuffers.h".
+#include <iostream>
 
 using namespace Devcash::fbs;
 
@@ -11,13 +12,18 @@ int main(int /*argc*/, const char * /*argv*/ []) {
   // Build up a serialized buffer algorithmically:
   flatbuffers::FlatBufferBuilder builder;
 
-  flatbuffers::Offset<flatbuffers::Vector<int8_t>> addr(33);
+  std::vector<int8_t> address(33);
 
-  auto transfer = CreateTransfer(builder
-                                 , addr
-                                 , 1
-                                 , 2
-                                 , 0);
+  //flatbuffers::Offset<flatbuffers::Vector<int8_t>> addr(33);
+
+  auto transfer = CreateTransferDirect(builder
+                                       , &address
+                                       , 1
+                                       , 2
+                                       , 0);
+
+  //auto transfer2 = flatbuffers::GetMutableRoot<Transfer>(builder.GetBufferPointer());
+  //transfer2->mutate_amount(10);
 
   flatbuffers::Offset<flatbuffers::Vector<int8_t>> nonce(20);
   flatbuffers::Offset<flatbuffers::Vector<int8_t>> sig(72);
@@ -65,6 +71,7 @@ int main(int /*argc*/, const char * /*argv*/ []) {
   auto validation_maps = builder.CreateVector(validation_map_vector);
 
   std::vector<flatbuffers::Offset<Transaction>> transaction_vector;
+  transaction_vector.push_back(transaction);
   auto transactions = builder.CreateVector(transaction_vector);
 
   std::vector<flatbuffers::Offset<Summary>> summary_vector;
@@ -98,6 +105,9 @@ int main(int /*argc*/, const char * /*argv*/ []) {
   //auto final1 = GetFinalBlock(builder.GetBufferPointer());
   auto final1 = flatbuffers::GetRoot<FinalBlock>(builder.GetBufferPointer());
 
-  auto s = final1->tsv_block()->validations()->size();
+  auto s1 = final1->tsv_block()->validations()->size();
+  auto s2 = final1->tsv_block()->ts_block()->transactions()->size();
 
+  std::cout << "Got size: " << s1 << "\n";
+  std::cout << "Got size: " << s2 << "\n";
 }
