@@ -7,7 +7,7 @@
 /**
  * TransactionSummaryBlock
  */
-template <type StorageManager, typename StorageStrategy>
+template <typename StorageManager, typename StorageStrategy>
 class TransactionSummaryBlock {
 public:
 

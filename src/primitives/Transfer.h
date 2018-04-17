@@ -3,7 +3,10 @@
  * Author: Shawn McKenney <shawn.mckenney@emmion.com>
  */
 #pragma once
+
 #include <string>
+#include <vector>
+
 #include "primitives/strategy.h"
 
 namespace Devcash {

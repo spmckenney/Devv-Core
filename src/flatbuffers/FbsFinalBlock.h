@@ -9,7 +9,7 @@
 /**
  * FbsFinalBlock
  */
-template <type FastBufferManager, typename ModifyStrategy>
+template <typename FastBufferManager, typename ModifyStrategy>
 class FbsFinalBlock {
 public:
 

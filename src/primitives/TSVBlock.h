@@ -7,7 +7,7 @@
 /**
  * TSVBlock
  */
-template <type StorageManager, typename StorageStrategy>
+template <typename StorageManager, typename StorageStrategy>
 class TSVBlock {
 public:
 
@@ -16,7 +16,7 @@ public:
   }
 
   void set_hash_merkle_root(const uint64_t& merkle_root) const {
-    tsv_block_.set_hash_merkle_root(merkle_root));
+    tsv_block_.set_hash_merkle_root(merkle_root);
   }
 
 private:

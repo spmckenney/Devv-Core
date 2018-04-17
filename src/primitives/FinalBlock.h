@@ -7,7 +7,7 @@
 /**
  * FinalBlock
  */
-template <type StorageManager, typename StorageStrategy>
+template <typename StorageManager, typename StorageStrategy>
 class FinalBlock {
 public:
 

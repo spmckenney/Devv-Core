@@ -12,8 +12,20 @@ struct int256 {
   most_sig_int128  : int128;
 }
 
+struct Address {
+  least_sig_byte  : int8;
+  less_sig_int128 : int128;
+  most_sig_int128 : int128;
+}
+
+struct Signature {
+  least_sig_word  : int64;
+  less_sig_int256 : int256;
+  most_sig_int256 : int256;
+}
+
 table Transfer {
-  addr        : [byte]; //33 bytes
+  addr        : Address; //33 bytes, (key)
   amount      : int64;
   coin_index  : int64;
   delay       : int64;
@@ -22,12 +34,12 @@ table Transfer {
 table Transaction {
   xfers  : [Transfer];
   nonce  : [byte]; //length encoded in prefix using CBOR type 2 definition
-  sig    : [byte]; //72 bytes
+  sig    : Signature; //72 bytes (key)
 }
 
 table ValidationMap {
-  addr   : [byte]; //33 bytes
-  sig    : [byte]; //72 bytes
+  addr   : Address; //33 bytes (key)
+  sig    : Signature; //72 bytes
 }
 
 table Validation {
@@ -35,27 +47,27 @@ table Validation {
 }
 
 table SummaryItem {
-  delay   : int64;
+  delay   : int64;  // (key)
   delta   : int64;
 }
 
 table CoinMap {
-  coin     : int64;
+  coin     : int64;  // (key)
   summary  : SummaryItem;
 }
 
 table Summary {
-  addr         : [byte]; //33 bytes
+  addr         : Address; //33 bytes (key)
   coin_maps    : [CoinMap];
 }
 
 table StateMap {  //like CoinMap, but no delay values
-  coin     : int64;
+  coin     : int64; // (key)
   amount   : int64;
 }
 
 table ChainState {
-  addr      : [byte]; //33 bytes
+  addr      : Address; //33 bytes (key)
   state_map : [StateMap];
 }
 
@@ -63,6 +75,8 @@ table TransactionSummaryBlock
 {
   version_num      : int8;
   num_bytes        : int64;
+  tx_size          : int64;
+  summary_size     : int64;
   transactions     : [Transaction];
   summaries        : [Summary];
 }
@@ -70,7 +84,8 @@ table TransactionSummaryBlock
 table TSVBlock
 {
   hash_prev_block  : int256;
-  hash_merkle_root : int256;
+  hash_merkle_root : int256;  // (key)
+  validation_count : int32;
   validations      : [Validation];
   time             : int64;
   ts_block         : TransactionSummaryBlock;
@@ -79,7 +94,6 @@ table TSVBlock
 table FinalBlock {
   tsv_block   : TSVBlock;
 }
-//root_type FinalBlock;
 
 table ProposalBlock {
   tsv_block_   : TSVBlock;
