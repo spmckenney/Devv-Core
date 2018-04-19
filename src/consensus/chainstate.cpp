@@ -22,12 +22,12 @@ bool DCState::addCoin(const SmartCoin& coin) {
   std::lock_guard<std::mutex> lock(lock_);
   auto it = stateMap_.find(coin.addr_);
   if (it != stateMap_.end()) {
-    it->second[coin.type_] += coin.amount_;
+    it->second[coin.coin_] += coin.amount_;
   }
   return(true);
 }
 
-long DCState::getAmount(int type, const std::string& addr) const {
+long DCState::getAmount(uint64_t type, const Address& addr) const {
   auto it = stateMap_.find(addr);
   if (it != stateMap_.end()) {
     return it->second[type];
@@ -37,23 +37,19 @@ long DCState::getAmount(int type, const std::string& addr) const {
 
 bool DCState::moveCoin(const SmartCoin& start, const SmartCoin& end) const {
   std::lock_guard<std::mutex> lock(lock_);
-  if (start.type_ != end.type_) return(false);
+  if (start.coin_ != end.coin_) return(false);
   if (start.amount_ != end.amount_) return(false);
 
-  /*auto it = stateMap_.find(start.addr_);
+  auto it = stateMap_.find(start.addr_);
   if (it != stateMap_.end()) {
-    std::map<int, long> sElt = it->second;
-    auto amtIt = sElt.find(start.type_);
-    if (amtIt != sElt.end()) {
-      long amt = amtIt->second;
-      if (amt >= start.amount_) {
-        sElt[start.addr_] = start.amount_-amt;
-        if(addCoin(end)) return(true);
-        sElt[start.addr_] = start.amount_+amt;
-        return(false);
-      } //endif enough coins available
-    } //endif any coins here
-  } //endif any coins of this type*/
+    uint64_t amt = it->second.at(start.coin_);
+    if (amt >= start.amount_) {
+      //TODO: update state on coin move
+      //stateMap_.at(start.addr_).at(start.coin_) -= amt;
+      //stateMap_.at(end.addr_).at(end.coin_) += amt;
+      return(true);
+    } //endif enough coins available
+  } //endif any coins of this type
   return(false);
 }
 
@@ -61,7 +57,7 @@ bool DCState::delCoin(SmartCoin& coin) {
   std::lock_guard<std::mutex> lock(lock_);
   auto it = stateMap_.find(coin.addr_);
   if (it != stateMap_.end()) {
-    it->second[coin.type_] -= coin.amount_;
+    it->second[coin.coin_] -= coin.amount_;
     return true;
   }
   return(false);

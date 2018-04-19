@@ -23,9 +23,13 @@
 #include <string>
 #include <vector>
 #include <memory>
+#include <boost/multiprecision/cpp_int.hpp>
 
 namespace Devcash
 {
+
+typedef unsigned char byte;
+typedef boost::multiprecision::uint256_t uint256_t;
 
 static std::string jsonFinder(std::string haystack, std::string key, size_t& pos) {
   std::string out;
@@ -44,7 +48,7 @@ static std::string jsonFinder(std::string haystack, std::string key, size_t& pos
   return out;
 }
 
-static std::vector<uint8_t> str2Bin(std::string msg) {
+static std::vector<byte> Str2Bin(std::string msg) {
   std::vector<uint8_t> out;
   for (std::size_t i=0; i <msg.size(); ++i) {
     out.push_back((int) msg.at(i));
@@ -52,12 +56,93 @@ static std::vector<uint8_t> str2Bin(std::string msg) {
   return out;
 }
 
-static std::string bin2Str(std::vector<uint8_t> bytes) {
+static std::string Bin2Str(std::vector<byte> bytes) {
   std::string out;
   for (std::size_t i=0; i <bytes.size(); ++i) {
     out += char(bytes[i]);
   }
   return out;
+}
+
+static uint256_t BinToUint256(const std::vector<byte>& bytes, unsigned int start
+    , uint256_t& dest) {
+  for (unsigned int i=0; i<32; ++i) {
+    dest |= (bytes.at(start+i) << (i*8));
+  }
+  return dest;
+}
+
+static std::vector<byte> Uint256ToBin(const uint256_t& source
+    , std::vector<byte>& dest) {
+  for (unsigned int i=0; i<32; ++i) {
+    dest.push_back((byte) (source >> (i*8)) & 0xFF);
+  }
+  return dest;
+}
+
+static uint64_t BinToUint64(const std::vector<byte>& bytes, unsigned int start
+    , uint64_t& dest) {
+  for (unsigned int i=0; i<8; ++i) {
+    dest |= (bytes.at(start+i) << (i*8));
+  }
+  return dest;
+}
+
+static std::vector<byte> Uint64ToBin(const uint64_t& source
+    , std::vector<byte>& dest) {
+  for (unsigned int i=0; i<8; ++i) {
+    dest.push_back((source >> (i*8)) & 0xFF);
+  }
+  return dest;
+}
+
+/** Maps a hex digit to an int value.
+ *  @param hex digit to get the int value for
+ *  @return int value of this hex digit
+*/
+static int Char2Int(char in) {
+  if (in >= '0' && in <= '9') {
+    return(in - '0');
+  }
+  if (in >= 'A' && in <= 'F') {
+    return(in - 'A' + 10);
+  }
+  if (in >= 'a' && in <= 'f') {
+  return(in - 'a' + 10);
+  }
+  return(-1);
+}
+
+/** Maps a hex string into a byte vector for CBOR parsing.
+ *  @param hex a string of hex digits encoding a CBOR message.
+ *  @return a byte vector of the same data in binary form.
+*/
+static std::vector<byte> Hex2Bin(std::string hex) {
+  int len = hex.length();
+  std::vector<uint8_t> buf(len/2+1);
+  for (int i=0;i<len/2;i++) {
+    buf.at(i) = (byte) Char2Int(hex.at(i*2))*16+Char2Int(hex.at(1+i*2));
+  }
+  buf.pop_back(); //remove null terminator
+  return(buf);
+}
+
+/** chars for hex conversions */
+static const char alpha[] = "0123456789ABCDEF";
+/** Change binary data into a hex string.
+ *  @pre input must be allocated to a length of len
+ *  @param input pointer to the binary data
+ *  @param len length of the binary data
+ *  @return string containing these data as hex numbers
+ */
+static std::string toHex(const byte* input, size_t len) {
+  std::stringstream ss;
+  for (int j=0; j<len; j++) {
+    int c = (int) input[j];
+    ss.put(alpha[(c>>4)&0xF]);
+    ss.put(alpha[c&0xF]);
+  }
+  return(ss.str());
 }
 
 /** Setup the runtime environment. */

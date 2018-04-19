@@ -19,15 +19,15 @@ public:
   unsigned int block_height_;
 
   ProposedBlock();
-  ProposedBlock(const std::string& blockStr,
+  /*ProposedBlock(const std::string& blockStr,
       int blockHeight, const KeyRing& keys);
-  ProposedBlock(const std::vector<DCTransaction>& txs,
-      const DCValidationBlock& vs,
+  ProposedBlock(const std::vector<Transaction>& txs,
+      const Validation& vs,
       unsigned int blockHeight);
-  ProposedBlock(const std::vector<DCTransaction>& txs,
-      const DCValidationBlock& vs,
+  ProposedBlock(const std::vector<Transaction>& txs,
+      const Validation& vs,
       FinalBlock previousBlock);
-  virtual ~ProposedBlock() {};
+  virtual ~ProposedBlock() {};*/
 
   void setBlockHeight(unsigned int blockHeight) {
     block_height_=blockHeight;

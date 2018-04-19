@@ -16,7 +16,9 @@
 #include "oracleInterface.h"
 #include "common/logger.h"
 #include "consensus/chainstate.h"
-#include "primitives/transaction.h"
+#include "primitives/Transaction.h"
+
+using namespace Devcash;
 
 class dnero : public oracleInterface {
 
@@ -47,7 +49,7 @@ class dnero : public oracleInterface {
    * @return true iff the transaction can be valid according to this oracle
    * @return false otherwise
    */
-  bool isValid(Devcash::DCTransaction) {
+  bool isValid(Transaction) {
     return true;
   }
 
@@ -63,9 +65,9 @@ class dnero : public oracleInterface {
    * @return true iff the transaction is valid according to this oracle
    * @return false otherwise
    */
-  bool isValid(Devcash::DCTransaction checkTx, Devcash::DCState& context) {
+  bool isValid(Transaction checkTx, DCState& context) {
     if (!isValid(checkTx)) return false;
-    for (std::vector<Devcash::DCTransfer>::iterator it=checkTx.xfers_.begin();
+    for (std::vector<Transfer>::iterator it=checkTx.xfers_.begin();
         it != checkTx.xfers_.end(); ++it) {
       if (it->amount_ < 0) {
         if ((context.getAmount(dnerowallet::getCoinIndex(), it->addr_) < 1) &&
@@ -86,8 +88,8 @@ class dnero : public oracleInterface {
  * @params checkTx the transaction to (in)validate
  * @return a tier 1 transaction to implement this tier 2 logic.
  */
-  Devcash::DCTransaction getT1Syntax(Devcash::DCTransaction theTx) {
-    Devcash::DCTransaction out(theTx);
+  Transaction getT1Syntax(Transaction theTx) {
+    Transaction out(theTx);
     //if (out.delay_ == 0) out.delay_ = kDEFAULT_DELAY;
     //out.type_ = dcash::getCoinType();
     return(out);
@@ -104,11 +106,10 @@ class dnero : public oracleInterface {
  * @return a tier 1 transaction to implement this tier 2 logic.
  * @return empty/null transaction if the transaction is invalid
  */
-  Devcash::DCTransaction Tier2Process(std::string rawTx,
-      Devcash::DCState context) {
-    Devcash::DCTransaction tx(rawTx);
+  Transaction Tier2Process(std::vector<byte> rawTx,
+      DCState context) {
+    Transaction tx(rawTx);
     if (!isValid(tx, context)) {
-      tx.setNull();
       return tx;
     }
     //if (tx.delay_ == 0) tx.delay_ = kDEFAULT_DELAY;

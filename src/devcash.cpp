@@ -17,7 +17,6 @@
 #include "common/devcash_context.h"
 #include "concurrency/DevcashController.h"
 #include "devcashnode.h"
-#include "common/json.hpp"
 #include "common/logger.h"
 #include "common/util.h"
 
@@ -26,7 +25,6 @@
 #include "io/message_service.h"
 
 using namespace Devcash;
-using json = nlohmann::json;
 
 typedef unsigned char byte;
 #define UNUSED(x) ((void)x)

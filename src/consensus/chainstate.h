@@ -55,7 +55,7 @@ public:
  *  @param the address to check
  *  @return the number of this type of coins at this address
 */
-  long getAmount(int type, const std::string& addr) const;
+  long getAmount(uint64_t type, const Address& addr) const;
 
 /** Moves a coin from one address to another
  *  @param start references where the coins will be removed
@@ -78,7 +78,7 @@ public:
 */
   bool clear();
 
-  std::map<std::string, std::vector<long>> stateMap_;
+  std::map<Address, std::vector<uint64_t>> stateMap_;
   mutable std::mutex lock_;
 };
 

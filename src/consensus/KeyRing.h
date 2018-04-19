@@ -10,6 +10,7 @@
 
 #include "common/devcash_context.h"
 #include "common/ossladapter.h"
+#include "primitives/Transfer.h"
 
 namespace Devcash {
 
@@ -21,8 +22,8 @@ class KeyRing {
   virtual ~KeyRing() {};
 
   bool initKeys();
-  EC_KEY* getKey(const std::string& addr) const;
-  bool isINN(const std::string& addr) const;
+  EC_KEY* getKey(const Address& addr) const;
+  bool isINN(const Address& addr) const;
   EC_KEY* getNodeKey(int index) const;
 
  private:

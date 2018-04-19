@@ -81,7 +81,7 @@ void DevcashController::ValidatorCallback(DevcashMessageUniquePtr ptr) {
   if (shutdown_) return;
   if (ptr->message_type == TRANSACTION_ANNOUNCEMENT) {
     DevcashMessage msg(*ptr.get());
-    std::string tx_str = bin2Str(msg.data);
+    std::string tx_str = Bin2Str(msg.data);
     LOG_DEBUG << "New transaction: "+tx_str;
     upcoming_chain_.back()->addTransaction(tx_str, keys_);
   } else {
@@ -101,7 +101,7 @@ bool HandleFinalBlock(DevcashMessageUniquePtr ptr,
   // check if propose next
   // if so, send proposal with all pending valid txs
   DevcashMessage msg(*ptr.get());
-  std::string final_block_str = bin2Str(msg.data);
+  std::string final_block_str = Bin2Str(msg.data);
   LOG_DEBUG << "Got final block: " + final_block_str;
   ProposedPtr highest_proposal = proposed_chain.back();
   DCBlock new_block(final_block_str, keys);
@@ -144,7 +144,7 @@ bool HandleProposalBlock(DevcashMessageUniquePtr ptr,
   bool sent_message = false;
   DevcashMessage msg(*ptr.get());
   LOG_TRACE << "timer -1 (" << timer() << ")";
-  std::string raw_str = bin2Str(msg.data);
+  std::string raw_str = Bin2Str(msg.data);
   LOG_TRACE << "timer 0 (" << timer() << ")";
   LOG_DEBUG << "Received block proposal: " + raw_str;
   unsigned int block_height = final_chain.size();
@@ -164,7 +164,7 @@ bool HandleProposalBlock(DevcashMessageUniquePtr ptr,
     int proposer = (proposed_chain.size() - 1) % context.get_peer_count();
     raw_str = new_proposal->GetValidationBlock().ToJSON();
     LOG_DEBUG << "Validation: " + raw_str;
-    std::vector<uint8_t> data(str2Bin(raw_str));
+    std::vector<uint8_t> data(Str2Bin(raw_str));
 
     LOG_TRACE << "timer 4 (" << timer() << ")";
     std::string remote_uri = context.get_uri_from_index(proposer);
@@ -193,7 +193,7 @@ bool HandleValidationBlock(DevcashMessageUniquePtr ptr,
   //increment validation count
   //if count >= validationPercent, finalize block
   DevcashMessage msg(*ptr.get());
-  std::string rawVal = bin2Str(msg.data);
+  std::string rawVal = Bin2Str(msg.data);
   LOG_DEBUG << "Received block validation: " + rawVal;
   unsigned int block_height = final_chain.size();
 
@@ -224,7 +224,7 @@ bool HandleValidationBlock(DevcashMessageUniquePtr ptr,
 
     std::string final_str = top_block->ToJSON();
     LOG_DEBUG << "Final block: "+final_str;
-    std::vector<uint8_t> data(str2Bin(final_str));
+    std::vector<uint8_t> data(Str2Bin(final_str));
     auto finalBlock = std::make_unique<DevcashMessage>("peers", FINAL_BLOCK, data);
     callback(std::move(finalBlock));
     sent_message = true;
@@ -643,7 +643,7 @@ void MaybeCreateNextProposal(unsigned int block_height,
 
   proposed_chain.push_back(proposal_ptr);
   LOG_DEBUG << "Propose Block: "+proposal_str;
-  std::vector<uint8_t> data(str2Bin(proposal_str));
+  std::vector<uint8_t> data(Str2Bin(proposal_str));
 
   // Create message
   auto propose_msg = std::make_unique<DevcashMessage>("peers", PROPOSAL_BLOCK, data);

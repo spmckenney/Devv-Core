@@ -23,24 +23,7 @@
 namespace Devcash
 {
 
-static const char alpha[] = "0123456789ABCDEF";  /** chars for hex conversions */
 static const char* pwd = "password";  /** password for aes pem */
-
-/** Change binary data into a hex string.
- *  @pre input must be allocated to a length of len
- *  @param input pointer to the binary data
- *  @param len length of the binary data
- *  @return string containing these data as hex numbers
- */
-static std::string toHex(char* input, int len) {
-  std::stringstream ss;
-  for (int j=0; j<len; j++) {
-    int c = (int) input[j];
-    ss.put(alpha[(c>>4)&0xF]);
-    ss.put(alpha[c&0xF]);
-  }
-  return(ss.str());
-}
 
 /** Maps a hex string into a buffer as binary data.
  *  @pre the buffer should have memory allocated
@@ -52,7 +35,7 @@ static std::string toHex(char* input, int len) {
 static char* hex2Bytes(std::string hex, char* buffer) {
   int len = hex.length();
   for (int i=0;i<len/2;i++) {
-    buffer[i] = char2int(hex.at(i*2))*16+char2int(hex.at(1+i*2));
+    buffer[i] = Char2Int(hex.at(i*2))*16+Char2Int(hex.at(1+i*2));
   }
   buffer[len/2] = '\0';
   return(buffer);
@@ -212,23 +195,25 @@ static std::string strHash(const std::string& msg) {
   SHA256_Init(&sha256);
   SHA256_Update(&sha256, temp, strlen(temp));
   SHA256_Final(md, &sha256);
-  std::string out = toHex((char*) md, SHA256_DIGEST_LENGTH);
+  std::string out = toHex((byte*) md, SHA256_DIGEST_LENGTH);
   return(out);
 }
 
-/*static void dcHash(std::string msg, char* hash) {
+/** Hashes a bytestring with SHA-256.
+ *  @note none of the parameters of this function are const.
+ *  Parameters may be altered by this function.
+ *  @param msg the bytestring to hash
+ *  @param len the length of the bytestring
+ *  @return a pointer to the hash, length is SHA256_DIGEST_LENGTH
+ */
+static char* dcHash(char* msg, size_t len) {
   unsigned char md[SHA256_DIGEST_LENGTH];
-  char temp[msg.length()+1];
-  strcpy(temp, msg.c_str());
   SHA256_CTX sha256;
   SHA256_Init(&sha256);
-  SHA256_Update(&sha256, temp, strlen(temp));
+  SHA256_Update(&sha256, msg, len);
   SHA256_Final(md, &sha256);
-  int i = 0;
-  for (i=0;i<SHA256_DIGEST_LENGTH;i++)
-  sprintf(hash + (i*2), "%02x", md[i]);
-  hash[SHA256_DIGEST_LENGTH*2] = 0;
-}*/
+  return md;
+}
 
 /** Verifies the signature corresponding to a given string
  *  @param ecKey pointer to the public key that will check this signature
@@ -255,6 +240,30 @@ static bool verifySig(EC_KEY* ecKey, const std::string msg, const std::string st
     hex2Bytes(strSig, (char*) newSig);
     ECDSA_SIG *signature = d2i_ECDSA_SIG(NULL, (const unsigned char**) &newSig, len/2);
     int state = ECDSA_do_verify((const unsigned char*) temp, strlen(temp), signature, ecKey);
+
+    return(1 == state);
+  } CASH_CATCH (const std::exception& e) {
+    LOG_WARNING << FormatException(&e, "Crypto.verifySignature");
+  }
+  return(false);
+}
+
+/** Verifies the signature corresponding to a given string
+ *  @param ecKey pointer to the public key that will check this signature
+ *  @param msg pointer to the message digest to verify
+ *  @param msg_size the size of the message
+ *  @param sig pointer to the binary signature to verify
+ *  @param sig_size size of the signature, should be 72 bytes
+ *  @return true iff the signature verifies with the provided key and context
+ *  @return false otherwise
+ */
+static bool VerifyByteSig(EC_KEY* ecKey, char* msg, size_t msg_size, char* sig, size_t sig_size) {
+  CASH_TRY {
+    EVP_MD_CTX *ctx;
+    if(!(ctx = EVP_MD_CTX_create()))
+      LOG_FATAL << "Could not create signature context!";
+    ECDSA_SIG *signature = d2i_ECDSA_SIG(NULL, (const unsigned char**) &sig, sig_size);
+    int state = ECDSA_do_verify((const unsigned char*) msg, msg_size, signature, ecKey);
 
     return(1 == state);
   } CASH_CATCH (const std::exception& e) {
@@ -291,7 +300,7 @@ static std::string sign(EC_KEY* ecKey, std::string msg) {
     memset(sigBytes, 6, len);
     ptr=sigBytes;
     len = i2d_ECDSA_SIG(signature, &ptr);
-    std::string out = toHex((char*) sigBytes, len);
+    std::string out = toHex((byte*) sigBytes, len);
 
     free(sigBytes);
   return(out);

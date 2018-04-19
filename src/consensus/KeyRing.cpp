@@ -7,15 +7,14 @@
 
 #include "KeyRing.h"
 
-#include <string>
-
 #include "common/ossladapter.h"
+#include "common/util.h"
 
-#include <unordered_map>
+#include <map>
 
 namespace Devcash {
 
-std::unordered_map<std::string, EC_KEY*> keyMap_;
+std::map<std::vector<byte>, EC_KEY*> keyMap_;
 DevcashContext context_;
 
 KeyRing::KeyRing(DevcashContext& context)
@@ -43,7 +42,7 @@ bool KeyRing::initKeys() {
       CASH_THROW("Invalid INN key!");
     }
 
-    keyMap_.insert(std::pair<std::string, EC_KEY*>(context_.kINN_ADDR, inn_key));
+    keyMap_.at(Str2Bin(context_.kINN_ADDR)) = inn_key;
 
     for (unsigned int i=0; i<context_.kADDRs.size(); i++) {
 
@@ -56,7 +55,7 @@ bool KeyRing::initKeys() {
         CASH_THROW("Invalid address["+std::to_string(i)+"] key!");
       }
 
-      keyMap_.insert(std::pair<std::string, EC_KEY*>(context_.kADDRs[i], addr_key));
+      keyMap_.at(Str2Bin(context_.kADDRs[i])) = addr_key;
     }
 
     for (unsigned int i=0; i<context_.kNODE_ADDRs.size(); i++) {
@@ -70,7 +69,7 @@ bool KeyRing::initKeys() {
         CASH_THROW("Invalid node["+std::to_string(i)+"] key!");
       }
 
-      keyMap_.insert(std::pair<std::string, EC_KEY*>(context_.kNODE_ADDRs[i], addr_key));
+      keyMap_.at(Str2Bin(context_.kNODE_ADDRs[i])) = addr_key;
     }
     is_init_ = true;
     return is_init_;
@@ -80,26 +79,28 @@ bool KeyRing::initKeys() {
   }
 }
 
-EC_KEY* KeyRing::getKey(const std::string& addr) const {
-  if (addr[0] == '7') {
-    auto it = keyMap_.find(context_.kINN_ADDR);
+EC_KEY* KeyRing::getKey(const Address& addr) const {
+  if (addr[0] == 114) {
+    auto it = keyMap_.find(Str2Bin(context_.kINN_ADDR));
     if (it != keyMap_.end()) return it->second;
     LOG_WARNING << "INN key is missing!\n";
     CASH_THROW("INN key is missing!");
   }
 
-  auto it = keyMap_.find(addr);
+  std::vector<byte> addr_vec(std::begin(addr), std::end(addr));
+
+  auto it = keyMap_.find(addr_vec);
   if (it != keyMap_.end()) return it->second;
-  LOG_WARNING << "Key for '"+addr+"'is missing!\n";
-  CASH_THROW("Key for '"+addr+"'is missing!");
+  LOG_WARNING << "Key for is missing!\n";
+  CASH_THROW("Key for is missing!");
 }
 
-bool KeyRing::isINN(const std::string& addr) const {
-  return(addr[0] == '7');
+bool KeyRing::isINN(const Address& addr) const {
+  return(addr[0] == 114);
 }
 
 EC_KEY* KeyRing::getNodeKey(int index) const {
-  auto it = keyMap_.find(context_.kNODE_ADDRs[index]);
+  auto it = keyMap_.find(Str2Bin(context_.kNODE_ADDRs[index]));
   if (it != keyMap_.end()) return it->second;
   LOG_WARNING << "Node["+std::to_string(index)+"] key is missing!\n";
   CASH_THROW("Node["+std::to_string(index)+"] key is missing!");

@@ -13,12 +13,11 @@
 #include <string>
 
 #include "oracleInterface.h"
-#include "common/json.hpp"
 #include "common/logger.h"
 #include "consensus/chainstate.h"
-#include "primitives/transaction.h"
+#include "primitives/Transaction.h"
 
-using json = nlohmann::json;
+using namespace Devcash;
 
 class DCapi : public oracleInterface {
 
@@ -52,8 +51,8 @@ class DCapi : public oracleInterface {
    * @return true iff the transaction can be valid according to this oracle
    * @return false otherwise
    */
-  bool isValid(Devcash::DCTransaction checkTx) {
-    if (checkTx.isOpType("exchange")) return false;
+  bool isValid(Transaction checkTx) {
+    if (checkTx.oper_ == 2) return false;
     return true;
   }
 
@@ -69,7 +68,7 @@ class DCapi : public oracleInterface {
    * @return true iff the transaction is valid according to this oracle
    * @return false otherwise
    */
-  bool isValid(Devcash::DCTransaction checkTx, Devcash::DCState& context) {
+  bool isValid(Transaction checkTx, DCState& context) {
     if (!isValid(checkTx)) return false;
     for (auto it=checkTx.xfers_.begin(); it != checkTx.xfers_.end(); ++it) {
       if (it->amount_ > 0) {
@@ -88,8 +87,8 @@ class DCapi : public oracleInterface {
  * @params checkTx the transaction to (in)validate
  * @return a tier 1 transaction to implement this tier 2 logic.
  */
-  Devcash::DCTransaction getT1Syntax(Devcash::DCTransaction theTx) {
-    Devcash::DCTransaction out(theTx);
+  Transaction getT1Syntax(Transaction theTx) {
+    Transaction out(theTx);
     //if (out.delay_ == 0) out.delay_ = kAPI_LIFETIME;
     return(out);
   }
@@ -107,21 +106,14 @@ class DCapi : public oracleInterface {
  * @return a tier 1 transaction to implement this tier 2 logic.
  * @return empty/null transaction if the transaction is invalid
  */
-  Devcash::DCTransaction Tier2Process(std::string rawTx,
+  Transaction Tier2Process(std::vector<byte> rawTx,
       Devcash::DCState context) {
-    json jsonObj = json::parse(rawTx);
-    Devcash::DCTransaction tx(jsonObj.dump());
+    Transaction tx(rawTx);
     if (!isValid(tx, context)) {
-      tx.setNull();
       return tx;
     }
-    if (tx.isOpType("create") || tx.isOpType("modify")) {
-      if (jsonObj["apiRef"].empty()) {
-        LOG_WARNING << "Error: No INN reference for this API.";
-        tx.setNull();
-        return tx;
-      }
-      //TODO: verify reference with INN
+    if (tx.oper_ == 0 || tx.oper_ == 1) {
+      //TODO: check api reference string in nonce and verify reference with INN
     }
     return tx;
   }

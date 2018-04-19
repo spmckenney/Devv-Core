@@ -24,9 +24,10 @@
 #ifndef DEVCASH_PRIMITIVES_BLOCK_H
 #define DEVCASH_PRIMITIVES_BLOCK_H
 
-#include "transaction.h"
-#include "validation.h"
 #include "consensus/KeyRing.h"
+#include "Summary.h"
+#include "Transaction.h"
+#include "Validation.h"
 
 namespace Devcash
 {
@@ -35,15 +36,15 @@ class DCBlock {
 
 public:
 
-  const DCValidationBlock& GetValidationBlock() const {
+  const Validation& GetValidationBlock() const {
     return vals_;
   }
 
-  DCValidationBlock& GetValidationBlock() {
+  Validation& GetValidationBlock() {
     return vals_;
   }
 
-  std::vector<Devcash::DCTransaction> vtx_;
+  std::vector<Devcash::Transaction> vtx_;
 
   uint32_t vSize_;
   uint32_t sumSize_;
@@ -59,8 +60,8 @@ public:
   DCBlock();
   DCBlock(const std::string& rawBlock, const KeyRing& keys);
   DCBlock(const DCBlock& other);
-  DCBlock(const std::vector<Devcash::DCTransaction>& txs,
-      const DCValidationBlock& validations);
+  DCBlock(const std::vector<Devcash::Transaction>& txs,
+      const Validation& validations);
 
   DCBlock* operator=(DCBlock&& other)
   {
@@ -178,8 +179,9 @@ public:
   std::string ToCBOR_str() const;
 
 private:
-  DCValidationBlock vals_;
+  Validation vals_;
   DCState block_state_;
+  Summary summary_;
 
 };
 

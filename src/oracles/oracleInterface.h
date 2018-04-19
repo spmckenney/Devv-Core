@@ -15,7 +15,10 @@
 
 #include <string>
 #include "consensus/chainstate.h"
-#include "primitives/transaction.h"
+#include "primitives/Transaction.h"
+
+namespace Devcash
+{
 
 class oracleInterface {
 
@@ -70,7 +73,7 @@ class oracleInterface {
  *  into a set of internal types by the oracle
  *  @return the index of this coin type
  */
-  static int getCoinIndex();
+  static uint64_t getCoinIndex();
 
 /** Checks if a transaction is objectively valid according to this oracle.
  *  When this function returns false, a transaction is syntactically invalid
@@ -81,7 +84,7 @@ class oracleInterface {
  * @return true iff the transaction can be valid according to this oracle
  * @return false otherwise
  */
-  virtual bool isValid(Devcash::DCTransaction checkTx) = 0;
+  virtual bool isValid(Transaction checkTx) = 0;
 
 /** Checks if a transaction is valid according to this oracle
  *  given a specific chain state.
@@ -92,8 +95,8 @@ class oracleInterface {
  * @return true iff the transaction is valid according to this oracle
  * @return false otherwise
  */
-  virtual bool isValid(Devcash::DCTransaction checkTx,
-      Devcash::DCState& context) = 0;
+  virtual bool isValid(Transaction checkTx,
+      DCState& context) = 0;
 
 /** Generate a tier 1 smartcoin transaction based on this tier 2 transaction.
  *
@@ -101,7 +104,7 @@ class oracleInterface {
  * @params checkTx the transaction to (in)validate
  * @return a tier 1 transaction to implement this tier 2 logic.
  */
-  virtual Devcash::DCTransaction getT1Syntax(Devcash::DCTransaction theTx) = 0;
+  virtual Transaction getT1Syntax(Transaction theTx) = 0;
 
 /**
  * End-to-end tier2 process that takes a string, parses it into a transaction,
@@ -114,9 +117,11 @@ class oracleInterface {
  * @return a tier 1 transaction to implement this tier 2 logic
  * @return nullptr if the transaction is invalid
  */
-  virtual Devcash::DCTransaction Tier2Process(std::string rawTx,
-      Devcash::DCState context) = 0;
+  virtual Transaction Tier2Process(std::vector<byte> rawTx,
+      DCState context) = 0;
 
 };
+
+} //end namespace Devcash
 
 #endif /* ORACLE_INTERFACE_H_ */

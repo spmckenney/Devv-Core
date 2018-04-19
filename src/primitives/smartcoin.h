@@ -12,26 +12,30 @@
 #include <vector>
 #include <stdint.h>
 
+#include "common/util.h"
+
 namespace Devcash
 {
 
-static const long kCOIN = 100000000;
-static const long kMAX_MONEY = 21000000 * kCOIN;  //2.1 quintillion
-inline bool MoneyRange(const long& nValue) {
-  return (nValue >= 0 && nValue <= kMAX_MONEY);
+typedef byte Address[33];
+
+//keep coins within uint64, divisible to 10^-8
+static const uint64_t kCOIN = 100000000;
+static const uint64_t kMAX_COIN = 184000000000 * kCOIN;
+inline bool MoneyRange(const uint64_t& nValue) {
+  return (nValue >= 0 && nValue <= kMAX_COIN);
 }
 
 class SmartCoin {
  public:
-  unsigned int type_;
-  std::string addr_;
-  long amount_ = 0;
+  Address addr_;
+  uint64_t coin_;
+  uint64_t amount_ = 0;
 
 /** Constructor */
-  SmartCoin(int type, std::string addr, long amount=0) {
-    this->type_=type;
-    this->addr_=addr;
-    this->amount_ = amount;
+  SmartCoin(const Address& addr, uint64_t coin, uint64_t amount=0)
+    : addr_(), coin_(coin), amount_(amount) {
+    std::copy(addr, addr + 72, addr_);
   }
 };
 
