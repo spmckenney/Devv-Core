@@ -32,6 +32,7 @@ table Transfer {
 }
 
 table Transaction {
+  oper   : int8;
   xfers  : [Transfer];
   nonce  : [byte]; //length encoded in prefix using CBOR type 2 definition
   sig    : Signature; //72 bytes (key)
