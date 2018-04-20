@@ -12,12 +12,11 @@
 #include <vector>
 #include <stdint.h>
 
+#include "common/ossladapter.h"
 #include "common/util.h"
 
 namespace Devcash
 {
-
-typedef byte Address[33];
 
 //keep coins within uint64, divisible to 10^-8
 static const uint64_t kCOIN = 100000000;
@@ -34,8 +33,7 @@ class SmartCoin {
 
 /** Constructor */
   SmartCoin(const Address& addr, uint64_t coin, uint64_t amount=0)
-    : addr_(), coin_(coin), amount_(amount) {
-    std::copy(addr, addr + 72, addr_);
+    : addr_(addr), coin_(coin), amount_(amount) {
   }
 };
 

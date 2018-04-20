@@ -20,6 +20,17 @@
 #include "util.h"
 #include "logger.h"
 
+
+namespace Devcash {
+
+static const size_t kADDR_SIZE = SHA256_DIGEST_LENGTH;
+typedef std::array<byte, kADDR_SIZE> Address;
+typedef Address Hash;
+static const size_t kSIG_SIZE = 72;
+typedef std::array<byte, kSIG_SIZE> Signature;
+
+} //end namespace Devcash
+
 static const char* pwd = "password";  /** password for aes pem */
 
 /** Maps a hex string into a buffer as binary data.
@@ -184,7 +195,7 @@ static EC_KEY* loadEcKey(EVP_MD_CTX*, const std::string& publicKey, const std::s
  *  @param msg the string to hash
  *  @return a hex string of the hashed value
  */
-static std::string strHash(const std::string& msg) {
+/*static std::string strHash(const std::string& msg) {
   unsigned char md[SHA256_DIGEST_LENGTH];
   char temp[msg.length()+1];
   strcpy(temp, msg.c_str());
@@ -194,7 +205,7 @@ static std::string strHash(const std::string& msg) {
   SHA256_Final(md, &sha256);
   std::string out = toHex((byte*) md, SHA256_DIGEST_LENGTH);
   return(out);
-}
+}*/
 
 /** Hashes a bytestring with SHA-256.
  *  @note none of the parameters of this function are const.
@@ -203,12 +214,12 @@ static std::string strHash(const std::string& msg) {
  *  @param len the length of the bytestring
  *  @return a pointer to the hash, length is SHA256_DIGEST_LENGTH
  */
-static char* dcHash(char* msg, size_t len) {
-  unsigned char md[SHA256_DIGEST_LENGTH];
+static Devcash::Hash dcHash(const std::vector<byte>& msg) {
+  Devcash::Hash md;
   SHA256_CTX sha256;
   SHA256_Init(&sha256);
-  SHA256_Update(&sha256, msg, len);
-  SHA256_Final(md, &sha256);
+  SHA256_Update(&sha256, &msg[0], msg.size());
+  SHA256_Final(&md[0], &sha256);
   return md;
 }
 
@@ -254,13 +265,14 @@ static bool verifySig(EC_KEY* ecKey, const std::string msg, const std::string st
  *  @return true iff the signature verifies with the provided key and context
  *  @return false otherwise
  */
-static bool VerifyByteSig(EC_KEY* ecKey, char* msg, size_t msg_size, char* sig, size_t sig_size) {
+static bool VerifyByteSig(EC_KEY* ecKey, const Devcash::Hash& msg
+    , const Devcash::Signature& sig) {
   CASH_TRY {
     EVP_MD_CTX *ctx;
     if(!(ctx = EVP_MD_CTX_create()))
       LOG_FATAL << "Could not create signature context!";
-    ECDSA_SIG *signature = d2i_ECDSA_SIG(NULL, (const unsigned char**) &sig, sig_size);
-    int state = ECDSA_do_verify((const unsigned char*) msg, msg_size, signature, ecKey);
+    ECDSA_SIG *signature = d2i_ECDSA_SIG(NULL, (const unsigned char**) &sig[0], Devcash::kSIG_SIZE);
+    int state = ECDSA_do_verify((const unsigned char*) &msg[0], msg.size(), signature, ecKey);
 
     return(1 == state);
   } CASH_CATCH (const std::exception& e) {
@@ -276,27 +288,24 @@ static bool VerifyByteSig(EC_KEY* ecKey, char* msg, size_t msg_size, char* sig, 
  *  @param msg pointer to the message digest to sign
  *  @param len length of binary message to sign
  *  @param sig target buffer where signature is put, must be allocted
- *  @return true a hex string of the signature
  *  @throws std::exception on error
  */
-static void SignBinary(EC_KEY* ecKey, char* msg, size_t len
-    , unsigned char* sig) {
+static void SignBinary(EC_KEY* ecKey, const Devcash::Hash& msg
+    , Devcash::Signature& sig) {
   CASH_TRY {
-    ECDSA_SIG *signature = ECDSA_do_sign((const unsigned char*) msg,
-        len, ecKey);
-    int state = ECDSA_do_verify((const unsigned char*) msg,
-        len, signature, ecKey);
+    ECDSA_SIG *signature = ECDSA_do_sign((const unsigned char*) &msg[0],
+        msg.size(), ecKey);
+    int state = ECDSA_do_verify((const unsigned char*) &msg[0],
+        msg.size(), signature, ecKey);
 
     //0 -> invalid, -1 -> openssl error
     if (1 != state)
       LOG_ERROR << "Signature did not validate("+std::to_string(state)+")";
 
-    int sig_len = i2d_ECDSA_SIG(signature, NULL);
-    unsigned char *ptr;
-    memset(sig, 6, sig_len);
-    ptr=sig;
+    int len = i2d_ECDSA_SIG(signature, NULL);
+    unsigned char* ptr = &sig[0];
+    memset(&sig[0], 6, len);
     len = i2d_ECDSA_SIG(signature, &ptr);
-    std::string out = toHex((byte*) sig, len);
   } CASH_CATCH (const std::exception& e) {
     LOG_WARNING << FormatException(&e, "Crypto.sign");
   }
@@ -310,7 +319,7 @@ static void SignBinary(EC_KEY* ecKey, char* msg, size_t len
  *  @return true a hex string of the signature
  *  @throws std::exception on error
  */
-static std::string sign(EC_KEY* ecKey, std::string msg) {
+/*static std::string sign(EC_KEY* ecKey, std::string msg) {
   CASH_TRY {
     char temp[msg.length()+1];
     strcpy(temp, msg.c_str());
@@ -338,6 +347,6 @@ static std::string sign(EC_KEY* ecKey, std::string msg) {
     LOG_WARNING << FormatException(&e, "Crypto.sign");
   }
   return("");
-}
+}*/
 
 #endif /* SRC_COMMON_OSSLADAPTER_H_ */

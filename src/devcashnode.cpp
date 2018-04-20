@@ -139,16 +139,21 @@ bool DevcashNode::SanityChecks()
       return false;
     }
 
-    std::string msg("hello");
-    std::string hash(strHash(msg));
+    std::vector<byte> msg = {'h', 'e', 'l', 'l', 'o'};
+    Hash test_hash(dcHash(msg));
+    std::string sDer;
 
     EC_KEY* loadkey = loadEcKey(ctx,
         app_context_.kADDRs[1],
         app_context_.kADDR_KEYs[1]);
 
-    std::string sDer = sign(loadkey, hash);
-    LOG_DEBUG << "Signature="+sDer;
-    if (!verifySig(loadkey, hash, sDer)) return false;
+    Signature sig;
+    SignBinary(loadkey, test_hash, sig);
+    LOG_DEBUG << "Signature="+toHex(std::vector<byte>(std::begin(sig), std::end(sig)));
+
+    if (!VerifyByteSig(loadkey, test_hash, sig)) {
+      return false;
+    }
 
     return true;
   } CASH_CATCH (const std::exception& e) {

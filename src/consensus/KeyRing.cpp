@@ -30,14 +30,18 @@ bool KeyRing::initKeys() {
           CASH_THROW("Could not create signature context!");
         }
 
-    std::string hash(strHash("hello"));
+    std::vector<byte> msg = {'h', 'e', 'l', 'l', 'o'};
+    Hash test_hash(dcHash(msg));
     std::string sDer;
 
     EC_KEY* inn_key = loadEcKey(ctx,
         context_.kINN_ADDR,
         context_.kINN_KEY);
 
-    if (!verifySig(inn_key, hash, sign(inn_key, hash))) {
+    Signature sig;
+    SignBinary(inn_key, test_hash, sig);
+
+    if (!VerifyByteSig(inn_key, test_hash, sig)) {
       LOG_FATAL << "Invalid INN key!";
       CASH_THROW("Invalid INN key!");
     }
@@ -50,7 +54,8 @@ bool KeyRing::initKeys() {
           context_.kADDRs[i],
           context_.kADDR_KEYs[i]);
 
-      if (!verifySig(addr_key, hash, sign(addr_key, hash))) {
+      SignBinary(addr_key, test_hash, sig);
+      if (!VerifyByteSig(addr_key, test_hash, sig)) {
         LOG_WARNING << "Invalid address["+std::to_string(i)+"] key!";
         CASH_THROW("Invalid address["+std::to_string(i)+"] key!");
       }
@@ -64,7 +69,8 @@ bool KeyRing::initKeys() {
           context_.kNODE_ADDRs[i],
           context_.kNODE_KEYs[i]);
 
-      if (!verifySig(addr_key, hash, sign(addr_key, hash))) {
+      SignBinary(addr_key, test_hash, sig);
+      if (!VerifyByteSig(addr_key, test_hash, sig)) {
         LOG_WARNING << "Invalid node["+std::to_string(i)+"] key!";
         CASH_THROW("Invalid node["+std::to_string(i)+"] key!");
       }

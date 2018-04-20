@@ -26,9 +26,7 @@
 #include <stdint.h>
 
 #include "Transfer.h"
-
 #include "Summary.h"
-#include "common/ossladapter.h"
 #include "consensus/KeyRing.h"
 #include "consensus/chainstate.h"
 #include "Validation.h"
@@ -42,8 +40,6 @@ static const std::string kOPER_TAG = "oper";
 static const std::string kXFER_TAG = "xfer";
 static const std::string kNONCE_TAG = "nonce";
 static const std::string kSIG_TAG = "sig";
-
-//typedef byte Signature[73];
 
 enum eOpType : byte {
   Create     = 0,
@@ -62,16 +58,14 @@ class Transaction {
 /** Constructors */
   Transaction() : xfer_count_(0), oper_(eOpType::Create), nonce_(0), sig_()  {}
   explicit Transaction(const std::vector<byte>& serial)
-    : xfer_count_(0), oper_(eOpType::Create), nonce_(0), sig_() {
+    : xfer_count_(0), oper_(0), nonce_(0), sig_() {
     if (serial.size() < MinSize()) {
       LOG_WARNING << "Invalid serialized transaction, too small!";
       return;
     }
-    BinToUint64(serial, 0, xfer_count_);
-    if (serial.size() != MinSize()
-        +(Transfer::Size()*xfer_count_)) {
+    xfer_count_ = BinToUint64(serial, 0);
+    if (serial.size() < MinSize()+(Transfer::Size()*xfer_count_)) {
       LOG_WARNING << "Invalid serialized transaction, wrong size!";
-      return;
     }
     oper_ = serial[8];
     if (oper_ > 3) {
@@ -83,73 +77,60 @@ class Transaction {
       xfers_.push_back(*t);
     }
     size_t offset = 9+(Transfer::Size()*xfer_count_);
-    BinToUint64(serial, offset, nonce_);
+    nonce_ = BinToUint64(serial, offset);
     offset += 8;
-    for (unsigned int i=offset; i<(72+offset); ++i) {
-      sig_[i-offset] = serial.at(i);
-    }
+    std::copy_n(serial.begin()+offset, kSIG_SIZE, sig_.begin());
   }
 
   explicit Transaction(const std::vector<byte>& serial, size_t pos)
-    : xfer_count_(0), oper_(eOpType::Create), nonce_(0), sig_() {
-    if (serial.size() < MinSize()+pos) {
+    : xfer_count_(0), oper_(0), nonce_(0), sig_() {
+    if (serial.size() < pos+MinSize()) {
       LOG_WARNING << "Invalid serialized transaction, too small!";
       return;
     }
-    BinToUint64(serial, pos, xfer_count_);
-    if (serial.size() < pos+89+(57*xfer_count_)) {
+    xfer_count_ = BinToUint64(serial, pos);
+    if (serial.size() < pos+MinSize()+(Transfer::Size()*xfer_count_)) {
       LOG_WARNING << "Invalid serialized transaction, wrong size!";
-      return;
     }
-    oper_ = serial[8+pos];
+    oper_ = serial[pos+8];
     if (oper_ > 3) {
       LOG_WARNING << "Invalid serialized transaction, invalid operation!";
       return;
     }
-    for (unsigned int i=0; i<xfer_count_; ++i) {
-      Transfer* t = new Transfer(serial, pos+9+(57*i));
+    for (size_t i=0; i<xfer_count_; ++i) {
+      Transfer* t = new Transfer(serial, pos+9+(Transfer::Size()*i));
+      xfers_.push_back(*t);
     }
-    size_t offset = pos+9+(57*xfer_count_);
-    BinToUint64(serial, offset, nonce_);
+    size_t offset = pos+9+(Transfer::Size()*xfer_count_);
+    nonce_ = BinToUint64(serial, offset);
     offset += 8;
-    for (unsigned int i=offset; i<(72+offset); ++i) {
-      sig_[i-offset] = serial.at(i);
-    }
+    std::copy_n(serial.begin()+offset, kSIG_SIZE, sig_.begin());
   }
 
   Transaction(uint64_t xfer_count, byte oper
       , const std::vector<Transfer>& xfers, uint64_t nonce, Signature sig)
       : xfer_count_(xfer_count), oper_(oper), xfers_(), nonce_(nonce)
-      , sig_() {
+      , sig_(sig) {
     for (int i=0; i<xfer_count_; ++i) {
       xfers_.push_back(xfers.at(i));
-    }
-    for (int i=0; i<72; ++i) {
-      sig_[i] = sig[i];
     }
   }
 
   Transaction(const Transaction& other) : xfer_count_(other.xfer_count_)
-    , oper_(other.oper_), nonce_(other.nonce_), sig_() {
-    for (unsigned int i=0; i<72; ++i) {
-      sig_[i] = other.sig_[i];
-    }
+    , oper_(other.oper_), nonce_(other.nonce_), sig_(other.sig_) {
   }
 
   Transaction(byte oper, const std::vector<Transfer>& xfers, uint64_t nonce
       , EC_KEY* eckey)
       : xfer_count_(xfers.size()), oper_(oper), xfers_(), nonce_(nonce)
       , sig_() {
-    for (int i=0; i<xfer_count_; ++i) {
+    for (size_t i=0; i<xfer_count_; ++i) {
       xfers_.push_back(xfers.at(i));
     }
 
-    Signature new_sig;
     std::vector<byte> msg(getMessageDigest());
-    char* md(&msg[0]);
-    char* hash(dcHash(md, msg.size()));
-    unsigned char* sig(&sig_[0]);
-    SignBinary(eckey, md, SHA256_DIGEST_LENGTH, sig);
+    SignBinary(eckey, dcHash(msg), sig_);
+    LOG_INFO << "New sig: "+toHex(std::vector<byte>(std::begin(sig_), std::end(sig_)));
   }
 
   static const size_t MinSize() {
@@ -181,9 +162,7 @@ class Transaction {
     if (this != &other) {
       this->oper_ = other.oper_;
       this->nonce_ = other.nonce_;
-      for (unsigned int i=0; i<72; ++i) {
-        this->sig_[i] = other.sig_[i];
-      }
+      this->sig_ = other.sig_;
       this->xfers_ = std::move(other.xfers_);
     }
     return this;
@@ -194,9 +173,7 @@ class Transaction {
     if (this != &other) {
       this->oper_ = other.oper_;
       this->nonce_ = other.nonce_;
-      for (unsigned int i=0; i<72; ++i) {
-        this->sig_[i] = other.sig_[i];
-      }
+      this->sig_ = other.sig_;
       this->xfers_ = std::move(other.xfers_);
     }
     return this;
@@ -241,7 +218,7 @@ class Transaction {
                 LOG_WARNING << "Coins not available at addr.";
                 return false;
               }
-              std::copy(it->addr_, it->addr_+33, sender);
+              std::copy_n(it->addr_.begin(), kADDR_SIZE, sender.begin());
               sender_set = true;
             }
             SmartCoin next_flow(it->addr_, it->coin_, it->amount_);
@@ -260,15 +237,14 @@ class Transaction {
 
         EC_KEY* eckey(keys.getKey(sender));
         std::vector<byte> msg(getMessageDigest());
-        char* md(&msg[0]);
-        char* hash(dcHash(md, msg.size()));
-        char* sig(&sig_[0]);
 
-        if (!VerifyByteSig(eckey, hash, SHA256_DIGEST_LENGTH, sig, 72)) {
+        if (!VerifyByteSig(eckey, dcHash(msg), sig_)) {
           LOG_WARNING << "Error: transaction signature did not validate.\n";
           LOG_DEBUG << "Transaction state is: "+getJSON();
-          LOG_DEBUG << "Sender addr is: "+toHex(&sender[0], 33);
-          LOG_DEBUG << "Signature is: "+toHex(&sig_[0], 72);
+          LOG_DEBUG << "Sender addr is: "
+            +toHex(std::vector<byte>(std::begin(sender), std::end(sender)));
+          LOG_DEBUG << "Signature is: "
+            +toHex(std::vector<byte>(std::begin(sig_), std::end(sig_)));
           return false;
         }
         return true;
@@ -339,7 +315,8 @@ class Transaction {
       json += it->getJSON();
     }
     json += "],\""+kNONCE_TAG+"\":"+std::to_string(nonce_)+",";
-    json += "\""+kSIG_TAG+"\":\""+toHex(&sig_[0], 72)+"\"}";
+    json += "\""+kSIG_TAG+"\":\""
+      +toHex(std::vector<byte>(std::begin(sig_), std::end(sig_)))+"\"}";
     return json;
   }
 

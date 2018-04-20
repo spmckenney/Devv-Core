@@ -64,8 +64,8 @@ static std::string Bin2Str(std::vector<byte> bytes) {
   return out;
 }
 
-static uint256_t BinToUint256(const std::vector<byte>& bytes, unsigned int start
-    , uint256_t& dest) {
+static uint256_t BinToUint256(const std::vector<byte>& bytes, size_t start) {
+  uint256_t dest = 0;
   for (unsigned int i=0; i<32; ++i) {
     dest |= (bytes.at(start+i) << (i*8));
   }
@@ -73,15 +73,15 @@ static uint256_t BinToUint256(const std::vector<byte>& bytes, unsigned int start
 }
 
 static std::vector<byte> Uint256ToBin(const uint256_t& source
-    , std::vector<byte>& dest) {
+    ,std::vector<byte>& dest) {
   for (unsigned int i=0; i<32; ++i) {
     dest.push_back((byte) (source >> (i*8)) & 0xFF);
   }
   return dest;
 }
 
-static uint64_t BinToUint64(const std::vector<byte>& bytes, unsigned int start
-    , uint64_t& dest) {
+static uint64_t BinToUint64(const std::vector<byte>& bytes, size_t start) {
+  uint64_t dest = 0;
   for (unsigned int i=0; i<8; ++i) {
     dest |= (bytes.at(start+i) << (i*8));
   }
@@ -89,15 +89,15 @@ static uint64_t BinToUint64(const std::vector<byte>& bytes, unsigned int start
 }
 
 static std::vector<byte> Uint64ToBin(const uint64_t& source
-    , std::vector<byte>& dest) {
+    ,std::vector<byte>& dest) {
   for (unsigned int i=0; i<8; ++i) {
     dest.push_back((source >> (i*8)) & 0xFF);
   }
   return dest;
 }
 
-static int64_t BinToInt64(const std::vector<byte>& bytes, unsigned int start
-    , int64_t& dest) {
+static int64_t BinToInt64(const std::vector<byte>& bytes, size_t start) {
+  int64_t dest = 0;
   for (unsigned int i=0; i<8; ++i) {
     dest |= (bytes.at(start+i) << (i*8));
   }
@@ -105,7 +105,7 @@ static int64_t BinToInt64(const std::vector<byte>& bytes, unsigned int start
 }
 
 static std::vector<byte> Int64ToBin(const int64_t& source
-    , std::vector<byte>& dest) {
+    ,std::vector<byte>& dest) {
   for (unsigned int i=0; i<8; ++i) {
     dest.push_back((source >> (i*8)) & 0xFF);
   }
@@ -151,16 +151,6 @@ static const char alpha[] = "0123456789ABCDEF";
  *  @param len length of the binary data
  *  @return string containing these data as hex numbers
  */
-static std::string toHex(const byte* input, size_t len) {
-  std::stringstream ss;
-  for (size_t j=0; j<len; j++) {
-    int c = (int) input[j];
-    ss.put(alpha[(c>>4)&0xF]);
-    ss.put(alpha[c&0xF]);
-  }
-  return(ss.str());
-}
-
 static std::string toHex(const std::vector<byte> input) {
   std::stringstream ss;
   for (size_t j=0; j<input.size(); j++) {

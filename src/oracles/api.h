@@ -89,7 +89,7 @@ class DCapi : public oracleInterface {
  */
   Transaction getT1Syntax(Transaction theTx) {
     Transaction out(theTx);
-    if (out.delay_ == 0) out.delay_ = kAPI_LIFETIME;
+    //if (out.delay_ == 0) out.delay_ = kAPI_LIFETIME;
     return(out);
   }
 

@@ -14,8 +14,6 @@
 
 namespace Devcash {
 
-using namespace Devcash;
-
 class KeyRing {
  public:
   KeyRing(DevcashContext& context);

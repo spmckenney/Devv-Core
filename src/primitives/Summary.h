@@ -188,7 +188,7 @@ class Summary {
   /**
    *  @return a canonical bytestring summarizing these changes.
   */
-  std::vector<byte> toCanonical() const {
+  std::vector<byte> getCanonical() const {
     std::vector<byte> out;
     uint64_t addr_size = summary_.size();
     Uint64ToBin(addr_size, out);
@@ -222,7 +222,7 @@ class Summary {
   }
 
   size_t getByteSize() const {
-    return toCanonical().size();
+    return getCanonical().size();
   }
 
   std::string toJSON() const {
@@ -230,7 +230,8 @@ class Summary {
     uint64_t addr_size = summary_.size();
     json += std::to_string(addr_size)+",summary:[";
     for (auto iter = summary_.begin(); iter != summary_.end(); ++iter) {
-      json += "\""+toHex(&iter->first[0], 33)+"\":[";
+      json += "\""+toHex(std::vector<byte>(std::begin(iter->first)
+        , std::end(iter->first)))+"\":[";
       SummaryPair top_pair(iter->second);
       DelayedMap delayed(top_pair.first);
       CoinMap coin_map(top_pair.second);

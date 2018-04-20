@@ -13,8 +13,6 @@
 #include <stdint.h>
 
 #include "smartcoin.h"
-#include "common/ossladapter.h"
-#include "common/util.h"
 #include "consensus/KeyRing.h"
 #include "consensus/chainstate.h"
 
@@ -36,16 +34,9 @@ class Transfer {
 /** Constructors */
   Transfer() : addr_(), coin_(0), amount_(0), delay_(0) {}
 
-  Transfer(const std::vector<byte>& addr, uint64_t coin, uint64_t amount
-    , uint64_t delay) : addr_(), coin_(coin), amount_(amount)
+  Transfer(const Address& addr, uint64_t coin, uint64_t amount
+    , uint64_t delay) : addr_(addr), coin_(coin), amount_(amount)
     , delay_(delay) {
-    if (addr.size() != 33) {
-      LOG_WARNING << "Invalid address in Transfer constructor!";
-      return;
-    }
-    for (unsigned int i=0; i<33; ++i) {
-      addr_[i] = addr.at(i);
-    }
   }
 
   explicit Transfer(const std::vector<byte>& serial)
@@ -54,45 +45,37 @@ class Transfer {
       LOG_WARNING << "Invalid serialized transfer!";
       return;
     }
-    for (unsigned int i=0; i<33; ++i) {
-      addr_[i] = serial.at(i);
-    }
-    BinToUint64(serial, 33, coin_);
-    BinToInt64(serial, 41, amount_);
-    BinToUint64(serial, 49, delay_);
+    std::copy_n(serial.begin(), kADDR_SIZE, addr_.begin());
+    coin_ = BinToUint64(serial, kADDR_SIZE);
+    amount_ = BinToInt64(serial, kADDR_SIZE+8);
+    delay_ = BinToUint64(serial, kADDR_SIZE+16);
   }
 
   explicit Transfer(const std::vector<byte>& serial, size_t pos)
-    : addr_(), coin_(0), amount_(0), delay_(0) {
+    : addr_(), coin_(BinToUint64(serial, kADDR_SIZE+pos))
+    , amount_(BinToInt64(serial, kADDR_SIZE+8+pos))
+    , delay_(BinToUint64(serial, kADDR_SIZE+16+pos)) {
     if (serial.size() < Size()+pos) {
       LOG_WARNING << "Invalid serialized transfer!";
       return;
     }
-    for (size_t i=pos; i<(33+pos); ++i) {
-      addr_[i-pos] = serial.at(i);
-    }
-    BinToUint64(serial, 33+pos, coin_);
-    BinToInt64(serial, 41+pos, amount_);
-    BinToUint64(serial, 49+pos, delay_);
+    std::copy_n(serial.begin()+pos, kADDR_SIZE, addr_.begin());
   }
 
-  explicit Transfer(const Transfer &other) : addr_()
+  explicit Transfer(const Transfer &other) : addr_(other.addr_)
     , coin_(other.coin_), amount_(other.amount_)
     , delay_(other.delay_) {
-    for (unsigned int i=0; i<33; ++i) {
-      addr_[i] = other.addr_[i];
-    }
   }
 
   static const size_t Size() {
-    return 57;
+    return kADDR_SIZE+24;
   }
 
 /** Gets this transfer in a canonical form.
  * @return a vector defining this transaction in canonical form.
  */
   std::vector<byte> getCanonical() const {
-    std::vector<byte> serial(addr_, addr_+33);
+    std::vector<byte> serial(std::begin(addr_), std::end(addr_));
     Uint64ToBin(coin_, serial);
     Int64ToBin(amount_, serial);
     Uint64ToBin(delay_, serial);
@@ -101,7 +84,7 @@ class Transfer {
 
   std::string getJSON() const {
     std::string json("{\""+kADDR_TAG+"\":\"");
-    json += toHex(&addr_[0], 33);
+    json += toHex(std::vector<byte>(std::begin(addr_), std::end(addr_)));
     json += "\",\""+kTYPE_TAG+"\":"+std::to_string(coin_);
     json += ",\""+kAMOUNT_TAG+"\":"+std::to_string(amount_);
     json += ",\""+kDELAY_TAG+"\":"+std::to_string(delay_);
@@ -124,9 +107,7 @@ class Transfer {
   Transfer* operator=(Transfer&& other)
   {
     if (this != &other) {
-      for (unsigned int i=0; i<33; ++i) {
-        this->addr_[i] = other.addr_[i];
-      }
+      addr_ = other.addr_;
       this->amount_ = other.amount_;
       this->delay_ = other.delay_;
       this->coin_ = other.coin_;
@@ -136,9 +117,7 @@ class Transfer {
   Transfer* operator=(const Transfer& other)
   {
     if (this != &other) {
-      for (unsigned int i=0; i<33; ++i) {
-        this->addr_[i] = other.addr_[i];
-      }
+      addr_ = other.addr_;
       this->amount_ = other.amount_;
       this->delay_ = other.delay_;
       this->coin_ = other.coin_;

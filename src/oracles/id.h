@@ -91,7 +91,7 @@ class DCid : public oracleInterface {
  */
   Transaction getT1Syntax(Transaction theTx) {
     Transaction out(theTx);
-    if (out.delay_ == 0) out.delay_ = kID_LIFETIME;
+    //if (out.delay_ == 0) out.delay_ = kID_LIFETIME;
     return(out);
   }
 
@@ -120,7 +120,7 @@ class DCid : public oracleInterface {
         return tx;
       }*/
       //TODO: verify reference in nonce with INN
-      if (tx.delay_ == 0) tx.delay_ = kID_LIFETIME;
+      //if (tx.delay_ == 0) tx.delay_ = kID_LIFETIME;
     }
     return tx;
   }

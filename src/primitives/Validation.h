@@ -29,8 +29,6 @@
 
 namespace Devcash
 {
-
-typedef byte Signature[72];
 typedef std::map<Address, Signature> vmap;
 
 class Validation {
