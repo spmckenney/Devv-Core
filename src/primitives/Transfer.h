@@ -30,7 +30,7 @@ class Transfer {
  public:
   Address addr_;
   uint64_t coin_;
-  uint64_t amount_;
+  int64_t amount_;
   uint64_t delay_;
 
 /** Constructors */
@@ -58,7 +58,7 @@ class Transfer {
       addr_[i] = serial.at(i);
     }
     BinToUint64(serial, 33, coin_);
-    BinToUint64(serial, 41, amount_);
+    BinToInt64(serial, 41, amount_);
     BinToUint64(serial, 49, delay_);
   }
 
@@ -68,11 +68,11 @@ class Transfer {
       LOG_WARNING << "Invalid serialized transfer!";
       return;
     }
-    for (unsigned int i=pos; i<(33+pos); ++i) {
-      addr_[i] = serial.at(i);
+    for (size_t i=pos; i<(33+pos); ++i) {
+      addr_[i-pos] = serial.at(i);
     }
     BinToUint64(serial, 33+pos, coin_);
-    BinToUint64(serial, 41+pos, amount_);
+    BinToInt64(serial, 41+pos, amount_);
     BinToUint64(serial, 49+pos, delay_);
   }
 
@@ -94,7 +94,7 @@ class Transfer {
   std::vector<byte> getCanonical() const {
     std::vector<byte> serial(addr_, addr_+33);
     Uint64ToBin(coin_, serial);
-    Uint64ToBin(amount_, serial);
+    Int64ToBin(amount_, serial);
     Uint64ToBin(delay_, serial);
     return serial;
   }

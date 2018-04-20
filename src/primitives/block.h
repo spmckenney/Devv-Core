@@ -29,6 +29,8 @@
 #include "Transaction.h"
 #include "Validation.h"
 
+using namespace Devcash;
+
 namespace Devcash
 {
 
@@ -44,7 +46,7 @@ public:
     return vals_;
   }
 
-  std::vector<Devcash::Transaction> vtx_;
+  //std::vector<Transaction> vtx_;
 
   uint32_t vSize_;
   uint32_t sumSize_;
@@ -60,13 +62,13 @@ public:
   DCBlock();
   DCBlock(const std::string& rawBlock, const KeyRing& keys);
   DCBlock(const DCBlock& other);
-  DCBlock(const std::vector<Devcash::Transaction>& txs,
-      const Validation& validations);
+  /*DCBlock(const std::vector<Transaction>& txs,
+      const Validation& validations);*/
 
   DCBlock* operator=(DCBlock&& other)
   {
     if (this != &other) {
-      this->vtx_ = std::move(other.vtx_);
+      //this->vtx_ = std::move(other.vtx_);
       this->nVersion_ = other.nVersion_;
       this->hashPrevBlock_ = other.hashPrevBlock_;
       this->hashMerkleRoot_ = other.hashMerkleRoot_;
@@ -82,7 +84,7 @@ public:
   DCBlock* operator=(const DCBlock& other)
   {
     if (this != &other) {
-      this->vtx_ = std::move(other.vtx_);
+      //this->vtx_ = std::move(other.vtx_);
       this->nVersion_ = other.nVersion_;
       this->hashPrevBlock_ = other.hashPrevBlock_;
       this->hashMerkleRoot_ = other.hashMerkleRoot_;

@@ -51,7 +51,7 @@ class DCid : public oracleInterface {
    * @return false otherwise
    */
   bool isValid(Transaction checkTx) {
-    if (checkTx.oper_ == 2) return false;
+    if (checkTx.oper_ == eOpType::Exchange) return false;
     return true;
   }
 
@@ -67,7 +67,7 @@ class DCid : public oracleInterface {
    * @return true iff the transaction is valid according to this oracle
    * @return false otherwise
    */
-  bool isValid(Transaction checkTx, Devcash::DCState& context) {
+  bool isValid(Transaction checkTx, DCState& context) {
     if (!isValid(checkTx)) return false;
     for (std::vector<Transfer>::iterator it=checkTx.xfers_.begin();
         it != checkTx.xfers_.end(); ++it) {
@@ -91,7 +91,7 @@ class DCid : public oracleInterface {
  */
   Transaction getT1Syntax(Transaction theTx) {
     Transaction out(theTx);
-    //if (out.delay_ == 0) out.delay_ = kID_LIFETIME;
+    if (out.delay_ == 0) out.delay_ = kID_LIFETIME;
     return(out);
   }
 
@@ -109,7 +109,7 @@ class DCid : public oracleInterface {
  * @return empty/null transaction if the transaction is invalid
  */
   Transaction Tier2Process(std::vector<byte> rawTx,
-      Devcash::DCState context) {
+      DCState context) {
     Transaction tx(rawTx);
     if (!isValid(tx, context)) {
       return tx;
@@ -120,7 +120,7 @@ class DCid : public oracleInterface {
         return tx;
       }*/
       //TODO: verify reference in nonce with INN
-      //if (tx.delay_ == 0) tx.delay_ = kID_LIFETIME;
+      if (tx.delay_ == 0) tx.delay_ = kID_LIFETIME;
     }
     return tx;
   }

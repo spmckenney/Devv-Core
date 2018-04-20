@@ -300,4 +300,6 @@ class Summary {
   }
 };
 
+} //end namespace Devcash
+
 #endif /* PRIMITIVES_SUMMARY_H_ */

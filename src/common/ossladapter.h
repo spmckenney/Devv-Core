@@ -20,9 +20,6 @@
 #include "util.h"
 #include "logger.h"
 
-namespace Devcash
-{
-
 static const char* pwd = "password";  /** password for aes pem */
 
 /** Maps a hex string into a buffer as binary data.
@@ -276,6 +273,39 @@ static bool VerifyByteSig(EC_KEY* ecKey, char* msg, size_t msg_size, char* sig, 
  *  @pre the EC_KEY must include a private key
  *  @pre the OpenSSL context must be intialized
  *  @param ecKey pointer to the public key that will check this signature
+ *  @param msg pointer to the message digest to sign
+ *  @param len length of binary message to sign
+ *  @param sig target buffer where signature is put, must be allocted
+ *  @return true a hex string of the signature
+ *  @throws std::exception on error
+ */
+static void SignBinary(EC_KEY* ecKey, char* msg, size_t len
+    , unsigned char* sig) {
+  CASH_TRY {
+    ECDSA_SIG *signature = ECDSA_do_sign((const unsigned char*) msg,
+        len, ecKey);
+    int state = ECDSA_do_verify((const unsigned char*) msg,
+        len, signature, ecKey);
+
+    //0 -> invalid, -1 -> openssl error
+    if (1 != state)
+      LOG_ERROR << "Signature did not validate("+std::to_string(state)+")";
+
+    int sig_len = i2d_ECDSA_SIG(signature, NULL);
+    unsigned char *ptr;
+    memset(sig, 6, sig_len);
+    ptr=sig;
+    len = i2d_ECDSA_SIG(signature, &ptr);
+    std::string out = toHex((byte*) sig, len);
+  } CASH_CATCH (const std::exception& e) {
+    LOG_WARNING << FormatException(&e, "Crypto.sign");
+  }
+}
+
+/** Generates the signature for a given string and key pair
+ *  @pre the EC_KEY must include a private key
+ *  @pre the OpenSSL context must be intialized
+ *  @param ecKey pointer to the public key that will check this signature
  *  @param msg the message digest to sign
  *  @return true a hex string of the signature
  *  @throws std::exception on error
@@ -309,7 +339,5 @@ static std::string sign(EC_KEY* ecKey, std::string msg) {
   }
   return("");
 }
-
-} //end namespace Devcash
 
 #endif /* SRC_COMMON_OSSLADAPTER_H_ */

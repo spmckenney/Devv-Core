@@ -96,6 +96,22 @@ static std::vector<byte> Uint64ToBin(const uint64_t& source
   return dest;
 }
 
+static int64_t BinToInt64(const std::vector<byte>& bytes, unsigned int start
+    , int64_t& dest) {
+  for (unsigned int i=0; i<8; ++i) {
+    dest |= (bytes.at(start+i) << (i*8));
+  }
+  return dest;
+}
+
+static std::vector<byte> Int64ToBin(const int64_t& source
+    , std::vector<byte>& dest) {
+  for (unsigned int i=0; i<8; ++i) {
+    dest.push_back((source >> (i*8)) & 0xFF);
+  }
+  return dest;
+}
+
 /** Maps a hex digit to an int value.
  *  @param hex digit to get the int value for
  *  @return int value of this hex digit
@@ -137,7 +153,17 @@ static const char alpha[] = "0123456789ABCDEF";
  */
 static std::string toHex(const byte* input, size_t len) {
   std::stringstream ss;
-  for (int j=0; j<len; j++) {
+  for (size_t j=0; j<len; j++) {
+    int c = (int) input[j];
+    ss.put(alpha[(c>>4)&0xF]);
+    ss.put(alpha[c&0xF]);
+  }
+  return(ss.str());
+}
+
+static std::string toHex(const std::vector<byte> input) {
+  std::stringstream ss;
+  for (size_t j=0; j<input.size(); j++) {
     int c = (int) input[j];
     ss.put(alpha[(c>>4)&0xF]);
     ss.put(alpha[c&0xF]);

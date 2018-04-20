@@ -71,7 +71,7 @@ class dneroavailable : public oracleInterface {
  * @return true iff the transaction is valid according to this oracle
  * @return false otherwise
  */
-  bool isValid(Transaction checkTx, Devcash::DCState&) {
+  bool isValid(Transaction checkTx, DCState& context) {
     if (!isValid(checkTx)) return false;
     return true;
   }
@@ -98,7 +98,7 @@ class dneroavailable : public oracleInterface {
  * @return empty/null transaction if the transaction is invalid
  */
   Transaction Tier2Process(std::vector<byte> rawTx,
-      Devcash::DCState context) {
+      DCState context) {
     Transaction tx(rawTx);
     if (!isValid(tx, context)) {
       return tx;

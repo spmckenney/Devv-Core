@@ -25,23 +25,25 @@
 #include <vector>
 #include <stdint.h>
 
-#include "Summary.h"
 #include "Transfer.h"
+
+#include "Summary.h"
 #include "common/ossladapter.h"
 #include "consensus/KeyRing.h"
 #include "consensus/chainstate.h"
 #include "Validation.h"
 
+using namespace Devcash;
+
 namespace Devcash
 {
-
 static const std::string kXFER_COUNT_TAG = "xfer_count";
 static const std::string kOPER_TAG = "oper";
 static const std::string kXFER_TAG = "xfer";
 static const std::string kNONCE_TAG = "nonce";
 static const std::string kSIG_TAG = "sig";
 
-typedef byte Signature[72];
+//typedef byte Signature[73];
 
 enum eOpType : byte {
   Create     = 0,
@@ -76,7 +78,7 @@ class Transaction {
       LOG_WARNING << "Invalid serialized transaction, invalid operation!";
       return;
     }
-    for (unsigned int i=0; i<xfer_count_; ++i) {
+    for (size_t i=0; i<xfer_count_; ++i) {
       Transfer* t = new Transfer(serial, 9+(Transfer::Size()*i));
       xfers_.push_back(*t);
     }
@@ -84,13 +86,13 @@ class Transaction {
     BinToUint64(serial, offset, nonce_);
     offset += 8;
     for (unsigned int i=offset; i<(72+offset); ++i) {
-      sig_[i] = serial.at(i);
+      sig_[i-offset] = serial.at(i);
     }
   }
 
   explicit Transaction(const std::vector<byte>& serial, size_t pos)
     : xfer_count_(0), oper_(eOpType::Create), nonce_(0), sig_() {
-    if (serial.size() < 89+pos) {
+    if (serial.size() < MinSize()+pos) {
       LOG_WARNING << "Invalid serialized transaction, too small!";
       return;
     }
@@ -111,7 +113,19 @@ class Transaction {
     BinToUint64(serial, offset, nonce_);
     offset += 8;
     for (unsigned int i=offset; i<(72+offset); ++i) {
-      sig_[i] = serial.at(i);
+      sig_[i-offset] = serial.at(i);
+    }
+  }
+
+  Transaction(uint64_t xfer_count, byte oper
+      , const std::vector<Transfer>& xfers, uint64_t nonce, Signature sig)
+      : xfer_count_(xfer_count), oper_(oper), xfers_(), nonce_(nonce)
+      , sig_() {
+    for (int i=0; i<xfer_count_; ++i) {
+      xfers_.push_back(xfers.at(i));
+    }
+    for (int i=0; i<72; ++i) {
+      sig_[i] = sig[i];
     }
   }
 
@@ -120,6 +134,22 @@ class Transaction {
     for (unsigned int i=0; i<72; ++i) {
       sig_[i] = other.sig_[i];
     }
+  }
+
+  Transaction(byte oper, const std::vector<Transfer>& xfers, uint64_t nonce
+      , EC_KEY* eckey)
+      : xfer_count_(xfers.size()), oper_(oper), xfers_(), nonce_(nonce)
+      , sig_() {
+    for (int i=0; i<xfer_count_; ++i) {
+      xfers_.push_back(xfers.at(i));
+    }
+
+    Signature new_sig;
+    std::vector<byte> msg(getMessageDigest());
+    char* md(&msg[0]);
+    char* hash(dcHash(md, msg.size()));
+    unsigned char* sig(&sig_[0]);
+    SignBinary(eckey, md, SHA256_DIGEST_LENGTH, sig);
   }
 
   static const size_t MinSize() {
@@ -135,42 +165,42 @@ class Transaction {
   }
 
   /** Comparison Operators */
-    friend bool operator==(const Transaction& a, const Transaction& b)
-    {
-      return a.sig_ == b.sig_;
-    }
+  friend bool operator==(const Transaction& a, const Transaction& b)
+  {
+    return a.sig_ == b.sig_;
+  }
 
-    friend bool operator!=(const Transaction& a, const Transaction& b)
-    {
-      return a.sig_ != b.sig_;
-    }
+  friend bool operator!=(const Transaction& a, const Transaction& b)
+  {
+    return a.sig_ != b.sig_;
+  }
 
   /** Assignment Operators */
-    Transaction* operator=(Transaction&& other)
-    {
-      if (this != &other) {
-        this->oper_ = other.oper_;
-        this->nonce_ = other.nonce_;
-        for (unsigned int i=0; i<72; ++i) {
-          this->sig_[i] = other.sig_[i];
-        }
-        this->xfers_ = std::move(other.xfers_);
+  Transaction* operator=(Transaction&& other)
+  {
+    if (this != &other) {
+      this->oper_ = other.oper_;
+      this->nonce_ = other.nonce_;
+      for (unsigned int i=0; i<72; ++i) {
+        this->sig_[i] = other.sig_[i];
       }
-      return this;
+      this->xfers_ = std::move(other.xfers_);
     }
+    return this;
+  }
 
-    Transaction* operator=(const Transaction& other)
-    {
-      if (this != &other) {
-        this->oper_ = other.oper_;
-        this->nonce_ = other.nonce_;
-        for (unsigned int i=0; i<72; ++i) {
-          this->sig_[i] = other.sig_[i];
-        }
-        this->xfers_ = std::move(other.xfers_);
+  Transaction* operator=(const Transaction& other)
+  {
+    if (this != &other) {
+      this->oper_ = other.oper_;
+      this->nonce_ = other.nonce_;
+      for (unsigned int i=0; i<72; ++i) {
+        this->sig_[i] = other.sig_[i];
       }
-      return this;
+      this->xfers_ = std::move(other.xfers_);
     }
+    return this;
+  }
 
 /** Checks if this transaction is valid.
  *  Transactions are atomic, so if any portion of the transaction is invalid,
@@ -236,7 +266,7 @@ class Transaction {
 
         if (!VerifyByteSig(eckey, hash, SHA256_DIGEST_LENGTH, sig, 72)) {
           LOG_WARNING << "Error: transaction signature did not validate.\n";
-          LOG_DEBUG << "Transaction state is: "+ToJSON();
+          LOG_DEBUG << "Transaction state is: "+getJSON();
           LOG_DEBUG << "Sender addr is: "+toHex(&sender[0], 33);
           LOG_DEBUG << "Signature is: "+toHex(&sig_[0], 72);
           return false;
@@ -251,7 +281,7 @@ class Transaction {
 /** Returns a canonical bytestring representation of this transaction.
  * @return a canonical bytestring representation of this transaction.
 */
-  std::vector<byte> getCanonicalForm() const {
+  std::vector<byte> getCanonical() const {
     std::vector<byte> serial;
     serial.reserve(MinSize()
         +(Transfer::Size()*xfer_count_));
@@ -288,13 +318,13 @@ class Transaction {
    * @return the transaction size in bytes.
   */
   size_t getByteSize() const {
-    return getCanonicalForm().size();
+    return getCanonical().size();
   }
 
 /** Returns a JSON string representing this transaction.
  * @return a JSON string representing this transaction.
 */
-  std::string ToJSON() const {
+  std::string getJSON() const {
     std::string json("{\""+kXFER_COUNT_TAG+"\":");
     json += std::to_string(xfer_count_)+",";
     json += "\""+kOPER_TAG+"\":"+std::to_string(oper_)+",";
@@ -309,7 +339,7 @@ class Transaction {
       json += it->getJSON();
     }
     json += "],\""+kNONCE_TAG+"\":"+std::to_string(nonce_)+",";
-    json += "\""+kSIG_TAG+"\":\""+toHex(&sig_[0], 72)+"\"";
+    json += "\""+kSIG_TAG+"\":\""+toHex(&sig_[0], 72)+"\"}";
     return json;
   }
 
