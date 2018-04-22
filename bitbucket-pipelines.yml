@@ -3,8 +3,18 @@ image: python
 pipelines:
   default:
     - step:
-        script:
-          - ssh bitbucket@portal.computefaster.com -p 13022 "salloc -N 1 ~/Devel/devcash/devcash-core/scripts/build-devcash.sh $BITBUCKET_BRANCH"
- #   - step:
- #       script:
- #         - ssh bitbucket@portal.computefaster.com -p 11022 ./p8-test.sh
+      script:
+        - echo "CI Pipeline ignores this branch" 
+  branches:
+    master:
+      - step:
+          script:
+            - ssh bitbucket@portal.computefaster.com -p 13022 "salloc -N 1 ~/Devel/devcash/devcash-core/scripts/build-devcash.sh $BITBUCKET_BRANCH"
+    stable:
+      - step:
+          script:
+            - ssh bitbucket@portal.computefaster.com -p 13022 "salloc -N 1 ~/Devel/devcash/devcash-core/scripts/build-devcash.sh $BITBUCKET_BRANCH"
+    DEV-*:
+      - step:
+          script:
+            - echo "CI pipeline ignores DEV-* branches."
