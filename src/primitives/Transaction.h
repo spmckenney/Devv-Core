@@ -148,11 +148,11 @@ class Transaction {
     }
   }
 
-  static const size_t MinSize() {
+  static size_t MinSize() const {
     return 89;
   }
 
-  static const size_t EnvelopeSize() {
+  static size_t EnvelopeSize() const {
     return 17;
   }
 
@@ -237,10 +237,6 @@ class Transaction {
           total += amount;
           if ((oper == eOpType::Delete && amount > 0) ||
             (oper != eOpType::Delete && amount < 0) || oper == eOpType::Modify) {
-            if (it->getDelay() < 0) {
-              LOG_WARNING << "Error: A negative delay is not allowed.";
-              return false;
-            }
           }
             if (amount < 0) {
               if (sender_set) {

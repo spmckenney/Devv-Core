@@ -82,15 +82,15 @@ public:
     Validation val_temp(serial, offset, val_count_);
     vals_ = val_temp;
   }
-  FinalBlock(const FinalBlock& other, const ChainState& priorState
-      , const KeyRing& keys) : version_(other.version_)
+  FinalBlock(const FinalBlock& other)
+      : version_(other.version_)
       , num_bytes_(other.num_bytes_), block_time_(other.block_time_)
       , prev_hash_(other.prev_hash_), merkle_root_(other.merkle_root_)
       , tx_size_(other.tx_size_), sum_size_(other.sum_size_)
       , val_count_(other.val_count_), vtx_(other.vtx_), summary_(other.summary_)
       , vals_(other.vals_), block_state_(other.block_state_){}
 
-  static const size_t MinSize() {
+  static size_t MinSize() const {
     return 101;
   }
 

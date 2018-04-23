@@ -27,7 +27,7 @@ bool ChainState::addCoin(const SmartCoin& coin) {
   return(true);
 }
 
-long ChainState::getAmount(uint64_t type, const Address& addr) const {
+long ChainState::getAmount(uint64_t type, const Address& addr) {
   auto it = stateMap_.find(addr);
   if (it != stateMap_.end()) {
 	int64_t amount = it->second[type];
@@ -36,7 +36,7 @@ long ChainState::getAmount(uint64_t type, const Address& addr) const {
   return(0);
 }
 
-bool ChainState::moveCoin(const SmartCoin& start, const SmartCoin& end) const {
+bool ChainState::moveCoin(const SmartCoin& start, const SmartCoin& end) {
   //std::lock_guard<std::mutex> lock(lock_);
   if (start.coin_ != end.coin_) return(false);
   if (start.amount_ != end.amount_) return(false);

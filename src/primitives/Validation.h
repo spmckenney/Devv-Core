@@ -129,7 +129,7 @@ class Validation {
       return dcHash(getCanonical());
   }
 
-  static const size_t PairSize() {
+  static size_t PairSize() const {
     return kADDR_SIZE+kSIG_SIZE;
   }
 

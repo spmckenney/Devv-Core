@@ -55,7 +55,7 @@ public:
  *  @param the address to check
  *  @return the number of this type of coins at this address
 */
-  long getAmount(uint64_t type, const Address& addr) const;
+  long getAmount(uint64_t type, const Address& addr);
 
 /** Moves a coin from one address to another
  *  @param start references where the coins will be removed
@@ -63,7 +63,7 @@ public:
  *  @return true if the coins were moved successfully
  *  @return false otherwise
 */
-  bool moveCoin(const SmartCoin& start, const SmartCoin& end) const;
+  bool moveCoin(const SmartCoin& start, const SmartCoin& end);
 
 /** Deletes a coin from the state.
  *  @param reference to the coin to delete

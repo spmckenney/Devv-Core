@@ -192,8 +192,8 @@ class UnrecordedTransactionPool {
     return pending_proposal_.CheckValidationData(remote, context);
   }
 
-  const FinalBlock FinalizeLocalBlock(const KeyRing& keys) {
-    const FinalBlock final_block(FinalizeBlock(pending_proposal_, keys));
+  const FinalBlock FinalizeLocalBlock() {
+    const FinalBlock final_block(FinalizeBlock(pending_proposal_));
     pending_proposal_.setNull();
     return final_block;
   }
@@ -201,7 +201,7 @@ class UnrecordedTransactionPool {
   const FinalBlock FinalizeRemoteBlock(const std::vector<byte>& serial
       , const ChainState prior, const KeyRing& keys) {
     ProposedBlock temp(serial, prior, keys);
-    return FinalizeBlock(temp, keys);
+    return FinalizeBlock(temp);
   }
 
   /** Remove unreferenced Transactions from the pool.
@@ -258,10 +258,10 @@ class UnrecordedTransactionPool {
     for (auto const& item : proposed.getTransactions()) {
       txs_.erase(item.getSignature());
     }
+    return true;
   }
 
-  const FinalBlock FinalizeBlock(const ProposedBlock& proposal
-      , const KeyRing& keys) {
+  const FinalBlock FinalizeBlock(const ProposedBlock& proposal) {
     RemoveTransactions(proposal);
     FinalBlock final(proposal);
     return final;

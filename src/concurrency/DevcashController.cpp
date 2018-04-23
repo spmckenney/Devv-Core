@@ -168,8 +168,7 @@ bool HandleValidationBlock(DevcashMessageUniquePtr ptr,
 
   if (utx_pool.CheckValidation(msg.data, context)) {
     //block can be finalized, so finalize
-    FinalPtr top_block = FinalPtr(new FinalBlock(utx_pool.FinalizeLocalBlock(
-        keys)));
+    FinalPtr top_block = FinalPtr(new FinalBlock(utx_pool.FinalizeLocalBlock()));
     final_chain.push_back(top_block);
     LOG_TRACE << "final_chain.push_back()";
 
