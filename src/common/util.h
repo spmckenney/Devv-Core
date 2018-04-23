@@ -26,10 +26,11 @@
 #include <memory>
 #include <boost/multiprecision/cpp_int.hpp>
 
+typedef unsigned char byte;
+
 namespace Devcash
 {
 
-typedef unsigned char byte;
 typedef boost::multiprecision::uint256_t uint256_t;
 
 static int32_t BinToInt32(const std::vector<byte>& bytes, size_t start) {

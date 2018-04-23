@@ -10,7 +10,7 @@
 #include <atomic>
 #include <vector>
 
-#include "primitives/finalblock.h"
+#include "primitives/FinalBlock.h"
 
 namespace Devcash {
 

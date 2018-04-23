@@ -31,7 +31,8 @@ bool KeyRing::initKeys() {
         }
 
     std::vector<byte> msg = {'h', 'e', 'l', 'l', 'o'};
-    Hash test_hash(dcHash(msg));
+    Hash test_hash;
+    test_hash = dcHash(msg);
 
     EC_KEY* inn_key = loadEcKey(ctx,
         context_.kINN_ADDR,

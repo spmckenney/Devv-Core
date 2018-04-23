@@ -22,7 +22,7 @@ namespace Devcash
 static const uint64_t kCOIN = 100000000;
 static const uint64_t kMAX_COIN = 184000000000 * kCOIN;
 inline bool MoneyRange(const uint64_t& nValue) {
-  return (nValue >= 0 && nValue <= kMAX_COIN);
+  return (nValue <= kMAX_COIN);
 }
 
 class SmartCoin {

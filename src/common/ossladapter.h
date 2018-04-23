@@ -40,14 +40,14 @@ static const char* pwd = "password";  /** password for aes pem */
  *  @param buffer an allocated buffer where this data will be written
  *  @return pointer to the buffer
  */
-static char* hex2Bytes(std::string hex, char* buffer) {
+/*static char* hex2Bytes(std::string hex, char* buffer) {
   int len = hex.length();
   for (int i=0;i<len/2;i++) {
     buffer[i] = Char2Int(hex.at(i*2))*16+Char2Int(hex.at(1+i*2));
   }
   buffer[len/2] = '\0';
   return(buffer);
-}
+}*/
 
 /** Gets the EC_GROUP for normal transactions.
  *  @return a pointer to the EC_GROUP
@@ -186,7 +186,7 @@ static EC_KEY* loadEcKey(EVP_MD_CTX*, const std::string& publicKey, const std::s
     }
     return(eckey);
   } CASH_CATCH(const std::exception& e) {
-    LOG_WARNING << FormatException(&e, "Crypto");
+    LOG_WARNING << Devcash::FormatException(&e, "Crypto");
   }
   return 0;
 }
@@ -284,7 +284,7 @@ static bool VerifyByteSig(EC_KEY* ecKey, const Devcash::Hash& msg
 
     return(1 == state);
   } CASH_CATCH (const std::exception& e) {
-    LOG_WARNING << FormatException(&e, "Crypto.verifySignature");
+    LOG_WARNING << Devcash::FormatException(&e, "Crypto.verifySignature");
   }
   return(false);
 }
@@ -316,7 +316,7 @@ static void SignBinary(EC_KEY* ecKey, const Devcash::Hash& msg
     memset(&sig[0], 6, len);
     len = i2d_ECDSA_SIG(signature, &ptr);
   } CASH_CATCH (const std::exception& e) {
-    LOG_WARNING << FormatException(&e, "Crypto.sign");
+    LOG_WARNING << Devcash::FormatException(&e, "Crypto.sign");
   }
 }
 

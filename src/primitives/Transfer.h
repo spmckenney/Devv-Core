@@ -57,7 +57,7 @@ class Transfer {
 
   explicit Transfer(const Transfer &other) : canonical_(other.canonical_) {}
 
-  static const size_t Size() {
+  static size_t Size() {
     return kADDR_SIZE+24;
   }
 

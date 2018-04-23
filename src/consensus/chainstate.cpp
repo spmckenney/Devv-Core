@@ -30,7 +30,8 @@ bool ChainState::addCoin(const SmartCoin& coin) {
 long ChainState::getAmount(uint64_t type, const Address& addr) const {
   auto it = stateMap_.find(addr);
   if (it != stateMap_.end()) {
-    return it->second[type];
+	int64_t amount = it->second[type];
+    return amount;
   }
   return(0);
 }
@@ -40,16 +41,14 @@ bool ChainState::moveCoin(const SmartCoin& start, const SmartCoin& end) const {
   if (start.coin_ != end.coin_) return(false);
   if (start.amount_ != end.amount_) return(false);
 
-  auto it = stateMap_.find(start.addr_);
-  if (it != stateMap_.end()) {
-    uint64_t amt = it->second.at(start.coin_);
-    if (amt >= start.amount_) {
-      it->second[start.coin_] -= start.amount_;
-      it->second[end.coin_] += start.amount_;
-      return(true);
-    } //endif enough coins available
-  } //endif any coins of this type
-  return(false);
+  uint64_t start_balance = stateMap_[start.addr_][start.coin_];
+  if (start_balance >= start.amount_) {
+    stateMap_[start.addr_][start.coin_] = start_balance-start.amount;
+    uint64_t end_balance = stateMap_[end.addr_][start.coin_];
+    stateMap_[end.addr_][start.coin_] = end_balance+start.amount;
+    return true;
+  }
+  return false;
 }
 
 bool ChainState::delCoin(SmartCoin& coin) {
