@@ -2,14 +2,16 @@
 
 node=$1
 
-# export DEVCASH_OUTPUT_LOGLEVEL=debug
-# export DEVCASH_OUTPUT_LOGLEVEL=info
-# export DEVCASH_OUTPUT_LOGLEVEL=warning
+export DEVCASH_OUTPUT_LOGLEVEL=trace
+#export DEVCASH_OUTPUT_LOGLEVEL=debug
+#export DEVCASH_OUTPUT_LOGLEVEL=info
+#export DEVCASH_OUTPUT_LOGLEVEL=warning
 
 mode="T1"
-debug_mode="toy"
+debug_mode="off"
 num_threads=1
 proto="tcp"
+
 scan_file="${HOME}/dmnt/devcash-core/opt/05txs"
 #scan_file="${HOME}/dmnt/devcash-core/opt/21txs"
 #scan_file="${HOME}/dmnt/devcash-core/opt/100txs"
@@ -59,10 +61,10 @@ case $node in
 esac
 
 cmd="./devcash --node-index ${node} \
---debug-mode off \
+--debug-mode ${debug_mode} \
 --mode T2 \
---num-consensus-threads 10 \
---num-validator-threads 10 \
+--num-consensus-threads ${num_threads} \
+--num-validator-threads ${num_threads} \
 --scan-file ${scan_file} \
 --host-list ${hostA[$node]} \
 --host-list ${hostB[$node]} \

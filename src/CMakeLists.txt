@@ -34,8 +34,8 @@ file(GLOB_RECURSE dcSources "*.cpp")
 file(GLOB_RECURSE dcHeaders "*.h*")
 set (dcInclude "")
 foreach (_headerFile ${dcHeaders})
-        get_filename_component(_dir ${_headerFile} PATH)
-        list (APPEND dcInclude ${_dir})
+  get_filename_component(_dir ${_headerFile} PATH)
+  list (APPEND dcInclude ${_dir})
 endforeach()
 list(REMOVE_DUPLICATES dcInclude)
 
@@ -57,7 +57,7 @@ list(REMOVE_DUPLICATES devcash_includes)
 
 # Build the common module objects
 file(GLOB common_SRC
-    "common/*.cpp"
+    "common/*.cpp" "common/*.c"
 )
 add_library(common ${common_SRC})
 

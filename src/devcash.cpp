@@ -77,6 +77,21 @@ int main(int argc, char* argv[])
 
     std::string in_raw = ReadFile(options->scan_file);
 
+    std::string trace_name = "/home/spmckenney/dmnt/trace/trace_"
+      + std::to_string(options->node_index) + ".json";
+
+    /**
+     * Chrome tracing setup
+     */
+    LOG_INFO << "trace filename: " << trace_name;
+    mtr_init(trace_name.c_str());
+    mtr_register_sigint_handler();
+
+    MTR_META_PROCESS_NAME("minitrace_test");
+    MTR_META_THREAD_NAME("main thread");
+
+    MTR_BEGIN("main", "outer");
+
     std::string out("");
     if (options->mode == eAppMode::scan) {
       LOG_INFO << "Scanner ignores node index.";
@@ -113,6 +128,11 @@ int main(int argc, char* argv[])
     }
 
     LOG_INFO << "DevCash Shutting Down";
+
+    MTR_END("main", "outer");
+    mtr_flush();
+    mtr_shutdown();
+
     return(true);
   } CASH_CATCH (...) {
     std::exception_ptr p = std::current_exception();

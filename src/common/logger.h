@@ -23,6 +23,8 @@
 #include <boost/log/attributes/named_scope.hpp>
 #include <cstdlib>
 
+#include "common/minitrace.h"
+
 // the logs are also written to LOGFILE
 #define LOGFILE "/tmp/devcash.log"
 

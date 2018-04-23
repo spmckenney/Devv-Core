@@ -20,6 +20,7 @@
 // http://www.altdevblogaday.com/2012/08/21/using-chrometracing-to-view-your-inline-profiling-data/
 
 #include <inttypes.h>
+#include <string.h>
 
 // If MTR_ENABLED is not defined, Minitrace does nothing and has near zero
 // overhead.
@@ -35,6 +36,11 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+
+// Returns the portion of str after "src" is found
+// Cuts leading full path of __FILE__
+#define SRC_BASE(str) strstr(str, "src")
 
 // Initializes Minitrace. Must be called very early during startup of your
 // executable,
@@ -232,34 +238,34 @@ void internal_mtr_raw_event_arg(const char *category, const char *name, char ph,
 
 // Shortcuts for simple function timing with automatic categories and names.
 
-#define MTR_BEGIN_FUNC() MTR_BEGIN(__FILE__, __FUNCTION__)
-#define MTR_END_FUNC() MTR_END(__FILE__, __FUNCTION__)
-#define MTR_SCOPE_FUNC() MTR_SCOPE(__FILE__, __FUNCTION__)
-#define MTR_INSTANT_FUNC() MTR_INSTANT(__FILE__, __FUNCTION__)
+#define MTR_BEGIN_FUNC() MTR_BEGIN(SRC_BASE(__FILE__), __FUNCTION__)
+#define MTR_END_FUNC() MTR_END(SRC_BASE(__FILE__), __FUNCTION__)
+#define MTR_SCOPE_FUNC() MTR_SCOPE(SRC_BASE(__FILE__), __FUNCTION__)
+#define MTR_INSTANT_FUNC() MTR_INSTANT(SRC_BASE(__FILE__), __FUNCTION__)
 #define MTR_SCOPE_FUNC_LIMIT_S(l) \
-  MTRScopedTraceLimit ____mtr_scope(__FILE__, __FUNCTION__, l)
+  MTRScopedTraceLimit ____mtr_scope(SRC_BASE(__FILE__), __FUNCTION__, l)
 #define MTR_SCOPE_FUNC_LIMIT_MS(l)                          \
-  MTRScopedTraceLimit ____mtr_scope(__FILE__, __FUNCTION__, \
+  MTRScopedTraceLimit ____mtr_scope(SRC_BASE(__FILE__), __FUNCTION__, \
                                     (double)l * 0.000001)
 
 // Same, but with a single argument of the usual types.
 #define MTR_BEGIN_FUNC_S(aname, arg) \
-  MTR_BEGIN_S(__FILE__, __FUNCTION__, aname, arg)
-#define MTR_END_FUNC_S(aname, arg) MTR_END_S(__FILE__, __FUNCTION__, aname, arg)
+  MTR_BEGIN_S(SRC_BASE(__FILE__), __FUNCTION__, aname, arg)
+#define MTR_END_FUNC_S(aname, arg) MTR_END_S(SRC_BASE(__FILE__), __FUNCTION__, aname, arg)
 #define MTR_SCOPE_FUNC_S(aname, arg) \
-  MTR_SCOPE_S(__FILE__, __FUNCTION__, aname, arg)
+  MTR_SCOPE_S(SRC_BASE(__FILE__), __FUNCTION__, aname, arg)
 
 #define MTR_BEGIN_FUNC_C(aname, arg) \
-  MTR_BEGIN_C(__FILE__, __FUNCTION__, aname, arg)
-#define MTR_END_FUNC_C(aname, arg) MTR_END_C(__FILE__, __FUNCTION__, aname, arg)
+  MTR_BEGIN_C(SRC_BASE(__FILE__), __FUNCTION__, aname, arg)
+#define MTR_END_FUNC_C(aname, arg) MTR_END_C(SRC_BASE(__FILE__), __FUNCTION__, aname, arg)
 #define MTR_SCOPE_FUNC_C(aname, arg) \
-  MTR_SCOPE_C(__FILE__, __FUNCTION__, aname, arg)
+  MTR_SCOPE_C(SRC_BASE(__FILE__), __FUNCTION__, aname, arg)
 
 #define MTR_BEGIN_FUNC_I(aname, arg) \
-  MTR_BEGIN_I(__FILE__, __FUNCTION__, aname, arg)
-#define MTR_END_FUNC_I(aname, arg) MTR_END_I(__FILE__, __FUNCTION__, aname, arg)
+  MTR_BEGIN_I(SRC_BASE(__FILE__), __FUNCTION__, aname, arg)
+#define MTR_END_FUNC_I(aname, arg) MTR_END_I(SRC_BASE(__FILE__), __FUNCTION__, aname, arg)
 #define MTR_SCOPE_FUNC_I(aname, arg) \
-  MTR_SCOPE_I(__FILE__, __FUNCTION__, aname, arg)
+  MTR_SCOPE_I(SRC_BASE(__FILE__), __FUNCTION__, aname, arg)
 
 #ifdef __cplusplus
 }
