@@ -148,11 +148,11 @@ class Transaction {
     }
   }
 
-  static size_t MinSize() const {
+  static size_t MinSize() {
     return 89;
   }
 
-  static size_t EnvelopeSize() const {
+  static size_t EnvelopeSize() {
     return 17;
   }
 

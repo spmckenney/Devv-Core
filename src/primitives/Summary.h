@@ -260,7 +260,7 @@ class Summary {
     }
   }
 
-  static size_t MinSize() const {
+  static size_t MinSize() {
     return 4;
   }
 

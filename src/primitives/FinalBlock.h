@@ -90,7 +90,7 @@ public:
       , val_count_(other.val_count_), vtx_(other.vtx_), summary_(other.summary_)
       , vals_(other.vals_), block_state_(other.block_state_){}
 
-  static size_t MinSize() const {
+  static size_t MinSize() {
     return 101;
   }
 

@@ -149,11 +149,11 @@ public:
     num_bytes_ = 0;
   }
 
-  static size_t MinSize() const {
+  static size_t MinSize() {
     return 61;
   }
 
-  static size_t MinValidationSize() const {
+  static size_t MinValidationSize() {
     return SHA256_DIGEST_LENGTH+(Validation::PairSize()*2);
   }
 

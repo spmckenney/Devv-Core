@@ -43,9 +43,9 @@ bool ChainState::moveCoin(const SmartCoin& start, const SmartCoin& end) {
 
   uint64_t start_balance = stateMap_[start.addr_][start.coin_];
   if (start_balance >= start.amount_) {
-    stateMap_[start.addr_][start.coin_] = start_balance-start.amount;
+    stateMap_[start.addr_][start.coin_] = start_balance-start.amount_;
     uint64_t end_balance = stateMap_[end.addr_][start.coin_];
-    stateMap_[end.addr_][start.coin_] = end_balance+start.amount;
+    stateMap_[end.addr_][start.coin_] = end_balance+start.amount_;
     return true;
   }
   return false;
