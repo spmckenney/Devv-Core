@@ -18,8 +18,8 @@ namespace Devcash
 
 using namespace Devcash;
 
-bool DCState::addCoin(const SmartCoin& coin) {
-  std::lock_guard<std::mutex> lock(lock_);
+bool ChainState::addCoin(const SmartCoin& coin) {
+  //std::lock_guard<std::mutex> lock(lock_);
   auto it = stateMap_.find(coin.addr_);
   if (it != stateMap_.end()) {
     it->second[coin.coin_] += coin.amount_;
@@ -27,7 +27,7 @@ bool DCState::addCoin(const SmartCoin& coin) {
   return(true);
 }
 
-long DCState::getAmount(uint64_t type, const Address& addr) const {
+long ChainState::getAmount(uint64_t type, const Address& addr) const {
   auto it = stateMap_.find(addr);
   if (it != stateMap_.end()) {
     return it->second[type];
@@ -35,8 +35,8 @@ long DCState::getAmount(uint64_t type, const Address& addr) const {
   return(0);
 }
 
-bool DCState::moveCoin(const SmartCoin& start, const SmartCoin& end) const {
-  std::lock_guard<std::mutex> lock(lock_);
+bool ChainState::moveCoin(const SmartCoin& start, const SmartCoin& end) const {
+  //std::lock_guard<std::mutex> lock(lock_);
   if (start.coin_ != end.coin_) return(false);
   if (start.amount_ != end.amount_) return(false);
 
@@ -44,17 +44,16 @@ bool DCState::moveCoin(const SmartCoin& start, const SmartCoin& end) const {
   if (it != stateMap_.end()) {
     uint64_t amt = it->second.at(start.coin_);
     if (amt >= start.amount_) {
-      //TODO: update state on coin move
-      //stateMap_.at(start.addr_).at(start.coin_) -= amt;
-      //stateMap_.at(end.addr_).at(end.coin_) += amt;
+      it->second[start.coin_] -= start.amount_;
+      it->second[end.coin_] += start.amount_;
       return(true);
     } //endif enough coins available
   } //endif any coins of this type
   return(false);
 }
 
-bool DCState::delCoin(SmartCoin& coin) {
-  std::lock_guard<std::mutex> lock(lock_);
+bool ChainState::delCoin(SmartCoin& coin) {
+  //std::lock_guard<std::mutex> lock(lock_);
   auto it = stateMap_.find(coin.addr_);
   if (it != stateMap_.end()) {
     it->second[coin.coin_] -= coin.amount_;

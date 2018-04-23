@@ -75,8 +75,8 @@ class oracleInterface {
  */
   static uint64_t getCoinIndex();
 
-/** Checks if a transaction is objectively valid according to this oracle.
- *  When this function returns false, a transaction is syntactically invalid
+/** Checks if a transaction is objectively sound according to this oracle.
+ *  When this function returns false, a transaction is syntactically unsound
  *  and will be invalid for all chain states.
  *  Transactions are atomic, so if any portion of the transaction is invalid,
  *  the entire transaction is also invalid.
@@ -84,7 +84,7 @@ class oracleInterface {
  * @return true iff the transaction can be valid according to this oracle
  * @return false otherwise
  */
-  virtual bool isValid(Transaction checkTx) = 0;
+  virtual bool isSound(Transaction checkTx) = 0;
 
 /** Checks if a transaction is valid according to this oracle
  *  given a specific chain state.
@@ -96,7 +96,7 @@ class oracleInterface {
  * @return false otherwise
  */
   virtual bool isValid(Transaction checkTx,
-      DCState& context) = 0;
+      ChainState& context) = 0;
 
 /** Generate a tier 1 smartcoin transaction based on this tier 2 transaction.
  *
@@ -118,7 +118,7 @@ class oracleInterface {
  * @return nullptr if the transaction is invalid
  */
   virtual Transaction Tier2Process(std::vector<byte> rawTx,
-      DCState context) = 0;
+      ChainState context, const KeyRing& keys) = 0;
 
 };
 

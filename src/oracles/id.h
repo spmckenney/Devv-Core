@@ -50,8 +50,8 @@ class DCid : public oracleInterface {
    * @return true iff the transaction can be valid according to this oracle
    * @return false otherwise
    */
-  bool isValid(Transaction checkTx) {
-    if (checkTx.oper_ == eOpType::Exchange) return false;
+  bool isSound(Transaction checkTx) {
+    if (checkTx.getOperation() == eOpType::Exchange) return false;
     return true;
   }
 
@@ -67,12 +67,13 @@ class DCid : public oracleInterface {
    * @return true iff the transaction is valid according to this oracle
    * @return false otherwise
    */
-  bool isValid(Transaction checkTx, DCState& context) {
-    if (!isValid(checkTx)) return false;
-    for (std::vector<Transfer>::iterator it=checkTx.xfers_.begin();
-        it != checkTx.xfers_.end(); ++it) {
-      if (it->amount_ > 0) {
-        if ((context.getAmount(DCid::getCoinIndex(), it->addr_)) > 0) {
+  bool isValid(Transaction checkTx, ChainState& context) {
+    if (!isSound(checkTx)) return false;
+    std::vector<Transfer> xfers;
+    for (auto it=xfers.begin(); it != xfers.end(); ++it) {
+      if (it->getAmount() > 0) {
+        Address addr = it->getAddress();
+        if ((context.getAmount(DCid::getCoinIndex(), addr)) > 0) {
           LOG_WARNING << "Error: Addr already has an ID token.";
           return false;
         } //endif has ID
@@ -109,12 +110,12 @@ class DCid : public oracleInterface {
  * @return empty/null transaction if the transaction is invalid
  */
   Transaction Tier2Process(std::vector<byte> rawTx,
-      DCState context) {
-    Transaction tx(rawTx);
+      ChainState context, const KeyRing& keys) {
+    Transaction tx(rawTx, keys);
     if (!isValid(tx, context)) {
       return tx;
     }
-    if (tx.oper_ == 0 || tx.oper_ == 1) {
+    if (tx.getOperation() == 0 || tx.getOperation() == 1) {
       /*if (jsonObj["idRef"].empty()) {
         LOG_WARNING << "Error: No INN reference for this ID.";
         return tx;

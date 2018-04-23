@@ -32,7 +32,6 @@ bool KeyRing::initKeys() {
 
     std::vector<byte> msg = {'h', 'e', 'l', 'l', 'o'};
     Hash test_hash(dcHash(msg));
-    std::string sDer;
 
     EC_KEY* inn_key = loadEcKey(ctx,
         context_.kINN_ADDR,
@@ -43,10 +42,12 @@ bool KeyRing::initKeys() {
 
     if (!VerifyByteSig(inn_key, test_hash, sig)) {
       LOG_FATAL << "Invalid INN key!";
-      CASH_THROW("Invalid INN key!");
+      return false;
     }
 
-    keyMap_.at(Str2Bin(context_.kINN_ADDR)) = inn_key;
+    std::vector<byte> inn_addr(Hex2Bin(context_.kINN_ADDR));
+    std::pair<std::vector<byte>, EC_KEY*> new_pair(inn_addr, inn_key);
+    keyMap_.insert(new_pair);
 
     for (unsigned int i=0; i<context_.kADDRs.size(); i++) {
 
@@ -60,7 +61,9 @@ bool KeyRing::initKeys() {
         CASH_THROW("Invalid address["+std::to_string(i)+"] key!");
       }
 
-      keyMap_.at(Str2Bin(context_.kADDRs[i])) = addr_key;
+      std::vector<byte> addr(Hex2Bin(context_.kADDRs[i]));
+      std::pair<std::vector<byte>, EC_KEY*> addr_pair(addr, addr_key);
+      keyMap_.insert(addr_pair);
     }
 
     for (unsigned int i=0; i<context_.kNODE_ADDRs.size(); i++) {
@@ -75,7 +78,9 @@ bool KeyRing::initKeys() {
         CASH_THROW("Invalid node["+std::to_string(i)+"] key!");
       }
 
-      keyMap_.at(Str2Bin(context_.kNODE_ADDRs[i])) = addr_key;
+      std::vector<byte> node_addr(Hex2Bin(context_.kNODE_ADDRs[i]));
+      std::pair<std::vector<byte>, EC_KEY*> node_pair(node_addr, addr_key);
+      keyMap_.insert(node_pair);
     }
     is_init_ = true;
     return is_init_;
@@ -87,7 +92,7 @@ bool KeyRing::initKeys() {
 
 EC_KEY* KeyRing::getKey(const Address& addr) const {
   if (addr[0] == 114) {
-    auto it = keyMap_.find(Str2Bin(context_.kINN_ADDR));
+    auto it = keyMap_.find(Hex2Bin(context_.kINN_ADDR));
     if (it != keyMap_.end()) return it->second;
     LOG_WARNING << "INN key is missing!\n";
     CASH_THROW("INN key is missing!");
@@ -106,7 +111,7 @@ bool KeyRing::isINN(const Address& addr) const {
 }
 
 EC_KEY* KeyRing::getNodeKey(int index) const {
-  auto it = keyMap_.find(Str2Bin(context_.kNODE_ADDRs[index]));
+  auto it = keyMap_.find(Hex2Bin(context_.kNODE_ADDRs[index]));
   if (it != keyMap_.end()) return it->second;
   LOG_WARNING << "Node["+std::to_string(index)+"] key is missing!\n";
   CASH_THROW("Node["+std::to_string(index)+"] key is missing!");

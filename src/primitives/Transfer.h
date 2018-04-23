@@ -26,46 +26,36 @@ static const std::string kAMOUNT_TAG = "amount";
 
 class Transfer {
  public:
-  Address addr_;
-  uint64_t coin_;
-  int64_t amount_;
-  uint64_t delay_;
 
 /** Constructors */
-  Transfer() : addr_(), coin_(0), amount_(0), delay_(0) {}
+  Transfer() : canonical_() {}
 
   Transfer(const Address& addr, uint64_t coin, uint64_t amount
-    , uint64_t delay) : addr_(addr), coin_(coin), amount_(amount)
-    , delay_(delay) {
+    , uint64_t delay)
+    : canonical_(std::begin(addr), std::end(addr)) {
+    Uint64ToBin(coin, canonical_);
+    Int64ToBin(amount, canonical_);
+    Uint64ToBin(delay, canonical_);
   }
 
   explicit Transfer(const std::vector<byte>& serial)
-    : addr_(), coin_(0), amount_(0), delay_(0) {
+    : canonical_(serial) {
     if (serial.size() != Size()) {
       LOG_WARNING << "Invalid serialized transfer!";
       return;
     }
-    std::copy_n(serial.begin(), kADDR_SIZE, addr_.begin());
-    coin_ = BinToUint64(serial, kADDR_SIZE);
-    amount_ = BinToInt64(serial, kADDR_SIZE+8);
-    delay_ = BinToUint64(serial, kADDR_SIZE+16);
   }
 
-  explicit Transfer(const std::vector<byte>& serial, size_t pos)
-    : addr_(), coin_(BinToUint64(serial, kADDR_SIZE+pos))
-    , amount_(BinToInt64(serial, kADDR_SIZE+8+pos))
-    , delay_(BinToUint64(serial, kADDR_SIZE+16+pos)) {
-    if (serial.size() < Size()+pos) {
+  explicit Transfer(const std::vector<byte>& serial, size_t& offset)
+    : canonical_(serial.begin()+offset, serial.begin()+offset+Size()) {
+    if (serial.size() < Size()+offset) {
       LOG_WARNING << "Invalid serialized transfer!";
       return;
     }
-    std::copy_n(serial.begin()+pos, kADDR_SIZE, addr_.begin());
+    offset += Size();
   }
 
-  explicit Transfer(const Transfer &other) : addr_(other.addr_)
-    , coin_(other.coin_), amount_(other.amount_)
-    , delay_(other.delay_) {
-  }
+  explicit Transfer(const Transfer &other) : canonical_(other.canonical_) {}
 
   static const size_t Size() {
     return kADDR_SIZE+24;
@@ -75,19 +65,16 @@ class Transfer {
  * @return a vector defining this transaction in canonical form.
  */
   std::vector<byte> getCanonical() const {
-    std::vector<byte> serial(std::begin(addr_), std::end(addr_));
-    Uint64ToBin(coin_, serial);
-    Int64ToBin(amount_, serial);
-    Uint64ToBin(delay_, serial);
-    return serial;
+    return canonical_;
   }
 
   std::string getJSON() const {
     std::string json("{\""+kADDR_TAG+"\":\"");
-    json += toHex(std::vector<byte>(std::begin(addr_), std::end(addr_)));
-    json += "\",\""+kTYPE_TAG+"\":"+std::to_string(coin_);
-    json += ",\""+kAMOUNT_TAG+"\":"+std::to_string(amount_);
-    json += ",\""+kDELAY_TAG+"\":"+std::to_string(delay_);
+    Address addr = getAddress();
+    json += toHex(std::vector<byte>(std::begin(addr), std::end(addr)));
+    json += "\",\""+kTYPE_TAG+"\":"+std::to_string(getCoin());
+    json += ",\""+kAMOUNT_TAG+"\":"+std::to_string(getAmount());
+    json += ",\""+kDELAY_TAG+"\":"+std::to_string(getDelay());
     json += "}";
     return json;
   }
@@ -95,42 +82,53 @@ class Transfer {
 /** Compare transfers */
   friend bool operator==(const Transfer& a, const Transfer& b)
   {
-      return (a.addr_ == b.addr_ && a.amount_ == b.amount_ && a.delay_ == b.delay_);
+    return (a.canonical_ == b.canonical_);
   }
 
   friend bool operator!=(const Transfer& a, const Transfer& b)
   {
-    return !(a.addr_ == b.addr_ && a.amount_ == b.amount_ && a.delay_ == b.delay_);
+    return (a.canonical_ != b.canonical_);
   }
 
 /** Assign transfers */
   Transfer* operator=(Transfer&& other)
   {
     if (this != &other) {
-      addr_ = other.addr_;
-      this->amount_ = other.amount_;
-      this->delay_ = other.delay_;
-      this->coin_ = other.coin_;
+      this->canonical_ = other.canonical_;
     }
     return this;
   }
   Transfer* operator=(const Transfer& other)
   {
     if (this != &other) {
-      addr_ = other.addr_;
-      this->amount_ = other.amount_;
-      this->delay_ = other.delay_;
-      this->coin_ = other.coin_;
+      this->canonical_ = other.canonical_;
     }
     return this;
+  }
+
+  Address getAddress() const {
+    Address addr;
+    std::copy_n(canonical_.begin(), kADDR_SIZE, addr.begin());
+    return addr;
+  }
+
+  uint64_t getCoin() const {
+    return BinToUint64(canonical_, kADDR_SIZE);
+  }
+
+  int64_t getAmount() const {
+    return BinToInt64(canonical_, kADDR_SIZE+8);
   }
 
   /** Returns the delay in seconds until this transfer is final.
    * @return the delay in seconds until this transfer is final.
   */
-    uint64_t getDelay() const {
-      return delay_;
-    }
+  uint64_t getDelay() const {
+    return BinToUint64(canonical_, kADDR_SIZE+16);
+  }
+
+ private:
+  std::vector<byte> canonical_;
 };
 
 } //end namespace Devcash

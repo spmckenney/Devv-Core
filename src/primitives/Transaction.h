@@ -50,87 +50,102 @@ enum eOpType : byte {
 class Transaction {
  public:
   uint64_t xfer_count_;
-  byte oper_;
-  std::vector<Transfer> xfers_;
-  uint64_t nonce_;
-  Signature sig_;
 
 /** Constructors */
-  Transaction() : xfer_count_(0), oper_(eOpType::Create), nonce_(0), sig_()  {}
-  explicit Transaction(const std::vector<byte>& serial)
-    : xfer_count_(0), oper_(0), nonce_(0), sig_() {
+  Transaction() : xfer_count_(0), canonical_(), is_sound_(false) {}
+  explicit Transaction(const std::vector<byte>& serial, const KeyRing& keys)
+    : xfer_count_(0), canonical_(), is_sound_(false) {
     if (serial.size() < MinSize()) {
       LOG_WARNING << "Invalid serialized transaction, too small!";
       return;
     }
     xfer_count_ = BinToUint64(serial, 0);
-    if (serial.size() < MinSize()+(Transfer::Size()*xfer_count_)) {
+    size_t tx_size = MinSize()+(Transfer::Size()*xfer_count_);
+    if (serial.size() < tx_size) {
       LOG_WARNING << "Invalid serialized transaction, wrong size!";
     }
-    oper_ = serial[8];
-    if (oper_ > 3) {
+    canonical_.insert(canonical_.end(), serial.begin()
+        , serial.begin()+tx_size);
+    if (getOperation() > 3) {
       LOG_WARNING << "Invalid serialized transaction, invalid operation!";
       return;
     }
-    for (size_t i=0; i<xfer_count_; ++i) {
-      Transfer* t = new Transfer(serial, 9+(Transfer::Size()*i));
-      xfers_.push_back(*t);
+    is_sound_ = isSound(keys);
+    if (!is_sound_) {
+      LOG_WARNING << "Invalid serialized transaction, not sound!";
     }
-    size_t offset = 9+(Transfer::Size()*xfer_count_);
-    nonce_ = BinToUint64(serial, offset);
-    offset += 8;
-    std::copy_n(serial.begin()+offset, kSIG_SIZE, sig_.begin());
   }
 
-  explicit Transaction(const std::vector<byte>& serial, size_t pos)
-    : xfer_count_(0), oper_(0), nonce_(0), sig_() {
-    if (serial.size() < pos+MinSize()) {
+  explicit Transaction(const std::vector<byte>& serial, size_t& offset
+    , const KeyRing& keys)
+    : xfer_count_(0), canonical_(), is_sound_(false) {
+    if (serial.size() < offset+MinSize()) {
       LOG_WARNING << "Invalid serialized transaction, too small!";
       return;
     }
-    xfer_count_ = BinToUint64(serial, pos);
-    if (serial.size() < pos+MinSize()+(Transfer::Size()*xfer_count_)) {
+    xfer_count_ = BinToUint64(serial, offset);
+    size_t tx_size = MinSize()+(Transfer::Size()*xfer_count_);
+    if (serial.size() < offset+tx_size) {
       LOG_WARNING << "Invalid serialized transaction, wrong size!";
     }
-    oper_ = serial[pos+8];
-    if (oper_ > 3) {
+    canonical_.insert(canonical_.end(), serial.begin()+offset
+        , serial.begin()+(offset+tx_size));
+    offset += tx_size;
+    if (getOperation() > 3) {
       LOG_WARNING << "Invalid serialized transaction, invalid operation!";
       return;
     }
-    for (size_t i=0; i<xfer_count_; ++i) {
-      Transfer* t = new Transfer(serial, pos+9+(Transfer::Size()*i));
-      xfers_.push_back(*t);
+    is_sound_ = isSound(keys);
+    if (!is_sound_) {
+      LOG_WARNING << "Invalid serialized transaction, not sound!";
     }
-    size_t offset = pos+9+(Transfer::Size()*xfer_count_);
-    nonce_ = BinToUint64(serial, offset);
-    offset += 8;
-    std::copy_n(serial.begin()+offset, kSIG_SIZE, sig_.begin());
   }
 
   Transaction(uint64_t xfer_count, byte oper
-      , const std::vector<Transfer>& xfers, uint64_t nonce, Signature sig)
-      : xfer_count_(xfer_count), oper_(oper), xfers_(), nonce_(nonce)
-      , sig_(sig) {
-    for (int i=0; i<xfer_count_; ++i) {
-      xfers_.push_back(xfers.at(i));
+      , const std::vector<Transfer>& xfers, uint64_t nonce, Signature sig
+      , const KeyRing& keys)
+      : xfer_count_(xfer_count), canonical_(), is_sound_(false) {
+    canonical_.reserve(MinSize()+(Transfer::Size()*xfer_count_));
+
+    Uint64ToBin(xfer_count_, canonical_);
+    canonical_.push_back(oper);
+    for (auto it = xfers.begin(); it != xfers.end(); ++it) {
+      std::vector<byte> xfer_canon(it->getCanonical());
+      canonical_.insert(std::end(canonical_), std::begin(xfer_canon)
+        , std::end(xfer_canon));
+    }
+    Uint64ToBin(nonce, canonical_);
+    canonical_.insert(std::end(canonical_), std::begin(sig), std::end(sig));
+    is_sound_ = isSound(keys);
+    if (!is_sound_) {
+      LOG_WARNING << "Invalid serialized transaction, not sound!";
     }
   }
 
   Transaction(const Transaction& other) : xfer_count_(other.xfer_count_)
-    , oper_(other.oper_), nonce_(other.nonce_), sig_(other.sig_) {
-  }
+    , canonical_(other.canonical_), is_sound_(other.is_sound_) {}
 
   Transaction(byte oper, const std::vector<Transfer>& xfers, uint64_t nonce
-      , EC_KEY* eckey)
-      : xfer_count_(xfers.size()), oper_(oper), xfers_(), nonce_(nonce)
-      , sig_() {
-    for (size_t i=0; i<xfer_count_; ++i) {
-      xfers_.push_back(xfers.at(i));
-    }
+      , EC_KEY* eckey, const KeyRing& keys)
+      : xfer_count_(xfers.size()), canonical_(), is_sound_(false) {
+    canonical_.reserve(MinSize()+(Transfer::Size()*xfer_count_));
 
+    Uint64ToBin(xfer_count_, canonical_);
+    canonical_.push_back(oper);
+    for (auto it = xfers.begin(); it != xfers.end(); ++it) {
+      std::vector<byte> xfer_canon(it->getCanonical());
+      canonical_.insert(std::end(canonical_), std::begin(xfer_canon)
+        , std::end(xfer_canon));
+    }
+    Uint64ToBin(nonce, canonical_);
     std::vector<byte> msg(getMessageDigest());
-    SignBinary(eckey, dcHash(msg), sig_);
-    LOG_INFO << "New sig: "+toHex(std::vector<byte>(std::begin(sig_), std::end(sig_)));
+    Signature sig;
+    SignBinary(eckey, dcHash(msg), sig);
+    canonical_.insert(std::end(canonical_), std::begin(sig), std::end(sig));
+    is_sound_ = isSound(keys);
+    if (!is_sound_) {
+      LOG_WARNING << "Invalid serialized transaction, not sound!";
+    }
   }
 
   static const size_t MinSize() {
@@ -141,29 +156,22 @@ class Transaction {
     return 17;
   }
 
-  static const size_t MessageDigestEnvelopeSize() {
-    return 9;
-  }
-
   /** Comparison Operators */
   friend bool operator==(const Transaction& a, const Transaction& b)
   {
-    return a.sig_ == b.sig_;
+    return a.canonical_ == b.canonical_;
   }
 
   friend bool operator!=(const Transaction& a, const Transaction& b)
   {
-    return a.sig_ != b.sig_;
+    return a.canonical_ != b.canonical_;
   }
 
   /** Assignment Operators */
   Transaction* operator=(Transaction&& other)
   {
     if (this != &other) {
-      this->oper_ = other.oper_;
-      this->nonce_ = other.nonce_;
-      this->sig_ = other.sig_;
-      this->xfers_ = std::move(other.xfers_);
+      this->canonical_ = other.canonical_;
     }
     return this;
   }
@@ -171,28 +179,51 @@ class Transaction {
   Transaction* operator=(const Transaction& other)
   {
     if (this != &other) {
-      this->oper_ = other.oper_;
-      this->nonce_ = other.nonce_;
-      this->sig_ = other.sig_;
-      this->xfers_ = std::move(other.xfers_);
+      this->canonical_ = other.canonical_;
     }
     return this;
   }
 
-/** Checks if this transaction is valid.
- *  Transactions are atomic, so if any portion of the transaction is invalid,
- *  the entire transaction is also invalid.
- * @params state the chain state to validate against
- * @params ecKey the public key to use for signature verification
- * @return true iff the transaction is valid
- * @return false otherwise
- */
-  bool isValid(DCState& state, const KeyRing& keys, Summary& summary) const
-  {
-    CASH_TRY {
-        long total = 0;
+  byte getOperation() const {
+    return canonical_[8];
+  }
 
-        if (nonce_ < 1) {
+  std::vector<Transfer> getTransfers() const {
+    std::vector<Transfer> out;
+    for (size_t i=0; i<xfer_count_; ++i) {
+      size_t offset = 9+(Transfer::Size()*i);
+      Transfer* t = new Transfer(canonical_, offset);
+      out.push_back(*t);
+    }
+    return out;
+  }
+
+  uint64_t getNonce() const {
+    return BinToUint64(canonical_, 9+(Transfer::Size()*xfer_count_));
+  }
+
+  Signature getSignature() const {
+    Signature sig;
+    std::copy_n(canonical_.begin()+(17+(Transfer::Size()*xfer_count_))
+        , kSIG_SIZE, sig.begin());
+    return sig;
+  }
+
+  /** Checks if this transaction is sound, meaning potentially valid.
+   *  If any portion of the transaction is invalid,
+   *  the entire transaction is also unsound.
+   * @params keys a KeyRing that provides keys for signature verification
+   * @return true iff the transaction is sound
+   * @return false otherwise
+   */
+    bool isSound(const KeyRing& keys) const
+    {
+      CASH_TRY {
+        if (is_sound_) return(is_sound_);
+        long total = 0;
+        byte oper = getOperation();
+
+        if (getNonce() < 1) {
           LOG_WARNING << "Error: nonce is required";
           return(false);
         }
@@ -200,51 +231,48 @@ class Transaction {
         bool sender_set = false;
         Address sender;
 
-        for (auto it = xfers_.begin(); it != xfers_.end(); ++it) {
-          total += it->amount_;
-          if ((oper_ == eOpType::Delete && it->amount_ > 0) ||
-            (oper_ != eOpType::Delete && it->amount_ < 0) || oper_ == eOpType::Modify) {
-            if (it->delay_ < 0) {
+        std::vector<Transfer> xfers = getTransfers();
+        for (auto it = xfers.begin(); it != xfers.end(); ++it) {
+          int64_t amount = it->getAmount();
+          total += amount;
+          if ((oper == eOpType::Delete && amount > 0) ||
+            (oper != eOpType::Delete && amount < 0) || oper == eOpType::Modify) {
+            if (it->getDelay() < 0) {
               LOG_WARNING << "Error: A negative delay is not allowed.";
               return false;
             }
           }
-            if (it->amount_ < 0) {
+            if (amount < 0) {
               if (sender_set) {
                 LOG_WARNING << "Multiple senders in transaction!";
                 return false;
               }
-              if ((oper_ == Exchange) && (it->amount_ > state.getAmount(it->coin_, it->addr_))) {
-                LOG_WARNING << "Coins not available at addr.";
-                return false;
-              }
-              std::copy_n(it->addr_.begin(), kADDR_SIZE, sender.begin());
+              sender = it->getAddress();
               sender_set = true;
             }
-            SmartCoin next_flow(it->addr_, it->coin_, it->amount_);
-            state.addCoin(next_flow);
-            summary.addItem(it->addr_, it->coin_, it->amount_, it->delay_);
         }
         if (total != 0) {
-          LOG_WARNING << "Error: transaction amounts are asymmetric. (sum="+std::to_string(total)+")";
+          LOG_WARNING << "Error: transaction amounts are asymmetric. (sum="
+              +std::to_string(total)+")";
           return false;
         }
 
-        if ((oper_ != Exchange) && (!keys.isINN(sender))) {
+        if ((oper != Exchange) && (!keys.isINN(sender))) {
           LOG_WARNING << "INN transaction not performed by INN!";
           return false;
         }
 
         EC_KEY* eckey(keys.getKey(sender));
         std::vector<byte> msg(getMessageDigest());
+        Signature sig = getSignature();
 
-        if (!VerifyByteSig(eckey, dcHash(msg), sig_)) {
+        if (!VerifyByteSig(eckey, dcHash(msg), sig)) {
           LOG_WARNING << "Error: transaction signature did not validate.\n";
           LOG_DEBUG << "Transaction state is: "+getJSON();
           LOG_DEBUG << "Sender addr is: "
             +toHex(std::vector<byte>(std::begin(sender), std::end(sender)));
           LOG_DEBUG << "Signature is: "
-            +toHex(std::vector<byte>(std::begin(sig_), std::end(sig_)));
+            +toHex(std::vector<byte>(std::begin(sig), std::end(sig)));
           return false;
         }
         return true;
@@ -252,41 +280,57 @@ class Transaction {
         LOG_WARNING << FormatException(&e, "transaction");
       }
       return false;
+    }
+
+/** Checks if this transaction is valid with respect to a chain state.
+ *  Transactions are atomic, so if any portion of the transaction is invalid,
+ *  the entire transaction is also invalid.
+ * @params state the chain state to validate against
+ * @params keys a KeyRing that provides keys for signature verification
+ * @params summary the Summary to update
+ * @return true iff the transaction is valid
+ * @return false otherwise
+ */
+  bool isValid(ChainState& state, const KeyRing& keys, Summary& summary) const
+  {
+    CASH_TRY {
+      if (!isSound(keys)) return false;
+      byte oper = getOperation();
+      std::vector<Transfer> xfers = getTransfers();
+      for (auto it = xfers.begin(); it != xfers.end(); ++it) {
+        int64_t amount = it->getAmount();
+        uint64_t coin = it->getCoin();
+        Address addr = it->getAddress();
+        if (amount < 0) {
+          if ((oper == Exchange) && (amount > state.getAmount(coin, addr))) {
+            LOG_WARNING << "Coins not available at addr.";
+            return false;
+          }
+        }
+        SmartCoin next_flow(addr, coin, amount);
+        state.addCoin(next_flow);
+        summary.addItem(addr, coin, amount, it->getDelay());
+      }
+      return true;
+    } CASH_CATCH (const std::exception& e) {
+      LOG_WARNING << FormatException(&e, "transaction");
+    }
+    return false;
   }
 
 /** Returns a canonical bytestring representation of this transaction.
  * @return a canonical bytestring representation of this transaction.
 */
   std::vector<byte> getCanonical() const {
-    std::vector<byte> serial;
-    serial.reserve(MinSize()
-        +(Transfer::Size()*xfer_count_));
-
-    Uint64ToBin(xfer_count_, serial);
-    serial.push_back(oper_);
-    for (auto it = xfers_.begin(); it != xfers_.end(); ++it) {
-      std::vector<byte> xfer_canon(it->getCanonical());
-      serial.insert(std::end(serial), std::begin(xfer_canon), std::end(xfer_canon));
-    }
-    Uint64ToBin(nonce_, serial);
-    serial.insert(std::end(serial), std::begin(sig_), std::end(sig_));
-    return serial;
+    return canonical_;
   }
 
   /** Returns the message digest bytestring for this transaction.
    * @return the message digest bytestring for this transaction.
   */
   std::vector<byte> getMessageDigest() const {
-    std::vector<byte> md;
-    md.reserve(MessageDigestEnvelopeSize()
-        +(Transfer::Size()*xfer_count_));
-
-    md.push_back(oper_);
-    for (auto it = xfers_.begin(); it != xfers_.end(); ++it) {
-      std::vector<byte> xfer_canon(it->getCanonical());
-      md.insert(std::end(md), std::begin(xfer_canon), std::end(xfer_canon));
-    }
-    Uint64ToBin(nonce_, md);
+    std::vector<byte> md(canonical_.begin()
+        , canonical_.begin()+(EnvelopeSize()+Transfer::Size()*xfer_count_));
     return md;
   }
 
@@ -294,7 +338,7 @@ class Transaction {
    * @return the transaction size in bytes.
   */
   size_t getByteSize() const {
-    return getCanonical().size();
+    return(canonical_.size());
   }
 
 /** Returns a JSON string representing this transaction.
@@ -303,10 +347,11 @@ class Transaction {
   std::string getJSON() const {
     std::string json("{\""+kXFER_COUNT_TAG+"\":");
     json += std::to_string(xfer_count_)+",";
-    json += "\""+kOPER_TAG+"\":"+std::to_string(oper_)+",";
+    json += "\""+kOPER_TAG+"\":"+std::to_string(getOperation())+",";
     json += "\""+kXFER_TAG+"\":[";
     bool isFirst = true;
-    for (auto it = xfers_.begin(); it != xfers_.end(); ++it) {
+    std::vector<Transfer> xfers = getTransfers();
+    for (auto it = xfers.begin(); it != xfers.end(); ++it) {
       if (isFirst) {
         isFirst = false;
       } else {
@@ -314,9 +359,10 @@ class Transaction {
       }
       json += it->getJSON();
     }
-    json += "],\""+kNONCE_TAG+"\":"+std::to_string(nonce_)+",";
+    json += "],\""+kNONCE_TAG+"\":"+std::to_string(getNonce())+",";
+    Signature sig = getSignature();
     json += "\""+kSIG_TAG+"\":\""
-      +toHex(std::vector<byte>(std::begin(sig_), std::end(sig_)))+"\"}";
+      +toHex(std::vector<byte>(std::begin(sig), std::end(sig)))+"\"}";
     return json;
   }
 
@@ -325,6 +371,9 @@ class Transaction {
 */
   //std::vector<uint8_t> ToCBOR() const;
 
+ private:
+  std::vector<byte> canonical_;
+  bool is_sound_ = false;
 };
 
 } //end namespace Devcash

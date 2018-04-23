@@ -48,10 +48,11 @@ class dnerowallet : public oracleInterface {
    * @return true iff the transaction can be valid according to this oracle
    * @return false otherwise
    */
-  bool isValid(Transaction checkTx) {
-    for (std::vector<Transfer>::iterator it=checkTx.xfers_.begin();
-        it != checkTx.xfers_.end(); ++it) {
-      if (it->amount_ > 1) {
+  bool isSound(Transaction checkTx) {
+    std::vector<Transfer> xfers = checkTx.getTransfers();
+    for (auto it=xfers.begin();
+        it != xfers.end(); ++it) {
+      if (it->getAmount() > 1) {
         LOG_WARNING << "Error: Can only have at most 1 dnerowallet token.";
         return false;
       }
@@ -71,8 +72,8 @@ class dnerowallet : public oracleInterface {
    * @return true iff the transaction is valid according to this oracle
    * @return false otherwise
    */
-  bool isValid(Transaction checkTx, DCState& context) {
-    if (!isValid(checkTx)) return false;
+  bool isValid(Transaction checkTx, ChainState& context) {
+    if (!isSound(checkTx)) return false;
     return true;
   }
 
@@ -98,8 +99,8 @@ class dnerowallet : public oracleInterface {
  * @return empty/null transaction if the transaction is invalid
  */
   Transaction Tier2Process(std::vector<byte> rawTx,
-      DCState context) {
-    Transaction tx(rawTx);
+      ChainState context, const KeyRing& keys) {
+    Transaction tx(rawTx, keys);
     if (!isValid(tx, context)) {
       return tx;
     }

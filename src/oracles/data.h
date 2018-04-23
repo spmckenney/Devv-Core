@@ -50,8 +50,8 @@ class DCdata : public oracleInterface {
    * @return true iff the transaction can be valid according to this oracle
    * @return false otherwise
    */
-  bool isValid(Transaction checkTx) {
-    if (checkTx.oper_ == eOpType::Exchange) {
+  bool isSound(Transaction checkTx) {
+    if (checkTx.getOperation() == eOpType::Exchange) {
       //TODO: check that exchange is to an INN data collection address
       //TODO: check that nonce size is valid for coins expended
       /*if (checkTx.getValueOut() < int(checkTx.nonce_.size()/kBYTES_PER_COIN)) {
@@ -72,8 +72,8 @@ class DCdata : public oracleInterface {
    * @return true iff the transaction is valid according to this oracle
    * @return false otherwise
    */
-  bool isValid(Transaction checkTx, DCState& context) {
-    if (!isValid(checkTx)) return false;
+  bool isValid(Transaction checkTx, ChainState& context) {
+    if (!isSound(checkTx)) return false;
     return true;
   }
 
@@ -99,8 +99,8 @@ class DCdata : public oracleInterface {
  * @return empty/null transaction if the transaction is invalid
  */
   Transaction Tier2Process(std::vector<byte> rawTx,
-      DCState context) {
-    Transaction tx(rawTx);
+      ChainState context, const KeyRing& keys) {
+    Transaction tx(rawTx, keys);
     if (!isValid(tx, context)) {
       return tx;
     }

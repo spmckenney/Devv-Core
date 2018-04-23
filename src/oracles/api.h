@@ -51,8 +51,8 @@ class DCapi : public oracleInterface {
    * @return true iff the transaction can be valid according to this oracle
    * @return false otherwise
    */
-  bool isValid(Transaction checkTx) {
-    if (checkTx.oper_ == eOpType::Exchange) return false;
+  bool isSound(Transaction checkTx) {
+    if (checkTx.getOperation() == eOpType::Exchange) return false;
     return true;
   }
 
@@ -68,11 +68,14 @@ class DCapi : public oracleInterface {
    * @return true iff the transaction is valid according to this oracle
    * @return false otherwise
    */
-  bool isValid(Transaction checkTx, DCState& context) {
-    if (!isValid(checkTx)) return false;
-    for (auto it=checkTx.xfers_.begin(); it != checkTx.xfers_.end(); ++it) {
-      if (it->amount_ > 0) {
-        if ((context.getAmount(getCoinIndex(), it->addr_) > 0)) {
+  bool isValid(Transaction checkTx, ChainState& context) {
+    if (!isSound(checkTx)) return false;
+    std::vector<Transfer> xfers = checkTx.getTransfers();
+    for (auto it=xfers.begin(); it != xfers.end(); ++it) {
+      int64_t amount = it->getAmount();
+      if (amount > 0) {
+        Address addr = it->getAddress();
+        if ((context.getAmount(getCoinIndex(), addr) > 0)) {
           LOG_WARNING << "Error: Addr already has an API token.";
           return false;
         } //endif has API
@@ -107,12 +110,12 @@ class DCapi : public oracleInterface {
  * @return empty/null transaction if the transaction is invalid
  */
   Transaction Tier2Process(std::vector<byte> rawTx,
-      DCState context) {
-    Transaction tx(rawTx);
+      ChainState context, const KeyRing& keys) {
+    Transaction tx(rawTx, keys);
     if (!isValid(tx, context)) {
       return tx;
     }
-    if (tx.oper_ == 0 || tx.oper_ == 1) {
+    if (tx.getOperation() == 0 || tx.getOperation() == 1) {
       //TODO: check api reference string in nonce and verify reference with INN
     }
     return tx;

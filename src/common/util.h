@@ -13,6 +13,7 @@
 #define DEVCASH_UTIL_H
 
 #include <atomic>
+#include <chrono>
 #include <exception>
 #include <map>
 #include <stdint.h>
@@ -31,85 +32,74 @@ namespace Devcash
 typedef unsigned char byte;
 typedef boost::multiprecision::uint256_t uint256_t;
 
-static std::string jsonFinder(std::string haystack, std::string key, size_t& pos) {
-  std::string out;
-  size_t dex = haystack.find("\""+key+"\":", pos);
-  if (dex == std::string::npos) return out;
-  dex += key.size()+3;
-  size_t eDex = haystack.find(",\"", dex);
-  if (eDex == std::string::npos) {
-    eDex = haystack.find("}", dex);
-    if (eDex == std::string::npos) return out;
-  }
-  out = haystack.substr(dex, eDex-dex);
-  pos = eDex;
-  if (out.front() == '\"') out.erase(std::begin(out));
-  if (out.back() == '\"') out.pop_back();
-  return out;
-}
-
-static std::vector<byte> Str2Bin(std::string msg) {
-  std::vector<uint8_t> out;
-  for (std::size_t i=0; i <msg.size(); ++i) {
-    out.push_back((int) msg.at(i));
-  }
-  return out;
-}
-
-static std::string Bin2Str(std::vector<byte> bytes) {
-  std::string out;
-  for (std::size_t i=0; i <bytes.size(); ++i) {
-    out += char(bytes[i]);
-  }
-  return out;
-}
-
-static uint256_t BinToUint256(const std::vector<byte>& bytes, size_t start) {
-  uint256_t dest = 0;
-  for (unsigned int i=0; i<32; ++i) {
+static int32_t BinToInt32(const std::vector<byte>& bytes, size_t start) {
+  int32_t dest = 0;
+  for (unsigned int i=0; i<4; ++i) {
     dest |= (bytes.at(start+i) << (i*8));
   }
   return dest;
 }
 
-static std::vector<byte> Uint256ToBin(const uint256_t& source
+static std::vector<byte> Int32ToBin(const int32_t& source
     ,std::vector<byte>& dest) {
-  for (unsigned int i=0; i<32; ++i) {
-    dest.push_back((byte) (source >> (i*8)) & 0xFF);
+  for (unsigned int i=0; i<4; ++i) {
+    dest.push_back((source >> (i*8)) & 0xFF);
+  }
+  return dest;
+}
+
+static uint32_t BinToUint32(const std::vector<byte>& bytes, size_t start) {
+  uint32_t dest = 0;
+  for (unsigned int i=0; i<4; ++i) {
+    dest |= (bytes.at(start+i) << (i*8));
+  }
+  return dest;
+}
+
+static std::vector<byte> Uint32ToBin(const uint32_t& source
+    ,std::vector<byte>& dest) {
+  for (unsigned int i=0; i<4; ++i) {
+    dest.push_back((source >> (i*8)) & 0xFF);
   }
   return dest;
 }
 
 static uint64_t BinToUint64(const std::vector<byte>& bytes, size_t start) {
-  uint64_t dest = 0;
-  for (unsigned int i=0; i<8; ++i) {
-    dest |= (bytes.at(start+i) << (i*8));
-  }
+  uint32_t lsb = BinToUint32(bytes, start);
+  uint32_t msb = BinToUint32(bytes, start+4);
+  uint64_t dest = (uint64_t(msb) << 32) | uint64_t(lsb);
   return dest;
 }
 
 static std::vector<byte> Uint64ToBin(const uint64_t& source
     ,std::vector<byte>& dest) {
-  for (unsigned int i=0; i<8; ++i) {
-    dest.push_back((source >> (i*8)) & 0xFF);
-  }
+  uint32_t lsb = source&0xffffffff;
+  uint32_t msb = source >> 32;
+  Uint32ToBin(lsb, dest);
+  Uint32ToBin(msb, dest);
   return dest;
 }
 
 static int64_t BinToInt64(const std::vector<byte>& bytes, size_t start) {
-  int64_t dest = 0;
-  for (unsigned int i=0; i<8; ++i) {
-    dest |= (bytes.at(start+i) << (i*8));
-  }
+  int32_t lsb = BinToInt32(bytes, start);
+  int32_t msb = BinToInt32(bytes, start+4);
+  int64_t dest = (int64_t(msb) << 32) | int64_t(lsb);
   return dest;
 }
 
 static std::vector<byte> Int64ToBin(const int64_t& source
     ,std::vector<byte>& dest) {
-  for (unsigned int i=0; i<8; ++i) {
-    dest.push_back((source >> (i*8)) & 0xFF);
-  }
+  int32_t lsb = source&0xffffffff;
+  int32_t msb = source >> 32;
+  Int32ToBin(lsb, dest);
+  Int32ToBin(msb, dest);
   return dest;
+}
+
+static uint64_t getEpoch() {
+  std::chrono::milliseconds ms = std::chrono::duration_cast<std::chrono::milliseconds>
+    (std::chrono::system_clock::now().time_since_epoch());
+  return ms.count();
 }
 
 /** Maps a hex digit to an int value.
@@ -151,7 +141,7 @@ static const char alpha[] = "0123456789ABCDEF";
  *  @param len length of the binary data
  *  @return string containing these data as hex numbers
  */
-static std::string toHex(const std::vector<byte> input) {
+static std::string toHex(const std::vector<byte>& input) {
   std::stringstream ss;
   for (size_t j=0; j<input.size(); j++) {
     int c = (int) input[j];

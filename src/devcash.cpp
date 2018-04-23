@@ -26,7 +26,6 @@
 
 using namespace Devcash;
 
-typedef unsigned char byte;
 #define UNUSED(x) ((void)x)
 
 std::unique_ptr<io::TransactionClient> create_transaction_client(const devcash_options& options,
@@ -65,11 +64,11 @@ int main(int argc, char* argv[])
     DevcashContext this_context(options->node_index,
                                 static_cast<eAppMode>(options->mode));
     KeyRing keys(this_context);
+    ChainState prior;
 
-    DevcashController controller(*server,
-                                 *client,
+    DevcashController controller(*server,*client,
       options->num_validator_threads, options->num_consensus_threads,
-      options->repeat_for, keys, this_context);
+      keys, this_context, prior);
 
     DevcashNode this_node(controller, this_context);
 

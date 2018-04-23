@@ -16,18 +16,18 @@
 namespace Devcash
 {
 
-class DCState {
+class ChainState {
 public:
 
 /** Constructor */
-  DCState() {}
+  ChainState() {}
 
-  DCState(const DCState& other)
+  ChainState(const ChainState& other)
   : stateMap_(other.stateMap_)
   {
   }
 
-  DCState* operator=(DCState&& other)
+  ChainState* operator=(ChainState&& other)
   {
     if (this != &other) {
       this->stateMap_ = other.stateMap_;
@@ -35,7 +35,7 @@ public:
     return this;
   }
 
-  DCState* operator=(const DCState& other)
+  ChainState* operator=(const ChainState& other)
   {
     if (this != &other) {
       this->stateMap_ = other.stateMap_;
@@ -78,8 +78,8 @@ public:
 */
   bool clear();
 
-  std::map<Address, std::vector<uint64_t>> stateMap_;
-  mutable std::mutex lock_;
+  std::map<Address, std::map<uint64_t, uint64_t>> stateMap_;
+  //mutable std::mutex lock_;
 };
 
 } //namespace Devcash

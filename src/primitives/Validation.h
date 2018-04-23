@@ -36,61 +36,102 @@ class Validation {
   vmap sigs_;
 
 /** Constrcutors */
-  Validation();
-  Validation(std::vector<byte> serial) {}
-  Validation(const Validation& other);
-  Validation(Address node, Signature sig);
-  Validation(vmap sigs);
+  Validation() : sigs_() {}
+  Validation(const std::vector<byte>& serial, size_t& offset
+      , uint32_t& pair_count) : sigs_() {
+    size_t remainder = serial.size()-offset;
+    if (pair_count*PairSize() != remainder) {
+      LOG_WARNING << "Validation has invalid size.";
+      return;
+    }
+    for (size_t i=0; i<pair_count; ++i) {
+      Address one_addr;
+      Signature one_sig;
+      std::copy_n(serial.begin()+offset, kADDR_SIZE, one_addr.begin());
+      offset += kADDR_SIZE;
+      std::copy_n(serial.begin()+offset, kSIG_SIZE, one_sig.begin());
+      offset += kSIG_SIZE;
+      std::pair<Address, Signature> one_pair(one_addr, one_sig);
+      sigs_.insert(one_pair);
+    }
+  }
+  Validation(const Validation& other) : sigs_(other.sigs_) {}
+  Validation(Address node, Signature sig) : sigs_() {
+    sigs_.insert(std::pair<Address, Signature>(node, sig));
+  }
+  Validation(vmap sigs) : sigs_(sigs) {}
 
 /** Adds a validation record to this block.
  *  @param node the address of node that produced this validation
  *  @param sig the signature of the validating node
  *  @return true iff the validation verified against the node's public key
 */
-  bool addValidation(Address node, Signature sig);
-  bool addValidation(Validation& other);
-
-  /** Calculates summary for this block based on provided transactions.
-   *  @param a vector of transactions in this block
-   *  @return the canonical form of the summary
-  */
-  //std::string CalculateSummary(const std::vector<DCTransaction>& txs);
+  bool addValidation(Address node, Signature sig) {
+    sigs_.insert(std::pair<Address, Signature>(node, sig));
+    return true;
+  }
+  bool addValidation(Validation& other) {
+    sigs_.insert(other.sigs_.begin(), other.sigs_.end());
+    return true;
+  }
 
 /** Returns a JSON string representing this validation block.
  *  @return a JSON string representing this validation block.
 */
-  std::string ToJSON() const;
+  std::string getJSON() const {
+    std::string out("[");
+    bool isFirst = true;
+    for (auto const& item : sigs_) {
+      if (isFirst) {
+        isFirst = false;
+      } else {
+        out += ",";
+      }
+      out += "\""+toHex(std::vector<byte>(std::begin(item.first)
+        , std::end(item.first)))+"\":";
+      out += "\""+toHex(std::vector<byte>(std::begin(item.second)
+        , std::end(item.second)))+"\"";
+    }
+    out += "]";
+    return out;
+  }
 
 /** Returns a CBOR byte vector representing this validation block.
  *  @return a CBOR byte vector representing this validation block.
 */
-  std::vector<byte> ToCanonical() const;
+  std::vector<byte> getCanonical() const {
+    std::vector<byte> serial;
+    for (auto const& item : sigs_) {
+      serial.insert(serial.end(), item.first.begin(), item.first.end());
+      serial.insert(serial.end(), item.second.begin(), item.second.end());
+    }
+    return serial;
+  }
 
 /** Returns the size of this verification block in bytes
  *  @return the size of this verification block in bytes
 */
-  unsigned int GetByteSize() const;
+  unsigned int GetByteSize() const {
+    return getCanonical().size();
+  }
 
 /** Returns the number of validations in this block.
  *  @return the number of validations in this block.
 */
-  unsigned int GetValidationCount() const;
+  unsigned int GetValidationCount() const {
+    return sigs_.size();
+  }
 
 /** Returns the hash of this validation block.
  *  @return the hash of this validation block.
 */
-  const std::string& GetHash() const {
-      return hash_;
+  const Hash GetHash() const {
+      return dcHash(getCanonical());
   }
 
- private:
-  std::string hash_ = "";
-  std::string jsonStr_ = "";
-
-/** Recalculates and returns the hash of this validation block.
- *  @return the hash of this validation block.
-*/
-  std::string ComputeHash() const;
+  static const size_t PairSize() {
+    return kADDR_SIZE+kSIG_SIZE;
+  }
 
 };
 

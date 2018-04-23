@@ -23,9 +23,9 @@
 
 namespace Devcash {
 
-static const size_t kADDR_SIZE = SHA256_DIGEST_LENGTH;
+static const size_t kADDR_SIZE = 33;
 typedef std::array<byte, kADDR_SIZE> Address;
-typedef Address Hash;
+typedef std::array<byte, SHA256_DIGEST_LENGTH> Hash;
 static const size_t kSIG_SIZE = 72;
 typedef std::array<byte, kSIG_SIZE> Signature;
 
@@ -230,7 +230,7 @@ static Devcash::Hash dcHash(const std::vector<byte>& msg) {
  *  @return true iff the signature verifies with the provided key and context
  *  @return false otherwise
  */
-static bool verifySig(EC_KEY* ecKey, const std::string msg, const std::string strSig) {
+/*static bool verifySig(EC_KEY* ecKey, const std::string msg, const std::string strSig) {
   CASH_TRY {
     EVP_MD_CTX *ctx;
     if(!(ctx = EVP_MD_CTX_create()))
@@ -254,7 +254,7 @@ static bool verifySig(EC_KEY* ecKey, const std::string msg, const std::string st
     LOG_WARNING << FormatException(&e, "Crypto.verifySignature");
   }
   return(false);
-}
+}*/
 
 /** Verifies the signature corresponding to a given string
  *  @param ecKey pointer to the public key that will check this signature
@@ -271,8 +271,16 @@ static bool VerifyByteSig(EC_KEY* ecKey, const Devcash::Hash& msg
     EVP_MD_CTX *ctx;
     if(!(ctx = EVP_MD_CTX_create()))
       LOG_FATAL << "Could not create signature context!";
-    ECDSA_SIG *signature = d2i_ECDSA_SIG(NULL, (const unsigned char**) &sig[0], Devcash::kSIG_SIZE);
-    int state = ECDSA_do_verify((const unsigned char*) &msg[0], msg.size(), signature, ecKey);
+    Devcash::Hash temp = msg;
+    unsigned char* copy_sig = (unsigned char*) malloc(Devcash::kSIG_SIZE+1);
+    for (size_t i=0; i<Devcash::kSIG_SIZE; ++i) {
+      copy_sig[i] = sig[i];
+    }
+    ECDSA_SIG *signature = d2i_ECDSA_SIG(NULL
+        , (const unsigned char**) &copy_sig
+        , Devcash::kSIG_SIZE);
+    int state = ECDSA_do_verify((const unsigned char*) &temp[0]
+        , SHA256_DIGEST_LENGTH, signature, ecKey);
 
     return(1 == state);
   } CASH_CATCH (const std::exception& e) {
@@ -293,10 +301,11 @@ static bool VerifyByteSig(EC_KEY* ecKey, const Devcash::Hash& msg
 static void SignBinary(EC_KEY* ecKey, const Devcash::Hash& msg
     , Devcash::Signature& sig) {
   CASH_TRY {
-    ECDSA_SIG *signature = ECDSA_do_sign((const unsigned char*) &msg[0],
-        msg.size(), ecKey);
-    int state = ECDSA_do_verify((const unsigned char*) &msg[0],
-        msg.size(), signature, ecKey);
+    Devcash::Hash temp = msg;
+    ECDSA_SIG *signature = ECDSA_do_sign((const unsigned char*) &temp[0],
+        SHA256_DIGEST_LENGTH, ecKey);
+    int state = ECDSA_do_verify((const unsigned char*) &temp[0],
+        SHA256_DIGEST_LENGTH, signature, ecKey);
 
     //0 -> invalid, -1 -> openssl error
     if (1 != state)

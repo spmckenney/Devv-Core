@@ -43,56 +43,54 @@ typedef std::map<Address, SummaryPair> SummaryMap;
 class Summary {
  public:
   SummaryMap summary_;
-  std::mutex lock_;
+  //std::mutex lock_;
 
   /** Constrcutors */
   Summary() {}
   Summary(SummaryMap summary) : summary_(summary) {}
   Summary(const Summary& other) : summary_(other.summary_) {}
-  //TODO: canonical constructor
+  Summary(const std::vector<byte>& serial, size_t& offset) : summary_() {
+    if (serial.size() < MinSize()+offset) {
+      LOG_WARNING << "Invalid serialized Summary, too small!";
+      return;
+    }
+    size_t addr_count = BinToUint32(serial, offset);
+    offset += 4;
+    std::vector<byte> out;
+    for (size_t i=0; i<addr_count; ++i) {
+      Address one_addr;
+      std::copy_n(serial.begin()+offset, kADDR_SIZE, one_addr.begin());
+      offset += kADDR_SIZE;
+      DelayedMap delayed;
+      CoinMap coin_map;
+      size_t delayed_count = BinToUint64(serial, offset);
+      offset += 8;
+      size_t coin_count = BinToUint64(serial, offset);
+      offset += 8;
+      for (size_t j=0; j<delayed_count; ++j) {
+        uint64_t coin = BinToUint64(serial, offset);
+        offset += 8;
+        uint64_t delay = BinToUint64(serial, offset);
+        offset += 8;
+        uint64_t delta = BinToUint64(serial, offset);
+        offset += 8;
+        DelayedItem d_item(delay, delta);
+        std::pair<uint64_t, DelayedItem> new_pair(coin, d_item);
+        delayed.insert(new_pair);
+      }
+      for (size_t j=0; j<coin_count; ++j) {
+        uint64_t coin = BinToUint64(serial, offset);
+        offset += 8;
+        uint64_t delta = BinToUint64(serial, offset);
+        offset += 8;
+        std::pair<uint64_t, uint64_t> new_pair(coin, delta);
+        coin_map.insert(new_pair);
+      }
+      SummaryPair top_pair(delayed, coin_map);
+      summary_.insert(std::pair<Address, SummaryPair>(one_addr, top_pair));
+    }
+  }
 
-  /** Assignment Operators */
-  Summary* operator=(Summary&& other)
-  {
-    if (this != &other) {
-      this->summary_ = std::move(other.summary_);
-    }
-    return this;
-  }
-  Summary* operator=(Summary& other)
-  {
-    if (this != &other) {
-      this->summary_ = std::move(other.summary_);
-    }
-    return this;
-  }
- private:
-  bool addToDelayedMap(uint64_t coin, const DelayedItem& item
-      , DelayedMap& existing) {
-    if (existing.count(coin) > 0) {
-      DelayedItem the_item = existing.at(coin);
-      the_item.delta += item.delta;
-      the_item.delay = std::max(the_item.delay, item.delay);
-      existing.at(coin) = the_item;
-    } else {
-      std::pair<uint64_t, DelayedItem> one_item(coin, item);
-      existing.insert(one_item);
-    }
-  }
-
-  bool addToCoinMap(uint64_t coin, const DelayedItem& item
-      , CoinMap& existing) {
-    if (existing.count(coin) > 0) {
-      uint64_t the_item = existing.at(coin);
-      the_item += item.delta;
-      existing.at(coin) = the_item;
-    } else {
-      std::pair<uint64_t, uint64_t> one_item(coin, item.delta);
-      existing.insert(one_item);
-    }
-  }
-
- public:
   /** Adds a summary record to this block.
    *  @param addr the address that this change applies to
    *  @param coin the coin type that this change applies to
@@ -101,7 +99,7 @@ class Summary {
   */
   bool addItem(const Address& addr, uint64_t coin, const DelayedItem& item) {
     CASH_TRY {
-      std::lock_guard<std::mutex> lock(lock_);
+      //std::lock_guard<std::mutex> lock(lock_);
       if (summary_.count(addr) > 0) {
         SummaryPair existing(summary_.at(addr));
         if (item.delay > 0) {
@@ -126,7 +124,7 @@ class Summary {
           new_map.insert(new_pair);
         }
         SummaryPair new_summary(new_delayed, new_map);
-        summary_.at(addr) = new_summary;
+        summary_.insert(std::pair<Address, SummaryPair>(addr, new_summary));
       }
       return true;
     } CASH_CATCH (const std::exception& e) {
@@ -148,61 +146,23 @@ class Summary {
     return addItem(addr, coinType, item);
   }
 
-  /** Adds multiple summary records to this block.
-   *  @param addr the addresses involved in these changes
-   *  @param items map of DCSummary items detailing these changes by coinType
-   *  @return true iff the summary was added
-  */
-  /*bool addItems(const Address& addr,
-      std::map<uint64_t, DelayedItem> items) {
-    CASH_TRY {
-        if (summary_.count(addr) > 0) {
-          std::map<uint64_t, DelayedItem> existing(summary_.at(addr));
-          for (auto iter = items.begin(); iter != items.end(); ++iter) {
-            if (existing.count(iter->first) > 0) {
-              DelayedItem theItem = existing.at(iter->first);
-              theItem.delta += iter->second.delta;
-              theItem.delay = std::max(theItem.delay, iter->second.delay);
-              std::pair<uint64_t, DelayedItem> oneItem(iter->first, theItem);
-              existing.insert(oneItem);
-            } else {
-              std::pair<uint64_t, DelayedItem> oneItem(iter->first, iter->second);
-              existing.insert(oneItem);
-            }
-          }
-          std::pair<Address,
-            std::map<uint64_t, DelayedItem>> updateSummary(addr, existing);
-          summary_.insert(updateSummary);
-        } else {
-          std::pair<Address,
-            std::map<uint64_t, DelayedItem>> oneSummary(addr, items);
-          summary_.insert(oneSummary);
-        }
-        return true;
-      } CASH_CATCH (const std::exception& e) {
-        LOG_WARNING << FormatException(&e, "summary");
-        return false;
-      }
-  }*/
-
   /**
    *  @return a canonical bytestring summarizing these changes.
   */
   std::vector<byte> getCanonical() const {
     std::vector<byte> out;
-    uint64_t addr_size = summary_.size();
-    Uint64ToBin(addr_size, out);
+    uint32_t addr_count = summary_.size();
+    Uint32ToBin(addr_count, out);
     for (auto iter = summary_.begin(); iter != summary_.end(); ++iter) {
-      for (unsigned int i=0; i<33; ++i) {
-        out.push_back(iter->first[i]);
-      }
+      out.insert(out.end(), iter->first.begin(), iter->first.end());
+
       SummaryPair top_pair(iter->second);
       DelayedMap delayed(top_pair.first);
       CoinMap coin_map(top_pair.second);
-      uint64_t delayed_size = delayed.size();
-      Uint64ToBin(delayed_size, out);
-      uint64_t coin_size = coin_map.size();
-      Uint64ToBin(coin_size, out);
+      uint64_t delayed_count = delayed.size();
+      Uint64ToBin(delayed_count, out);
+      uint64_t coin_count = coin_map.size();
+      Uint64ToBin(coin_count, out);
       if (!delayed.empty()) {
         for (auto j = delayed.begin(); j != delayed.end(); ++j) {
           Uint64ToBin(j->first, out);
@@ -225,7 +185,7 @@ class Summary {
     return getCanonical().size();
   }
 
-  std::string toJSON() const {
+  std::string getJSON() const {
     std::string json("{\""+kADDR_SIZE_TAG+"\":");
     uint64_t addr_size = summary_.size();
     json += std::to_string(addr_size)+",summary:[";
@@ -290,7 +250,7 @@ class Summary {
         }
       }
       if (coinTotal != 0) {
-        LOG_DEBUG << "Summary state invalid: "+toJSON();
+        LOG_DEBUG << "Summary state invalid: "+getJSON();
         return false;
       }
       return true;
@@ -299,6 +259,39 @@ class Summary {
       return false;
     }
   }
+
+  static const size_t MinSize() {
+    return 4;
+  }
+
+ private:
+  bool addToDelayedMap(uint64_t coin, const DelayedItem& item
+      , DelayedMap& existing) {
+    if (existing.count(coin) > 0) {
+      DelayedItem the_item = existing.at(coin);
+      the_item.delta += item.delta;
+      the_item.delay = std::max(the_item.delay, item.delay);
+      existing.at(coin) = the_item;
+    } else {
+      std::pair<uint64_t, DelayedItem> one_item(coin, item);
+      existing.insert(one_item);
+    }
+    return true;
+  }
+
+  bool addToCoinMap(uint64_t coin, const DelayedItem& item
+      , CoinMap& existing) {
+    if (existing.count(coin) > 0) {
+      uint64_t the_item = existing.at(coin);
+      the_item += item.delta;
+      existing.at(coin) = the_item;
+    } else {
+      std::pair<uint64_t, uint64_t> one_item(coin, item.delta);
+      existing.insert(one_item);
+    }
+    return true;
+  }
+
 };
 
 } //end namespace Devcash

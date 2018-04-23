@@ -49,9 +49,9 @@ class dcash : public oracleInterface {
    * @return true iff the transaction can be valid according to this oracle
    * @return false otherwise
    */
-  bool isValid(Transaction checkTx) {
-    for (std::vector<Transfer>::iterator it=checkTx.xfers_.begin();
-        it != checkTx.xfers_.end(); ++it) {
+  bool isSound(Transaction checkTx) {
+    std::vector<Transfer> xfers = checkTx.getTransfers();
+    for (auto it=xfers.begin(); it != xfers.end(); ++it) {
       if (it->getDelay() != 0) {
         LOG_WARNING << "Error: Delays are not allowed for dcash.";
         return false;
@@ -72,11 +72,13 @@ class dcash : public oracleInterface {
    * @return true iff the transaction is valid according to this oracle
    * @return false otherwise
    */
-  bool isValid(Transaction checkTx, DCState& context) {
-    if (!isValid(checkTx)) return false;
-    for (auto it=checkTx.xfers_.begin(); it != checkTx.xfers_.end(); ++it) {
-      if (it->amount_ < 0) {
-        if (context.getAmount(dnerowallet::getCoinIndex(), it->addr_) > 0) {
+  bool isValid(Transaction checkTx, ChainState& context) {
+    if (!isSound(checkTx)) return false;
+    std::vector<Transfer> xfers = checkTx.getTransfers();
+    for (auto it=xfers.begin(); it != xfers.end(); ++it) {
+      if (it->getAmount() < 0) {
+        Address addr = it->getAddress();
+        if (context.getAmount(dnerowallet::getCoinIndex(), addr) > 0) {
           LOG_WARNING << "Error: Dnerowallets may not send dcash.";
           return false;
         } //endif has dnerowallet
@@ -107,8 +109,8 @@ class dcash : public oracleInterface {
    * @return empty/null transaction if the transaction is invalid
    */
     Transaction Tier2Process(std::vector<byte> rawTx,
-        DCState context) {
-      Transaction tx(rawTx);
+        ChainState context, const KeyRing& keys) {
+      Transaction tx(rawTx, keys);
       if (!isValid(tx, context)) {
         return tx;
       }
