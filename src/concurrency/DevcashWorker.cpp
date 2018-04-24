@@ -2,7 +2,7 @@
  * DevcashWorker.cpp
  *
  *  Created on: Mar 26, 2018
- *      Author: Silver
+ *      Author: Nick Williams
  */
 
 #include "DevcashWorker.h"

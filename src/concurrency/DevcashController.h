@@ -27,6 +27,7 @@ class DevcashController {
                     io::TransactionClient& client,
                     const int validatorCount,
                     const int consensusCount,
+                    const int generateCount,
                     KeyRing& keys,
                     DevcashContext& context,
                     const ChainState& prior);
@@ -55,11 +56,12 @@ private:
   io::TransactionClient& client_;
   const int validator_count_;
   const int consensus_count_;
+  const int generate_count_;
   KeyRing& keys_;
   DevcashContext& context_;
   Blockchain final_chain_;
   UnrecordedTransactionPool utx_pool_;
-  //DevcashControllerWorker* workers_;
+  DevcashControllerWorker* workers_;
   bool validator_flipper_ = true;
   bool consensus_flipper_ = true;
   bool shutdown_ = false;

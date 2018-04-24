@@ -26,7 +26,8 @@ class KeyRing {
 
  private:
   DevcashContext context_;
-  bool is_init_ = false;
+  std::map<std::vector<byte>, EC_KEY*> key_map_;
+  Address inn_addr_;
 };
 
 } /* namespace Devcash */

@@ -12,6 +12,7 @@
 #include <thread>
 #include <string>
 
+#include "DevcashWorker.h"
 #include "common/devcash_context.h"
 #include "common/util.h"
 #include "io/message_service.h"
@@ -27,6 +28,7 @@ DevcashController::DevcashController(
     io::TransactionClient& client,
     const int validatorCount,
     const int consensusCount,
+    const int generateCount,
     KeyRing& keys,
     DevcashContext& context,
     const ChainState& prior)
@@ -34,15 +36,13 @@ DevcashController::DevcashController(
   , client_(client)
   , validator_count_(validatorCount)
   , consensus_count_(consensusCount)
+  , generate_count_(generateCount)
   , keys_(keys)
   , context_(context)
   , final_chain_("final_chain_")
   , utx_pool_(prior)
-  //, workers_(new DevcashControllerWorker(this, validator_count_, consensus_count_))
-{
-  keys_.initKeys();
-  LOG_INFO << "Crypto Keys initialized.";
-}
+  , workers_(new DevcashControllerWorker(this, validator_count_, consensus_count_))
+{}
 
 DevcashMessageUniquePtr CreateNextProposal(const KeyRing& keys,
                         Blockchain& final_chain,
@@ -52,26 +52,28 @@ DevcashMessageUniquePtr CreateNextProposal(const KeyRing& keys,
 
   LOG_TRACE << "DevcashController()::CreateNextProposal(): begin";
 
-  size_t next_proposal_height = block_height+
-      ((block_height+1)%context.get_peer_count());
-
   if (!(block_height % 100) || !((block_height + 1) % 100)) {
     LOG_WARNING << "Processing @ final_chain_.size: (" << std::to_string(block_height) << ")";
   }
+    //this node should propose
 
-  LOG_INFO << "Proposal #"+std::to_string(next_proposal_height)+".";
+    if (!utx_pool.HasProposal() && utx_pool.HasPendingTransactions()) {
+        Hash prev_hash = final_chain.getHighestMerkleRoot();
+        ChainState prior = final_chain.getHighestChainState();
+        utx_pool.ProposeBlock(prev_hash, prior, keys, context);
+      }
 
-  Hash prev_hash = final_chain.getHighestMerkleRoot();
-  ChainState prior = final_chain.getHighestChainState();
-  std::vector<byte> proposal(utx_pool.ProposeBlock(prev_hash
-      , prior, keys, context));
+    LOG_INFO << "Proposal #"+std::to_string(block_height+1)+".";
 
-  LOG_DEBUG << "Propose Block: "+toHex(proposal);
 
-  // Create message
-  auto propose_msg = std::make_unique<DevcashMessage>("peers", PROPOSAL_BLOCK, proposal);
-  LOG_TRACE << "DevcashController()::CreateNextProposal(): complete";
-  return propose_msg;
+    std::vector<byte> proposal(utx_pool.getProposal());
+    LOG_DEBUG << "Propose Block: "+toHex(proposal);
+
+    // Create message
+    auto propose_msg = std::make_unique<DevcashMessage>("peers", PROPOSAL_BLOCK, proposal);
+    LOG_TRACE << "DevcashController()::CreateNextProposal(): complete";
+    return propose_msg;
+
 }
 
 void DevcashController::ValidatorCallback(DevcashMessageUniquePtr ptr) {
@@ -108,16 +110,15 @@ bool HandleFinalBlock(DevcashMessageUniquePtr ptr,
 
   if (utx_pool.HasProposal()) {
     ChainState current = top_block->getChainState();
+    Hash prev_hash = top_block->getMerkleRoot();
+    utx_pool.ReverifyProposal(prev_hash, current, keys);
+  }
 
-    //ProposedBlock is still valid in new context, do nothing
-    if (utx_pool.ReverifyProposal(current, keys)) return sent_message;
-
-    //ProposedBlock is now invalid, make a new one
-  } // else there is no ProposedBlock, make a new one
+  size_t block_height = final_chain.size();
 
   if (!utx_pool.HasPendingTransactions()) {
     LOG_INFO << "All pending transactions processed.";
-  } else {
+  } else if ((block_height+1)%context.get_peer_count() == context.get_current_node()) {
     callback(std::move(CreateNextProposal(keys,final_chain,utx_pool,context)));
     sent_message = true;
   }
@@ -178,13 +179,7 @@ bool HandleValidationBlock(DevcashMessageUniquePtr ptr,
     auto finalBlock = std::make_unique<DevcashMessage>("peers", FINAL_BLOCK, final_msg);
     callback(std::move(finalBlock));
     sent_message = true;
-  } else if (!utx_pool.HasProposal() && utx_pool.HasPendingTransactions()) {
-    //no proposal, but transactions available, so make proposal
-    callback(std::move(CreateNextProposal(keys,final_chain,utx_pool,context)));
-    sent_message = true;
-  } //else proposal exists, but not ready to finalize
-    //or no pending transactions
-    //do nothing in either case
+  }
 
   return sent_message;
 }
@@ -270,7 +265,6 @@ std::vector<byte> DevcashController::GenerateTransactions(size_t num) {
   std::vector<byte> inn_bin(Hex2Bin(context_.kINN_ADDR));
   Address inn_addr;
   std::copy_n(inn_bin.begin(), kADDR_SIZE, inn_addr.begin());
-  inn_addr[0] = 114;
 
   size_t addr_count = context_.kADDRs.size();
   std::vector<Address> addrs;
@@ -290,7 +284,8 @@ std::vector<byte> DevcashController::GenerateTransactions(size_t num) {
       Transfer transfer(addrs.at(i), 0, 1, 0);
       xfers.push_back(transfer);
     }
-    Transaction inn_tx(eOpType::Create, xfers, getEpoch()
+    Transaction inn_tx(eOpType::Create, xfers
+        , getEpoch()+(1000000*context_.get_current_node())
         , keys_.getKey(inn_addr), keys_);
     std::vector<byte> inn_canon(inn_tx.getCanonical());
     txs.insert(txs.end(), inn_canon.begin(), inn_canon.end());
@@ -303,7 +298,8 @@ std::vector<byte> DevcashController::GenerateTransactions(size_t num) {
         peer_xfers.push_back(sender);
         Transfer receiver(addrs.at(j), 0, 1, 0);
         peer_xfers.push_back(receiver);
-        Transaction peer_tx(eOpType::Create, peer_xfers, getEpoch()
+        Transaction peer_tx(eOpType::Create, peer_xfers
+            , getEpoch()+(1000000*context_.get_current_node())
             , keys_.getKey(addrs.at(i)), keys_);
         std::vector<byte> peer_canon(peer_tx.getCanonical());
         txs.insert(txs.end(), peer_canon.begin(), peer_canon.end());
@@ -366,22 +362,25 @@ std::string DevcashController::Start() {
   server_.StartServer();
   client_.StartClient();
 
-  //TODO: fix inn trnsactions
-  /*std::vector<byte> transactions = GenerateTransactions(1000);
-  auto announce_msg = std::make_unique<DevcashMessage>(context_.get_uri()
-      , TRANSACTION_ANNOUNCEMENT, transactions);
-  server_.QueueMessage(std::move(announce_msg));*/
+  if (generate_count_ > 0) {
+    std::vector<byte> transactions = GenerateTransactions(generate_count_);
+    auto announce_msg = std::make_unique<DevcashMessage>(context_.get_uri()
+        , TRANSACTION_ANNOUNCEMENT, transactions);
+    server_.QueueMessage(std::move(announce_msg));
+  }
 
   //TODO: fix workers
-  //workers_->Start();
+  workers_->Start();
   LOG_INFO << "Starting a control sleep";
   sleep(2);
 
   //TODO: fix status access violation
-  /*server_.QueueMessage(std::move(CreateNextProposal(keys_,
+  if (context_.get_current_node() == 0) {
+    server_.QueueMessage(std::move(CreateNextProposal(keys_,
       final_chain_,
       utx_pool_,
       context_)));
+  }
 
   // Loop for long runs
   auto ms = kMAIN_WAIT_INTERVAL;
@@ -393,7 +392,7 @@ std::string DevcashController::Start() {
       StopAll();
     }
     if (shutdown_) break;
-  }*/
+  }
   return out;
 }
 

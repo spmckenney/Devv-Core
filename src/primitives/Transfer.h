@@ -9,6 +9,7 @@
 #ifndef PRIMITIVES_TRANSFER_H_
 #define PRIMITIVES_TRANSFER_H_
 
+#include <algorithm>
 #include <string>
 #include <stdint.h>
 
@@ -28,8 +29,6 @@ class Transfer {
  public:
 
 /** Constructors */
-  Transfer() : canonical_() {}
-
   Transfer(const Address& addr, uint64_t coin, uint64_t amount
     , uint64_t delay)
     : canonical_(std::begin(addr), std::end(addr)) {

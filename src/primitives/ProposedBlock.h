@@ -149,6 +149,14 @@ public:
     num_bytes_ = 0;
   }
 
+  Hash getPrevHash() {
+    return prev_hash_;
+  }
+
+  void setPrevHash(const Hash& prev_hash) {
+    prev_hash_ = prev_hash;
+  }
+
   static size_t MinSize() {
     return 61;
   }

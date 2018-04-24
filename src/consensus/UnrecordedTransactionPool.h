@@ -153,7 +153,7 @@ class UnrecordedTransactionPool {
     return(!txs_.empty());
   }
 
-  std::vector<byte> ProposeBlock(const Hash& prev_hash, const ChainState& prior_state
+  bool ProposeBlock(const Hash& prev_hash, const ChainState& prior_state
       , const KeyRing& keys, const DevcashContext& context) {
     ChainState new_state(prior_state);
     Summary summary;
@@ -166,16 +166,25 @@ class UnrecordedTransactionPool {
         , new_state);
     new_proposal.SignBlock(keys, context);
     pending_proposal_ = new_proposal;
-    return pending_proposal_.getCanonical();
+    return true;
   }
 
   bool HasProposal() {
     return(!pending_proposal_.isNull());
   }
 
-  bool ReverifyProposal(const ChainState& prior, const KeyRing& keys) {
+  std::vector<byte> getProposal() {
+    return pending_proposal_.getCanonical();
+  }
+
+  bool ReverifyProposal(const Hash& prev_hash, const ChainState& prior, const KeyRing& keys) {
     if (pending_proposal_.isNull()) return false;
-    std::vector<Transaction> pending = pending_proposal_.getTransactions();
+    pending_proposal_.setPrevHash(prev_hash);
+    return true;
+    //The remainder of this function is unneeded when transactions are unique
+    //use logic like below if Proposals will be created in advance
+    //and Transactions may have already been finalized
+    /*std::vector<Transaction> pending = pending_proposal_.getTransactions();
     Summary summary;
     ChainState new_state(prior);
     if (ReverifyTransactions(pending, new_state, keys, summary)) {
@@ -183,7 +192,7 @@ class UnrecordedTransactionPool {
     }
     pending_proposal_.setNull();
     LOG_WARNING << "ProposedBlock invalidated by FinalBlock!";
-    return false;
+    return false;*/
   }
 
   bool CheckValidation(std::vector<byte> remote
