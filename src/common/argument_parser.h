@@ -25,6 +25,7 @@ struct devcash_options {
   std::string scan_file;
   std::string write_file;
   unsigned int generate_count;
+  unsigned int tx_batch_size;
   eDebugMode debug_mode;
 };
 
@@ -56,6 +57,7 @@ network could be build and tested.\n\nAllowed options");
       ("scan-file", po::value<std::string>(), "Initial transaction or blockchain input file")
       ("output", po::value<std::string>(), "Blockchain output path in binary JSON or CBOR")
       ("generate-tx", po::value<unsigned int>(), "Generate this many Transactions")
+      ("tx-batch-size", po::value<unsigned int>(), "Size of transaction batches")
       ;
 
     po::variables_map vm;
@@ -153,6 +155,14 @@ network could be build and tested.\n\nAllowed options");
     } else {
       LOG_INFO << "Generate Transactions was not set, defaulting to 0";
       options->generate_count = 0;
+    }
+
+    if (vm.count("tx-batch-size")) {
+      options->tx_batch_size = vm["tx-batch-size"].as<unsigned int>();
+      LOG_INFO << "Transaction batch size: " << options->tx_batch_size;
+    } else {
+      LOG_INFO << "Transaction batch size was not set, defaulting to 10";
+      options->tx_batch_size = 10;
     }
 
   }
