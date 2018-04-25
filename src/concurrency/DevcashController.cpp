@@ -370,7 +370,7 @@ std::string DevcashController::Start() {
   client_.ListenTo("peer");
   client_.ListenTo(context_.get_uri());
 
-  //server_.StartServer();
+  server_.StartServer();
   client_.StartClient();
   std::vector<std::vector<byte>> transactions;
   size_t processed = 0;

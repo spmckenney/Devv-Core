@@ -58,13 +58,22 @@ int main(int argc, char* argv[])
 
     zmq::context_t context(1);
 
-    std::unique_ptr<io::TransactionServer> server = create_transaction_server(*options, context);
-    std::unique_ptr<io::TransactionClient> client = create_transaction_client(*options, context);
-
     DevcashContext this_context(options->node_index,
                                 static_cast<eAppMode>(options->mode));
     KeyRing keys(this_context);
     ChainState prior;
+
+    std::unique_ptr<io::TransactionServer> server = create_transaction_server(*options, context);
+    std::unique_ptr<io::TransactionClient> client = create_transaction_client(*options, context);
+
+    auto be = options->bind_endpoint;
+
+    LOG_ERROR << "bind uri: " << be;
+
+    std::string this_uri = "tcp://localhost:" + be.substr(be.rfind(":"));
+    LOG_ERROR << "this uri: " << this_uri;
+
+    client->AddConnection(this_uri);
 
     DevcashController controller(*server,*client,
       options->num_validator_threads, options->num_consensus_threads,
