@@ -2,7 +2,7 @@
  * DevcashWorker.cpp
  *
  *  Created on: Mar 26, 2018
- *      Author: Silver
+ *      Author: Nick Williams
  */
 
 #include "DevcashWorker.h"
@@ -19,32 +19,20 @@
 #include "DevcashController.h"
 #include "DevcashRingQueue.h"
 
-namespace Devcash {
-
 using namespace Devcash;
 
-//exception toggling capability
-#if (defined(__cpp_exceptions) || defined(__EXCEPTIONS) || defined(_CPPUNWIND)) && not defined(DEVCASH_NOEXCEPTION)
-    #define CASH_THROW(exception) throw exception
-    #define CASH_TRY try
-    #define CASH_CATCH(exception) catch(exception)
-#else
-    #define CASH_THROW(exception) std::abort()
-    #define CASH_TRY if(true)
-    #define CASH_CATCH(exception) if(false)
-#endif
+namespace Devcash {
 
   /* Constructors/Destructors */
   DevcashControllerWorker::DevcashControllerWorker(DevcashController* control,
                     const int validators=kDEFAULT_WORKERS,
                     const int consensus=kDEFAULT_WORKERS)
      : validator_num_(validators), consensus_num_(consensus)
-     , validators_(validators), consensus_(consensus)
      , continue_(true), controller_(control)
   {
   }
 
-  void DevcashControllerWorker::start() {
+  void DevcashControllerWorker::Start() {
     CASH_TRY {
       for (int w = 0; w < validator_num_; w++) {
         validator_pool_.create_thread(
@@ -59,10 +47,10 @@ using namespace Devcash;
     }
   }
 
-  void DevcashControllerWorker::startToy() {
+  void DevcashControllerWorker::StartToy() {
     CASH_TRY {
       toy_mode_ = true;
-      start();
+      Start();
     } CASH_CATCH (const std::exception& e) {
       LOG_WARNING << FormatException(&e, "Worker.startToy");
     }
@@ -77,8 +65,6 @@ using namespace Devcash;
     LOG_DEBUG << "DevcashControllerWorker::StopAll()";
     CASH_TRY {
       continue_ = false;
-      validators_.ClearBlockers();
-      consensus_.ClearBlockers();
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
       validator_pool_.join_all();
       consensus_pool_.join_all();

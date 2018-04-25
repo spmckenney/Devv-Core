@@ -16,7 +16,9 @@
 #include "oracleInterface.h"
 #include "common/logger.h"
 #include "consensus/chainstate.h"
-#include "primitives/transaction.h"
+#include "primitives/Transaction.h"
+
+using namespace Devcash;
 
 class dnero : public oracleInterface {
 
@@ -47,7 +49,7 @@ class dnero : public oracleInterface {
    * @return true iff the transaction can be valid according to this oracle
    * @return false otherwise
    */
-  bool isValid(Devcash::DCTransaction) {
+  bool isSound(Transaction) {
     return true;
   }
 
@@ -63,13 +65,14 @@ class dnero : public oracleInterface {
    * @return true iff the transaction is valid according to this oracle
    * @return false otherwise
    */
-  bool isValid(Devcash::DCTransaction checkTx, Devcash::DCState& context) {
-    if (!isValid(checkTx)) return false;
-    for (std::vector<Devcash::DCTransfer>::iterator it=checkTx.xfers_.begin();
-        it != checkTx.xfers_.end(); ++it) {
-      if (it->amount_ < 0) {
-        if ((context.getAmount(dnerowallet::getCoinIndex(), it->addr_) < 1) &&
-            (context.getAmount(dneroavailable::getCoinIndex(),it->addr_) < 1)) {
+  bool isValid(Transaction checkTx, ChainState& context) {
+    if (!isSound(checkTx)) return false;
+    std::vector<Transfer> xfers = checkTx.getTransfers();
+    for (auto it=xfers.begin(); it != xfers.end(); ++it) {
+      if (it->getAmount() < 0) {
+        Address addr = it->getAddress();
+        if ((context.getAmount(dnerowallet::getCoinIndex(), addr) < 1) &&
+            (context.getAmount(dneroavailable::getCoinIndex(), addr) < 1)) {
           LOG_WARNING << "Error: Addr has no dnerowallet or dneroavailable.";
           return false;
         } //endif has dnerowallet or dneroavailable
@@ -86,8 +89,8 @@ class dnero : public oracleInterface {
  * @params checkTx the transaction to (in)validate
  * @return a tier 1 transaction to implement this tier 2 logic.
  */
-  Devcash::DCTransaction getT1Syntax(Devcash::DCTransaction theTx) {
-    Devcash::DCTransaction out(theTx);
+  Transaction getT1Syntax(Transaction theTx) {
+    Transaction out(theTx);
     //if (out.delay_ == 0) out.delay_ = kDEFAULT_DELAY;
     //out.type_ = dcash::getCoinType();
     return(out);
@@ -104,11 +107,10 @@ class dnero : public oracleInterface {
  * @return a tier 1 transaction to implement this tier 2 logic.
  * @return empty/null transaction if the transaction is invalid
  */
-  Devcash::DCTransaction Tier2Process(std::string rawTx,
-      Devcash::DCState context) {
-    Devcash::DCTransaction tx(rawTx);
+  Transaction Tier2Process(std::vector<byte> rawTx,
+      ChainState context, const KeyRing& keys) {
+    Transaction tx(rawTx, keys);
     if (!isValid(tx, context)) {
-      tx.setNull();
       return tx;
     }
     //if (tx.delay_ == 0) tx.delay_ = kDEFAULT_DELAY;

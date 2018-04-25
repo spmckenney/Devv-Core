@@ -15,7 +15,9 @@
 #include "oracleInterface.h"
 #include "common/logger.h"
 #include "consensus/chainstate.h"
-#include "primitives/transaction.h"
+#include "primitives/Transaction.h"
+
+using namespace Devcash;
 
 class dcash : public oracleInterface {
 
@@ -47,9 +49,9 @@ class dcash : public oracleInterface {
    * @return true iff the transaction can be valid according to this oracle
    * @return false otherwise
    */
-  bool isValid(Devcash::DCTransaction checkTx) {
-    for (std::vector<Devcash::DCTransfer>::iterator it=checkTx.xfers_.begin();
-        it != checkTx.xfers_.end(); ++it) {
+  bool isSound(Transaction checkTx) {
+    std::vector<Transfer> xfers = checkTx.getTransfers();
+    for (auto it=xfers.begin(); it != xfers.end(); ++it) {
       if (it->getDelay() != 0) {
         LOG_WARNING << "Error: Delays are not allowed for dcash.";
         return false;
@@ -70,11 +72,13 @@ class dcash : public oracleInterface {
    * @return true iff the transaction is valid according to this oracle
    * @return false otherwise
    */
-  bool isValid(Devcash::DCTransaction checkTx, Devcash::DCState& context) {
-    if (!isValid(checkTx)) return false;
-    for (auto it=checkTx.xfers_.begin(); it != checkTx.xfers_.end(); ++it) {
-      if (it->amount_ < 0) {
-        if (context.getAmount(dnerowallet::getCoinIndex(), it->addr_) > 0) {
+  bool isValid(Transaction checkTx, ChainState& context) {
+    if (!isSound(checkTx)) return false;
+    std::vector<Transfer> xfers = checkTx.getTransfers();
+    for (auto it=xfers.begin(); it != xfers.end(); ++it) {
+      if (it->getAmount() < 0) {
+        Address addr = it->getAddress();
+        if (context.getAmount(dnerowallet::getCoinIndex(), addr) > 0) {
           LOG_WARNING << "Error: Dnerowallets may not send dcash.";
           return false;
         } //endif has dnerowallet
@@ -89,7 +93,7 @@ class dcash : public oracleInterface {
  * @params checkTx the transaction to (in)validate
  * @return a tier 1 transaction to implement this tier 2 logic.
  */
-  Devcash::DCTransaction getT1Syntax(Devcash::DCTransaction theTx) {
+  Transaction getT1Syntax(Transaction theTx) {
     return theTx;
   }
 
@@ -104,11 +108,10 @@ class dcash : public oracleInterface {
    * @return a tier 1 transaction to implement this tier 2 logic.
    * @return empty/null transaction if the transaction is invalid
    */
-    Devcash::DCTransaction Tier2Process(std::string rawTx,
-        Devcash::DCState context) {
-      Devcash::DCTransaction tx(rawTx);
+    Transaction Tier2Process(std::vector<byte> rawTx,
+        ChainState context, const KeyRing& keys) {
+      Transaction tx(rawTx, keys);
       if (!isValid(tx, context)) {
-        tx.setNull();
         return tx;
       }
       return tx;

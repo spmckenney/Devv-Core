@@ -7,10 +7,10 @@
  */
 #pragma once
 
+#include <atomic>
 #include <vector>
 
-#include "consensus/proposedblock.h"
-#include "consensus/finalblock.h"
+#include "primitives/FinalBlock.h"
 
 namespace Devcash {
 
@@ -38,13 +38,12 @@ struct TypeName<int>
 // usage:
 //const char* name = TypeName<MyType>::Get();
 
-template <typename BlockType>
 class Blockchain {
 public:
-  typedef std::shared_ptr<BlockType> BlockSharedPtr;
+  typedef std::shared_ptr<FinalBlock> BlockSharedPtr;
 
   Blockchain(const std::string& name)
-    : name_(name)
+    : name_(name), chain_size_(0)
   {
   }
 
@@ -54,50 +53,63 @@ public:
 
   void push_back(BlockSharedPtr block) {
     chain_.push_back(block);
-    LOG_TRACE << name_ << ": push_back(); new size(" << chain_.size() << ")";
+    chain_size_++;
+    LOG_TRACE << name_ << ": push_back(); new size(" << chain_size_ << ")";
   }
 
   BlockSharedPtr& back() {
-    LOG_TRACE << name_ << ": back(); size(" << chain_.size() << ")";
+    LOG_TRACE << name_ << ": back(); size(" << chain_size_ << ")";
     return chain_.back();
   }
 
   const BlockSharedPtr& back() const {
-    LOG_TRACE << name_ << ": back() const; size(" << chain_.size() << ")";
+    LOG_TRACE << name_ << ": back() const; size(" << chain_size_ << ")";
     return chain_.back();
   }
 
   size_t size() const {
-    LOG_TRACE << name_ << ": size(" << chain_.size() << ")";
-    return chain_.size();
+    LOG_TRACE << name_ << ": size(" << chain_size_ << ")";
+    return chain_size_;
   }
 
-  BlockSharedPtr& at(size_t where) {
-    LOG_TRACE << name_ << ": at(" << where << "); size(" << chain_.size() << ")";
-    return chain_.at(where);
+  Hash getHighestMerkleRoot() const {
+    Hash genesis;
+    if (chain_size_ < 1) return genesis;
+    return back().get()->getMerkleRoot();
   }
 
-  const BlockSharedPtr& at(size_t where) const {
-    LOG_TRACE << name_ << ": at(" << where << ") const; size(" << chain_.size() << ")";
-    return chain_.at(where);
+  ChainState getHighestChainState() const {
+    return back().get()->getChainState();
+  }
+
+  std::vector<byte> BinaryDump() const {
+    std::vector<byte> out;
+    for (auto const& item : chain_) {
+      std::vector<byte> canonical = item.get()->getCanonical();
+      out.insert(out.end(), canonical.begin(), canonical.end());
+    }
+    return out;
+  }
+
+  std::string JsonDump() const {
+    std::string out("[");
+    bool first = true;
+    for (auto const& item : chain_) {
+      if (first) {
+        first = false;
+      } else {
+        out += ",";
+      }
+      out += item.get()->getJSON();
+    }
+    out += "]";
+    return out;
   }
 
 private:
   std::vector<BlockSharedPtr> chain_;
   const std::string name_;
+  std::atomic<int> chain_size_;
 };
-
-typedef Blockchain<FinalBlock> FinalBlockchain;
-typedef Blockchain<ProposedBlock> ProposedBlockchain;
-
-  /*
-class FinalBlockchain {
-  FinalBlockchain();
-  ~FinalBlockchain();
-
-private:
-  std::vector<FinalPtr> chain_;
-};
-  */
 
 } // namespace Devcash
