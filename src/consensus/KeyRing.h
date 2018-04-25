@@ -19,14 +19,15 @@ class KeyRing {
   KeyRing(DevcashContext& context);
   virtual ~KeyRing() {};
 
-  bool initKeys();
+  Address InsertAddress(std::string hex, EC_KEY* key);
   EC_KEY* getKey(const Address& addr) const;
   bool isINN(const Address& addr) const;
   EC_KEY* getNodeKey(int index) const;
 
  private:
   DevcashContext context_;
-  std::map<std::vector<byte>, EC_KEY*> key_map_;
+  std::map<Address, EC_KEY*> key_map_;
+  std::vector<Address> node_list_;
   Address inn_addr_;
 };
 
