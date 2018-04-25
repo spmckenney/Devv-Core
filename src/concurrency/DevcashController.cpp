@@ -318,13 +318,12 @@ std::vector<std::vector<byte>> DevcashController::GenerateTransactions() {
     batch_counter = 0;
   }
 
-  LOG_INFO << "Generated "+std::to_string(counter)+" transactions in "
-      +std::to_string(out.size())+" batches.";
+  LOG_INFO << "Generated " << counter << " transactions in " << out.size() << " batches.";
   return out;
 }
 
 void DevcashController::StartToy(unsigned int node_index) {
-  //workers_->start();
+  workers_->Start();
 
   LOG_DEBUG << "READY? StartToy()";
   client_.AttachCallback([this](DevcashMessageUniquePtr ptr) {
@@ -375,6 +374,10 @@ std::string DevcashController::Start() {
   std::vector<std::vector<byte>> transactions;
   size_t processed = 0;
 
+  workers_->Start();
+
+  LOG_DEBUG << "QueueMessage() in 5 sec";
+  sleep(5);
   if (generate_count_ > 0) {
     transactions = GenerateTransactions();
     auto announce_msg = std::make_unique<DevcashMessage>(context_.get_uri()
@@ -383,7 +386,6 @@ std::string DevcashController::Start() {
     processed++;
   }
 
-  workers_->Start();
   LOG_INFO << "Starting a control sleep";
   sleep(2);
 
@@ -420,18 +422,18 @@ void DevcashController::StopAll() {
   client_.StopClient();
   server_.StopServer();
   std::this_thread::sleep_for(std::chrono::milliseconds(100));
-  //workers_->StopAll();
+  workers_->StopAll();
   std::this_thread::sleep_for(std::chrono::milliseconds(100));
 }
 
 void DevcashController::PushValidator(DevcashMessageUniquePtr ptr) {
   LOG_DEBUG << "DevcashController::PushValidator()";
-  //workers_->pushValidator(std::move(ptr));
+  workers_->pushValidator(std::move(ptr));
 }
 
 void DevcashController::PushConsensus(DevcashMessageUniquePtr ptr) {
   LOG_DEBUG << "DevcashController::PushConsensus()";
-  //workers_->pushConsensus(std::move(ptr));
+  workers_->pushConsensus(std::move(ptr));
 }
 
 } //end namespace Devcash
