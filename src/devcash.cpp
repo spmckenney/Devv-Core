@@ -70,8 +70,12 @@ int main(int argc, char* argv[])
 
     LOG_ERROR << "bind uri: " << be;
 
-    std::string this_uri = "tcp://localhost:" + be.substr(be.rfind(":"));
-    LOG_ERROR << "this uri: " << this_uri;
+    std::string this_uri = "";
+    try {
+      this_uri = "tcp://localhost" + be.substr(be.rfind(":"));
+    } catch (std::range_error& e) {
+      LOG_ERROR << "Extracting bind number failed: " << be;
+    }
 
     client->AddConnection(this_uri);
 
