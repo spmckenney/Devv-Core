@@ -298,7 +298,7 @@ std::vector<byte> DevcashController::GenerateTransactions(size_t num) {
         peer_xfers.push_back(sender);
         Transfer receiver(addrs.at(j), 0, 1, 0);
         peer_xfers.push_back(receiver);
-        Transaction peer_tx(eOpType::Create, peer_xfers
+        Transaction peer_tx(eOpType::Exchange, peer_xfers
             , getEpoch()+(1000000*context_.get_current_node())
             , keys_.getKey(addrs.at(i)), keys_);
         std::vector<byte> peer_canon(peer_tx.getCanonical());
