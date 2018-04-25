@@ -68,7 +68,7 @@ int main(int argc, char* argv[])
 
     DevcashController controller(*server,*client,
       options->num_validator_threads, options->num_consensus_threads,
-      options->generate_count,
+      options->generate_count, options->tx_batch_size,
       keys, this_context, prior);
 
     DevcashNode this_node(controller, this_context);

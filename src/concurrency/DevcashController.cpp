@@ -29,6 +29,7 @@ DevcashController::DevcashController(
     const int validatorCount,
     const int consensusCount,
     const int generateCount,
+    const int batchSize,
     KeyRing& keys,
     DevcashContext& context,
     const ChainState& prior)
@@ -37,6 +38,7 @@ DevcashController::DevcashController(
   , validator_count_(validatorCount)
   , consensus_count_(consensusCount)
   , generate_count_(generateCount)
+  , batch_size_(batchSize)
   , keys_(keys)
   , context_(context)
   , final_chain_("final_chain_")
@@ -254,8 +256,8 @@ void DevcashController::SeedTransactions(std::vector<byte> txs) {
   }
 }
 
-std::vector<byte> DevcashController::GenerateTransactions(size_t num) {
-  std::vector<byte> txs;
+std::vector<std::vector<byte>> DevcashController::GenerateTransactions() {
+  std::vector<std::vector<byte>> out;
   EVP_MD_CTX* ctx;
   if(!(ctx = EVP_MD_CTX_create())) {
     LOG_FATAL << "Could not create signature context!";
@@ -276,40 +278,49 @@ std::vector<byte> DevcashController::GenerateTransactions(size_t num) {
   }
 
   size_t counter = 0;
-  while (counter < num) {
-    std::vector<Transfer> xfers;
-    Transfer inn_transfer(inn_addr, 0, -1*addr_count, 0);
-    xfers.push_back(inn_transfer);
-    for (size_t i=0; i<addr_count; ++i) {
-      Transfer transfer(addrs.at(i), 0, 1, 0);
-      xfers.push_back(transfer);
-    }
-    Transaction inn_tx(eOpType::Create, xfers
-        , getEpoch()+(1000000*context_.get_current_node())
-        , keys_.getKey(inn_addr), keys_);
-    std::vector<byte> inn_canon(inn_tx.getCanonical());
-    txs.insert(txs.end(), inn_canon.begin(), inn_canon.end());
-    counter++;
-    for (size_t i=0; i<addr_count; ++i) {
-      for (size_t j=0; j<addr_count; ++j) {
-        if (i==j) continue;
-        std::vector<Transfer> peer_xfers;
-        Transfer sender(addrs.at(i), 0, -1, 0);
-        peer_xfers.push_back(sender);
-        Transfer receiver(addrs.at(j), 0, 1, 0);
-        peer_xfers.push_back(receiver);
-        Transaction peer_tx(eOpType::Exchange, peer_xfers
-            , getEpoch()+(1000000*context_.get_current_node())
-            , keys_.getKey(addrs.at(i)), keys_);
-        std::vector<byte> peer_canon(peer_tx.getCanonical());
-        txs.insert(txs.end(), peer_canon.begin(), peer_canon.end());
-        counter++;
+  size_t batch_counter = 0;
+  while (counter < generate_count_) {
+    std::vector<byte> batch;
+    while (batch_counter < batch_size_) {
+      std::vector<Transfer> xfers;
+      Transfer inn_transfer(inn_addr, 0, -1*addr_count, 0);
+      xfers.push_back(inn_transfer);
+      for (size_t i=0; i<addr_count; ++i) {
+        Transfer transfer(addrs.at(i), 0, 1, 0);
+        xfers.push_back(transfer);
       }
-    }
+      Transaction inn_tx(eOpType::Create, xfers
+          , getEpoch()+(1000000*context_.get_current_node())
+          , keys_.getKey(inn_addr), keys_);
+      std::vector<byte> inn_canon(inn_tx.getCanonical());
+      batch.insert(batch.end(), inn_canon.begin(), inn_canon.end());
+      batch_counter++;
+      for (size_t i=0; i<addr_count; ++i) {
+        for (size_t j=0; j<addr_count; ++j) {
+          if (i==j) continue;
+          std::vector<Transfer> peer_xfers;
+          Transfer sender(addrs.at(i), 0, -1, 0);
+          peer_xfers.push_back(sender);
+          Transfer receiver(addrs.at(j), 0, 1, 0);
+          peer_xfers.push_back(receiver);
+          Transaction peer_tx(eOpType::Exchange, peer_xfers
+              , getEpoch()+(1000000*context_.get_current_node())
+              , keys_.getKey(addrs.at(i)), keys_);
+          std::vector<byte> peer_canon(peer_tx.getCanonical());
+          batch.insert(batch.end(), peer_canon.begin(), peer_canon.end());
+          batch_counter++;
+        } //end inner for
+      } //end outer for
+    } //end batch while
+    out.push_back(batch);
+    counter += batch_counter;
+    batch.clear();
+    batch_counter = 0;
   }
 
-  LOG_INFO << "Generated "+std::to_string(counter)+" transactions.";
-  return txs;
+  LOG_INFO << "Generated "+std::to_string(counter)+" transactions in "
+      +std::to_string(out.size())+" batches.";
+  return out;
 }
 
 void DevcashController::StartToy(unsigned int node_index) {
@@ -359,22 +370,23 @@ std::string DevcashController::Start() {
   client_.ListenTo("peer");
   client_.ListenTo(context_.get_uri());
 
-  server_.StartServer();
+  //server_.StartServer();
   client_.StartClient();
+  std::vector<std::vector<byte>> transactions;
+  size_t processed = 0;
 
   if (generate_count_ > 0) {
-    std::vector<byte> transactions = GenerateTransactions(generate_count_);
+    transactions = GenerateTransactions();
     auto announce_msg = std::make_unique<DevcashMessage>(context_.get_uri()
-        , TRANSACTION_ANNOUNCEMENT, transactions);
+        , TRANSACTION_ANNOUNCEMENT, transactions.at(processed));
     server_.QueueMessage(std::move(announce_msg));
+    processed++;
   }
 
-  //TODO: fix workers
   workers_->Start();
   LOG_INFO << "Starting a control sleep";
   sleep(2);
 
-  //TODO: fix status access violation
   if (context_.get_current_node() == 0) {
     server_.QueueMessage(std::move(CreateNextProposal(keys_,
       final_chain_,
@@ -387,7 +399,12 @@ std::string DevcashController::Start() {
   while (true) {
     LOG_DEBUG << "Sleeping for " << ms;
     std::this_thread::sleep_for(millisecs(ms));
-    if (!utx_pool_.HasPendingTransactions()) {
+    if (processed < transactions.size()) {
+      auto announce_msg = std::make_unique<DevcashMessage>(context_.get_uri()
+          , TRANSACTION_ANNOUNCEMENT, transactions.at(processed));
+      server_.QueueMessage(std::move(announce_msg));
+      processed++;
+    } else if (!utx_pool_.HasPendingTransactions()) {
       LOG_INFO << "No pending transactions.  Shut down.";
       StopAll();
     }
