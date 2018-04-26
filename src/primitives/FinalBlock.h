@@ -79,7 +79,7 @@ public:
     }
     Summary temp(serial, offset);
     summary_ = temp;
-    Validation val_temp(serial, offset, val_count_);
+    Validation val_temp(serial, offset);
     vals_ = val_temp;
   }
   FinalBlock(const FinalBlock& other)

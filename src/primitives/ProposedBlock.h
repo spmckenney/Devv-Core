@@ -80,7 +80,7 @@ public:
     }
     Summary temp(serial, offset);
     summary_ = temp;
-    Validation val_temp(serial, offset, val_count_);
+    Validation val_temp(serial, offset);
     vals_ = val_temp;
   }
 
@@ -240,9 +240,10 @@ public:
     std::copy_n(remote.begin(), SHA256_DIGEST_LENGTH, incoming_hash.begin());
     if (incoming_hash == prev_hash_) { //validations are for this proposal
       size_t offset = SHA256_DIGEST_LENGTH;
-      Validation val_temp(remote, offset, val_count_);
+      Validation val_temp(remote, offset);
       vals_.addValidation(val_temp);
-      if (vals_.GetValidationCount() > (context.get_peer_count()/2)) {
+      val_count_ = vals_.GetValidationCount();
+      if (val_count_ > (context.get_peer_count()/2)) {
         return true;
       }
     } else {

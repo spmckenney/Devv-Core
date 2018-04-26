@@ -37,14 +37,9 @@ class Validation {
 
 /** Constrcutors */
   Validation() : sigs_() {}
-  Validation(const std::vector<byte>& serial, size_t& offset
-      , uint32_t& pair_count) : sigs_() {
+  Validation(const std::vector<byte>& serial, size_t& offset) : sigs_() {
     size_t remainder = serial.size()-offset;
-    if (pair_count*PairSize() != remainder) {
-      LOG_WARNING << "Validation has invalid size.";
-      return;
-    }
-    for (size_t i=0; i<pair_count; ++i) {
+    while (remainder >= PairSize()) {
       Address one_addr;
       Signature one_sig;
       std::copy_n(serial.begin()+offset, kADDR_SIZE, one_addr.begin());
@@ -53,6 +48,7 @@ class Validation {
       offset += kSIG_SIZE;
       std::pair<Address, Signature> one_pair(one_addr, one_sig);
       sigs_.insert(one_pair);
+      remainder -= PairSize();
     }
   }
   Validation(const Validation& other) : sigs_(other.sigs_) {}
