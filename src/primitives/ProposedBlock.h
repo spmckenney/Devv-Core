@@ -243,6 +243,8 @@ public:
       Validation val_temp(remote, offset);
       vals_.addValidation(val_temp);
       val_count_ = vals_.GetValidationCount();
+      num_bytes_ = MinSize()+tx_size_+sum_size_
+        +val_count_*vals_.PairSize();
       if (val_count_ > (context.get_peer_count()/2)) {
         return true;
       }

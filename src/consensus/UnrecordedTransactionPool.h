@@ -166,6 +166,7 @@ class UnrecordedTransactionPool {
   }
 
   bool HasPendingTransactions() {
+	LOG_DEBUG << "Number pending transactions: "+std::to_string(txs_.size());
     return(!txs_.empty());
   }
 
