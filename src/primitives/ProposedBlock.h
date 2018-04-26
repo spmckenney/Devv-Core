@@ -235,6 +235,7 @@ public:
       LOG_WARNING << "Invalid validation data, too small!";
       return false;
     }
+    LOG_DEBUG << "ProposedBlock checking validation data.";
     Hash incoming_hash;
     std::copy_n(remote.begin(), SHA256_DIGEST_LENGTH, incoming_hash.begin());
     if (incoming_hash == prev_hash_) { //validations are for this proposal

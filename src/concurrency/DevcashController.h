@@ -35,7 +35,6 @@ class DevcashController {
   virtual ~DevcashController() {};
 
   std::vector<std::vector<byte>> GenerateTransactions();
-  void SeedTransactions(std::vector<byte> txs);
   void StartToy(unsigned int node_index);
 
   /**
@@ -57,8 +56,8 @@ private:
   io::TransactionClient& client_;
   const int validator_count_;
   const int consensus_count_;
-  const int generate_count_;
-  const int batch_size_;
+  const size_t generate_count_;
+  const size_t batch_size_;
   KeyRing& keys_;
   DevcashContext& context_;
   Blockchain final_chain_;

@@ -46,13 +46,22 @@ class UnrecordedTransactionPool {
    *  @return true iff all Transactions are valid and in the pool
   */
     bool AddTransactions(std::vector<byte> serial, const KeyRing& keys) {
-      std::vector<Transaction> temp;
-      size_t counter = 0;
-      while (counter < serial.size()) {
-        Transaction one_tx(serial, counter, keys);
-        counter += one_tx.getByteSize();
+      CASH_TRY {
+        std::vector<Transaction> temp;
+        size_t counter = 0;
+        while (counter < serial.size()) {
+          //note that Transaction constructor advances counter by reference
+          Transaction one_tx(serial, counter, keys);
+          if (one_tx.getByteSize() < Transaction::MinSize()) {
+            LOG_WARNING << "Invalid transaction, dropping the remainder of input.";
+            break;
+          }
+          temp.push_back(one_tx);
+        }
+        return AddTransactions(temp, keys);
+      } CASH_CATCH (const std::exception& e) {
+        LOG_FATAL << FormatException(&e, "UnrecordedTransactionPool.AddTransactions()");
       }
-      return AddTransactions(temp, keys);
     }
 
 /** Adds Transactions to this pool.
@@ -66,22 +75,29 @@ class UnrecordedTransactionPool {
 */
   bool AddTransactions(std::vector<Transaction> txs, const KeyRing& keys) {
     bool all_good = true;
-    int counter = 0;
-    for (auto const& item : txs) {
-      Signature sig = item.getSignature();
-      auto it = txs_.find(sig);
-      if (it != txs_.end()) {
-        it->second.first++;
-      } else if (item.isSound(keys)) {
-        SharedTransaction pair((uint8_t) 1, item);
-        txs_.insert(std::pair<Signature, SharedTransaction>(sig, pair));
-        counter++;
-      } else { //tx is unsound
-        all_good = false;
+    CASH_TRY {
+      int counter = 0;
+      for (auto const& item : txs) {
+        Signature sig = item.getSignature();
+        auto it = txs_.find(sig);
+        if (it != txs_.end()) {
+          it->second.first++;
+          LOG_DEBUG << "Transaction already in UTX pool, increment reference count.";
+        } else if (item.isSound(keys)) {
+          SharedTransaction pair((uint8_t) 1, item);
+          txs_.insert(std::pair<Signature, SharedTransaction>(sig, pair));
+          counter++;
+        } else { //tx is unsound
+          LOG_DEBUG << "Transaction is unsound.";
+          all_good = false;
+        }
       }
+      LOG_INFO << "Added "+std::to_string(counter)+" sound transactions.";
+      LOG_INFO << std::to_string(txs_.size())+" transactions pending.";
+    } CASH_CATCH (const std::exception& e) {
+      LOG_FATAL << FormatException(&e, "UnrecordedTransactionPool.AddTransactions()");
+      all_good = false;
     }
-    LOG_INFO << "Added "+std::to_string(counter)+" sound transactions.";
-    LOG_INFO << std::to_string(txs_.size())+" transactions pending.";
     return all_good;
   }
 

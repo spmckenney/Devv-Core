@@ -73,12 +73,18 @@ public:
   }
 
   Hash getHighestMerkleRoot() const {
-    Hash genesis;
-    if (chain_size_ < 1) return genesis;
+    if (chain_size_ < 1) {
+      Hash genesis;
+      return genesis;
+    }
     return back().get()->getMerkleRoot();
   }
 
   ChainState getHighestChainState() const {
+    if (chain_size_ < 1) {
+      ChainState state;
+      return state;
+    }
     return back().get()->getChainState();
   }
 
