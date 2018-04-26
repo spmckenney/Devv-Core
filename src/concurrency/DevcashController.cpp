@@ -366,12 +366,19 @@ std::string DevcashController::Start() {
       transactions = GenerateTransactions();
       LOG_INFO << "Finished Generating Transactions.";
 
-      LOG_DEBUG << "QueueMessage() in 5 sec";
-      sleep(5);
       auto announce_msg = std::make_unique<DevcashMessage>(context_.get_uri()
           , TRANSACTION_ANNOUNCEMENT, transactions.at(processed));
       server_.QueueMessage(std::move(announce_msg));
       processed++;
+      LOG_DEBUG << "QueueMessage() in 5 sec";
+      sleep(5);
+    }
+
+    if (context_.get_current_node() == 0 && utx_pool_.HasPendingTransactions()) {
+	  server_.QueueMessage(std::move(CreateNextProposal(keys_,
+	  final_chain_,
+	  utx_pool_,
+	  context_)));
     }
 
     // Loop for long runs
@@ -384,6 +391,7 @@ std::string DevcashController::Start() {
             , TRANSACTION_ANNOUNCEMENT, transactions.at(processed));
         server_.QueueMessage(std::move(announce_msg));
         processed++;
+
       } else if (!utx_pool_.HasPendingTransactions()) {
 		if (processed >= transactions.size()) {
           LOG_INFO << "Transactions complete.  Shut down.";
