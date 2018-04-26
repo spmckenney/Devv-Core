@@ -385,8 +385,10 @@ std::string DevcashController::Start() {
         server_.QueueMessage(std::move(announce_msg));
         processed++;
       } else if (!utx_pool_.HasPendingTransactions()) {
-        LOG_INFO << "No pending transactions.  Shut down.";
-        StopAll();
+		if (processed >= transactions.size()) {
+          LOG_INFO << "Transactions complete.  Shut down.";
+          StopAll();
+	    }
       }
       if (shutdown_) break;
     }
