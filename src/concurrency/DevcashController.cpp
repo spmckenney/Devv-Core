@@ -321,7 +321,6 @@ std::vector<std::vector<byte>> DevcashController::GenerateTransactions() {
     counter += batch_counter;
     batch.clear();
     batch_counter = 0;
-    break;
   } //end counter while
 
   LOG_INFO << "Generated " << counter << " transactions in " << out.size() << " batches.";
