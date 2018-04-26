@@ -166,6 +166,7 @@ class UnrecordedTransactionPool {
   }
 
   bool HasPendingTransactions() {
+	LOG_DEBUG << "Number pending transactions: "+std::to_string(txs_.size());
     return(!txs_.empty());
   }
 
@@ -225,8 +226,8 @@ class UnrecordedTransactionPool {
 
   const FinalBlock FinalizeRemoteBlock(const std::vector<byte>& serial
       , const ChainState prior, const KeyRing& keys) {
-    ProposedBlock temp(serial, prior, keys);
-    return FinalizeBlock(temp);
+    FinalBlock final(serial, prior, keys);
+    return final;
   }
 
   /** Remove unreferenced Transactions from the pool.

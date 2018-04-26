@@ -142,7 +142,7 @@ class Summary {
   */
   bool addItem(const Address& addr, uint64_t coinType, uint64_t delta
       , uint64_t delay=0) {
-    DelayedItem item(delta, delay);
+    DelayedItem item(delay, delta);
     return addItem(addr, coinType, item);
   }
 

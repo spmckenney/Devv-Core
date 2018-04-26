@@ -69,7 +69,7 @@ DevcashMessageUniquePtr CreateNextProposal(const KeyRing& keys,
   LOG_INFO << "Proposal #"+std::to_string(block_height+1)+".";
 
   std::vector<byte> proposal(utx_pool.getProposal());
-  LOG_DEBUG << "Propose Block: "+toHex(proposal);
+  //LOG_DEBUG << "Propose Block: "+toHex(proposal);
 
   // Create message
   auto propose_msg = std::make_unique<DevcashMessage>("peers", PROPOSAL_BLOCK, proposal);
@@ -85,6 +85,12 @@ void DevcashController::ValidatorCallback(DevcashMessageUniquePtr ptr) {
     if (ptr->message_type == TRANSACTION_ANNOUNCEMENT) {
       DevcashMessage msg(*ptr.get());
       utx_pool_.AddTransactions(msg.data, keys_);
+      size_t block_height = final_chain_.size();
+      if ((block_height+1)%context_.get_peer_count()
+            == context_.get_current_node()) {
+		server_.QueueMessage(std::move(
+			CreateNextProposal(keys_,final_chain_,utx_pool_,context_)));
+	  }
     } else {
       LOG_DEBUG << "Unexpected message @ validator, to consensus.\n";
       PushConsensus(std::move(ptr));
@@ -360,22 +366,19 @@ std::string DevcashController::Start() {
       transactions = GenerateTransactions();
       LOG_INFO << "Finished Generating Transactions.";
 
-      LOG_DEBUG << "QueueMessage() in 5 sec";
-      sleep(5);
       auto announce_msg = std::make_unique<DevcashMessage>(context_.get_uri()
           , TRANSACTION_ANNOUNCEMENT, transactions.at(processed));
       server_.QueueMessage(std::move(announce_msg));
       processed++;
+      LOG_DEBUG << "QueueMessage() in 5 sec";
+      sleep(5);
     }
 
-    LOG_INFO << "Starting a control sleep";
-    sleep(2);
-
-    if (context_.get_current_node() == 0) {
-      server_.QueueMessage(std::move(CreateNextProposal(keys_,
-        final_chain_,
-        utx_pool_,
-        context_)));
+    if (context_.get_current_node() == 0 && utx_pool_.HasPendingTransactions()) {
+	  server_.QueueMessage(std::move(CreateNextProposal(keys_,
+	  final_chain_,
+	  utx_pool_,
+	  context_)));
     }
 
     // Loop for long runs
@@ -388,9 +391,12 @@ std::string DevcashController::Start() {
             , TRANSACTION_ANNOUNCEMENT, transactions.at(processed));
         server_.QueueMessage(std::move(announce_msg));
         processed++;
+
       } else if (!utx_pool_.HasPendingTransactions()) {
-        LOG_INFO << "No pending transactions.  Shut down.";
-        StopAll();
+		if (processed >= transactions.size()) {
+          LOG_INFO << "Transactions complete.  Shut down.";
+          StopAll();
+	    }
       }
       if (shutdown_) break;
     }
