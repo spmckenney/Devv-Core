@@ -374,16 +374,6 @@ std::string DevcashController::Start() {
       processed++;
     }
 
-    LOG_INFO << "Starting a control sleep";
-    sleep(2);
-
-    if (context_.get_current_node() == 0) {
-      server_.QueueMessage(std::move(CreateNextProposal(keys_,
-        final_chain_,
-        utx_pool_,
-        context_)));
-    }
-
     // Loop for long runs
     auto ms = kMAIN_WAIT_INTERVAL;
     while (true) {

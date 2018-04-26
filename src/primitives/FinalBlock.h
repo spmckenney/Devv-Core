@@ -53,7 +53,6 @@ public:
       LOG_WARNING << "Invalid serialized FinalBlock, wrong size!";
       return;
     }
-    std::vector<byte> sub(std::begin(serial)+offset, std::begin(serial)+offset+8);
     block_time_ = BinToUint64(serial, offset);
     offset += 8;
     std::copy_n(serial.begin()+offset, SHA256_DIGEST_LENGTH, prev_hash_.begin());
