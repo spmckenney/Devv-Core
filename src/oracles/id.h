@@ -12,12 +12,11 @@
 #include <string>
 
 #include "oracleInterface.h"
-#include "common/json.hpp"
 #include "common/logger.h"
 #include "consensus/chainstate.h"
-#include "primitives/transaction.h"
+#include "primitives/Transaction.h"
 
-using json = nlohmann::json;
+using namespace Devcash;
 
 class DCid : public oracleInterface {
 
@@ -51,8 +50,8 @@ class DCid : public oracleInterface {
    * @return true iff the transaction can be valid according to this oracle
    * @return false otherwise
    */
-  bool isValid(Devcash::DCTransaction checkTx) {
-    if (checkTx.isOpType("exchange")) return false;
+  bool isSound(Transaction checkTx) {
+    if (checkTx.getOperation() == eOpType::Exchange) return false;
     return true;
   }
 
@@ -68,12 +67,13 @@ class DCid : public oracleInterface {
    * @return true iff the transaction is valid according to this oracle
    * @return false otherwise
    */
-  bool isValid(Devcash::DCTransaction checkTx, Devcash::DCState& context) {
-    if (!isValid(checkTx)) return false;
-    for (std::vector<Devcash::DCTransfer>::iterator it=checkTx.xfers_.begin();
-        it != checkTx.xfers_.end(); ++it) {
-      if (it->amount_ > 0) {
-        if ((context.getAmount(DCid::getCoinIndex(), it->addr_)) > 0) {
+  bool isValid(Transaction checkTx, ChainState& context) {
+    if (!isSound(checkTx)) return false;
+    std::vector<Transfer> xfers;
+    for (auto it=xfers.begin(); it != xfers.end(); ++it) {
+      if (it->getAmount() > 0) {
+        Address addr = it->getAddress();
+        if ((context.getAmount(DCid::getCoinIndex(), addr)) > 0) {
           LOG_WARNING << "Error: Addr already has an ID token.";
           return false;
         } //endif has ID
@@ -90,8 +90,8 @@ class DCid : public oracleInterface {
  * @params checkTx the transaction to (in)validate
  * @return a tier 1 transaction to implement this tier 2 logic.
  */
-  Devcash::DCTransaction getT1Syntax(Devcash::DCTransaction theTx) {
-    Devcash::DCTransaction out(theTx);
+  Transaction getT1Syntax(Transaction theTx) {
+    Transaction out(theTx);
     //if (out.delay_ == 0) out.delay_ = kID_LIFETIME;
     return(out);
   }
@@ -109,21 +109,18 @@ class DCid : public oracleInterface {
  * @return a tier 1 transaction to implement this tier 2 logic.
  * @return empty/null transaction if the transaction is invalid
  */
-  Devcash::DCTransaction Tier2Process(std::string rawTx,
-      Devcash::DCState context) {
-    json jsonObj = json::parse(rawTx);
-    Devcash::DCTransaction tx(jsonObj.dump());
+  Transaction Tier2Process(std::vector<byte> rawTx,
+      ChainState context, const KeyRing& keys) {
+    Transaction tx(rawTx, keys);
     if (!isValid(tx, context)) {
-      tx.setNull();
       return tx;
     }
-    if (tx.isOpType("create") || tx.isOpType("modify")) {
-      if (jsonObj["idRef"].empty()) {
+    if (tx.getOperation() == 0 || tx.getOperation() == 1) {
+      /*if (jsonObj["idRef"].empty()) {
         LOG_WARNING << "Error: No INN reference for this ID.";
-        tx.setNull();
         return tx;
-      }
-      //TODO: verify reference with INN
+      }*/
+      //TODO: verify reference in nonce with INN
       //if (tx.delay_ == 0) tx.delay_ = kID_LIFETIME;
     }
     return tx;

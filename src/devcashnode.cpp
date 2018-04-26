@@ -29,11 +29,10 @@
 
 #include "consensus/chainstate.h"
 #include "common/devcash_context.h"
-#include "common/json.hpp"
 #include "common/logger.h"
 #include "common/ossladapter.h"
 #include "common/util.h"
-#include "concurrency/DevcashController.h"
+//#include "concurrency/DevcashController.h"
 #include "io/zhelpers.hpp"
 #include "oracles/api.h"
 #include "oracles/data.h"
@@ -43,14 +42,11 @@
 #include "oracles/dnerowallet.h"
 #include "oracles/id.h"
 #include "oracles/vote.h"
-#include "primitives/block.h"
-#include "primitives/transaction.h"
+#include "primitives/Transaction.h"
 #include "types/DevcashMessage.h"
 
-using namespace Devcash;
-using json = nlohmann::json;
-
-namespace Devcash {
+namespace Devcash
+{
 
 std::atomic<bool> fRequestShutdown(false); /** has a shutdown been requested? */
 bool isCryptoInit = false;
@@ -70,35 +66,8 @@ void DevcashNode::Shutdown()
   fRequestShutdown = true;
   //TODO: how to stop zmq?
   LOG_INFO << "Shutting down DevCash";
-  control_.StopAll();
+  //control_.StopAll();
 }
-
-/*DevcashNode::DevcashNode(eAppMode mode
-                         , int node_index
-                         , ConsensusWorker& consensus
-                         , ValidatorWorker& validator
-                         , io::TransactionClient& client
-                         , io::TransactionServer& server)
-  : app_context_(node_index, mode)
-  , consensus_(consensus)
-  , validator_(validator)
-  , client_(client)
-  , server_(server)
-{
-}
-
-DevcashNode::DevcashNode(DevcashContext& nodeContext
-                         , ConsensusWorker& consensus
-                         , ValidatorWorker& validator
-                         , io::TransactionClient& client
-                         , io::TransactionServer& server)
-  : app_context_(nodeContext)
-  , consensus_(consensus)
-  , validator_(validator)
-  , client_(client)
-  , server_(server)
-{
-}*/
 
 DevcashNode::DevcashNode(DevcashController& control, DevcashContext& context)
     : control_(control), app_context_(context)
@@ -139,16 +108,20 @@ bool DevcashNode::SanityChecks()
       return false;
     }
 
-    std::string msg("hello");
-    std::string hash(strHash(msg));
+    std::vector<byte> msg = {'h', 'e', 'l', 'l', 'o'};
+    Hash test_hash(dcHash(msg));
+    std::string sDer;
 
     EC_KEY* loadkey = loadEcKey(ctx,
         app_context_.kADDRs[1],
         app_context_.kADDR_KEYs[1]);
 
-    std::string sDer = sign(loadkey, hash);
-    LOG_DEBUG << "Signature="+sDer;
-    if (!verifySig(loadkey, hash, sDer)) return false;
+    Signature sig;
+    SignBinary(loadkey, test_hash, sig);
+
+    if (!VerifyByteSig(loadkey, test_hash, sig)) {
+      return false;
+    }
 
     return true;
   } CASH_CATCH (const std::exception& e) {
@@ -161,9 +134,9 @@ std::string DevcashNode::RunScanner(std::string inStr) {
   LOG_INFO << "Scanner Mode";
   std::string out("");
   CASH_TRY {
-    std::vector<uint8_t> buffer = hex2CBOR(inStr);
+    /*std::vector<uint8_t> buffer = Hex2Bin(inStr);
     json j = json::from_cbor(buffer);
-    out = j.dump();
+    out = j.dump();*/
     //remove escape chars
     out.erase(remove(out.begin(), out.end(), '\\'), out.end());
   } CASH_CATCH (const std::exception& e) {
@@ -176,17 +149,8 @@ std::string DevcashNode::RunNode(std::string& inStr)
 {
   std::string out;
   CASH_TRY {
-    control_.SeedTransactions(inStr);
     LOG_INFO << "Start controller.";
-    //TODO: start timing here
     out += control_.Start();
-
-    //TODO: end timing here
-
-    LOG_INFO << "Starting main sleep";
-    std::this_thread::sleep_for(std::chrono::milliseconds(5000));
-    LOG_INFO << "Starting shutdown";
-    StartShutdown();
 
   } CASH_CATCH (const std::exception& e) {
     LOG_FATAL << FormatException(&e, "DevcashNode.RunScanner");
@@ -199,7 +163,7 @@ std::string DevcashNode::RunNetworkTest(unsigned int node_index)
 {
   std::string out("");
   CASH_TRY {
-    control_.StartToy(node_index);
+    //control_.StartToy(node_index);
 
     //TODO: add messages for each node in concurrency/DevcashController.cpp
 
@@ -216,4 +180,4 @@ std::string DevcashNode::RunNetworkTest(unsigned int node_index)
   return out;
 }
 
-} //end namespace Devcash
+}

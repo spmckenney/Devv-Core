@@ -14,7 +14,7 @@
 #include <chrono>
 #include <thread>
 
-#include "concurrency/blockingconcurrentqueue.h"
+#include "blockingconcurrentqueue.h"
 
 #include "types/DevcashMessage.h"
 #include "common/devcash_context.h"

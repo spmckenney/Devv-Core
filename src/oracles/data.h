@@ -12,12 +12,11 @@
 #include <string>
 
 #include "oracleInterface.h"
-#include "common/json.hpp"
 #include "common/logger.h"
 #include "consensus/chainstate.h"
-#include "primitives/transaction.h"
+#include "primitives/Transaction.h"
 
-using json = nlohmann::json;
+using namespace Devcash;
 
 class DCdata : public oracleInterface {
 
@@ -51,15 +50,14 @@ class DCdata : public oracleInterface {
    * @return true iff the transaction can be valid according to this oracle
    * @return false otherwise
    */
-  bool isValid(Devcash::DCTransaction checkTx) {
-    if (checkTx.isOpType("exchange")) {
-      json j = json::parse(checkTx.jsonStr_);
-      std::vector<uint8_t> theData(json::to_cbor(j["data"]));
+  bool isSound(Transaction checkTx) {
+    if (checkTx.getOperation() == eOpType::Exchange) {
       //TODO: check that exchange is to an INN data collection address
-      if (checkTx.getValueOut() < int(theData.size()/kBYTES_PER_COIN)) {
+      //TODO: check that nonce size is valid for coins expended
+      /*if (checkTx.getValueOut() < int(checkTx.nonce_.size()/kBYTES_PER_COIN)) {
         LOG_WARNING << "Error: Data are too large for tokens provided.";
         return false;
-      }
+      }*/
     }
     return true;
   }
@@ -74,8 +72,8 @@ class DCdata : public oracleInterface {
    * @return true iff the transaction is valid according to this oracle
    * @return false otherwise
    */
-  bool isValid(Devcash::DCTransaction checkTx, Devcash::DCState&) {
-    if (!isValid(checkTx)) return false;
+  bool isValid(Transaction checkTx, ChainState& context) {
+    if (!isSound(checkTx)) return false;
     return true;
   }
 
@@ -85,7 +83,7 @@ class DCdata : public oracleInterface {
  * @params checkTx the transaction to (in)validate
  * @return a tier 1 transaction to implement this tier 2 logic.
  */
-  Devcash::DCTransaction getT1Syntax(Devcash::DCTransaction theTx) {
+  Transaction getT1Syntax(Transaction theTx) {
     return(theTx);
   }
 
@@ -100,11 +98,10 @@ class DCdata : public oracleInterface {
  * @return a tier 1 transaction to implement this tier 2 logic.
  * @return empty/null transaction if the transaction is invalid
  */
-  Devcash::DCTransaction Tier2Process(std::string rawTx,
-      Devcash::DCState context) {
-    Devcash::DCTransaction tx(rawTx);
+  Transaction Tier2Process(std::vector<byte> rawTx,
+      ChainState context, const KeyRing& keys) {
+    Transaction tx(rawTx, keys);
     if (!isValid(tx, context)) {
-      tx.setNull();
       return tx;
     }
     return tx;
