@@ -25,7 +25,8 @@ namespace Devcash {
 
 DevcashController::DevcashController(
     io::TransactionServer& server,
-    io::TransactionClient& client,
+    io::TransactionClient& peer_client,
+    io::TransactionClient& loopback_client,
     const int validatorCount,
     const int consensusCount,
     const int generateCount,
@@ -34,7 +35,8 @@ DevcashController::DevcashController(
     DevcashContext& context,
     const ChainState& prior)
   : server_(server)
-  , client_(client)
+  , peer_client_(peer_client)
+  , loopback_client_(loopback_client)
   , validator_count_(validatorCount)
   , consensus_count_(consensusCount)
   , generate_count_(generateCount)
@@ -326,55 +328,29 @@ std::vector<std::vector<byte>> DevcashController::GenerateTransactions() {
   return out;
 }
 
-void DevcashController::StartToy(unsigned int node_index) {
-  workers_->Start();
-
-  LOG_DEBUG << "READY? StartToy()";
-  client_.AttachCallback([this](DevcashMessageUniquePtr ptr) {
-      if (ptr->message_type == TRANSACTION_ANNOUNCEMENT) {
-          PushValidator(std::move(ptr));
-        } else {
-          PushConsensus(std::move(ptr));
-        }
-    });
-
-  server_.StartServer();
-  client_.StartClient();
-
-
-  std::string uri = "RemoteURI-" + std::to_string(node_index);
-  client_.ListenTo(uri);
-  std::string peer = "peer";
-  client_.ListenTo(peer);
-
-  sleep(10);
-
-  for (;;) {
-    std::vector<byte> data(100);
-    auto startMsg = std::make_unique<DevcashMessage>(uri,
-                                                     TRANSACTION_ANNOUNCEMENT,
-                                                     data);
-    server_.QueueMessage(std::move(startMsg));
-    sleep(10);
-  }
-}
-
 std::string DevcashController::Start() {
   std::string out;
   CASH_TRY {
-    client_.AttachCallback([this](DevcashMessageUniquePtr ptr) {
+
+    auto lambda_callback = [this](DevcashMessageUniquePtr ptr) {
       if (ptr->message_type == TRANSACTION_ANNOUNCEMENT) {
           PushValidator(std::move(ptr));
         } else {
           PushConsensus(std::move(ptr));
         }
-    });
+    };
 
-    client_.ListenTo("peer");
-    client_.ListenTo(context_.get_uri());
+    peer_client_.AttachCallback(lambda_callback);
+    peer_client_.ListenTo("peer");
+    peer_client_.ListenTo(context_.get_uri());
+
+    loopback_client_.AttachCallback(lambda_callback);
+    loopback_client_.ListenTo(context_.get_uri());
 
     server_.StartServer();
-    client_.StartClient();
+    peer_client_.StartClient();
+    loopback_client_.StartClient();
+
     std::vector<std::vector<byte>> transactions;
     size_t processed = 0;
 
@@ -432,7 +408,8 @@ void DevcashController::StopAll() {
     LOG_DEBUG << "DevcashController::StopAll()";
     shutdown_ = true;
     std::this_thread::sleep_for(std::chrono::milliseconds(5000));
-    client_.StopClient();
+    peer_client_.StopClient();
+    loopback_client_.StopClient();
     server_.StopServer();
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
     workers_->StopAll();

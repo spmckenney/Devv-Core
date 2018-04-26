@@ -24,7 +24,8 @@ class DevcashControllerWorker;
 class DevcashController {
  public:
   DevcashController(io::TransactionServer& server,
-                    io::TransactionClient& client,
+                    io::TransactionClient& peer_client,
+                    io::TransactionClient& loopback_client,
                     const int validatorCount,
                     const int consensusCount,
                     const int generateCount,
@@ -35,7 +36,6 @@ class DevcashController {
   virtual ~DevcashController() {};
 
   std::vector<std::vector<byte>> GenerateTransactions();
-  void StartToy(unsigned int node_index);
 
   /**
    * Start the workers and comm threads
@@ -53,7 +53,8 @@ class DevcashController {
 
 private:
   io::TransactionServer& server_;
-  io::TransactionClient& client_;
+  io::TransactionClient& peer_client_;
+  io::TransactionClient& loopback_client_;
   const int validator_count_;
   const int consensus_count_;
   const size_t generate_count_;
