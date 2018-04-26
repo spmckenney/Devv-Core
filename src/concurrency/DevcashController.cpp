@@ -69,7 +69,7 @@ DevcashMessageUniquePtr CreateNextProposal(const KeyRing& keys,
   LOG_INFO << "Proposal #"+std::to_string(block_height+1)+".";
 
   std::vector<byte> proposal(utx_pool.getProposal());
-  LOG_DEBUG << "Propose Block: "+toHex(proposal);
+  //LOG_DEBUG << "Propose Block: "+toHex(proposal);
 
   // Create message
   auto propose_msg = std::make_unique<DevcashMessage>("peers", PROPOSAL_BLOCK, proposal);
@@ -85,6 +85,12 @@ void DevcashController::ValidatorCallback(DevcashMessageUniquePtr ptr) {
     if (ptr->message_type == TRANSACTION_ANNOUNCEMENT) {
       DevcashMessage msg(*ptr.get());
       utx_pool_.AddTransactions(msg.data, keys_);
+      size_t block_height = final_chain_.size();
+      if ((block_height+1)%context_.get_peer_count()
+            == context_.get_current_node()) {
+		server_.QueueMessage(std::move(
+			CreateNextProposal(keys_,final_chain_,utx_pool_,context_)));
+	  }
     } else {
       LOG_DEBUG << "Unexpected message @ validator, to consensus.\n";
       PushConsensus(std::move(ptr));
