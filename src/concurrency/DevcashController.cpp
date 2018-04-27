@@ -52,6 +52,7 @@ DevcashMessageUniquePtr CreateNextProposal(const KeyRing& keys,
                         Blockchain& final_chain,
                         UnrecordedTransactionPool& utx_pool,
                         const DevcashContext& context) {
+  MTR_SCOPE_FUNC();
   size_t block_height = final_chain.size();
 
   LOG_TRACE << "DevcashController()::CreateNextProposal(): begin";
@@ -79,6 +80,7 @@ DevcashMessageUniquePtr CreateNextProposal(const KeyRing& keys,
 }
 
 void DevcashController::ValidatorCallback(DevcashMessageUniquePtr ptr) {
+  MTR_SCOPE_FUNC();
   CASH_TRY {
     LOG_DEBUG << "DevcashController::ValidatorCallback()";
     if (shutdown_) return;
@@ -143,6 +145,7 @@ bool HandleProposalBlock(DevcashMessageUniquePtr ptr,
                          const KeyRing& keys,
                          Blockchain& final_chain,
                          std::function<void(DevcashMessageUniquePtr)> callback) {
+  MTR_SCOPE_FUNC();
   //validate block
   //if valid, push VALID message
   bool sent_message = false;
@@ -176,6 +179,7 @@ bool HandleValidationBlock(DevcashMessageUniquePtr ptr,
                            Blockchain& final_chain,
                            UnrecordedTransactionPool& utx_pool,
                            std::function<void(DevcashMessageUniquePtr)> callback) {
+  MTR_SCOPE_FUNC();
   bool sent_message = false;
   DevcashMessage msg(*ptr.get());
   LOG_DEBUG << "Received block validation: " + toHex(msg.data);
@@ -199,6 +203,7 @@ bool HandleValidationBlock(DevcashMessageUniquePtr ptr,
 }
 
 void DevcashController::ConsensusCallback(DevcashMessageUniquePtr ptr) {
+  MTR_SCOPE_FUNC();
   CASH_TRY {
     LOG_DEBUG << "DevcashController()::ConsensusCallback()";
     if (shutdown_) return;
@@ -247,6 +252,7 @@ void DevcashController::ConsensusCallback(DevcashMessageUniquePtr ptr) {
 }
 
 void DevcashController::ValidatorToyCallback(DevcashMessageUniquePtr ptr) {
+  MTR_SCOPE_FUNC();
   LOG_DEBUG << "DevcashController::ValidatorToyCallback()";
   assert(ptr);
   if (validator_flipper_) {
@@ -256,6 +262,7 @@ void DevcashController::ValidatorToyCallback(DevcashMessageUniquePtr ptr) {
 }
 
 void DevcashController::ConsensusToyCallback(DevcashMessageUniquePtr ptr) {
+  MTR_SCOPE_FUNC();
   LOG_DEBUG << "DevcashController()::ConsensusToyCallback()";
   assert(ptr);
   if (consensus_flipper_) {
@@ -265,6 +272,7 @@ void DevcashController::ConsensusToyCallback(DevcashMessageUniquePtr ptr) {
 }
 
 std::vector<std::vector<byte>> DevcashController::GenerateTransactions() {
+  MTR_SCOPE_FUNC();
   std::vector<std::vector<byte>> out;
   EVP_MD_CTX* ctx;
   if(!(ctx = EVP_MD_CTX_create())) {
@@ -334,6 +342,7 @@ std::vector<std::vector<byte>> DevcashController::GenerateTransactions() {
 }
 
 std::string DevcashController::Start() {
+  MTR_SCOPE_FUNC();
   std::string out;
   CASH_TRY {
 

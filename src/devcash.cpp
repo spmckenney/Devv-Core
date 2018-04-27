@@ -86,14 +86,10 @@ int main(int argc, char* argv[])
 
     std::string in_raw = ReadFile(options->scan_file);
 
-    std::string trace_name = "/home/spmckenney/dmnt/trace/trace_"
-      + std::to_string(options->node_index) + ".json";
-
     /**
      * Chrome tracing setup
      */
-    LOG_INFO << "trace filename: " << trace_name;
-    mtr_init(trace_name.c_str());
+    mtr_init(options->trace_file.c_str());
     mtr_register_sigint_handler();
 
     MTR_META_PROCESS_NAME("minitrace_test");

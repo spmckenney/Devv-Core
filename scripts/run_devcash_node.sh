@@ -11,8 +11,10 @@ mode="T1"
 debug_mode="off"
 num_threads=1
 proto="tcp"
-num_transactions=10
-tx_batch_size=10
+num_transactions=1000
+tx_batch_size=50
+
+trace_file="${HOME}/dmnt/trace/trace_${node}.out"
 
 scan_file="${HOME}/dmnt/devcash-core/opt/05txs"
 #scan_file="${HOME}/dmnt/devcash-core/opt/21txs"
@@ -71,6 +73,7 @@ cmd="./devcash --node-index ${node} \
 --host-list ${hostA[$node]} \
 --host-list ${hostB[$node]} \
 --output output_${node}.out \
+--trace-output ${trace_file} \
 --generate-tx ${num_transactions} \
 --tx-batch-size ${tx_batch_size} \
 --bind-endpoint ${bind_port[$node]}"

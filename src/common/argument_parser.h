@@ -24,6 +24,7 @@ struct devcash_options {
   unsigned int num_validator_threads;
   std::string scan_file;
   std::string write_file;
+  std::string trace_file;
   unsigned int generate_count;
   unsigned int tx_batch_size;
   eDebugMode debug_mode;
@@ -56,6 +57,7 @@ network could be build and tested.\n\nAllowed options");
       ("bind-endpoint", po::value<std::string>(), "Endpoint for server (i.e. tcp://*:5556)")
       ("scan-file", po::value<std::string>(), "Initial transaction or blockchain input file")
       ("output", po::value<std::string>(), "Blockchain output path in binary JSON or CBOR")
+      ("trace-output", po::value<std::string>(), "Output path to JSON trace file (Chrome)")
       ("generate-tx", po::value<unsigned int>(), "Generate at least this many Transactions")
       ("tx-batch-size", po::value<unsigned int>(), "Target size of transaction batches")
       ;
@@ -147,6 +149,13 @@ network could be build and tested.\n\nAllowed options");
       LOG_INFO << "Output file: " << options->write_file;
     } else {
       LOG_INFO << "Output file was not set.";
+    }
+
+    if (vm.count("trace-output")) {
+      options->trace_file = vm["trace-output"].as<std::string>();
+      LOG_INFO << "Trace output file: " << options->trace_file;
+    } else {
+      LOG_INFO << "Trace file was not set.";
     }
 
     if (vm.count("generate-tx")) {
