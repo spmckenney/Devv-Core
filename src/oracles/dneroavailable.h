@@ -14,7 +14,9 @@
 #include "oracleInterface.h"
 #include "common/logger.h"
 #include "consensus/chainstate.h"
-#include "primitives/transaction.h"
+#include "primitives/Transaction.h"
+
+using namespace Devcash;
 
 class dneroavailable : public oracleInterface {
 
@@ -46,10 +48,10 @@ class dneroavailable : public oracleInterface {
  * @return true iff the transaction can be valid according to this oracle
  * @return false otherwise
  */
-  bool isValid(Devcash::DCTransaction checkTx) {
-    for (std::vector<Devcash::DCTransfer>::iterator it=checkTx.xfers_.begin();
-        it != checkTx.xfers_.end(); ++it) {
-      if (it->amount_ > 1) {
+  bool isSound(Transaction checkTx) {
+    std::vector<Transfer> xfers = checkTx.getTransfers();
+    for (auto it=xfers.begin(); it != xfers.end(); ++it) {
+      if (it->getAmount() > 1) {
         LOG_WARNING << "Error: Can only have at most 1 dneroavailable token.";
         return false;
       }
@@ -69,8 +71,8 @@ class dneroavailable : public oracleInterface {
  * @return true iff the transaction is valid according to this oracle
  * @return false otherwise
  */
-  bool isValid(Devcash::DCTransaction checkTx, Devcash::DCState&) {
-    if (!isValid(checkTx)) return false;
+  bool isValid(Transaction checkTx, ChainState& context) {
+    if (!isSound(checkTx)) return false;
     return true;
   }
 
@@ -80,7 +82,7 @@ class dneroavailable : public oracleInterface {
  * @params checkTx the transaction to (in)validate
  * @return a tier 1 transaction to implement this tier 2 logic.
  */
-  Devcash::DCTransaction getT1Syntax(Devcash::DCTransaction theTx) {
+  Transaction getT1Syntax(Transaction theTx) {
     return(theTx);
   }
 
@@ -95,11 +97,10 @@ class dneroavailable : public oracleInterface {
  * @return a tier 1 transaction to implement this tier 2 logic.
  * @return empty/null transaction if the transaction is invalid
  */
-  Devcash::DCTransaction Tier2Process(std::string rawTx,
-      Devcash::DCState context) {
-    Devcash::DCTransaction tx(rawTx);
+  Transaction Tier2Process(std::vector<byte> rawTx,
+      ChainState context, const KeyRing& keys) {
+    Transaction tx(rawTx, keys);
     if (!isValid(tx, context)) {
-      tx.setNull();
       return tx;
     }
     return tx;

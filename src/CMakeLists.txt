@@ -39,16 +39,8 @@ foreach (_headerFile ${dcHeaders})
 endforeach()
 list(REMOVE_DUPLICATES dcInclude)
 
-# Build the primitives objects
-file(GLOB primitives_SRC
-    "primitives/*.cpp"
-)
-
 # External third-party libraries
 find_library(ZMQ zmq)
-
-find_package(Flatbuffers CONFIG REQUIRED)
-include_directories(${Flatbuffers_INCLUDE_DIR})
 
 file(GLOB_RECURSE devcash_headers "*.h*")
 set (devcash_includes "")
@@ -63,12 +55,6 @@ file(GLOB common_SRC
     "common/*.cpp"
 )
 add_library(common ${common_SRC})
-
-# Build the oracles module objects
-file(GLOB oracles_SRC
-    "oracles/*.cpp"
-)
-add_library(oracles ${oracles_SRC})
 
 # Build the concurrency module objects
 file(GLOB concurrency_SRC
@@ -90,12 +76,6 @@ add_library(io
   ${io_SRC}
   )
 
-# Build the primitives objects
-file(GLOB primitives_SRC
-    "primitives/*.cpp"
-)
-add_library(primitives ${primitives_SRC})
-
 # Add devcashnode.cpp
 add_library(devcashnode devcashnode.cpp)
 
@@ -110,9 +90,7 @@ target_link_libraries (devcash
   devcashnode
   common
   io
-  oracles
   concurrency
-  primitives
   consensus
   ${ZMQ}
   )
@@ -149,8 +127,6 @@ add_executable(ring_queue_test
 
 target_link_libraries(ring_queue_test
   common
-  primitives
-  oracles
   consensus
   ${OPENSSL_LIBRARIES}
   ${CMAKE_THREAD_LIBS_INIT}
@@ -166,8 +142,6 @@ add_executable(devcash_spsc_queue_test
 
 target_link_libraries(devcash_spsc_queue_test
   common
-  primitives
-  oracles
   consensus
   ${OPENSSL_LIBRARIES}
   ${CMAKE_THREAD_LIBS_INIT}
@@ -188,39 +162,6 @@ target_link_libraries(boost_spsc_test
   )
 
 install (TARGETS boost_spsc_test DESTINATION bin)
-
-#add_executable(producer_consumer_queue_test
-#  tests/concurrency/producer_consumer_queue_test.cpp
-#  )
-#
-#target_link_libraries(producer_consumer_queue_test
-#  common
-#  primitives
-#  oracles
-#  consensus
-#  ${FOLLY}
-#  ${OPENSSL_LIBRARIES}
-#  ${CMAKE_THREAD_LIBS_INIT}
-#  ${Boost_LIBRARIES}
-#  )
-#
-
-#
-# i/o Tests
-#
-
-# # # t1_example
-add_executable(t1_example
-  tests/io/t1_example.cpp
-  )
-
-target_link_libraries(t1_example
-  io
-  common
-  ${ZMQ}
-  ${OPENSSL_LIBRARIES}
-  ${Boost_LIBRARIES}
-  )
 
 # # # io_server_test
 add_executable(io_server_test
@@ -263,14 +204,5 @@ add_executable(zmq_envelope_subscriber
   )
 
 target_link_libraries(zmq_envelope_subscriber
-  ${ZMQ}
-  )
-
-# # # fbs_finalblock
-add_executable(fbs_finalblock
-  tests/flatbuffers/fbs_finalblock.cpp
-  )
-
-target_link_libraries(fbs_finalblock
   ${ZMQ}
   )

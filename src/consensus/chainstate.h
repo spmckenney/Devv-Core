@@ -16,18 +16,18 @@
 namespace Devcash
 {
 
-class DCState {
+class ChainState {
 public:
 
 /** Constructor */
-  DCState() {}
+  ChainState() {}
 
-  DCState(const DCState& other)
+  ChainState(const ChainState& other)
   : stateMap_(other.stateMap_)
   {
   }
 
-  DCState* operator=(DCState&& other)
+  ChainState* operator=(ChainState&& other)
   {
     if (this != &other) {
       this->stateMap_ = other.stateMap_;
@@ -35,7 +35,7 @@ public:
     return this;
   }
 
-  DCState* operator=(const DCState& other)
+  ChainState* operator=(const ChainState& other)
   {
     if (this != &other) {
       this->stateMap_ = other.stateMap_;
@@ -55,7 +55,7 @@ public:
  *  @param the address to check
  *  @return the number of this type of coins at this address
 */
-  long getAmount(int type, const std::string& addr) const;
+  long getAmount(uint64_t type, const Address& addr);
 
 /** Moves a coin from one address to another
  *  @param start references where the coins will be removed
@@ -63,7 +63,7 @@ public:
  *  @return true if the coins were moved successfully
  *  @return false otherwise
 */
-  bool moveCoin(const SmartCoin& start, const SmartCoin& end) const;
+  bool moveCoin(const SmartCoin& start, const SmartCoin& end);
 
 /** Deletes a coin from the state.
  *  @param reference to the coin to delete
@@ -78,8 +78,8 @@ public:
 */
   bool clear();
 
-  std::map<std::string, std::vector<long>> stateMap_;
-  mutable std::mutex lock_;
+  std::map<Address, std::map<uint64_t, uint64_t>> stateMap_;
+  //mutable std::mutex lock_;
 };
 
 } //namespace Devcash

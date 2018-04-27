@@ -10,24 +10,25 @@
 
 #include "common/devcash_context.h"
 #include "common/ossladapter.h"
+#include "primitives/Transfer.h"
 
 namespace Devcash {
-
-using namespace Devcash;
 
 class KeyRing {
  public:
   KeyRing(DevcashContext& context);
   virtual ~KeyRing() {};
 
-  bool initKeys();
-  EC_KEY* getKey(const std::string& addr) const;
-  bool isINN(const std::string& addr) const;
+  Address InsertAddress(std::string hex, EC_KEY* key);
+  EC_KEY* getKey(const Address& addr) const;
+  bool isINN(const Address& addr) const;
   EC_KEY* getNodeKey(int index) const;
 
  private:
   DevcashContext context_;
-  bool is_init_ = false;
+  std::map<Address, EC_KEY*> key_map_;
+  std::vector<Address> node_list_;
+  Address inn_addr_;
 };
 
 } /* namespace Devcash */

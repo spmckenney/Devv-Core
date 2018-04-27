@@ -17,7 +17,7 @@
 #include "common/logger.h"
 #include "common/util.h"
 #include "DevcashController.h"
-#include "DevcashRingQueue.h"
+#include "DevcashMPMCQueue.h"
 
 namespace Devcash {
 
@@ -40,9 +40,9 @@ class DevcashControllerWorker {
   DevcashControllerWorker(DevcashControllerWorker const&) = delete;
   DevcashControllerWorker& operator=(DevcashControllerWorker const&) = delete;
 
-  void start();
+  void Start();
 
-  void startToy();
+  void StartToy();
 
   /** Stops all threads in this pool.
    * @note This function may block.

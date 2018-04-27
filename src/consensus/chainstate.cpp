@@ -18,50 +18,44 @@ namespace Devcash
 
 using namespace Devcash;
 
-bool DCState::addCoin(const SmartCoin& coin) {
-  std::lock_guard<std::mutex> lock(lock_);
+bool ChainState::addCoin(const SmartCoin& coin) {
+  //std::lock_guard<std::mutex> lock(lock_);
   auto it = stateMap_.find(coin.addr_);
   if (it != stateMap_.end()) {
-    it->second[coin.type_] += coin.amount_;
+    it->second[coin.coin_] += coin.amount_;
   }
   return(true);
 }
 
-long DCState::getAmount(int type, const std::string& addr) const {
+long ChainState::getAmount(uint64_t type, const Address& addr) {
   auto it = stateMap_.find(addr);
   if (it != stateMap_.end()) {
-    return it->second[type];
+	int64_t amount = it->second[type];
+    return amount;
   }
   return(0);
 }
 
-bool DCState::moveCoin(const SmartCoin& start, const SmartCoin& end) const {
-  std::lock_guard<std::mutex> lock(lock_);
-  if (start.type_ != end.type_) return(false);
+bool ChainState::moveCoin(const SmartCoin& start, const SmartCoin& end) {
+  //std::lock_guard<std::mutex> lock(lock_);
+  if (start.coin_ != end.coin_) return(false);
   if (start.amount_ != end.amount_) return(false);
 
-  /*auto it = stateMap_.find(start.addr_);
-  if (it != stateMap_.end()) {
-    std::map<int, long> sElt = it->second;
-    auto amtIt = sElt.find(start.type_);
-    if (amtIt != sElt.end()) {
-      long amt = amtIt->second;
-      if (amt >= start.amount_) {
-        sElt[start.addr_] = start.amount_-amt;
-        if(addCoin(end)) return(true);
-        sElt[start.addr_] = start.amount_+amt;
-        return(false);
-      } //endif enough coins available
-    } //endif any coins here
-  } //endif any coins of this type*/
-  return(false);
+  uint64_t start_balance = stateMap_[start.addr_][start.coin_];
+  if (start_balance >= start.amount_) {
+    stateMap_[start.addr_][start.coin_] = start_balance-start.amount_;
+    uint64_t end_balance = stateMap_[end.addr_][start.coin_];
+    stateMap_[end.addr_][start.coin_] = end_balance+start.amount_;
+    return true;
+  }
+  return false;
 }
 
-bool DCState::delCoin(SmartCoin& coin) {
-  std::lock_guard<std::mutex> lock(lock_);
+bool ChainState::delCoin(SmartCoin& coin) {
+  //std::lock_guard<std::mutex> lock(lock_);
   auto it = stateMap_.find(coin.addr_);
   if (it != stateMap_.end()) {
-    it->second[coin.type_] -= coin.amount_;
+    it->second[coin.coin_] -= coin.amount_;
     return true;
   }
   return(false);

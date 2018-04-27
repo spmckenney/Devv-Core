@@ -10,8 +10,7 @@
 #include <atomic>
 #include <vector>
 
-#include "consensus/proposedblock.h"
-#include "consensus/finalblock.h"
+#include "primitives/FinalBlock.h"
 
 namespace Devcash {
 
@@ -39,10 +38,9 @@ struct TypeName<int>
 // usage:
 //const char* name = TypeName<MyType>::Get();
 
-template <typename BlockType>
 class Blockchain {
 public:
-  typedef std::shared_ptr<BlockType> BlockSharedPtr;
+  typedef std::shared_ptr<FinalBlock> BlockSharedPtr;
 
   Blockchain(const std::string& name)
     : name_(name), chain_size_(0)
@@ -74,19 +72,44 @@ public:
     return chain_size_;
   }
 
-  BlockSharedPtr& at(size_t where) {
-    LOG_TRACE << name_ << ": at(" << where << "); size(" << chain_size_ << ")";
-    return chain_.at(where);
-  }
-
-  const BlockSharedPtr& at(size_t where) const {
-    LOG_TRACE << name_ << ": at(" << where << ") const; size(" << chain_size_ << ")";
-    return chain_.at(where);
-  }
-
-  uint256_t getHighestMerkleRoot() const {
-    if (chain_size_ < 1) return 0;
+  Hash getHighestMerkleRoot() const {
+    if (chain_size_ < 1) {
+      Hash genesis;
+      return genesis;
+    }
     return back().get()->getMerkleRoot();
+  }
+
+  ChainState getHighestChainState() const {
+    if (chain_size_ < 1) {
+      ChainState state;
+      return state;
+    }
+    return back().get()->getChainState();
+  }
+
+  std::vector<byte> BinaryDump() const {
+    std::vector<byte> out;
+    for (auto const& item : chain_) {
+      std::vector<byte> canonical = item.get()->getCanonical();
+      out.insert(out.end(), canonical.begin(), canonical.end());
+    }
+    return out;
+  }
+
+  std::string JsonDump() const {
+    std::string out("[");
+    bool first = true;
+    for (auto const& item : chain_) {
+      if (first) {
+        first = false;
+      } else {
+        out += ",";
+      }
+      out += item.get()->getJSON();
+    }
+    out += "]";
+    return out;
   }
 
 private:
@@ -94,8 +117,5 @@ private:
   const std::string name_;
   std::atomic<int> chain_size_;
 };
-
-typedef Blockchain<FinalBlock> FinalBlockchain;
-typedef Blockchain<ProposedBlock> ProposedBlockchain;
 
 } // namespace Devcash

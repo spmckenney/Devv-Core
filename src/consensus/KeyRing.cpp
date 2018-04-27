@@ -7,100 +7,103 @@
 
 #include "KeyRing.h"
 
-#include <string>
-
 #include "common/ossladapter.h"
+#include "common/util.h"
 
-#include <unordered_map>
+#include <map>
 
 namespace Devcash {
 
-std::unordered_map<std::string, EC_KEY*> keyMap_;
-DevcashContext context_;
+Address KeyRing::InsertAddress(std::string hex, EC_KEY* key) {
+  Address to_insert;
+  std::vector<byte> addr(Hex2Bin(hex));
+  std::copy_n(addr.begin(), kADDR_SIZE, to_insert.begin());
+  std::pair<Address, EC_KEY*> new_pair(to_insert, key);
+  key_map_.insert(new_pair);
+  return to_insert;
+}
 
 KeyRing::KeyRing(DevcashContext& context)
-  : context_(context), is_init_(false)
+  : context_(context), key_map_(), inn_addr_(), node_list_()
 {
-}
-
-bool KeyRing::initKeys() {
   CASH_TRY {
-    EVP_MD_CTX* ctx;
-        if(!(ctx = EVP_MD_CTX_create())) {
-          LOG_FATAL << "Could not create signature context!";
-          CASH_THROW("Could not create signature context!");
-        }
+     EVP_MD_CTX* ctx;
+         if(!(ctx = EVP_MD_CTX_create())) {
+           LOG_FATAL << "Could not create signature context!";
+           CASH_THROW("Could not create signature context!");
+         }
 
-    std::string hash(strHash("hello"));
-    std::string sDer;
+     std::vector<byte> msg = {'h', 'e', 'l', 'l', 'o'};
+     Hash test_hash;
+     test_hash = dcHash(msg);
 
-    EC_KEY* inn_key = loadEcKey(ctx,
-        context_.kINN_ADDR,
-        context_.kINN_KEY);
+     EC_KEY* inn_key = loadEcKey(ctx,
+         context_.kINN_ADDR,
+         context_.kINN_KEY);
 
-    if (!verifySig(inn_key, hash, sign(inn_key, hash))) {
-      LOG_FATAL << "Invalid INN key!";
-      CASH_THROW("Invalid INN key!");
-    }
+     Signature sig;
+     SignBinary(inn_key, test_hash, sig);
 
-    keyMap_.insert(std::pair<std::string, EC_KEY*>(context_.kINN_ADDR, inn_key));
+     if (!VerifyByteSig(inn_key, test_hash, sig)) {
+       LOG_FATAL << "Invalid INN key!";
+       return;
+     }
 
-    for (unsigned int i=0; i<context_.kADDRs.size(); i++) {
+     inn_addr_ = InsertAddress(context_.kINN_ADDR, inn_key);
 
-      EC_KEY* addr_key = loadEcKey(ctx,
-          context_.kADDRs[i],
-          context_.kADDR_KEYs[i]);
+     for (unsigned int i=0; i<context_.kADDRs.size(); i++) {
 
-      if (!verifySig(addr_key, hash, sign(addr_key, hash))) {
-        LOG_WARNING << "Invalid address["+std::to_string(i)+"] key!";
-        CASH_THROW("Invalid address["+std::to_string(i)+"] key!");
-      }
+       EC_KEY* addr_key = loadEcKey(ctx,
+           context_.kADDRs[i],
+           context_.kADDR_KEYs[i]);
 
-      keyMap_.insert(std::pair<std::string, EC_KEY*>(context_.kADDRs[i], addr_key));
-    }
+       SignBinary(addr_key, test_hash, sig);
+       if (!VerifyByteSig(addr_key, test_hash, sig)) {
+         LOG_WARNING << "Invalid address["+std::to_string(i)+"] key!";
+         CASH_THROW("Invalid address["+std::to_string(i)+"] key!");
+       }
 
-    for (unsigned int i=0; i<context_.kNODE_ADDRs.size(); i++) {
+       InsertAddress(context_.kADDRs[i], addr_key);
+     }
 
-      EC_KEY* addr_key = loadEcKey(ctx,
-          context_.kNODE_ADDRs[i],
-          context_.kNODE_KEYs[i]);
+     for (unsigned int i=0; i<context_.kNODE_ADDRs.size(); i++) {
 
-      if (!verifySig(addr_key, hash, sign(addr_key, hash))) {
-        LOG_WARNING << "Invalid node["+std::to_string(i)+"] key!";
-        CASH_THROW("Invalid node["+std::to_string(i)+"] key!");
-      }
+       EC_KEY* addr_key = loadEcKey(ctx,
+           context_.kNODE_ADDRs[i],
+           context_.kNODE_KEYs[i]);
 
-      keyMap_.insert(std::pair<std::string, EC_KEY*>(context_.kNODE_ADDRs[i], addr_key));
-    }
-    is_init_ = true;
-    return is_init_;
-  } CASH_CATCH (const std::exception& e) {
-    LOG_WARNING << FormatException(&e, "transaction");
-    return false;
-  }
+       SignBinary(addr_key, test_hash, sig);
+       if (!VerifyByteSig(addr_key, test_hash, sig)) {
+         LOG_WARNING << "Invalid node["+std::to_string(i)+"] key!";
+         CASH_THROW("Invalid node["+std::to_string(i)+"] key!");
+       }
+
+       Address node_addr = InsertAddress(context_.kNODE_ADDRs[i], addr_key);
+       node_list_.push_back(node_addr);
+     }
+     LOG_INFO << "Crypto Keys initialized.";
+   } CASH_CATCH (const std::exception& e) {
+     LOG_WARNING << FormatException(&e, "transaction");
+   }
+
 }
 
-EC_KEY* KeyRing::getKey(const std::string& addr) const {
-  if (addr[0] == '7') {
-    auto it = keyMap_.find(context_.kINN_ADDR);
-    if (it != keyMap_.end()) return it->second;
-    LOG_WARNING << "INN key is missing!\n";
-    CASH_THROW("INN key is missing!");
-  }
-
-  auto it = keyMap_.find(addr);
-  if (it != keyMap_.end()) return it->second;
-  LOG_WARNING << "Key for '"+addr+"'is missing!\n";
-  CASH_THROW("Key for '"+addr+"'is missing!");
+EC_KEY* KeyRing::getKey(const Address& addr) const {
+  auto it = key_map_.find(addr);
+  if (it != key_map_.end()) return it->second;
+  std::string hex(toHex(std::vector<byte>(std::begin(addr), std::end(addr))));
+  LOG_WARNING << "Key for '"+hex+"' is missing!\n";
+  CASH_THROW("Key for '"+hex+"' is missing!");
 }
 
-bool KeyRing::isINN(const std::string& addr) const {
-  return(addr[0] == '7');
+bool KeyRing::isINN(const Address& addr) const {
+  return(inn_addr_ == addr);
 }
 
 EC_KEY* KeyRing::getNodeKey(int index) const {
-  auto it = keyMap_.find(context_.kNODE_ADDRs[index]);
-  if (it != keyMap_.end()) return it->second;
+  Address node_addr = node_list_.at(index);
+  auto it = key_map_.find(node_addr);
+  if (it != key_map_.end()) return it->second;
   LOG_WARNING << "Node["+std::to_string(index)+"] key is missing!\n";
   CASH_THROW("Node["+std::to_string(index)+"] key is missing!");
 }

@@ -13,6 +13,7 @@
 #define DEVCASH_UTIL_H
 
 #include <atomic>
+#include <chrono>
 #include <exception>
 #include <map>
 #include <stdint.h>
@@ -23,41 +24,132 @@
 #include <string>
 #include <vector>
 #include <memory>
+#include <boost/multiprecision/cpp_int.hpp>
+
+typedef unsigned char byte;
 
 namespace Devcash
 {
 
-static std::string jsonFinder(std::string haystack, std::string key, size_t& pos) {
-  std::string out;
-  size_t dex = haystack.find("\""+key+"\":", pos);
-  if (dex == std::string::npos) return out;
-  dex += key.size()+3;
-  size_t eDex = haystack.find(",\"", dex);
-  if (eDex == std::string::npos) {
-    eDex = haystack.find("}", dex);
-    if (eDex == std::string::npos) return out;
+typedef boost::multiprecision::uint256_t uint256_t;
+
+static int32_t BinToInt32(const std::vector<byte>& bytes, size_t start) {
+  int32_t dest = 0;
+  for (unsigned int i=0; i<4; ++i) {
+    dest |= (bytes.at(start+i) << (i*8));
   }
-  out = haystack.substr(dex, eDex-dex);
-  pos = eDex;
-  if (out.front() == '\"') out.erase(std::begin(out));
-  if (out.back() == '\"') out.pop_back();
-  return out;
+  return dest;
 }
 
-static std::vector<uint8_t> str2Bin(std::string msg) {
-  std::vector<uint8_t> out;
-  for (std::size_t i=0; i <msg.size(); ++i) {
-    out.push_back((int) msg.at(i));
+static std::vector<byte> Int32ToBin(const int32_t& source
+    ,std::vector<byte>& dest) {
+  for (unsigned int i=0; i<4; ++i) {
+    dest.push_back((source >> (i*8)) & 0xFF);
   }
-  return out;
+  return dest;
 }
 
-static std::string bin2Str(std::vector<uint8_t> bytes) {
-  std::string out;
-  for (std::size_t i=0; i <bytes.size(); ++i) {
-    out += char(bytes[i]);
+static uint32_t BinToUint32(const std::vector<byte>& bytes, size_t start) {
+  uint32_t dest = 0;
+  for (unsigned int i=0; i<4; ++i) {
+    dest |= (bytes.at(start+i) << (i*8));
   }
-  return out;
+  return dest;
+}
+
+static std::vector<byte> Uint32ToBin(const uint32_t& source
+    ,std::vector<byte>& dest) {
+  for (unsigned int i=0; i<4; ++i) {
+    dest.push_back((source >> (i*8)) & 0xFF);
+  }
+  return dest;
+}
+
+static uint64_t BinToUint64(const std::vector<byte>& bytes, size_t start) {
+  uint32_t lsb = BinToUint32(bytes, start);
+  uint32_t msb = BinToUint32(bytes, start+4);
+  uint64_t dest = (uint64_t(msb) << 32) | uint64_t(lsb);
+  return dest;
+}
+
+static std::vector<byte> Uint64ToBin(const uint64_t& source
+    ,std::vector<byte>& dest) {
+  uint32_t lsb = source&0xffffffff;
+  uint32_t msb = source >> 32;
+  Uint32ToBin(lsb, dest);
+  Uint32ToBin(msb, dest);
+  return dest;
+}
+
+static int64_t BinToInt64(const std::vector<byte>& bytes, size_t start) {
+  int32_t lsb = BinToInt32(bytes, start);
+  int32_t msb = BinToInt32(bytes, start+4);
+  int64_t dest = (int64_t(msb) << 32) | int64_t(lsb);
+  return dest;
+}
+
+static std::vector<byte> Int64ToBin(const int64_t& source
+    ,std::vector<byte>& dest) {
+  int32_t lsb = source&0xffffffff;
+  int32_t msb = source >> 32;
+  Int32ToBin(lsb, dest);
+  Int32ToBin(msb, dest);
+  return dest;
+}
+
+static uint64_t getEpoch() {
+  std::chrono::milliseconds ms = std::chrono::duration_cast<std::chrono::milliseconds>
+    (std::chrono::system_clock::now().time_since_epoch());
+  return ms.count();
+}
+
+/** Maps a hex digit to an int value.
+ *  @param hex digit to get the int value for
+ *  @return int value of this hex digit
+*/
+static int Char2Int(char in) {
+  if (in >= '0' && in <= '9') {
+    return(in - '0');
+  }
+  if (in >= 'A' && in <= 'F') {
+    return(in - 'A' + 10);
+  }
+  if (in >= 'a' && in <= 'f') {
+  return(in - 'a' + 10);
+  }
+  return(-1);
+}
+
+/** Maps a hex string into a byte vector for CBOR parsing.
+ *  @param hex a string of hex digits encoding a CBOR message.
+ *  @return a byte vector of the same data in binary form.
+*/
+static std::vector<byte> Hex2Bin(std::string hex) {
+  int len = hex.length();
+  std::vector<uint8_t> buf(len/2+1);
+  for (int i=0;i<len/2;i++) {
+    buf.at(i) = (byte) Char2Int(hex.at(i*2))*16+Char2Int(hex.at(1+i*2));
+  }
+  buf.pop_back(); //remove null terminator
+  return(buf);
+}
+
+/** chars for hex conversions */
+static const char alpha[] = "0123456789ABCDEF";
+/** Change binary data into a hex string.
+ *  @pre input must be allocated to a length of len
+ *  @param input pointer to the binary data
+ *  @param len length of the binary data
+ *  @return string containing these data as hex numbers
+ */
+static std::string toHex(const std::vector<byte>& input) {
+  std::stringstream ss;
+  for (size_t j=0; j<input.size(); j++) {
+    int c = (int) input[j];
+    ss.put(alpha[(c>>4)&0xF]);
+    ss.put(alpha[c&0xF]);
+  }
+  return(ss.str());
 }
 
 /** Setup the runtime environment. */
