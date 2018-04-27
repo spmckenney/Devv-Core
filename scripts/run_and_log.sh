@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -ex
 
 # ../scripts/run_devcash_node.sh ${NODE_INDEX} 2>&1 | tee /home/spmckenney/dmnt/logs/dc_out_$(cat /home/spmckenney/dmnt/logs/log_inc.txt)_${NODE_INDEX}.log
 
@@ -28,8 +28,8 @@ echo "node index: ${node_index} $update_log_index"
 
 run_script=${HOME}/dmnt/devcash-core/scripts/run_devcash_node.sh
 
-cmd="$run_script ${node_index} 2>&1 | tee /home/spmckenney/dmnt/logs/dc_out_${log_num}_${node_index}.log"
+$run_script ${node_index} 2>&1 | tee /home/spmckenney/dmnt/logs/dc_out_${log_num}_${node_index}.log
 
-echo $cmd
+#echo $cmd
 
-$cmd
+#$cmd

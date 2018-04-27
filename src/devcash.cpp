@@ -58,15 +58,26 @@ int main(int argc, char* argv[])
 
     zmq::context_t context(1);
 
-    std::unique_ptr<io::TransactionServer> server = create_transaction_server(*options, context);
-    std::unique_ptr<io::TransactionClient> client = create_transaction_client(*options, context);
-
     DevcashContext this_context(options->node_index,
                                 static_cast<eAppMode>(options->mode));
     KeyRing keys(this_context);
     ChainState prior;
 
-    DevcashController controller(*server,*client,
+    std::unique_ptr<io::TransactionServer> server = create_transaction_server(*options, context);
+    std::unique_ptr<io::TransactionClient> peer_client = create_transaction_client(*options, context);
+
+    // Create loopback client to subscribe to simulator transactions
+    std::unique_ptr<io::TransactionClient> loopback_client(new io::TransactionClient(context));
+    auto be = options->bind_endpoint;
+    std::string this_uri = "";
+    try {
+      this_uri = "tcp://localhost" + be.substr(be.rfind(":"));
+    } catch (std::range_error& e) {
+      LOG_ERROR << "Extracting bind number failed: " << be;
+    }
+    loopback_client->AddConnection(this_uri);
+
+    DevcashController controller(*server, *peer_client, *loopback_client,
       options->num_validator_threads, options->num_consensus_threads,
       options->generate_count, options->tx_batch_size,
       keys, this_context, prior);

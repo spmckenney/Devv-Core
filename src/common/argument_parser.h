@@ -56,8 +56,8 @@ network could be build and tested.\n\nAllowed options");
       ("bind-endpoint", po::value<std::string>(), "Endpoint for server (i.e. tcp://*:5556)")
       ("scan-file", po::value<std::string>(), "Initial transaction or blockchain input file")
       ("output", po::value<std::string>(), "Blockchain output path in binary JSON or CBOR")
-      ("generate-tx", po::value<unsigned int>(), "Generate this many Transactions")
-      ("tx-batch-size", po::value<unsigned int>(), "Size of transaction batches")
+      ("generate-tx", po::value<unsigned int>(), "Generate at least this many Transactions")
+      ("tx-batch-size", po::value<unsigned int>(), "Target size of transaction batches")
       ;
 
     po::variables_map vm;

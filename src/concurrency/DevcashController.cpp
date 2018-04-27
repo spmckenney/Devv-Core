@@ -25,7 +25,8 @@ namespace Devcash {
 
 DevcashController::DevcashController(
     io::TransactionServer& server,
-    io::TransactionClient& client,
+    io::TransactionClient& peer_client,
+    io::TransactionClient& loopback_client,
     const int validatorCount,
     const int consensusCount,
     const int generateCount,
@@ -34,7 +35,8 @@ DevcashController::DevcashController(
     DevcashContext& context,
     const ChainState& prior)
   : server_(server)
-  , client_(client)
+  , peer_client_(peer_client)
+  , loopback_client_(loopback_client)
   , validator_count_(validatorCount)
   , consensus_count_(consensusCount)
   , generate_count_(generateCount)
@@ -57,36 +59,45 @@ DevcashMessageUniquePtr CreateNextProposal(const KeyRing& keys,
   if (!(block_height % 100) || !((block_height + 1) % 100)) {
     LOG_WARNING << "Processing @ final_chain_.size: (" << std::to_string(block_height) << ")";
   }
-    //this node should propose
 
-    if (!utx_pool.HasProposal() && utx_pool.HasPendingTransactions()) {
-        Hash prev_hash = final_chain.getHighestMerkleRoot();
-        ChainState prior = final_chain.getHighestChainState();
-        utx_pool.ProposeBlock(prev_hash, prior, keys, context);
-      }
+  if (!utx_pool.HasProposal() && utx_pool.HasPendingTransactions()) {
+      Hash prev_hash = final_chain.getHighestMerkleRoot();
+      ChainState prior = final_chain.getHighestChainState();
+      utx_pool.ProposeBlock(prev_hash, prior, keys, context);
+  }
 
-    LOG_INFO << "Proposal #"+std::to_string(block_height+1)+".";
+  LOG_INFO << "Proposal #"+std::to_string(block_height+1)+".";
 
+  std::vector<byte> proposal(utx_pool.getProposal());
+  //LOG_DEBUG << "Propose Block: "+toHex(proposal);
 
-    std::vector<byte> proposal(utx_pool.getProposal());
-    LOG_DEBUG << "Propose Block: "+toHex(proposal);
-
-    // Create message
-    auto propose_msg = std::make_unique<DevcashMessage>("peers", PROPOSAL_BLOCK, proposal);
-    LOG_TRACE << "DevcashController()::CreateNextProposal(): complete";
-    return propose_msg;
+  // Create message
+  auto propose_msg = std::make_unique<DevcashMessage>("peers", PROPOSAL_BLOCK, proposal);
+  LOG_TRACE << "DevcashController()::CreateNextProposal(): complete";
+  return propose_msg;
 
 }
 
 void DevcashController::ValidatorCallback(DevcashMessageUniquePtr ptr) {
-  LOG_DEBUG << "DevcashController::ValidatorCallback()";
-  if (shutdown_) return;
-  if (ptr->message_type == TRANSACTION_ANNOUNCEMENT) {
-    DevcashMessage msg(*ptr.get());
-    utx_pool_.AddTransactions(msg.data, keys_);
-  } else {
-    LOG_DEBUG << "Unexpected message @ validator, to consensus.\n";
-    PushConsensus(std::move(ptr));
+  CASH_TRY {
+    LOG_DEBUG << "DevcashController::ValidatorCallback()";
+    if (shutdown_) return;
+    if (ptr->message_type == TRANSACTION_ANNOUNCEMENT) {
+      DevcashMessage msg(*ptr.get());
+      utx_pool_.AddTransactions(msg.data, keys_);
+      size_t block_height = final_chain_.size();
+      if ((block_height+1)%context_.get_peer_count()
+            == context_.get_current_node()) {
+		server_.QueueMessage(std::move(
+			CreateNextProposal(keys_,final_chain_,utx_pool_,context_)));
+	  }
+    } else {
+      LOG_DEBUG << "Unexpected message @ validator, to consensus.\n";
+      PushConsensus(std::move(ptr));
+    }
+  } CASH_CATCH (const std::exception& e) {
+    LOG_FATAL << FormatException(&e, "DevcashController.ValidatorCallback()");
+    StopAll();
   }
 }
 
@@ -171,6 +182,7 @@ bool HandleValidationBlock(DevcashMessageUniquePtr ptr,
 
   if (utx_pool.CheckValidation(msg.data, context)) {
     //block can be finalized, so finalize
+    LOG_DEBUG << "Ready to finalize block.";
     FinalPtr top_block = FinalPtr(new FinalBlock(utx_pool.FinalizeLocalBlock()));
     final_chain.push_back(top_block);
     LOG_TRACE << "final_chain.push_back()";
@@ -187,45 +199,50 @@ bool HandleValidationBlock(DevcashMessageUniquePtr ptr,
 }
 
 void DevcashController::ConsensusCallback(DevcashMessageUniquePtr ptr) {
-  LOG_DEBUG << "DevcashController()::ConsensusCallback()";
-  if (shutdown_) return;
-  if (ptr->message_type == FINAL_BLOCK) {
-    LOG_TRACE << "DevcashController()::ConsensusCallback(): FINAL_BLOCK begin";
-    HandleFinalBlock(std::move(ptr),
-                                context_,
-                                keys_,
-                                final_chain_,
-                                utx_pool_,
-                                [this](DevcashMessageUniquePtr p) { this->server_.QueueMessage(std::move(p));});
-    LOG_TRACE << "DevcashController()::ConsensusCallback(): FINAL_BLOCK complete";
-  } else if (ptr->message_type == PROPOSAL_BLOCK) {
-    LOG_TRACE << "DevcashController()::ConsensusCallback(): PROPOSAL_BLOCK begin";
-    HandleProposalBlock(std::move(ptr),
-                                   context_,
-                                   keys_,
-                                   final_chain_,
-                                   [this](DevcashMessageUniquePtr p) { this->server_.QueueMessage(std::move(p));});
-    waiting_ = 0;
-    LOG_TRACE << "DevcashController()::ConsensusCallback(): PROPOSAL_BLOCK complete";
-  } else if (ptr->message_type == TRANSACTION_ANNOUNCEMENT) {
-    LOG_TRACE << "DevcashController()::ConsensusCallback(): TRANSACTION_ANNOUNCEMENT begin";
-    LOG_DEBUG << "Unexpected message @ consensus, to validator";
-    PushValidator(std::move(ptr));
-    LOG_TRACE << "DevcashController()::ConsensusCallback(): TRANSACTION_ANNOUNCEMENT complete";
-  } else if (ptr->message_type == VALID) {
-    LOG_TRACE << "DevcashController()::ConsensusCallback(): VALIDATION begin";
-    HandleValidationBlock(std::move(ptr),
+  CASH_TRY {
+    LOG_DEBUG << "DevcashController()::ConsensusCallback()";
+    if (shutdown_) return;
+    if (ptr->message_type == FINAL_BLOCK) {
+      LOG_TRACE << "DevcashController()::ConsensusCallback(): FINAL_BLOCK begin";
+      HandleFinalBlock(std::move(ptr),
+                                  context_,
+                                  keys_,
+                                  final_chain_,
+                                  utx_pool_,
+                                  [this](DevcashMessageUniquePtr p) { this->server_.QueueMessage(std::move(p));});
+      LOG_TRACE << "DevcashController()::ConsensusCallback(): FINAL_BLOCK complete";
+    } else if (ptr->message_type == PROPOSAL_BLOCK) {
+      LOG_TRACE << "DevcashController()::ConsensusCallback(): PROPOSAL_BLOCK begin";
+      HandleProposalBlock(std::move(ptr),
                                      context_,
                                      keys_,
                                      final_chain_,
-                                     utx_pool_,
                                      [this](DevcashMessageUniquePtr p) { this->server_.QueueMessage(std::move(p));});
-    LOG_TRACE << "DevcashController()::ConsensusCallback(): VALIDATION complete";
-  } else if (ptr->message_type == REQUEST_BLOCK) {
-    LOG_DEBUG << "DevcashController()::ConsensusCallback(): REQUEST_BLOCK";
-    //provide blocks since requested height
-  } else {
-    LOG_ERROR << "DevcashController()::ConsensusCallback(): Unexpected message, ignore.\n";
+      waiting_ = 0;
+      LOG_TRACE << "DevcashController()::ConsensusCallback(): PROPOSAL_BLOCK complete";
+    } else if (ptr->message_type == TRANSACTION_ANNOUNCEMENT) {
+      LOG_TRACE << "DevcashController()::ConsensusCallback(): TRANSACTION_ANNOUNCEMENT begin";
+      LOG_DEBUG << "Unexpected message @ consensus, to validator";
+      PushValidator(std::move(ptr));
+      LOG_TRACE << "DevcashController()::ConsensusCallback(): TRANSACTION_ANNOUNCEMENT complete";
+    } else if (ptr->message_type == VALID) {
+      LOG_TRACE << "DevcashController()::ConsensusCallback(): VALIDATION begin";
+      HandleValidationBlock(std::move(ptr),
+                                       context_,
+                                       keys_,
+                                       final_chain_,
+                                       utx_pool_,
+                                       [this](DevcashMessageUniquePtr p) { this->server_.QueueMessage(std::move(p));});
+      LOG_TRACE << "DevcashController()::ConsensusCallback(): VALIDATION complete";
+    } else if (ptr->message_type == REQUEST_BLOCK) {
+      LOG_DEBUG << "DevcashController()::ConsensusCallback(): REQUEST_BLOCK";
+      //provide blocks since requested height
+    } else {
+      LOG_ERROR << "DevcashController()::ConsensusCallback(): Unexpected message, ignore.\n";
+    }
+  } CASH_CATCH (const std::exception& e) {
+    LOG_FATAL << FormatException(&e, "DevcashController.ConsensusCallback()");
+    StopAll();
   }
 }
 
@@ -245,15 +262,6 @@ void DevcashController::ConsensusToyCallback(DevcashMessageUniquePtr ptr) {
     server_.QueueMessage(std::move(ptr));
   }
   consensus_flipper_ = !consensus_flipper_;
-}
-
-void DevcashController::SeedTransactions(std::vector<byte> txs) {
-  CASH_TRY {
-
-    utx_pool_.AddTransactions(txs, keys_);
-  } CASH_CATCH (const std::exception& e) {
-    LOG_ERROR << FormatException(&e, "DevcashController.SeedTransactions");
-  }
 }
 
 std::vector<std::vector<byte>> DevcashController::GenerateTransactions() {
@@ -309,129 +317,129 @@ std::vector<std::vector<byte>> DevcashController::GenerateTransactions() {
           std::vector<byte> peer_canon(peer_tx.getCanonical());
           batch.insert(batch.end(), peer_canon.begin(), peer_canon.end());
           batch_counter++;
+          if (batch_counter >= batch_size_) break;
         } //end inner for
+        if (batch_counter >= batch_size_) break;
       } //end outer for
+      if (batch_counter >= batch_size_) break;
     } //end batch while
     out.push_back(batch);
     counter += batch_counter;
     batch.clear();
     batch_counter = 0;
-  }
+  } //end counter while
 
-  LOG_INFO << "Generated "+std::to_string(counter)+" transactions in "
-      +std::to_string(out.size())+" batches.";
+  LOG_INFO << "Generated " << counter << " transactions in " << out.size() << " batches.";
   return out;
 }
 
-void DevcashController::StartToy(unsigned int node_index) {
-  //workers_->start();
+std::string DevcashController::Start() {
+  std::string out;
+  CASH_TRY {
 
-  LOG_DEBUG << "READY? StartToy()";
-  client_.AttachCallback([this](DevcashMessageUniquePtr ptr) {
+    auto lambda_callback = [this](DevcashMessageUniquePtr ptr) {
       if (ptr->message_type == TRANSACTION_ANNOUNCEMENT) {
           PushValidator(std::move(ptr));
         } else {
           PushConsensus(std::move(ptr));
         }
-    });
+    };
 
-  server_.StartServer();
-  client_.StartClient();
+    peer_client_.AttachCallback(lambda_callback);
+    peer_client_.ListenTo("peer");
+    peer_client_.ListenTo(context_.get_uri());
 
+    loopback_client_.AttachCallback(lambda_callback);
+    loopback_client_.ListenTo(context_.get_uri());
 
-  std::string uri = "RemoteURI-" + std::to_string(node_index);
-  client_.ListenTo(uri);
-  std::string peer = "peer";
-  client_.ListenTo(peer);
+    server_.StartServer();
+    peer_client_.StartClient();
+    loopback_client_.StartClient();
 
-  sleep(10);
+    std::vector<std::vector<byte>> transactions;
+    size_t processed = 0;
 
-  for (;;) {
-    std::vector<uint8_t> data(100);
-    auto startMsg = std::make_unique<DevcashMessage>(uri,
-                                                     TRANSACTION_ANNOUNCEMENT,
-                                                     data);
-    server_.QueueMessage(std::move(startMsg));
-    sleep(10);
-  }
-}
+    workers_->Start();
 
-std::string DevcashController::Start() {
-  std::string out;
+    if (generate_count_ > 0) {
+      LOG_INFO << "Generate Transactions.";
+      transactions = GenerateTransactions();
+      LOG_INFO << "Finished Generating Transactions.";
 
-  client_.AttachCallback([this](DevcashMessageUniquePtr ptr) {
-    if (ptr->message_type == TRANSACTION_ANNOUNCEMENT) {
-        PushValidator(std::move(ptr));
-      } else {
-        PushConsensus(std::move(ptr));
-      }
-  });
-
-  client_.ListenTo("peer");
-  client_.ListenTo(context_.get_uri());
-
-  //server_.StartServer();
-  client_.StartClient();
-  std::vector<std::vector<byte>> transactions;
-  size_t processed = 0;
-
-  if (generate_count_ > 0) {
-    transactions = GenerateTransactions();
-    auto announce_msg = std::make_unique<DevcashMessage>(context_.get_uri()
-        , TRANSACTION_ANNOUNCEMENT, transactions.at(processed));
-    server_.QueueMessage(std::move(announce_msg));
-    processed++;
-  }
-
-  workers_->Start();
-  LOG_INFO << "Starting a control sleep";
-  sleep(2);
-
-  if (context_.get_current_node() == 0) {
-    server_.QueueMessage(std::move(CreateNextProposal(keys_,
-      final_chain_,
-      utx_pool_,
-      context_)));
-  }
-
-  // Loop for long runs
-  auto ms = kMAIN_WAIT_INTERVAL;
-  while (true) {
-    LOG_DEBUG << "Sleeping for " << ms;
-    std::this_thread::sleep_for(millisecs(ms));
-    if (processed < transactions.size()) {
       auto announce_msg = std::make_unique<DevcashMessage>(context_.get_uri()
           , TRANSACTION_ANNOUNCEMENT, transactions.at(processed));
       server_.QueueMessage(std::move(announce_msg));
       processed++;
-    } else if (!utx_pool_.HasPendingTransactions()) {
-      LOG_INFO << "No pending transactions.  Shut down.";
-      StopAll();
+      LOG_DEBUG << "QueueMessage() in 5 sec";
+      sleep(5);
     }
-    if (shutdown_) break;
+
+    if (context_.get_current_node() == 0 && utx_pool_.HasPendingTransactions()) {
+	  server_.QueueMessage(std::move(CreateNextProposal(keys_,
+	  final_chain_,
+	  utx_pool_,
+	  context_)));
+    }
+
+    // Loop for long runs
+    auto ms = kMAIN_WAIT_INTERVAL;
+    while (true) {
+      LOG_DEBUG << "Sleeping for " << ms;
+      std::this_thread::sleep_for(millisecs(ms));
+      if (processed < transactions.size()) {
+        auto announce_msg = std::make_unique<DevcashMessage>(context_.get_uri()
+            , TRANSACTION_ANNOUNCEMENT, transactions.at(processed));
+        server_.QueueMessage(std::move(announce_msg));
+        processed++;
+
+      } else if (!utx_pool_.HasPendingTransactions()) {
+		if (processed >= transactions.size()) {
+          LOG_INFO << "Transactions complete.  Shut down.";
+          StopAll();
+	    }
+      }
+      if (shutdown_) break;
+    }
+
+  } CASH_CATCH (const std::exception& e) {
+    LOG_FATAL << FormatException(&e, "DevcashController.Start()");
+    StopAll();
   }
   return out;
 }
 
 void DevcashController::StopAll() {
-  LOG_DEBUG << "DevcashController::StopAll()";
-  shutdown_ = true;
-  std::this_thread::sleep_for(std::chrono::milliseconds(5000));
-  client_.StopClient();
-  server_.StopServer();
-  std::this_thread::sleep_for(std::chrono::milliseconds(100));
-  //workers_->StopAll();
-  std::this_thread::sleep_for(std::chrono::milliseconds(100));
+  CASH_TRY {
+    LOG_DEBUG << "DevcashController::StopAll()";
+    shutdown_ = true;
+    std::this_thread::sleep_for(std::chrono::milliseconds(5000));
+    peer_client_.StopClient();
+    loopback_client_.StopClient();
+    server_.StopServer();
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    workers_->StopAll();
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+  } CASH_CATCH (const std::exception& e) {
+    LOG_FATAL << FormatException(&e, "DevcashController.StopAll()");
+  }
 }
 
 void DevcashController::PushValidator(DevcashMessageUniquePtr ptr) {
-  LOG_DEBUG << "DevcashController::PushValidator()";
-  //workers_->pushValidator(std::move(ptr));
+  CASH_TRY {
+    LOG_DEBUG << "DevcashController::PushValidator()";
+    workers_->pushValidator(std::move(ptr));
+  } CASH_CATCH (const std::exception& e) {
+    LOG_FATAL << FormatException(&e, "DevcashController.PushValidator()");
+  }
 }
 
 void DevcashController::PushConsensus(DevcashMessageUniquePtr ptr) {
-  LOG_DEBUG << "DevcashController::PushConsensus()";
-  //workers_->pushConsensus(std::move(ptr));
+  CASH_TRY {
+    LOG_DEBUG << "DevcashController::PushConsensus()";
+    workers_->pushConsensus(std::move(ptr));
+  } CASH_CATCH (const std::exception& e) {
+    LOG_FATAL << FormatException(&e, "DevcashController.PushValidator()");
+  }
 }
 
 } //end namespace Devcash

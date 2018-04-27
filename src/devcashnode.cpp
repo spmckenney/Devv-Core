@@ -149,17 +149,8 @@ std::string DevcashNode::RunNode(std::string& inStr)
 {
   std::string out;
   CASH_TRY {
-    //control_.SeedTransactions(inStr);
     LOG_INFO << "Start controller.";
-    //TODO: start timing here
     out += control_.Start();
-
-    //TODO: end timing here
-
-    LOG_INFO << "Starting main sleep";
-    std::this_thread::sleep_for(std::chrono::milliseconds(5000));
-    LOG_INFO << "Starting shutdown";
-    StartShutdown();
 
   } CASH_CATCH (const std::exception& e) {
     LOG_FATAL << FormatException(&e, "DevcashNode.RunScanner");

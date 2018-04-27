@@ -27,9 +27,9 @@
 
 #include "Transfer.h"
 #include "Summary.h"
+#include "Validation.h"
 #include "consensus/KeyRing.h"
 #include "consensus/chainstate.h"
-#include "Validation.h"
 
 using namespace Devcash;
 
@@ -61,9 +61,13 @@ class Transaction {
     }
     xfer_count_ = BinToUint64(serial, 0);
     size_t tx_size = MinSize()+(Transfer::Size()*xfer_count_);
+    LOG_INFO << "TX size: "+std::to_string(tx_size);
     if (serial.size() < tx_size) {
       LOG_WARNING << "Invalid serialized transaction, wrong size!";
+      LOG_WARNING << "Transaction prefix: "+toHex(serial);
+      return;
     }
+    LOG_INFO << "TX canonical: "+toHex(serial);
     canonical_.insert(canonical_.end(), serial.begin()
         , serial.begin()+tx_size);
     if (getOperation() > 3) {
@@ -86,7 +90,12 @@ class Transaction {
     xfer_count_ = BinToUint64(serial, offset);
     size_t tx_size = MinSize()+(Transfer::Size()*xfer_count_);
     if (serial.size() < offset+tx_size) {
-      LOG_WARNING << "Invalid serialized transaction, wrong size!";
+      std::vector<byte> prefix(serial.begin()+offset, serial.begin()+offset+8);
+      LOG_WARNING << "Invalid serialized transaction, wrong size ("
+          +std::to_string(tx_size)+")!";
+      LOG_WARNING << "Transaction prefix: "+toHex(prefix);
+      LOG_WARNING << "Bytes offset: "+std::to_string(offset);
+      return;
     }
     canonical_.insert(canonical_.end(), serial.begin()+offset
         , serial.begin()+(offset+tx_size));
