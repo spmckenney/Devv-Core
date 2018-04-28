@@ -23,7 +23,7 @@ DevcashMessage get_message() {
   eMessageType msg{eMessageType::VALID};
   URI uri = "Hello";
 
-  DevcashMessage d(uri, msg, data);
+  DevcashMessage d(uri, msg, data, 0);
   return d;
 }
 
@@ -32,7 +32,7 @@ DevcashMessage get_message_ptr() {
   eMessageType msg{eMessageType::VALID};
   URI uri = "Hello";
 
-  DevcashMessage d(uri, msg, data);
+  DevcashMessage d(uri, msg, data, 0);
   return d;
 }
 
@@ -70,7 +70,7 @@ boost::atomic<bool> done (false);
 void consumer(void)
 {
   BufferTester t;
-  DevcashMessage value;
+  DevcashMessage value{0};
     while (!done) {
         while (spsc_queue.pop(value))
             ++consumer_count;

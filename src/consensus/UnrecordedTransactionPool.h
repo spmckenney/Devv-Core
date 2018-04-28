@@ -13,6 +13,7 @@
 
 #include "primitives/FinalBlock.h"
 
+
 namespace Devcash
 {
 typedef std::pair<uint8_t, Transaction> SharedTransaction;
@@ -46,6 +47,7 @@ class UnrecordedTransactionPool {
    *  @return true iff all Transactions are valid and in the pool
   */
     bool AddTransactions(std::vector<byte> serial, const KeyRing& keys) {
+      MTR_SCOPE_FUNC();
       CASH_TRY {
         std::vector<Transaction> temp;
         size_t counter = 0;
@@ -61,6 +63,7 @@ class UnrecordedTransactionPool {
         return AddTransactions(temp, keys);
       } CASH_CATCH (const std::exception& e) {
         LOG_FATAL << FormatException(&e, "UnrecordedTransactionPool.AddTransactions()");
+        return false;
       }
     }
 
@@ -74,6 +77,7 @@ class UnrecordedTransactionPool {
  *  @return true iff all Transactions are valid and in the pool
 */
   bool AddTransactions(std::vector<Transaction> txs, const KeyRing& keys) {
+    MTR_SCOPE_FUNC();
     bool all_good = true;
     CASH_TRY {
       int counter = 0;
@@ -114,6 +118,7 @@ class UnrecordedTransactionPool {
   */
   bool AddAndVerifyTransactions(std::vector<Transaction> txs, ChainState& state
       , const KeyRing& keys, Summary& summary) {
+    MTR_SCOPE_FUNC();
     for (auto const& item : txs) {
       Signature sig = item.getSignature();
       auto it = txs_.find(sig);
@@ -139,6 +144,7 @@ class UnrecordedTransactionPool {
  *  @return a JSON string representing these Transactions.
 */
   std::string getJSON() const {
+    MTR_SCOPE_FUNC();
     std::string out("[");
     bool isFirst = true;
     for (auto const& item : txs_) {
@@ -157,6 +163,7 @@ class UnrecordedTransactionPool {
  *  @return a bytestring of these Transactions
 */
   std::vector<byte> getCanonical() const {
+    MTR_SCOPE_FUNC();
     std::vector<byte> serial;
     for (auto const& item : txs_) {
       std::vector<byte> temp(item.second.second.getCanonical());
@@ -165,13 +172,18 @@ class UnrecordedTransactionPool {
     return serial;
   }
 
-  bool HasPendingTransactions() {
+  bool HasPendingTransactions() const {
 	LOG_DEBUG << "Number pending transactions: "+std::to_string(txs_.size());
     return(!txs_.empty());
   }
 
+  size_t NumPendingTransactions() const {
+    return(txs_.size());
+  }
+
   bool ProposeBlock(const Hash& prev_hash, const ChainState& prior_state
       , const KeyRing& keys, const DevcashContext& context) {
+    MTR_SCOPE_FUNC();
     ChainState new_state(prior_state);
     Summary summary;
     Validation validation;
@@ -194,7 +206,8 @@ class UnrecordedTransactionPool {
     return pending_proposal_.getCanonical();
   }
 
-  bool ReverifyProposal(const Hash& prev_hash, const ChainState& prior, const KeyRing& keys) {
+  bool ReverifyProposal(const Hash& prev_hash, const ChainState&, const KeyRing&) {
+    MTR_SCOPE_FUNC();
     if (pending_proposal_.isNull()) return false;
     pending_proposal_.setPrevHash(prev_hash);
     return true;
@@ -219,6 +232,7 @@ class UnrecordedTransactionPool {
   }
 
   const FinalBlock FinalizeLocalBlock() {
+    MTR_SCOPE_FUNC();
     const FinalBlock final_block(FinalizeBlock(pending_proposal_));
     pending_proposal_.setNull();
     return final_block;
@@ -226,6 +240,7 @@ class UnrecordedTransactionPool {
 
   const FinalBlock FinalizeRemoteBlock(const std::vector<byte>& serial
       , const ChainState prior, const KeyRing& keys) {
+    MTR_SCOPE_FUNC();
     FinalBlock final(serial, prior, keys);
     return final;
   }
@@ -252,6 +267,7 @@ class UnrecordedTransactionPool {
   std::vector<Transaction> CollectValidTransactions(ChainState& state
       , const KeyRing& keys, Summary& summary) {
     std::vector<Transaction> valid;
+    MTR_SCOPE_FUNC();
     for (auto& item : txs_) {
       if (item.second.second.isValid(state, keys, summary)) {
         valid.push_back(item.second.second);
@@ -272,6 +288,7 @@ class UnrecordedTransactionPool {
   */
   bool ReverifyTransactions(std::vector<Transaction> txs, ChainState& state
       , const KeyRing& keys, Summary& summary) {
+    MTR_SCOPE_FUNC();
     for (auto const& item : txs) {
       if (!item.isValid(state, keys, summary)) {
         return false;
@@ -281,13 +298,19 @@ class UnrecordedTransactionPool {
   }
 
   bool RemoveTransactions(const ProposedBlock& proposed) {
+    size_t txs_size = txs_.size();
     for (auto const& item : proposed.getTransactions()) {
       txs_.erase(item.getSignature());
     }
+    LOG_DEBUG << "RemoveTransactions: (to remove/size pre/size post) ("
+              << proposed.getNumTransactions() << "/"
+              << txs_size << "/"
+              << txs_.size() << ")";
     return true;
   }
 
   const FinalBlock FinalizeBlock(const ProposedBlock& proposal) {
+    MTR_SCOPE_FUNC();
     RemoveTransactions(proposal);
     FinalBlock final(proposal);
     return final;

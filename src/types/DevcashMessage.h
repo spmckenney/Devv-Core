@@ -13,8 +13,11 @@
 #include <memory>
 
 #include "common/logger.h"
+#include "common/util.h"
 
 namespace Devcash {
+
+const int num_debug_chars = 16;
 
 enum eMessageType {
   FINAL_BLOCK = 0,
@@ -33,8 +36,8 @@ struct DevcashMessage {
   std::vector<uint8_t> data;
   uint32_t index;
 
-  DevcashMessage() : uri(""), message_type(eMessageType::VALID), data(), index(0) {}
-  DevcashMessage(URI uri, eMessageType msgType, std::vector<uint8_t>& data, int index=0) :
+  explicit DevcashMessage(int index) : uri(""), message_type(eMessageType::VALID), data(), index(index) {}
+  DevcashMessage(URI uri, eMessageType msgType, std::vector<uint8_t>& data, int index) :
     uri(uri), message_type(msgType), data(data), index(index) {}
 
   /**
@@ -43,7 +46,7 @@ struct DevcashMessage {
   DevcashMessage(const URI& uri,
                  eMessageType msgType,
                  const std::string& data,
-                 int index=0)
+                 int index)
     : uri(uri)
     , message_type(msgType)
     , data(data.begin(), data.end())
@@ -173,7 +176,7 @@ static DevcashMessageUniquePtr deserialize(const std::vector<uint8_t>& bytes) {
   uint8_t header_version = 0;
 
   // Create the devcash message
-  auto message = std::make_unique<DevcashMessage>();
+  auto message = std::make_unique<DevcashMessage>(0);
 
   // Get the header_version
   buffer_index = extract(header_version, bytes, buffer_index);
@@ -224,14 +227,32 @@ static std::string GetMessageType (const DevcashMessage& message) {
 /**
  * Stream the message to the logger
  */
-static void LogDevcashMessageSummary(const DevcashMessage& message) {
+  static void LogDevcashMessageSummary(const DevcashMessage& message,
+                                       const std::string& source,
+                                       int summary_bytes = num_debug_chars) {
 
   auto message_type_string = GetMessageType(message);
+
+  std::string summary;
+  if ((summary_bytes < 0) || (message.data.size() < (static_cast<size_t>(summary_bytes) * 2))) {
+    summary = toHex(message.data);
+  } else {
+    std::vector<uint8_t> sub_vec;
+    sub_vec.insert(sub_vec.end(), message.data.begin(), message.data.begin() + summary_bytes);
+    summary = toHex(sub_vec);
+    summary += "..";
+    sub_vec.assign(message.data.end() - summary_bytes,
+                   message.data.end());
+    summary += toHex(sub_vec);
+  }
+
   LOG_INFO << "DevcashMessage: " <<
     "URI: " << message.uri << " | " <<
     "TYPE: " << message_type_string << " | " <<
     "SIZE: " << message.data.size() << " | " <<
-    "INDEX: " << message.index;
+    "INDEX: " << message.index << " | " <<
+    "SUMMARY: " << summary << " | " <<
+    "SRC: " << source;
 }
 
 } /* namespace Devcash */

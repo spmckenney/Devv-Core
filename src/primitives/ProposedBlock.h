@@ -49,6 +49,11 @@ public:
     , const KeyRing& keys)
     : num_bytes_(0), prev_hash_(), tx_size_(0), sum_size_(0), val_count_(0)
     , vtx_(), summary_(), vals_(), block_state_(prior) {
+    MTR_SCOPE_FUNC();
+
+    int proposed_block_int = 123;
+    MTR_START("proposed_block", "construct", &proposed_block_int);
+
     if (serial.size() < MinSize()) {
       LOG_WARNING << "Invalid serialized ProposedBlock, too small!";
       return;
@@ -61,6 +66,7 @@ public:
     size_t offset = 1;
     num_bytes_ = BinToUint64(serial, offset);
     offset += 8;
+    MTR_STEP("proposed_block", "construct", &proposed_block_int, "step1");
     if (serial.size() != num_bytes_) {
       LOG_WARNING << "Invalid serialized ProposedBlock, wrong size!";
       return;
@@ -73,15 +79,19 @@ public:
     offset += 8;
     val_count_ = BinToUint32(serial, offset);
     offset += 4;
+    MTR_STEP("proposed_block", "construct", &proposed_block_int, "step2");
     while (offset < MinSize()+tx_size_) {
       //Transaction constructor increments offset by ref
       Transaction one_tx(serial, offset, keys);
       vtx_.push_back(one_tx);
     }
+    MTR_STEP("proposed_block", "construct", &proposed_block_int, "step3");
     Summary temp(serial, offset);
     summary_ = temp;
+    MTR_STEP("proposed_block", "construct", &proposed_block_int, "step4");
     Validation val_temp(serial, offset);
     vals_ = val_temp;
+    MTR_FINISH("proposed_block", "construct", &proposed_block_int);
   }
 
   ProposedBlock(const ProposedBlock& other)
@@ -98,7 +108,7 @@ public:
       , tx_size_(0), sum_size_(summary.getByteSize())
       , val_count_(validations.sigs_.size()), vtx_(txs), summary_(summary)
       , vals_(validations), block_state_(prior_state) {
-
+    MTR_SCOPE_FUNC();
     for (auto const& item : vtx_) {
       tx_size_ += item.getByteSize();
     }
@@ -174,6 +184,7 @@ public:
  *  @return false if this block has no valid transactions
 */
   bool validate(const KeyRing& keys) const {
+    MTR_SCOPE_FUNC();
     if (vtx_.size() < 1) {
       LOG_WARNING << "Trying to validate empty block.";
       return false;
@@ -209,6 +220,7 @@ public:
  *  @return false otherwise
 */
   bool SignBlock(const KeyRing& keys, const DevcashContext& context) {
+    MTR_SCOPE_FUNC();
     std::vector<byte> md = summary_.getCanonical();
     size_t node_num = context.get_current_node();
     Address node_addr;
@@ -231,6 +243,7 @@ public:
   */
   bool CheckValidationData(std::vector<byte> remote
       , const DevcashContext& context) {
+    MTR_SCOPE_FUNC();
     if (remote.size() < MinValidationSize()) {
       LOG_WARNING << "Invalid validation data, too small!";
       return false;
@@ -258,6 +271,7 @@ public:
  *  @return a JSON representation of this block as a string.
 */
   std::string getJSON() const {
+    MTR_SCOPE_FUNC();
     std::string json("{\""+kVERSION_TAG+"\":");
     json += std::to_string(version_)+",";
     json += "\""+kBYTES_TAG+"\":"+std::to_string(num_bytes_)+",";
@@ -285,6 +299,7 @@ public:
  *  @return a CBOR representation of this block as a byte vector.
 */
   std::vector<byte> getCanonical() const {
+    MTR_SCOPE_FUNC();
     std::vector<byte> txs;
     for (auto const& item : vtx_) {
       const std::vector<byte> txs_canon(item.getCanonical());
@@ -312,11 +327,16 @@ public:
     return vtx_;
   }
 
+  size_t getNumTransactions() const {
+    return vtx_.size();
+  }
+
   Summary getSummary() const {
     return summary_;
   }
 
   std::vector<byte> getValidationData() {
+    MTR_SCOPE_FUNC();
     std::vector<byte> out;
     out.insert(out.end(), prev_hash_.begin(), prev_hash_.end());
     const std::vector<byte> val_canon(vals_.getCanonical());

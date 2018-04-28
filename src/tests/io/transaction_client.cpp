@@ -10,7 +10,7 @@
 
 void print_devcash_message(Devcash::DevcashMessageUniquePtr message) {
   LOG(info) << "Got a message!";
-  LogDevcashMessageSummary(*message);
+  LogDevcashMessageSummary(*message, "transaction_client");
 
   test_struct test;
   message->GetData(test);

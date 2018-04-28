@@ -24,7 +24,7 @@ Address KeyRing::InsertAddress(std::string hex, EC_KEY* key) {
 }
 
 KeyRing::KeyRing(DevcashContext& context)
-  : context_(context), key_map_(), inn_addr_(), node_list_()
+  : context_(context), key_map_(), node_list_(), inn_addr_()
 {
   CASH_TRY {
      EVP_MD_CTX* ctx;

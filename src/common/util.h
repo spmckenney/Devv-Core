@@ -25,6 +25,7 @@
 #include <vector>
 #include <memory>
 #include <boost/multiprecision/cpp_int.hpp>
+#include "common/minitrace.h"
 
 typedef unsigned char byte;
 
@@ -34,6 +35,7 @@ namespace Devcash
 typedef boost::multiprecision::uint256_t uint256_t;
 
 static int32_t BinToInt32(const std::vector<byte>& bytes, size_t start) {
+  //MTR_SCOPE_FUNC();
   int32_t dest = 0;
   for (unsigned int i=0; i<4; ++i) {
     dest |= (bytes.at(start+i) << (i*8));
@@ -43,6 +45,7 @@ static int32_t BinToInt32(const std::vector<byte>& bytes, size_t start) {
 
 static std::vector<byte> Int32ToBin(const int32_t& source
     ,std::vector<byte>& dest) {
+  //MTR_SCOPE_FUNC();
   for (unsigned int i=0; i<4; ++i) {
     dest.push_back((source >> (i*8)) & 0xFF);
   }
@@ -50,6 +53,7 @@ static std::vector<byte> Int32ToBin(const int32_t& source
 }
 
 static uint32_t BinToUint32(const std::vector<byte>& bytes, size_t start) {
+  //MTR_SCOPE_FUNC();
   uint32_t dest = 0;
   for (unsigned int i=0; i<4; ++i) {
     dest |= (bytes.at(start+i) << (i*8));
@@ -59,6 +63,7 @@ static uint32_t BinToUint32(const std::vector<byte>& bytes, size_t start) {
 
 static std::vector<byte> Uint32ToBin(const uint32_t& source
     ,std::vector<byte>& dest) {
+  //MTR_SCOPE_FUNC();
   for (unsigned int i=0; i<4; ++i) {
     dest.push_back((source >> (i*8)) & 0xFF);
   }
@@ -66,6 +71,7 @@ static std::vector<byte> Uint32ToBin(const uint32_t& source
 }
 
 static uint64_t BinToUint64(const std::vector<byte>& bytes, size_t start) {
+  //MTR_SCOPE_FUNC();
   uint32_t lsb = BinToUint32(bytes, start);
   uint32_t msb = BinToUint32(bytes, start+4);
   uint64_t dest = (uint64_t(msb) << 32) | uint64_t(lsb);
@@ -74,6 +80,7 @@ static uint64_t BinToUint64(const std::vector<byte>& bytes, size_t start) {
 
 static std::vector<byte> Uint64ToBin(const uint64_t& source
     ,std::vector<byte>& dest) {
+  //MTR_SCOPE_FUNC();
   uint32_t lsb = source&0xffffffff;
   uint32_t msb = source >> 32;
   Uint32ToBin(lsb, dest);
@@ -82,6 +89,7 @@ static std::vector<byte> Uint64ToBin(const uint64_t& source
 }
 
 static int64_t BinToInt64(const std::vector<byte>& bytes, size_t start) {
+  //MTR_SCOPE_FUNC();
   int32_t lsb = BinToInt32(bytes, start);
   int32_t msb = BinToInt32(bytes, start+4);
   int64_t dest = (int64_t(msb) << 32) | int64_t(lsb);
@@ -90,6 +98,7 @@ static int64_t BinToInt64(const std::vector<byte>& bytes, size_t start) {
 
 static std::vector<byte> Int64ToBin(const int64_t& source
     ,std::vector<byte>& dest) {
+  //MTR_SCOPE_FUNC();
   int32_t lsb = source&0xffffffff;
   int32_t msb = source >> 32;
   Int32ToBin(lsb, dest);
@@ -98,6 +107,7 @@ static std::vector<byte> Int64ToBin(const int64_t& source
 }
 
 static uint64_t getEpoch() {
+  //MTR_SCOPE_FUNC();
   std::chrono::milliseconds ms = std::chrono::duration_cast<std::chrono::milliseconds>
     (std::chrono::system_clock::now().time_since_epoch());
   return ms.count();
@@ -108,6 +118,7 @@ static uint64_t getEpoch() {
  *  @return int value of this hex digit
 */
 static int Char2Int(char in) {
+  //MTR_SCOPE_FUNC();
   if (in >= '0' && in <= '9') {
     return(in - '0');
   }
@@ -125,6 +136,7 @@ static int Char2Int(char in) {
  *  @return a byte vector of the same data in binary form.
 */
 static std::vector<byte> Hex2Bin(std::string hex) {
+  MTR_SCOPE_FUNC();
   int len = hex.length();
   std::vector<uint8_t> buf(len/2+1);
   for (int i=0;i<len/2;i++) {
@@ -143,6 +155,7 @@ static const char alpha[] = "0123456789ABCDEF";
  *  @return string containing these data as hex numbers
  */
 static std::string toHex(const std::vector<byte>& input) {
+  MTR_SCOPE_FUNC();
   std::stringstream ss;
   for (size_t j=0; j<input.size(); j++) {
     int c = (int) input[j];
@@ -282,6 +295,7 @@ static int char2int(char in) {
  *  @return a byte vector of the same data in binary form.
 */
 static std::vector<uint8_t> hex2CBOR(std::string hex) {
+  MTR_SCOPE_FUNC();
   int len = hex.length();
   std::vector<uint8_t> buf(len/2+1);
   for (int i=0;i<len/2;i++) {

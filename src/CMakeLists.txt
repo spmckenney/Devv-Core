@@ -42,14 +42,6 @@ list(REMOVE_DUPLICATES dcInclude)
 # External third-party libraries
 find_library(ZMQ zmq)
 
-file(GLOB_RECURSE devcash_headers "*.h*")
-set (devcash_includes "")
-foreach (_headerFile ${devcash_headers})
-  get_filename_component(_dir ${_headerFile} PATH)
-  list (APPEND devcash_includes ${_dir})
-endforeach()
-list(REMOVE_DUPLICATES devcash_includes)
-
 # Build the common module objects
 file(GLOB common_SRC
     "common/*.cpp" "common/*.c"

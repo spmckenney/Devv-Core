@@ -11,13 +11,13 @@
 int
 main(int argc, char** argv) {
 
-  auto dev_message = std::make_unique<Devcash::DevcashMessage>();
+  auto dev_message = std::make_unique<Devcash::DevcashMessage>(10);
   dev_message->index = 10;
   dev_message->uri = "Hello!";
   dev_message->message_type = Devcash::eMessageType::VALID;
   dev_message->data.emplace_back(25);
 
-  Devcash::LogDevcashMessageSummary(*dev_message);
+  Devcash::LogDevcashMessageSummary(*dev_message, "main()");
 
   auto buffer = Devcash::serialize(*dev_message);
 
@@ -25,7 +25,7 @@ main(int argc, char** argv) {
 
   assert(dev_message->index == new_message->index);
 
-  Devcash::LogDevcashMessageSummary(*new_message);
+  Devcash::LogDevcashMessageSummary(*new_message, "main2()");
   LOG_INFO << "We made it!!!";
 
   if (argc < 2) {
@@ -58,12 +58,12 @@ main(int argc, char** argv) {
 
   for (;;) {
     sleep(1);
-    auto devcash_message = std::make_unique<Devcash::DevcashMessage>();
+    auto devcash_message = std::make_unique<Devcash::DevcashMessage>(10);
     devcash_message->index = 15;
     devcash_message->uri = my_uri;
     devcash_message->message_type = Devcash::eMessageType::VALID;
     devcash_message->SetData(test);
-    Devcash::LogDevcashMessageSummary(*devcash_message);
+    Devcash::LogDevcashMessageSummary(*devcash_message, "");
 
     //LOG_INFO << "Sending message: " << message;
     server.QueueMessage(std::move(devcash_message));

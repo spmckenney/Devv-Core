@@ -77,12 +77,14 @@ std::string workPath(""); /** Path to work directory. */
 
 int StreamWriteStr(const std::string &str, std::ostream* fout)
 {
+  MTR_SCOPE_FUNC();
   *fout << str << std::endl;
   return sizeof(str);
 }
 
 std::string ReadFile(const std::string& filePath)
 {
+  MTR_SCOPE_FUNC();
   std::ifstream file(filePath);
   if (!file.good()) {
     LOG_ERROR << "File "+filePath+" could not be found";
@@ -102,6 +104,7 @@ std::string ReadFile(const std::string& filePath)
 /** Interpret string as boolean, for argument parsing */
 static bool InterpretBool(const std::string& strValue)
 {
+  MTR_SCOPE_FUNC();
   if (strValue.empty()) return true;
   return (std::stoi(strValue) != 0);
 }
@@ -109,6 +112,7 @@ static bool InterpretBool(const std::string& strValue)
 /** Turn -noX into -X=0 */
 static void InterpretNegativeSetting(std::string& strKey, std::string& strValue)
 {
+  MTR_SCOPE_FUNC();
   if (strKey.length()>3 && strKey[0]=='-' && strKey[1]=='n' && strKey[2]=='o')
   {
     strKey = "-" + strKey.substr(3);
@@ -118,6 +122,7 @@ static void InterpretNegativeSetting(std::string& strKey, std::string& strValue)
 
 std::string FormatException(const std::exception* pex, const std::string pszThread)
 {
+  MTR_SCOPE_FUNC();
   std::string msg = "";
   if (pex) {
     msg += "EXCEPTION[";
@@ -143,6 +148,7 @@ std::string getWorkPath() {
 
 void FileCommit(FILE* file)
 {
+  MTR_SCOPE_FUNC();
   fflush(file); // harmless if redundantly called
 #ifdef WIN32
   HANDLE hFile = (HANDLE)_get_osfhandle(_fileno(file));
@@ -192,6 +198,7 @@ int RaiseFileDescriptorLimit(int nMinFD) {
 }
 
 void AllocateFileRange(FILE* file, unsigned int offset, unsigned int length) {
+  MTR_SCOPE_FUNC();
 #if defined(WIN32)
   // Windows-specific version
   HANDLE hFile = (HANDLE)_get_osfhandle(_fileno(file));
