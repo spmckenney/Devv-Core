@@ -130,7 +130,7 @@ bool DevcashNode::SanityChecks()
   return false;
 }
 
-std::string DevcashNode::RunScanner(std::string inStr) {
+std::string DevcashNode::RunScanner(std::string) {
   LOG_INFO << "Scanner Mode";
   std::string out("");
   CASH_TRY {
@@ -145,7 +145,7 @@ std::string DevcashNode::RunScanner(std::string inStr) {
   return out;
 }
 
-std::string DevcashNode::RunNode(std::string& inStr)
+std::string DevcashNode::RunNode(std::string&)
 {
   std::string out;
   CASH_TRY {
@@ -159,7 +159,7 @@ std::string DevcashNode::RunNode(std::string& inStr)
   return out;
 }
 
-std::string DevcashNode::RunNetworkTest(unsigned int node_index)
+std::string DevcashNode::RunNetworkTest(unsigned int)
 {
   std::string out("");
   CASH_TRY {

@@ -72,7 +72,7 @@ class DCdata : public oracleInterface {
    * @return true iff the transaction is valid according to this oracle
    * @return false otherwise
    */
-  bool isValid(Transaction checkTx, ChainState& context) {
+  bool isValid(Transaction checkTx, ChainState&) {
     if (!isSound(checkTx)) return false;
     return true;
   }
