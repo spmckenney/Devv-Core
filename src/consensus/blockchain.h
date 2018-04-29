@@ -43,7 +43,7 @@ public:
   typedef std::shared_ptr<FinalBlock> BlockSharedPtr;
 
   Blockchain(const std::string& name)
-    : name_(name), chain_size_(0)
+    : name_(name), chain_size_(0), num_transactions_(0)
   {
   }
 
@@ -54,7 +54,14 @@ public:
   void push_back(BlockSharedPtr block) {
     chain_.push_back(block);
     chain_size_++;
-    LOG_TRACE << name_ << ": push_back(); new size(" << chain_size_ << ")";
+    num_transactions_ += block->getNumTransactions();
+
+    LOG_NOTICE << name_ << "Updating Final Blockchain - (size/ntxs)"
+                << " (" << chain_size_ << "/" << num_transactions_ << ")";
+  }
+
+  size_t getNumTransactions() const {
+    return num_transactions_;
   }
 
   BlockSharedPtr& back() {
@@ -116,6 +123,7 @@ private:
   std::vector<BlockSharedPtr> chain_;
   const std::string name_;
   std::atomic<int> chain_size_;
+  std::atomic<int> num_transactions_;
 };
 
 } // namespace Devcash

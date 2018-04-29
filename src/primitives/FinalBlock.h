@@ -87,6 +87,10 @@ public:
     return 101;
   }
 
+  size_t getNumTransactions() const {
+    return vtx_.size();
+  }
+
 /** Returns a JSON representation of this block as a string.
  *  @return a JSON representation of this block as a string.
 */
