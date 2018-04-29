@@ -154,7 +154,8 @@ static const char alpha[] = "0123456789ABCDEF";
  *  @param len length of the binary data
  *  @return string containing these data as hex numbers
  */
-static std::string toHex(const std::vector<byte>& input) {
+template <typename Array>
+static std::string toHex(const Array& input) {
   MTR_SCOPE_FUNC();
   std::stringstream ss;
   for (size_t j=0; j<input.size(); j++) {
