@@ -55,7 +55,7 @@ DevcashMessageUniquePtr CreateNextProposal(const KeyRing& keys,
   size_t block_height = final_chain.size();
 
   if (!(block_height % 100) || !((block_height + 1) % 100)) {
-    LOG_WARNING << "Processing @ final_chain_.size: (" << std::to_string(block_height) << ")";
+    LOG_NOTICE << "Processing @ final_chain_.size: (" << std::to_string(block_height) << ")";
   }
 
   if (!utx_pool.HasProposal() && utx_pool.HasPendingTransactions()) {
@@ -124,7 +124,10 @@ bool HandleFinalBlock(DevcashMessageUniquePtr ptr,
   FinalPtr top_block = FinalPtr(new FinalBlock(utx_pool.FinalizeRemoteBlock(
       msg.data, prior, keys)));
   final_chain.push_back(top_block);
-  LOG_TRACE << "final_chain.push_back()";
+  LOG_NOTICE << "final_chain.push_back(): Estimated rate: (ntxs/duration): rate -> "
+             << "(" << final_chain.getNumTransactions() << "/"
+             << utx_pool.getElapsedTime() << "): "
+             << final_chain.getNumTransactions() / (utx_pool.getElapsedTime()/1000) << " txs/sec";
 
   // Did we send a message
   bool sent_message = false;
@@ -198,7 +201,10 @@ bool HandleValidationBlock(DevcashMessageUniquePtr ptr,
     LOG_DEBUG << "Ready to finalize block.";
     FinalPtr top_block = FinalPtr(new FinalBlock(utx_pool.FinalizeLocalBlock()));
     final_chain.push_back(top_block);
-    LOG_TRACE << "final_chain.push_back()";
+    LOG_NOTICE << "final_chain.push_back(): Estimated rate: (ntxs/duration): rate -> "
+               << "(" << final_chain.getNumTransactions() << "/"
+               << utx_pool.getElapsedTime() << "): "
+               << final_chain.getNumTransactions() / (utx_pool.getElapsedTime()/1000) << " txs/sec";
 
     std::vector<byte> final_msg = top_block->getCanonical();
 
@@ -312,7 +318,7 @@ std::vector<std::vector<byte>> DevcashController::GenerateTransactions() {
         xfers.push_back(transfer);
       }
       Transaction inn_tx(eOpType::Create, xfers
-          , getEpoch()+(1000000*context_.get_current_node())
+                         , getEpoch()+(1000000*(context_.get_current_node()+1)*(batch_counter+1))
           , keys_.getKey(inn_addr), keys_);
       std::vector<byte> inn_canon(inn_tx.getCanonical());
       batch.insert(batch.end(), inn_canon.begin(), inn_canon.end());
@@ -326,8 +332,8 @@ std::vector<std::vector<byte>> DevcashController::GenerateTransactions() {
           Transfer receiver(addrs.at(j), 0, 1, 0);
           peer_xfers.push_back(receiver);
           Transaction peer_tx(eOpType::Exchange, peer_xfers
-              , getEpoch()+(1000000*context_.get_current_node())
-              , keys_.getKey(addrs.at(i)), keys_);
+                              , getEpoch()+(1000000*(context_.get_current_node()+1)*(i+1)*(j+1))
+                              , keys_.getKey(addrs.at(i)), keys_);
           std::vector<byte> peer_canon(peer_tx.getCanonical());
           batch.insert(batch.end(), peer_canon.begin(), peer_canon.end());
           batch_counter++;

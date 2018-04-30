@@ -17,7 +17,7 @@
 
 namespace Devcash {
 
-const int num_debug_chars = 16;
+const int num_debug_chars = 8;
 
 enum eMessageType {
   FINAL_BLOCK = 0,
@@ -246,12 +246,12 @@ static std::string GetMessageType (const DevcashMessage& message) {
     summary += toHex(sub_vec);
   }
 
-  LOG_INFO << "DevcashMessage: " <<
+  LOG_INFO <<
     "URI: " << message.uri << " | " <<
-    "TYPE: " << message_type_string << " | " <<
-    "SIZE: " << message.data.size() << " | " <<
-    "INDEX: " << message.index << " | " <<
-    "SUMMARY: " << summary << " | " <<
+    "TPE: " << message_type_string << " | " <<
+    "SZE: " << message.data.size() << " | " <<
+    "IDX: " << message.index << " | " <<
+    "SUM: " << summary << " | " <<
     "SRC: " << source;
 }
 
