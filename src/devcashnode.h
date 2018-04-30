@@ -54,13 +54,13 @@ class DevcashNode {
    * Runs the scanner over the input.
    * @pre Parameters should be parsed and config file should be read.
    */
-  std::string RunScanner(std::string);
+  std::string RunScanner();
 
   /**
    * Devcash core main initialization.
    * @note Call Shutdown() if this function fails.
    */
-  std::string RunNode(std::string&);
+  std::string RunNode();
 
   std::string RunNetworkTest(unsigned int);
 

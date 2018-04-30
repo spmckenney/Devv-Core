@@ -84,8 +84,6 @@ int main(int argc, char* argv[])
 
     DevcashNode this_node(controller, this_context);
 
-    std::string in_raw = ReadFile(options->scan_file);
-
     /**
      * Chrome tracing setup
      */
@@ -100,7 +98,7 @@ int main(int argc, char* argv[])
     std::string out("");
     if (options->mode == eAppMode::scan) {
       LOG_INFO << "Scanner ignores node index.";
-      out = this_node.RunScanner(in_raw);
+      out = this_node.RunScanner();
     } else {
       if (!this_node.Init()) {
         LOG_FATAL << "Basic setup failed";
@@ -115,8 +113,12 @@ int main(int argc, char* argv[])
       if (options->debug_mode == eDebugMode::toy) {
         this_node.RunNetworkTest(options->node_index);
       }
-      out = this_node.RunNode(in_raw);
+      out = this_node.RunNode();
     }
+
+    MTR_END("main", "outer");
+    mtr_flush();
+    mtr_shutdown();
 
     //We do need to output the resulting blockchain for analysis
     //It should be deterministic based on the input and parameters,
@@ -133,10 +135,6 @@ int main(int argc, char* argv[])
     }
 
     LOG_INFO << "DevCash Shutting Down";
-
-    MTR_END("main", "outer");
-    mtr_flush();
-    mtr_shutdown();
 
     return(true);
   } CASH_CATCH (...) {
