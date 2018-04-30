@@ -105,6 +105,7 @@ class UnrecordedTransactionPool {
           if (num_cum_txs_ == 0) {
             LOG_NOTICE << "AddTransactions(): First transaction added to TxMap";
             timer_.reset();
+            trace_ = std::make_unique<MTRScopedTrace>("timer", "lifetime1");
           }
           num_cum_txs_++;
           counter++;
@@ -154,6 +155,7 @@ class UnrecordedTransactionPool {
         if (num_cum_txs_ == 0) {
           LOG_NOTICE << "AddTransactions(): First transaction added to TxMap";
           timer_.reset();
+          trace_ = std::make_unique<MTRScopedTrace>("timer", "lifetime2");
         }
         num_cum_txs_++;
 
@@ -316,6 +318,7 @@ class UnrecordedTransactionPool {
 
   // Time since starting
   Timer timer_;
+  std::unique_ptr<MTRScopedTrace> trace_;
 
   /** Verifies Transactions for this pool.
    *  @note this implementation is greedy in selecting Transactions
@@ -330,10 +333,14 @@ class UnrecordedTransactionPool {
     std::vector<Transaction> valid;
     MTR_SCOPE_FUNC();
     std::lock_guard<std::mutex> guard(txs_mutex_);
-    for (auto& item : txs_) {
-      if (item.second.second.isValid(state, keys, summary)) {
-        valid.push_back(item.second.second);
-        item.second.first++;
+    int num_txs = 0;
+    for (auto iter = txs_.begin(); iter != txs_.end(); ++iter) {
+      if (iter->second.second.isValid(state, keys, summary)) {
+        valid.push_back(iter->second.second);
+        iter->second.first++;
+        num_txs++;
+        // FIXME(spmckenney): Add config param here
+        if (num_txs >= 1000) break;
       }
     }
     return valid;
@@ -366,7 +373,8 @@ class UnrecordedTransactionPool {
     size_t txs_size = txs_.size();
     for (auto const& item : proposed.getTransactions()) {
       if (txs_.erase(item.getSignature()) == 0) {
-        LOG_WARNING << "RemoveTransactions(): erase returned 0: " << toHex(item.getSignature());
+        LOG_WARNING << "RemoveTransactions(): ret = 0, transaction not found: "
+                    << toHex(item.getSignature());
       } else {
         LOG_DEBUG << "RemoveTransactions(): erase returned 1: " << toHex(item.getSignature());
       }

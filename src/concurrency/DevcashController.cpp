@@ -22,6 +22,12 @@ typedef std::chrono::milliseconds millisecs;
 
 namespace Devcash {
 
+#define DEBUG_PROPOSAL_INDEX \
+  ((block_height+1) + (context.get_current_node()+1)*1000000)
+
+#define DEBUG_TRANSACTION_INDEX \
+  (processed + (context_.get_current_node()+1)*11000000)
+
 DevcashController::DevcashController(
     io::TransactionServer& server,
     io::TransactionClient& peer_client,
@@ -72,22 +78,29 @@ DevcashMessageUniquePtr CreateNextProposal(const KeyRing& keys,
   auto propose_msg = std::make_unique<DevcashMessage>("peers"
                                                       , PROPOSAL_BLOCK
                                                       , proposal
-                                                      , (block_height+1)*10+context.get_current_node());
+                                                      , DEBUG_PROPOSAL_INDEX);
+  // FIXME (spm): define index value somewhere
   LogDevcashMessageSummary(*propose_msg, "CreateNextProposal");
   return propose_msg;
 
 }
 
 void DevcashController::ValidatorCallback(DevcashMessageUniquePtr ptr) {
-  MTR_SCOPE_FUNC();
+  //std::lock_guard<std::mutex> guard(mutex_);
+  if (shutdown_) return;
+  if (ptr == nullptr) {
+    LOG_DEBUG << "ValidatorCallback(): ptr == nullptr, ignoring";
+    return;
+  }
   LogDevcashMessageSummary(*ptr, "ValidatorCallback");
   CASH_TRY {
     LOG_DEBUG << "DevcashController::ValidatorCallback()";
-    if (shutdown_) return;
+    MTR_SCOPE_FUNC();
     if (ptr->message_type == TRANSACTION_ANNOUNCEMENT) {
       DevcashMessage msg(*ptr.get());
       utx_pool_.AddTransactions(msg.data, keys_);
       size_t block_height = final_chain_.size();
+      ///*
       if ((block_height+1)%context_.get_peer_count()
             == context_.get_current_node()) {
         LOG_INFO << "(spm): CreateNextProposal, utx_pool.HasProposal(): " << utx_pool_.HasProposal();
@@ -96,6 +109,7 @@ void DevcashController::ValidatorCallback(DevcashMessageUniquePtr ptr) {
                                          CreateNextProposal(keys_,final_chain_,utx_pool_,context_)));
         }
       }
+      //*/
     } else {
       LOG_DEBUG << "Unexpected message @ validator, to consensus.\n";
       PushConsensus(std::move(ptr));
@@ -322,6 +336,7 @@ std::vector<std::vector<byte>> DevcashController::GenerateTransactions() {
           , keys_.getKey(inn_addr), keys_);
       std::vector<byte> inn_canon(inn_tx.getCanonical());
       batch.insert(batch.end(), inn_canon.begin(), inn_canon.end());
+      LOG_DEBUG << "GenerateTransactions(): generated inn_tx with sig: " << toHex(inn_tx.getSignature());
       batch_counter++;
       for (size_t i=0; i<addr_count; ++i) {
         for (size_t j=0; j<addr_count; ++j) {
@@ -336,6 +351,7 @@ std::vector<std::vector<byte>> DevcashController::GenerateTransactions() {
                               , keys_.getKey(addrs.at(i)), keys_);
           std::vector<byte> peer_canon(peer_tx.getCanonical());
           batch.insert(batch.end(), peer_canon.begin(), peer_canon.end());
+          LOG_DEBUG << "GenerateTransactions(): generated tx with sig: " << toHex(peer_tx.getSignature());
           batch_counter++;
           if (batch_counter >= batch_size_) break;
         } //end inner for
@@ -382,33 +398,45 @@ std::string DevcashController::Start() {
 
     workers_->Start();
 
+    //LOG_DEBUG << "Letting threads start for 2 seconds.";
+    //sleep(2);
+
     if (generate_count_ > 0) {
+    std::lock_guard<std::mutex> guard(mutex_);
       LOG_INFO << "Generate Transactions.";
       transactions = GenerateTransactions();
-      LOG_INFO << "Finished Generating Transactions.";
+      LOG_INFO << "Finished Generating " << transactions.size() * batch_size_ << " Transactions.";
 
+      /*
       auto announce_msg = std::make_unique<DevcashMessage>(context_.get_uri()
                                                            , TRANSACTION_ANNOUNCEMENT
                                                            , transactions.at(processed)
-                                                           , processed*10+context_.get_current_node());
+                                                           , processed +
+                                                           (context_.get_current_node()+1)*11000000);
       server_.QueueMessage(std::move(announce_msg));
       processed++;
-      LOG_DEBUG << "QueueMessage() in 5 sec";
-      sleep(5);
+      */
     }
 
+    /*
     if (context_.get_current_node() == 0 && utx_pool_.HasPendingTransactions()) {
+      LOG_NOTICE << "DevcashController::Start(): Queueing(CreateNextProposal)";
 	  server_.QueueMessage(std::move(CreateNextProposal(keys_,
 	  final_chain_,
 	  utx_pool_,
 	  context_)));
     }
+    */
+    LOG_NOTICE << "DevcashController::Start(): Starting devcash - entering forever loop in 10 sec";
+    sleep(1);
+
+    std::unique_ptr<Timer> timer = nullptr;
 
     // Loop for long runs
     auto ms = kMAIN_WAIT_INTERVAL;
     while (true) {
       LOG_DEBUG << "Sleeping for " << ms
-                << ": processed/txs/pending (" << processed
+                << ": processed/batches/pending (" << processed
                 << "/" << transactions.size() << "/"
                 << utx_pool_.NumPendingTransactions() << ")";
       std::this_thread::sleep_for(millisecs(ms));
@@ -416,16 +444,40 @@ std::string DevcashController::Start() {
         auto announce_msg = std::make_unique<DevcashMessage>(context_.get_uri()
                                                              , TRANSACTION_ANNOUNCEMENT
                                                              , transactions.at(processed)
-                                                             , processed*10+context_.get_current_node());
+                                                             , DEBUG_TRANSACTION_INDEX);
         server_.QueueMessage(std::move(announce_msg));
         processed++;
 
       } else if (!utx_pool_.HasPendingTransactions()) {
-		if (processed >= transactions.size()) {
-          LOG_INFO << "Transactions complete.  Shut down.";
-          StopAll();
-	    }
+        if (processed >= transactions.size()) {
+          if (timer) {
+            double ms = 5000.0;
+            LOG_INFO << "Transactions complete.  Shutting down in " << std::to_string(ms - timer->elapsed());
+            if (timer->elapsed() > ms) {
+              LOG_INFO << "Transactions complete.  Shutting down";
+              StopAll();
+            }
+          } else {
+            timer = std::make_unique<Timer>();
+          }
+        }
       }
+
+      // (spm) Polling transactions to create blocks rather than
+      // relying on a FinalBlock coming in to trigger it may be
+      // a better solution
+      /*
+      size_t block_height = final_chain_.size();
+      LOG_INFO << "(spm): CreateNextProposal, utx_pool.HasProposal(): "
+               << utx_pool_.HasProposal() << " block_height: " << block_height
+               << " - ("<< (block_height+1)%context_.get_peer_count() <<")";
+      if (!utx_pool_.HasProposal() && utx_pool_.HasPendingTransactions()) {
+        server_.QueueMessage(std::move(CreateNextProposal(keys_,
+                                                          final_chain_,
+                                                          utx_pool_,
+                                                          context_)));
+      }
+      */
       if (shutdown_) break;
     }
 
