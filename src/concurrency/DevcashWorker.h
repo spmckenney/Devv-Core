@@ -29,11 +29,7 @@ class DevcashControllerWorker {
                     const int validators, const int consensus);
 
   virtual ~DevcashControllerWorker() {
-    continue_ = false;
-    validators_.ClearBlockers();
-    consensus_.ClearBlockers();
-    validator_pool_.join_all();
-    consensus_pool_.join_all();
+    StopAll();
   }
 
   /* Disallow copy and assign */
