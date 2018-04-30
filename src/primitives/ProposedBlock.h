@@ -82,6 +82,7 @@ public:
     MTR_STEP("proposed_block", "construct", &proposed_block_int, "step2");
     while (offset < MinSize()+tx_size_) {
       //Transaction constructor increments offset by ref
+      LOG_DEBUG << "while, offset = " << offset;
       Transaction one_tx(serial, offset, keys);
       vtx_.push_back(one_tx);
     }
@@ -115,40 +116,6 @@ public:
 
     num_bytes_ = MinSize()+tx_size_+sum_size_
         +val_count_*vals_.PairSize();
-  }
-
-  ProposedBlock* operator=(ProposedBlock&& other)
-  {
-    if (this != &other) {
-      this->version_ = other.version_;
-      this->num_bytes_ = other.num_bytes_;
-      this->prev_hash_ = other.prev_hash_;
-      this->tx_size_ = other.tx_size_;
-      this->sum_size_ = other.sum_size_;
-      this->val_count_ = other.val_count_;
-      this->vtx_ = other.vtx_;
-      this->summary_ = other.summary_;
-      this->vals_ = other.vals_;
-      this->block_state_ = other.block_state_;
-    }
-    return this;
-  }
-
-  ProposedBlock* operator=(const ProposedBlock& other)
-  {
-    if (this != &other) {
-      this->version_ = other.version_;
-      this->num_bytes_ = other.num_bytes_;
-      this->prev_hash_ = other.prev_hash_;
-      this->tx_size_ = other.tx_size_;
-      this->sum_size_ = other.sum_size_;
-      this->val_count_ = other.val_count_;
-      this->vtx_ = other.vtx_;
-      this->summary_ = other.summary_;
-      this->vals_ = other.vals_;
-      this->block_state_ = other.block_state_;
-    }
-    return this;
   }
 
   bool isNull() {

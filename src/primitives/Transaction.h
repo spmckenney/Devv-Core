@@ -83,6 +83,7 @@ class Transaction {
   explicit Transaction(const std::vector<byte>& serial, size_t& offset
     , const KeyRing& keys)
     : xfer_count_(0), canonical_(), is_sound_(false) {
+    MTR_SCOPE_FUNC();
     if (serial.size() < offset+MinSize()) {
       LOG_WARNING << "Invalid serialized transaction, too small!";
       return;
@@ -174,23 +175,6 @@ class Transaction {
   friend bool operator!=(const Transaction& a, const Transaction& b)
   {
     return a.canonical_ != b.canonical_;
-  }
-
-  /** Assignment Operators */
-  Transaction* operator=(Transaction&& other)
-  {
-    if (this != &other) {
-      this->canonical_ = other.canonical_;
-    }
-    return this;
-  }
-
-  Transaction* operator=(const Transaction& other)
-  {
-    if (this != &other) {
-      this->canonical_ = other.canonical_;
-    }
-    return this;
   }
 
   byte getOperation() const {
