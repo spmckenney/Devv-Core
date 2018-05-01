@@ -96,7 +96,7 @@ std::string ReadFile(const std::string& filePath)
 
   std::string output("");
   for(std::string line; std::getline(file, line);) {
-    output += line;
+    output += line+"\n";
   }
   return(output);
 }

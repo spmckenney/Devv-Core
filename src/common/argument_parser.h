@@ -178,7 +178,7 @@ network could be build and tested.\n\nAllowed options");
 
     if (vm.count("inn-keys")) {
       options->inn_keys = vm["inn-keys"].as<std::string>();
-      LOG_INFO << "INN keys file: " << options->trace_file;
+      LOG_INFO << "INN keys file: " << options->inn_keys;
     } else {
       LOG_INFO << "INN keys file was not set.";
     }

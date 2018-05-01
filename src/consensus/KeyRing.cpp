@@ -35,19 +35,19 @@ KeyRing::KeyRing(DevcashContext& context)
 
      std::vector<byte> msg = {'h', 'e', 'l', 'l', 'o'};
      Hash test_hash;
-     test_hash = dcHash(msg);
      Signature sig;
+     test_hash = dcHash(msg);
 
      std::string inn_keys = ReadFile(context_.get_inn_key_path());
      if (!inn_keys.empty()) {
        size_t size = inn_keys.size();
        if (size%(kFILE_KEY_SIZE+(kADDR_SIZE*2)+1) == 0) {
          size_t counter = 0;
-           while (counter < size) {
-             std::string addr = inn_keys.substr(counter, counter+(kADDR_SIZE*2));
+           while (counter < (size-1)) {
+             std::string addr = inn_keys.substr(counter, (kADDR_SIZE*2));
              counter += (kADDR_SIZE*2);
-             std::string key = inn_keys.substr(counter, counter+kFILE_KEY_SIZE);
-             counter += kFILE_KEY_SIZE;
+             std::string key = inn_keys.substr(counter, kFILE_KEY_SIZE);
+             counter += kFILE_KEY_SIZE+1;
 
              EC_KEY* inn_key = LoadEcKey(addr, key);
              SignBinary(inn_key, test_hash, sig);
@@ -82,11 +82,11 @@ KeyRing::KeyRing(DevcashContext& context)
        size_t size = wallet_keys.size();
        if (size%(kFILE_KEY_SIZE+(kADDR_SIZE*2)+1) == 0) {
          size_t counter = 0;
-           while (counter < size) {
-             std::string addr = wallet_keys.substr(counter, counter+(kADDR_SIZE*2));
+           while (counter < (size-1)) {
+             std::string addr = wallet_keys.substr(counter, (kADDR_SIZE*2));
              counter += (kADDR_SIZE*2);
-             std::string key = wallet_keys.substr(counter, counter+kFILE_KEY_SIZE);
-             counter += kFILE_KEY_SIZE;
+             std::string key = wallet_keys.substr(counter, kFILE_KEY_SIZE);
+             counter += kFILE_KEY_SIZE+1;
 
              EC_KEY* wallet_key = LoadEcKey(addr, key);
              SignBinary(wallet_key, test_hash, sig);
@@ -104,7 +104,6 @@ KeyRing::KeyRing(DevcashContext& context)
 
      } else {
        for (unsigned int i=0; i<context_.kADDRs.size(); i++) {
-
          EC_KEY* addr_key = LoadEcKey(context_.kADDRs[i],
              context_.kADDR_KEYs[i]);
 
@@ -120,14 +119,14 @@ KeyRing::KeyRing(DevcashContext& context)
 
      std::string node_keys = ReadFile(context_.get_node_key_path());
      if (!node_keys.empty()) {
-       size_t size = wallet_keys.size();
+       size_t size = node_keys.size();
        if (size%(kFILE_KEY_SIZE+(kADDR_SIZE*2)+1) == 0) {
          size_t counter = 0;
-           while (counter < size) {
-             std::string addr = node_keys.substr(counter, counter+(kADDR_SIZE*2));
+           while (counter < (size-1)) {
+             std::string addr = node_keys.substr(counter, (kADDR_SIZE*2));
              counter += (kADDR_SIZE*2);
-             std::string key = node_keys.substr(counter, counter+kFILE_KEY_SIZE);
-             counter += kFILE_KEY_SIZE;
+             std::string key = node_keys.substr(counter, kFILE_KEY_SIZE);
+             counter += kFILE_KEY_SIZE+1;
 
              EC_KEY* node_key = LoadEcKey(addr, key);
              SignBinary(node_key, test_hash, sig);
@@ -146,7 +145,6 @@ KeyRing::KeyRing(DevcashContext& context)
 
      } else {
        for (unsigned int i=0; i<context_.kNODE_ADDRs.size(); i++) {
-
          EC_KEY* addr_key = LoadEcKey(context_.kNODE_ADDRs[i],
              context_.kNODE_KEYs[i]);
 
