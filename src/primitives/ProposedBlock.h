@@ -11,6 +11,11 @@
 #include "Summary.h"
 #include "Transaction.h"
 #include "Validation.h"
+#include <boost/thread/thread_pool.hpp>
+#include <boost/thread.hpp>
+#include <boost/bind.hpp>
+#include <boost/asio.hpp>
+
 
 using namespace Devcash;
 
@@ -30,6 +35,17 @@ static const std::string kSUM_TAG = "sum";
 static const std::string kVAL_TAG = "vals";
 
 class ProposedBlock {
+
+  typedef boost::packaged_task<bool> task_t;
+  typedef boost::shared_ptr<task_t> ptask_t;
+
+  void push_job(Transaction& x, boost::asio::io_service& io_service,
+                std::vector<boost::shared_future<bool> >& pending_data) {
+    ptask_t task = boost::make_shared<task_t>(boost::bind(&Transaction::setIsSound, boost::ref(x)));
+    boost::shared_future<bool> fut(task->get_future());
+    pending_data.push_back(fut);
+    io_service.post(boost::bind(&task_t::operator(), task));
+  }
 
 public:
 
@@ -52,15 +68,17 @@ public:
     MTR_SCOPE_FUNC();
 
     int proposed_block_int = 123;
-    MTR_START("proposed_block", "construct", &proposed_block_int);
+    MTR_START("proposed_block", "proposed_block", &proposed_block_int);
 
     if (serial.size() < MinSize()) {
       LOG_WARNING << "Invalid serialized ProposedBlock, too small!";
+      MTR_FINISH("proposed_block", "construct", &proposed_block_int);
       return;
     }
     version_ |= serial.at(0);
     if (version_ != 0) {
       LOG_WARNING << "Invalid ProposedBlock.version: "+std::to_string(version_);
+      MTR_FINISH("proposed_block", "construct", &proposed_block_int);
       return;
     }
     size_t offset = 1;
@@ -69,6 +87,7 @@ public:
     MTR_STEP("proposed_block", "construct", &proposed_block_int, "step1");
     if (serial.size() != num_bytes_) {
       LOG_WARNING << "Invalid serialized ProposedBlock, wrong size!";
+      MTR_FINISH("proposed_block", "construct", &proposed_block_int);
       return;
     }
     std::copy_n(serial.begin()+offset, SHA256_DIGEST_LENGTH, prev_hash_.begin());
@@ -79,13 +98,35 @@ public:
     offset += 8;
     val_count_ = BinToUint32(serial, offset);
     offset += 4;
-    MTR_STEP("proposed_block", "construct", &proposed_block_int, "step2");
+    MTR_STEP("proposed_block", "construct", &proposed_block_int, "transaction list");
     while (offset < MinSize()+tx_size_) {
       //Transaction constructor increments offset by ref
       LOG_DEBUG << "while, offset = " << offset;
-      Transaction one_tx(serial, offset, keys);
+      Transaction one_tx(serial, offset, keys, false);
       vtx_.push_back(one_tx);
     }
+    MTR_STEP("proposed_block", "construct", &proposed_block_int, "soundness");
+
+
+    boost::asio::io_service io_service;
+    boost::thread_group threads;
+    boost::asio::io_service::work work(io_service);
+
+    for (int i = 0; i < boost::thread::hardware_concurrency(); ++i)
+    {
+        threads.create_thread(boost::bind(&boost::asio::io_service::run,
+                                          &io_service));
+    }
+    std::vector<boost::shared_future<bool>> pending_data; // vector of futures
+    // Submit a lambda object to the pool.
+    for (auto& tx : vtx_) {
+      tx.setKeys(keys);
+      push_job(tx, io_service, pending_data);
+      //tx.setIsSound();
+    }
+
+    boost::wait_for_all(pending_data.begin(), pending_data.end());
+
     MTR_STEP("proposed_block", "construct", &proposed_block_int, "step3");
     Summary temp(serial, offset);
     summary_ = temp;

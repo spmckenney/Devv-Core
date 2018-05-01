@@ -96,7 +96,7 @@ endif (OPENSSL_FOUND)
 find_package(Threads)
 target_link_libraries(devcash ${CMAKE_THREAD_LIBS_INIT})
 
-find_package(Boost COMPONENTS date_time filesystem
+find_package(Boost COMPONENTS date_time filesystem thread
   system program_options log REQUIRED)
 if(Boost_FOUND)
   include_directories(${Boost_INCLUDE_DIRS})
