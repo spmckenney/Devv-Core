@@ -14,14 +14,10 @@
 #include <functional>
 #include <thread>
 
+#include "common/argument_parser.h"
 #include "common/devcash_context.h"
 #include "concurrency/DevcashController.h"
 #include "devcashnode.h"
-#include "common/logger.h"
-#include "common/util.h"
-
-#include "common/argument_parser.h"
-
 #include "io/message_service.h"
 
 using namespace Devcash;
@@ -58,8 +54,9 @@ int main(int argc, char* argv[])
 
     zmq::context_t context(1);
 
-    DevcashContext this_context(options->node_index,
-                                static_cast<eAppMode>(options->mode));
+    DevcashContext this_context(options->node_index, options->shard_index
+        , options->mode
+        , options->inn_keys, options->node_keys, options->wallet_keys);
     KeyRing keys(this_context);
     ChainState prior;
 

@@ -7,10 +7,10 @@
 
 #include "KeyRing.h"
 
-#include "common/ossladapter.h"
-#include "common/util.h"
-
+#include <cerrno>
+#include <fstream>
 #include <map>
+#include <string>
 
 namespace Devcash {
 
@@ -36,51 +36,131 @@ KeyRing::KeyRing(DevcashContext& context)
      std::vector<byte> msg = {'h', 'e', 'l', 'l', 'o'};
      Hash test_hash;
      test_hash = dcHash(msg);
-
-     EC_KEY* inn_key = loadEcKey(ctx,
-         context_.kINN_ADDR,
-         context_.kINN_KEY);
-
      Signature sig;
-     SignBinary(inn_key, test_hash, sig);
 
-     if (!VerifyByteSig(inn_key, test_hash, sig)) {
-       LOG_FATAL << "Invalid INN key!";
-       return;
-     }
+     std::string inn_keys = ReadFile(context_.get_inn_key_path());
+     if (!inn_keys.empty()) {
+       size_t size = inn_keys.size();
+       if (size%(kFILE_KEY_SIZE+(kADDR_SIZE*2)+1) == 0) {
+         size_t counter = 0;
+           while (counter < size) {
+             std::string addr = inn_keys.substr(counter, counter+(kADDR_SIZE*2));
+             counter += (kADDR_SIZE*2);
+             std::string key = inn_keys.substr(counter, counter+kFILE_KEY_SIZE);
+             counter += kFILE_KEY_SIZE;
 
-     inn_addr_ = InsertAddress(context_.kINN_ADDR, inn_key);
+             EC_KEY* inn_key = LoadEcKey(addr, key);
+             SignBinary(inn_key, test_hash, sig);
 
-     for (unsigned int i=0; i<context_.kADDRs.size(); i++) {
+             if (!VerifyByteSig(inn_key, test_hash, sig)) {
+               LOG_FATAL << "Invalid INN key!";
+               return;
+             }
 
-       EC_KEY* addr_key = loadEcKey(ctx,
-           context_.kADDRs[i],
-           context_.kADDR_KEYs[i]);
+             inn_addr_ = InsertAddress(addr, inn_key);
+          }
+       } else {
+         LOG_FATAL << "Invalid INN key file size ("+std::to_string(size)+")";
+         return;
+       }
+     } else {
+       EC_KEY* inn_key = LoadEcKey(context_.kINN_ADDR,
+           context_.kINN_KEY);
 
-       SignBinary(addr_key, test_hash, sig);
-       if (!VerifyByteSig(addr_key, test_hash, sig)) {
-         LOG_WARNING << "Invalid address["+std::to_string(i)+"] key!";
-         CASH_THROW("Invalid address["+std::to_string(i)+"] key!");
+       SignBinary(inn_key, test_hash, sig);
+
+       if (!VerifyByteSig(inn_key, test_hash, sig)) {
+         LOG_FATAL << "Invalid INN key!";
+         return;
        }
 
-       InsertAddress(context_.kADDRs[i], addr_key);
+       inn_addr_ = InsertAddress(context_.kINN_ADDR, inn_key);
      }
 
-     for (unsigned int i=0; i<context_.kNODE_ADDRs.size(); i++) {
+     std::string wallet_keys = ReadFile(context_.get_wallet_key_path());
+     if (!wallet_keys.empty()) {
+       size_t size = wallet_keys.size();
+       if (size%(kFILE_KEY_SIZE+(kADDR_SIZE*2)+1) == 0) {
+         size_t counter = 0;
+           while (counter < size) {
+             std::string addr = wallet_keys.substr(counter, counter+(kADDR_SIZE*2));
+             counter += (kADDR_SIZE*2);
+             std::string key = wallet_keys.substr(counter, counter+kFILE_KEY_SIZE);
+             counter += kFILE_KEY_SIZE;
 
-       EC_KEY* addr_key = loadEcKey(ctx,
-           context_.kNODE_ADDRs[i],
-           context_.kNODE_KEYs[i]);
+             EC_KEY* wallet_key = LoadEcKey(addr, key);
+             SignBinary(wallet_key, test_hash, sig);
 
-       SignBinary(addr_key, test_hash, sig);
-       if (!VerifyByteSig(addr_key, test_hash, sig)) {
-         LOG_WARNING << "Invalid node["+std::to_string(i)+"] key!";
-         CASH_THROW("Invalid node["+std::to_string(i)+"] key!");
+             if (!VerifyByteSig(wallet_key, test_hash, sig)) {
+               LOG_WARNING << "Invalid address["+addr+"] key!";
+             }
+
+             InsertAddress(addr, wallet_key);
+          }
+        } else {
+          LOG_FATAL << "Invalid key file size ("+std::to_string(size)+")";
+          return;
+        }
+
+     } else {
+       for (unsigned int i=0; i<context_.kADDRs.size(); i++) {
+
+         EC_KEY* addr_key = LoadEcKey(context_.kADDRs[i],
+             context_.kADDR_KEYs[i]);
+
+         SignBinary(addr_key, test_hash, sig);
+         if (!VerifyByteSig(addr_key, test_hash, sig)) {
+           LOG_WARNING << "Invalid address["+std::to_string(i)+"] key!";
+           CASH_THROW("Invalid address["+std::to_string(i)+"] key!");
+         }
+
+         InsertAddress(context_.kADDRs[i], addr_key);
        }
-
-       Address node_addr = InsertAddress(context_.kNODE_ADDRs[i], addr_key);
-       node_list_.push_back(node_addr);
      }
+
+     std::string node_keys = ReadFile(context_.get_node_key_path());
+     if (!node_keys.empty()) {
+       size_t size = wallet_keys.size();
+       if (size%(kFILE_KEY_SIZE+(kADDR_SIZE*2)+1) == 0) {
+         size_t counter = 0;
+           while (counter < size) {
+             std::string addr = node_keys.substr(counter, counter+(kADDR_SIZE*2));
+             counter += (kADDR_SIZE*2);
+             std::string key = node_keys.substr(counter, counter+kFILE_KEY_SIZE);
+             counter += kFILE_KEY_SIZE;
+
+             EC_KEY* node_key = LoadEcKey(addr, key);
+             SignBinary(node_key, test_hash, sig);
+
+             if (!VerifyByteSig(node_key, test_hash, sig)) {
+               LOG_WARNING << "Invalid node["+addr+"] key!";
+             }
+
+             Address node_addr = InsertAddress(addr, node_key);
+             node_list_.push_back(node_addr);
+          }
+        } else {
+          LOG_FATAL << "Invalid node key file size ("+std::to_string(size)+")";
+          return;
+        }
+
+     } else {
+       for (unsigned int i=0; i<context_.kNODE_ADDRs.size(); i++) {
+
+         EC_KEY* addr_key = LoadEcKey(context_.kNODE_ADDRs[i],
+             context_.kNODE_KEYs[i]);
+
+         SignBinary(addr_key, test_hash, sig);
+         if (!VerifyByteSig(addr_key, test_hash, sig)) {
+           LOG_WARNING << "Invalid node["+std::to_string(i)+"] key!";
+           CASH_THROW("Invalid node["+std::to_string(i)+"] key!");
+         }
+
+         Address node_addr = InsertAddress(context_.kNODE_ADDRs[i], addr_key);
+         node_list_.push_back(node_addr);
+       }
+     }
+
      LOG_INFO << "Crypto Keys initialized.";
    } CASH_CATCH (const std::exception& e) {
      LOG_WARNING << FormatException(&e, "transaction");

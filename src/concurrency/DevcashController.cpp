@@ -13,8 +13,6 @@
 #include <string>
 
 #include "DevcashWorker.h"
-#include "common/devcash_context.h"
-#include "common/util.h"
 #include "io/message_service.h"
 #include "consensus/KeyRing.h"
 
@@ -402,7 +400,7 @@ std::string DevcashController::Start() {
     //sleep(2);
 
     if (generate_count_ > 0) {
-    std::lock_guard<std::mutex> guard(mutex_);
+    //std::lock_guard<std::mutex> guard(mutex_);
       LOG_INFO << "Generate Transactions.";
       transactions = GenerateTransactions();
       LOG_INFO << "Finished Generating " << transactions.size() * batch_size_ << " Transactions.";
@@ -480,6 +478,9 @@ std::string DevcashController::Start() {
       */
       if (shutdown_) break;
     }
+
+    //write final chain to output
+    out += toHex(final_chain_.BinaryDump());
 
   } CASH_CATCH (const std::exception& e) {
     LOG_FATAL << FormatException(&e, "DevcashController.Start()");

@@ -18,20 +18,12 @@
 #include <iomanip>
 
 #include "util.h"
-#include "logger.h"
-
-
-namespace Devcash {
-
-static const size_t kADDR_SIZE = 33;
-typedef std::array<byte, kADDR_SIZE> Address;
-typedef std::array<byte, SHA256_DIGEST_LENGTH> Hash;
-static const size_t kSIG_SIZE = 72;
-typedef std::array<byte, kSIG_SIZE> Signature;
-
-} //end namespace Devcash
 
 static const char* pwd = "password";  /** password for aes pem */
+
+namespace Devcash {
+  typedef std::array<byte, SHA256_DIGEST_LENGTH> Hash;
+} //end namespace Devcash
 
 /** Maps a hex string into a buffer as binary data.
  *  @pre the buffer should have memory allocated
@@ -65,13 +57,12 @@ static EC_GROUP* getEcGroup() {
 
 /** Generates a new EC_KEY.
  *  @pre an OpenSSL context must have been initialized
- *  @param ctx pointer to the OpenSSL context
  *  @param publicKey [out] reference with ASCII armor
  *  @param pkHex [out] references private key with ASCII armor, pem, aes
  *  @return if success, a pointer to the EC_KEY object
  *  @return if error, a NULLPTR
  */
-/*static EC_KEY* genEcKey(EVP_MD_CTX* ctx, std::string& publicKey, std::string& pk) {
+static EC_KEY* GenerateEcKey(std::string& publicKey, std::string& pk) {
   CASH_TRY {
     EC_GROUP* ecGroup = getEcGroup();
     if (NULL == ecGroup) {
@@ -115,36 +106,44 @@ static EC_GROUP* getEcGroup() {
     BIO_free(fOut);
     EVP_cleanup();
 
-    //BIO* pOut = BIO_new(BIO_s_mem());
-    //result = PEM_write_bio_PUBKEY(pOut, pkey);
-    //if (result != 1) LOG_ERROR << "Failed to generate PEM public key file";
-    //std::string pubPem("");
-    //char buffer2[1024];
-    //while (BIO_read(pOut, buffer2, 1024) > 0) {
-    //  publicKey += buffer2;
-    //}
-    //BIO_free(pOut);
-    //EVP_cleanup();
-
     const EC_POINT *pubKey = EC_KEY_get0_public_key(eckey);
     publicKey = EC_POINT_point2hex(ecGroup, pubKey, POINT_CONVERSION_COMPRESSED, NULL);
 
     return eckey;
   } CASH_CATCH(const std::exception& e) {
-    LOG_WARNING << FormatException(&e, "Crypto");
+    LOG_WARNING << Devcash::FormatException(&e, "Crypto");
   }
   return nullptr;
-}*/
+}
+
+static bool GenerateAndWriteKeyfile(std::string path, size_t num_keys) {
+  std::string output;
+  output.reserve(num_keys*(Devcash::kFILE_KEY_SIZE+(Devcash::kADDR_SIZE*2)));
+  for (size_t i=0; i<num_keys; ++i) {
+    std::string addr;
+    std::string key;
+    GenerateEcKey(addr, key);
+    output += addr+key;
+  }
+  std::ofstream out_file(path);
+  if (out_file.is_open()) {
+    out_file << output;
+    out_file.close();
+  } else {
+    LOG_WARNING << "Failed write keys to file '" << path << "'.";
+    return false;
+  }
+  return true;
+}
 
 /** Loads an existing EC_KEY based on the provided key pair.
  *  @pre an OpenSSL context must have been initialized
- *  @param ctx pointer to the OpenSSL context
  *  @param publicKey [in] reference with ASCII armor
  *  @param pkHex [in] references private key with ASCII armor, pem, aes
  *  @return if success, a pointer to the EC_KEY object
  *  @return if error, a NULLPTR
  */
-static EC_KEY* loadEcKey(EVP_MD_CTX*, const std::string& publicKey, const std::string& privKey) {
+static EC_KEY* LoadEcKey(const std::string& publicKey, const std::string& privKey) {
   CASH_TRY {
     EC_GROUP* ecGroup = getEcGroup();
     if (NULL == ecGroup) {
@@ -188,7 +187,7 @@ static EC_KEY* loadEcKey(EVP_MD_CTX*, const std::string& publicKey, const std::s
   } CASH_CATCH(const std::exception& e) {
     LOG_WARNING << Devcash::FormatException(&e, "Crypto");
   }
-  return 0;
+  return nullptr;
 }
 
 /** Hashes a string with SHA-256.
