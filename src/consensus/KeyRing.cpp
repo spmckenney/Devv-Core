@@ -41,7 +41,7 @@ KeyRing::KeyRing(DevcashContext& context)
      std::string inn_keys = ReadFile(context_.get_inn_key_path());
      if (!inn_keys.empty()) {
        size_t size = inn_keys.size();
-       if (size%(kFILE_KEY_SIZE+(kADDR_SIZE*2)+1) == 0) {
+       if (size%(kFILE_KEY_SIZE+(kADDR_SIZE*2)) == 0) {
          size_t counter = 0;
            while (counter < (size-1)) {
              std::string addr = inn_keys.substr(counter, (kADDR_SIZE*2));
@@ -80,7 +80,7 @@ KeyRing::KeyRing(DevcashContext& context)
      std::string wallet_keys = ReadFile(context_.get_wallet_key_path());
      if (!wallet_keys.empty()) {
        size_t size = wallet_keys.size();
-       if (size%(kFILE_KEY_SIZE+(kADDR_SIZE*2)+1) == 0) {
+       if (size%(kFILE_KEY_SIZE+(kADDR_SIZE*2)) == 0) {
          size_t counter = 0;
            while (counter < (size-1)) {
              std::string addr = wallet_keys.substr(counter, (kADDR_SIZE*2));
@@ -120,7 +120,7 @@ KeyRing::KeyRing(DevcashContext& context)
      std::string node_keys = ReadFile(context_.get_node_key_path());
      if (!node_keys.empty()) {
        size_t size = node_keys.size();
-       if (size%(kFILE_KEY_SIZE+(kADDR_SIZE*2)+1) == 0) {
+       if (size%(kFILE_KEY_SIZE+(kADDR_SIZE*2)) == 0) {
          size_t counter = 0;
            while (counter < (size-1)) {
              std::string addr = node_keys.substr(counter, (kADDR_SIZE*2));

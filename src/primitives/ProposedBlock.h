@@ -112,7 +112,7 @@ public:
     boost::thread_group threads;
     boost::asio::io_service::work work(io_service);
 
-    for (int i = 0; i < boost::thread::hardware_concurrency(); ++i)
+    for (unsigned int i = 0; i < boost::thread::hardware_concurrency(); ++i)
     {
         threads.create_thread(boost::bind(&boost::asio::io_service::run,
                                           &io_service));
