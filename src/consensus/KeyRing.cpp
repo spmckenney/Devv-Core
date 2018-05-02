@@ -7,8 +7,6 @@
 
 #include "KeyRing.h"
 
-#include <cerrno>
-#include <fstream>
 #include <map>
 #include <string>
 
@@ -47,7 +45,7 @@ KeyRing::KeyRing(DevcashContext& context)
              std::string addr = inn_keys.substr(counter, (kADDR_SIZE*2));
              counter += (kADDR_SIZE*2);
              std::string key = inn_keys.substr(counter, kFILE_KEY_SIZE);
-             counter += kFILE_KEY_SIZE+1;
+             counter += kFILE_KEY_SIZE;
 
              EC_KEY* inn_key = LoadEcKey(addr, key);
              SignBinary(inn_key, test_hash, sig);
@@ -86,7 +84,7 @@ KeyRing::KeyRing(DevcashContext& context)
              std::string addr = wallet_keys.substr(counter, (kADDR_SIZE*2));
              counter += (kADDR_SIZE*2);
              std::string key = wallet_keys.substr(counter, kFILE_KEY_SIZE);
-             counter += kFILE_KEY_SIZE+1;
+             counter += kFILE_KEY_SIZE;
 
              EC_KEY* wallet_key = LoadEcKey(addr, key);
              SignBinary(wallet_key, test_hash, sig);
@@ -95,7 +93,8 @@ KeyRing::KeyRing(DevcashContext& context)
                LOG_WARNING << "Invalid address["+addr+"] key!";
              }
 
-             InsertAddress(addr, wallet_key);
+             Address wallet_addr = InsertAddress(addr, wallet_key);
+             wallet_list_.push_back(wallet_addr);
           }
         } else {
           LOG_FATAL << "Invalid key file size ("+std::to_string(size)+")";
@@ -113,7 +112,8 @@ KeyRing::KeyRing(DevcashContext& context)
            CASH_THROW("Invalid address["+std::to_string(i)+"] key!");
          }
 
-         InsertAddress(context_.kADDRs[i], addr_key);
+         Address wallet_addr = InsertAddress(context_.kADDRs[i], addr_key);
+         wallet_list_.push_back(wallet_addr);
        }
      }
 
@@ -126,7 +126,7 @@ KeyRing::KeyRing(DevcashContext& context)
              std::string addr = node_keys.substr(counter, (kADDR_SIZE*2));
              counter += (kADDR_SIZE*2);
              std::string key = node_keys.substr(counter, kFILE_KEY_SIZE);
-             counter += kFILE_KEY_SIZE+1;
+             counter += kFILE_KEY_SIZE;
 
              EC_KEY* node_key = LoadEcKey(addr, key);
              SignBinary(node_key, test_hash, sig);
@@ -178,6 +178,26 @@ bool KeyRing::isINN(const Address& addr) const {
   return(inn_addr_ == addr);
 }
 
+Address KeyRing::getInnAddr() const {
+  return inn_addr_;
+}
+
+int KeyRing::CountNodes() const {
+  return node_list_.size();
+}
+
+int KeyRing::CountWallets() const {
+  return wallet_list_.size();
+}
+
+Address KeyRing::getNodeAddr(int index) const {
+  return node_list_.at(index);
+}
+
+Address KeyRing::getWalletAddr(int index) const {
+  return wallet_list_.at(index);
+}
+
 EC_KEY* KeyRing::getNodeKey(int index) const {
   Address node_addr = node_list_.at(index);
   auto it = key_map_.find(node_addr);
@@ -186,5 +206,12 @@ EC_KEY* KeyRing::getNodeKey(int index) const {
   CASH_THROW("Node["+std::to_string(index)+"] key is missing!");
 }
 
+EC_KEY* KeyRing::getWalletKey(int index) const {
+  Address wallet_addr = wallet_list_.at(index);
+  auto it = key_map_.find(wallet_addr);
+  if (it != key_map_.end()) return it->second;
+  LOG_WARNING << "Wallet["+std::to_string(index)+"] key is missing!\n";
+  CASH_THROW("Wallet["+std::to_string(index)+"] key is missing!");
+}
 
 } /* namespace Devcash */

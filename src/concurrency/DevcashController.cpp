@@ -304,18 +304,9 @@ std::vector<std::vector<byte>> DevcashController::GenerateTransactions() {
     CASH_THROW("Could not create signature context!");
   }
 
-  std::vector<byte> inn_bin(Hex2Bin(context_.kINN_ADDR));
-  Address inn_addr;
-  std::copy_n(inn_bin.begin(), kADDR_SIZE, inn_addr.begin());
+  Address inn_addr = keys_.getInnAddr();
 
-  size_t addr_count = context_.kADDRs.size();
-  std::vector<Address> addrs;
-  for (size_t i=0; i<addr_count; ++i) {
-    std::vector<byte> addr_bin(Hex2Bin(context_.kADDRs[i]));
-    Address addr;
-    std::copy_n(addr_bin.begin(), kADDR_SIZE, addr.begin());
-    addrs.push_back(addr);
-  }
+  size_t addr_count = keys_.CountWallets();
 
   size_t counter = 0;
   size_t batch_counter = 0;
@@ -326,7 +317,7 @@ std::vector<std::vector<byte>> DevcashController::GenerateTransactions() {
       Transfer inn_transfer(inn_addr, 0, -1*addr_count, 0);
       xfers.push_back(inn_transfer);
       for (size_t i=0; i<addr_count; ++i) {
-        Transfer transfer(addrs.at(i), 0, 1, 0);
+        Transfer transfer(keys_.getWalletAddr(i), 0, 1, 0);
         xfers.push_back(transfer);
       }
       Transaction inn_tx(eOpType::Create, xfers
@@ -340,13 +331,13 @@ std::vector<std::vector<byte>> DevcashController::GenerateTransactions() {
         for (size_t j=0; j<addr_count; ++j) {
           if (i==j) continue;
           std::vector<Transfer> peer_xfers;
-          Transfer sender(addrs.at(i), 0, -1, 0);
+          Transfer sender(keys_.getWalletAddr(i), 0, -1, 0);
           peer_xfers.push_back(sender);
-          Transfer receiver(addrs.at(j), 0, 1, 0);
+          Transfer receiver(keys_.getWalletAddr(j), 0, 1, 0);
           peer_xfers.push_back(receiver);
           Transaction peer_tx(eOpType::Exchange, peer_xfers
                               , getEpoch()+(1000000*(context_.get_current_node()+1)*(i+1)*(j+1))
-                              , keys_.getKey(addrs.at(i)), keys_);
+                              , keys_.getWalletKey(i), keys_);
           std::vector<byte> peer_canon(peer_tx.getCanonical());
           batch.insert(batch.end(), peer_canon.begin(), peer_canon.end());
           LOG_DEBUG << "GenerateTransactions(): generated tx with sig: " << toHex(peer_tx.getSignature());
