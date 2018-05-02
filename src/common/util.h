@@ -24,7 +24,9 @@
 #include <string>
 #include <vector>
 #include <memory>
+
 #include "common/minitrace.h"
+#include "common/logger.h"
 
 typedef unsigned char byte;
 
