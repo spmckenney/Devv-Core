@@ -23,16 +23,10 @@ RUN apt-get update && apt-get install -y \
     cmake-extras \
     extra-cmake-modules
 
-# Bitcoin dependencies
+# SSL
 RUN apt-get install -y \
-    libdb-dev \
-    libdb++-dev \
-    libqt5gui5 \
-    qtbase5-dev \
-    libboost-all-dev \
-    bsdmainutils \
     libssl-dev \
-    libevent-dev
+    libssl1.0.0-dbg
 
 # Python3 and virtualenv
 RUN apt-get install -y \
@@ -51,14 +45,17 @@ RUN apt-get install -y \
 
 # ZeroMQ
 RUN apt-get install -y \
-    libzmqpp-dev
+    libzmqpp-dev \
+    libzmq5-dbg \
+    libsodium-dev \
+    libsodium-dbg
 
 RUN apt-get install -y \
     software-properties-common
 
 # Python3 virtualenvwrapper
 RUN pip3 install --upgrade pip setuptools
-RUN pip3 install virtualenvwrapper
+RUN pip3 install virtualenvwrapper --ignore-installed six
 COPY install_virtualenvwrapper.sh /tmp/
 RUN /bin/bash -c "/tmp/install_virtualenvwrapper.sh"
 
