@@ -63,9 +63,12 @@ namespace Devcash {
    */
   bool DevcashControllerWorker::StopAll() {
     LOG_DEBUG << "DevcashControllerWorker::StopAll()";
+    if (!continue_) return false;
     CASH_TRY {
       continue_ = false;
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
+      validators_.ClearBlockers();
+      consensus_.ClearBlockers();
       validator_pool_.join_all();
       consensus_pool_.join_all();
       std::this_thread::sleep_for(std::chrono::milliseconds(100));

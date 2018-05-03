@@ -28,11 +28,6 @@
 #endif
 
 #include "consensus/chainstate.h"
-#include "common/devcash_context.h"
-#include "common/logger.h"
-#include "common/ossladapter.h"
-#include "common/util.h"
-//#include "concurrency/DevcashController.h"
 #include "io/zhelpers.hpp"
 #include "oracles/api.h"
 #include "oracles/data.h"
@@ -112,8 +107,7 @@ bool DevcashNode::SanityChecks()
     Hash test_hash(dcHash(msg));
     std::string sDer;
 
-    EC_KEY* loadkey = loadEcKey(ctx,
-        app_context_.kADDRs[1],
+    EC_KEY* loadkey = LoadEcKey(app_context_.kADDRs[1],
         app_context_.kADDR_KEYs[1]);
 
     Signature sig;
@@ -130,7 +124,7 @@ bool DevcashNode::SanityChecks()
   return false;
 }
 
-std::string DevcashNode::RunScanner(std::string inStr) {
+std::string DevcashNode::RunScanner() {
   LOG_INFO << "Scanner Mode";
   std::string out("");
   CASH_TRY {
@@ -145,7 +139,7 @@ std::string DevcashNode::RunScanner(std::string inStr) {
   return out;
 }
 
-std::string DevcashNode::RunNode(std::string& inStr)
+std::string DevcashNode::RunNode()
 {
   std::string out;
   CASH_TRY {
@@ -159,7 +153,7 @@ std::string DevcashNode::RunNode(std::string& inStr)
   return out;
 }
 
-std::string DevcashNode::RunNetworkTest(unsigned int node_index)
+std::string DevcashNode::RunNetworkTest(unsigned int)
 {
   std::string out("");
   CASH_TRY {

@@ -34,25 +34,17 @@ file(GLOB_RECURSE dcSources "*.cpp")
 file(GLOB_RECURSE dcHeaders "*.h*")
 set (dcInclude "")
 foreach (_headerFile ${dcHeaders})
-        get_filename_component(_dir ${_headerFile} PATH)
-        list (APPEND dcInclude ${_dir})
+  get_filename_component(_dir ${_headerFile} PATH)
+  list (APPEND dcInclude ${_dir})
 endforeach()
 list(REMOVE_DUPLICATES dcInclude)
 
 # External third-party libraries
 find_library(ZMQ zmq)
 
-file(GLOB_RECURSE devcash_headers "*.h*")
-set (devcash_includes "")
-foreach (_headerFile ${devcash_headers})
-  get_filename_component(_dir ${_headerFile} PATH)
-  list (APPEND devcash_includes ${_dir})
-endforeach()
-list(REMOVE_DUPLICATES devcash_includes)
-
 # Build the common module objects
 file(GLOB common_SRC
-    "common/*.cpp"
+    "common/*.cpp" "common/*.c"
 )
 add_library(common ${common_SRC})
 
@@ -104,7 +96,7 @@ endif (OPENSSL_FOUND)
 find_package(Threads)
 target_link_libraries(devcash ${CMAKE_THREAD_LIBS_INIT})
 
-find_package(Boost COMPONENTS date_time filesystem
+find_package(Boost COMPONENTS date_time filesystem thread
   system program_options log REQUIRED)
 if(Boost_FOUND)
   include_directories(${Boost_INCLUDE_DIRS})

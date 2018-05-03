@@ -72,7 +72,7 @@ int main(int, char**) {
 
   for (auto i = 0; i < kMessageCount; i++) {
     LOG_DEBUG << "Sent " << std::to_string(i) << " messages\n";
-	auto ptr = std::unique_ptr<DevcashMessage>(new DevcashMessage("Hello", eMessageType::VALID, data));
+    auto ptr = std::unique_ptr<DevcashMessage>(new DevcashMessage("Hello", eMessageType::VALID, data, 10));
     rq.push(std::move(ptr));
     if (i == kMessageCount-kWorkerNum) { //ensure the workers get a chance to stop
       for (auto iter = workers.begin(); iter != workers.end(); ++iter) {

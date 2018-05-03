@@ -10,6 +10,7 @@
 
 #include <string>
 #include <vector>
+#include <sys/stat.h>
 
 namespace Devcash {
 
@@ -25,43 +26,41 @@ static const int kACTIVATION_ROUNDS = 334;
 static const unsigned int kPROPOSAL_TIMEOUT = 60000;
 static const int kVALIDATION_PERCENT = 51;
 
+static const unsigned int kSYNC_PORT_BASE = 55330;
+
+inline bool exists_test1(const std::string& name) {
+  struct stat buffer;
+  return (stat (name.c_str(), &buffer) == 0);
+}
+
+inline bool exists_test(const std::string& name) {
+    if (FILE *file = fopen(name.c_str(), "r")) {
+        fclose(file);
+        return true;
+    } else {
+        return false;
+    }
+}
+
 struct DevcashContext {
 
   /**
-   * Default constructor
-   */
-  DevcashContext() : current_node_(-1),app_mode_(scan) {}
-
-  /**
    * Constructor
    */
-  DevcashContext(unsigned int current_node, eAppMode mode)
+  DevcashContext(unsigned int current_node, unsigned int current_shard
+    , eAppMode mode
+    , std::string& inn_key_path
+    , const std::string& node_key_path
+    , const std::string& wallet_key_path
+    , const std::string& sync_host = "")
     : current_node_(current_node)
+    , current_shard_(current_shard)
     , app_mode_(mode)
     , uri_(get_uri_from_index(current_node))
-  {}
-
-  /**
-   * Constructor
-   */
-  DevcashContext(std::string innPk,
-                 std::string innPubKey,
-                 std::vector<std::string>& addrPks,
-                 std::vector<std::string>& addrPubKeys,
-                 std::vector<std::string>& nodePks,
-                 std::vector<std::string>& nodePubKeys,
-                 int thisNode,
-                 eAppMode mode,
-                 std::string& uri)
-    : kINN_KEY(innPk)
-    , kINN_ADDR(innPubKey)
-    , kADDRs(addrPks)
-    , kADDR_KEYs(addrPubKeys)
-    , kNODE_KEYs(nodePks)
-    , kNODE_ADDRs(nodePubKeys)
-    , current_node_(thisNode)
-    , app_mode_(mode)
-    , uri_(uri)
+    , inn_keys_(inn_key_path)
+    , node_keys_(node_key_path)
+    , wallet_keys_(wallet_key_path)
+    , sync_host_(sync_host)
   {}
 
   const std::string kINN_KEY = "-----BEGIN ENCRYPTED PRIVATE KEY-----\nMIHeMEkGCSqGSIb3DQEFDTA8MBsGCSqGSIb3DQEFDDAOBAgBcpJHkg56mAICCAAw\nHQYJYIZIAWUDBAECBBCHa2RxQu9uIGCnJXiJjMF2BIGQcnO7UeEAHFauiaheEQPW\nn5cgO1sAlY7r3kMWgX4d5qu0DnEVzNN6F4RkQDbyvWwS1YHzdVn17oynnqtL9RS6\nqYrt1xhFFwp6Z+R/uqSk+3xZgMSYf2wpUJ9pqhm0JBTqOelZ37yF57+585ez4ujD\nA1gnH1w36y5hnZqRWVvi3eRXxCr5wqF8dNwFuxLpAuse\n-----END ENCRYPTED PRIVATE KEY-----";
@@ -99,7 +98,8 @@ struct DevcashContext {
   };
 
   size_t get_peer_count() const { return peer_count_; }
-  unsigned int  get_current_node() const { return current_node_; }
+  unsigned int  get_current_node() const { return current_node_+current_shard_*peer_count_; }
+  unsigned int  get_current_shard() const { return current_shard_; }
   eAppMode get_app_mode() const { return app_mode_; }
   std::string get_uri() const { return uri_; }
 
@@ -107,12 +107,21 @@ struct DevcashContext {
     return (uri_prefix_ + std::to_string(node_index));
   }
 
+  std::string get_inn_key_path() const { return inn_keys_; }
+  std::string get_node_key_path() const { return node_keys_; }
+  std::string get_wallet_key_path() const { return wallet_keys_; }
+
+  std::string get_sync_host() const { return sync_host_; }
+
 private:
   /** Number of connected peers */
   const size_t peer_count_ = 3;
 
-  // Node indes of this process
+  // Node index of this process
   unsigned int current_node_;
+
+  // Shard Index of this process
+  unsigned int current_shard_;
 
   // Process mode
   eAppMode app_mode_ = scan;
@@ -122,6 +131,14 @@ private:
 
   // This processes uri
   std::string uri_;
+
+  //key file paths
+  std::string inn_keys_;
+  std::string node_keys_;
+  std::string wallet_keys_;
+
+  // Host the nodes will sync to
+  std::string sync_host_;
 };
 
 } /* namespace Devcash */

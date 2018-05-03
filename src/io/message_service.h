@@ -143,5 +143,38 @@ class TransactionClient final {
   bool keep_running_ = false;
 };
 
+static inline std::string zero_append(const std::string& number, size_t num_width) {
+  if (number.size() >= num_width) return number;
+
+  auto to_pad = num_width - number.size();
+  return std::string(to_pad, '0').append(number);
+}
+
+static inline bool synchronize(const std::string& sync_host, size_t node_number) {
+
+  //  Prepare our context and socket
+  zmq::context_t context(1);
+  zmq::socket_t socket(context, ZMQ_REQ);
+
+  int port = kSYNC_PORT_BASE + node_number;
+  LOG_INFO << "Connecting to syncronization host ("
+           << sync_host << ":" << std::to_string(port)<< ")";
+  socket.connect("tcp://" + sync_host + ":" + std::to_string(port));
+
+  std::string node_str = "node-"+zero_append(std::to_string(node_number), 3);
+
+  zmq::message_t request (node_str.size());
+  memcpy(request.data(), "Hello", node_str.size());
+
+  LOG_INFO << "Sending sync packet ";
+  socket.send(request);
+
+  //  Get the reply.
+  zmq::message_t reply;
+  socket.recv(&reply);
+  LOG_DEBUG << "Received sync response - it's go time";
+  return true;
+}
+
 } // namespace io
 } // namespace Devcash

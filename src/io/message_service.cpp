@@ -28,7 +28,12 @@ TransactionServer::SendMessage(DevcashMessageUniquePtr dc_message) noexcept {
     LOG_WARNING << "SendMessage(): Won't send message: !keep_running!";
     return;
   }
-  LOG_DEBUG << "SendMessage(): Sending message: " << dc_message->uri;
+  MTR_SCOPE_FUNC();
+  LOG_DEBUG << "SendMessage(): Sending message: [" << dc_message->index << ", "
+            << GetMessageType(*dc_message) << ", "
+            << dc_message->uri
+            << "]";
+
   auto buffer = serialize(*dc_message);
   s_sendmore(*pub_socket_, dc_message->uri);
   s_send(*pub_socket_, buffer);
@@ -37,8 +42,10 @@ TransactionServer::SendMessage(DevcashMessageUniquePtr dc_message) noexcept {
 void
 TransactionServer::QueueMessage(DevcashMessageUniquePtr message) noexcept
 {
-  LOG_DEBUG << "QueueMessage: Queueing()";
-  LOG_TRACE << "Sending message(" << GetMessageType(*message) << ") to " << message->uri;
+  LOG_DEBUG << "QueueMessage(): Queue: [" << message->index << ", "
+            << GetMessageType(*message) << ", "
+            << message->uri
+            << "]";
   message_queue_.push(std::move(message));
 }
 
@@ -68,7 +75,7 @@ TransactionServer::StopServer() {
 
 void
 TransactionServer::Run() noexcept {
-
+  MTR_META_THREAD_NAME("TransactionServer::Run() Thread");
   pub_socket_ = std::make_unique<zmq::socket_t>(context_, ZMQ_PUB);
   LOG_INFO << "Server: Binding bind_url_ '" << bind_url_ << "'";
   pub_socket_->bind(bind_url_);
@@ -113,16 +120,20 @@ TransactionClient::ProcessIncomingMessage() noexcept {
   if (mess.size() == 0) return;
 
   auto devcash_message = deserialize(mess);
-  LOG_TRACE << "ProcessIncomingMessage(): Received a message";
+  LOG_DEBUG << "ProcessIncomingMessage(): Received [" << devcash_message->index << ", "
+            << GetMessageType(*devcash_message) << ", "
+            << devcash_message->uri
+            << "]";
+  MTR_INSTANT_FUNC();
 
-  LogDevcashMessageSummary(*devcash_message);
+  LogDevcashMessageSummary(*devcash_message, "ProcessIncomingMessage");
 
   callback_(std::move(devcash_message));
-  LOG_TRACE << "ProcessIncomingMessage(): Complete";
 }
 
 void
 TransactionClient::Run() {
+  MTR_META_THREAD_NAME("TransactionClient::Run() Thread");
   sub_socket_ = std::unique_ptr<zmq::socket_t>(new zmq::socket_t(context_, ZMQ_SUB));
   int timeout_ms = 100;
   sub_socket_->setsockopt(ZMQ_RCVTIMEO, &timeout_ms, sizeof(timeout_ms));

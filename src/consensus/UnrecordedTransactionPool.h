@@ -13,6 +13,7 @@
 
 #include "primitives/FinalBlock.h"
 
+
 namespace Devcash
 {
 typedef std::pair<uint8_t, Transaction> SharedTransaction;
@@ -21,20 +22,34 @@ typedef std::map<Signature, SharedTransaction> TxMap;
 class UnrecordedTransactionPool {
  public:
 
-/** Constrcutors */
+  /** Constrcutors */
   UnrecordedTransactionPool(const ChainState& prior)
-     : txs_(), pending_proposal_(prior) {}
-
+     : txs_(), pending_proposal_(prior) {
+    LOG_DEBUG << "UnrecordedTransactionPool(const ChainState& prior)";
+  }
+  /*
   UnrecordedTransactionPool(const std::vector<byte>& serial
       , const ChainState& prior, const KeyRing& keys)
-      : txs_(), pending_proposal_(prior) {
+    : txs_(), pending_proposal_(prior), tcm_(keys) {
+    LOG_DEBUG << "UnrecordedTransactionPool(const std::vector<byte>& serial, const ChainState& prior, const KeyRing& keys)";
     AddTransactions(serial, keys);
   }
-
+  */
+  UnrecordedTransactionPool(const UnrecordedTransactionPool& other) = delete;
+  /*
   UnrecordedTransactionPool(const UnrecordedTransactionPool& other)
-    : txs_(other.txs_), pending_proposal_(other.pending_proposal_) {}
-  UnrecordedTransactionPool(const TxMap& map, const ChainState& prior)
-    : txs_(map), pending_proposal_(prior) {}
+    : txs_(other.txs_), pending_proposal_(other.pending_proposal_), tcm_(other.tcm_)
+  {
+    LOG_DEBUG << "UnrecordedTransactionPool(const UnrecordedTransactionPool& other)";
+  }
+  */
+  /*
+UnrecordedTransactionPool(const TxMap& map, const ChainState& prior)
+    : txs_(map), pending_proposal_(prior)
+  {
+    LOG_DEBUG << "UnrecordedTransactionPool(const TxMap& map, const ChainState& prior)";
+  }
+  */
 
   /** Adds Transactions to this pool.
    *  @note if the Transaction is invalid it will not be added,
@@ -46,6 +61,8 @@ class UnrecordedTransactionPool {
    *  @return true iff all Transactions are valid and in the pool
   */
     bool AddTransactions(std::vector<byte> serial, const KeyRing& keys) {
+      LOG_DEBUG << "AddTransactions(std::vector<byte> serial, const KeyRing& keys)";
+      MTR_SCOPE_FUNC();
       CASH_TRY {
         std::vector<Transaction> temp;
         size_t counter = 0;
@@ -61,6 +78,7 @@ class UnrecordedTransactionPool {
         return AddTransactions(temp, keys);
       } CASH_CATCH (const std::exception& e) {
         LOG_FATAL << FormatException(&e, "UnrecordedTransactionPool.AddTransactions()");
+        return false;
       }
     }
 
@@ -74,6 +92,9 @@ class UnrecordedTransactionPool {
  *  @return true iff all Transactions are valid and in the pool
 */
   bool AddTransactions(std::vector<Transaction> txs, const KeyRing& keys) {
+    LOG_DEBUG << "AddTransactions(std::vector<Transaction> txs, const KeyRing& keys)";
+    MTR_SCOPE_FUNC();
+    std::lock_guard<std::mutex> guard(txs_mutex_);
     bool all_good = true;
     CASH_TRY {
       int counter = 0;
@@ -86,6 +107,12 @@ class UnrecordedTransactionPool {
         } else if (item.isSound(keys)) {
           SharedTransaction pair((uint8_t) 1, item);
           txs_.insert(std::pair<Signature, SharedTransaction>(sig, pair));
+          if (num_cum_txs_ == 0) {
+            LOG_NOTICE << "AddTransactions(): First transaction added to TxMap";
+            timer_.reset();
+            trace_ = std::make_unique<MTRScopedTrace>("timer", "lifetime1");
+          }
+          num_cum_txs_++;
           counter++;
         } else { //tx is unsound
           LOG_DEBUG << "Transaction is unsound.";
@@ -114,6 +141,9 @@ class UnrecordedTransactionPool {
   */
   bool AddAndVerifyTransactions(std::vector<Transaction> txs, ChainState& state
       , const KeyRing& keys, Summary& summary) {
+    LOG_DEBUG << "AddAndVerifyTransactions()";
+    MTR_SCOPE_FUNC();
+    std::lock_guard<std::mutex> guard(txs_mutex_);
     for (auto const& item : txs) {
       Signature sig = item.getSignature();
       auto it = txs_.find(sig);
@@ -127,6 +157,13 @@ class UnrecordedTransactionPool {
         SharedTransaction pair((uint8_t) 0, item);
         if (valid) pair.first++;
         txs_.insert(std::pair<Signature, SharedTransaction>(sig, pair));
+        if (num_cum_txs_ == 0) {
+          LOG_NOTICE << "AddTransactions(): First transaction added to TxMap";
+          timer_.reset();
+          trace_ = std::make_unique<MTRScopedTrace>("timer", "lifetime2");
+        }
+        num_cum_txs_++;
+
       } else { //tx is unsound
         return false;
       }
@@ -139,6 +176,9 @@ class UnrecordedTransactionPool {
  *  @return a JSON string representing these Transactions.
 */
   std::string getJSON() const {
+    LOG_DEBUG << "getJSON()";
+    MTR_SCOPE_FUNC();
+    std::lock_guard<std::mutex> guard(txs_mutex_);
     std::string out("[");
     bool isFirst = true;
     for (auto const& item : txs_) {
@@ -157,7 +197,10 @@ class UnrecordedTransactionPool {
  *  @return a bytestring of these Transactions
 */
   std::vector<byte> getCanonical() const {
+    LOG_DEBUG << "getCanonical()";
+    MTR_SCOPE_FUNC();
     std::vector<byte> serial;
+    std::lock_guard<std::mutex> guard(txs_mutex_);
     for (auto const& item : txs_) {
       std::vector<byte> temp(item.second.second.getCanonical());
       serial.insert(serial.end(), temp.begin(), temp.end());
@@ -165,13 +208,23 @@ class UnrecordedTransactionPool {
     return serial;
   }
 
-  bool HasPendingTransactions() {
-	LOG_DEBUG << "Number pending transactions: "+std::to_string(txs_.size());
-    return(!txs_.empty());
+  bool HasPendingTransactions() const {
+    LOG_DEBUG << "Number pending transactions: "+std::to_string(txs_.size());
+    std::lock_guard<std::mutex> guard(txs_mutex_);
+    auto empty = txs_.empty();
+    return(!empty);
+  }
+
+  size_t NumPendingTransactions() const {
+    std::lock_guard<std::mutex> guard(txs_mutex_);
+    auto size = txs_.size();
+    return(size);
   }
 
   bool ProposeBlock(const Hash& prev_hash, const ChainState& prior_state
       , const KeyRing& keys, const DevcashContext& context) {
+    LOG_DEBUG << "ProposeBlock()";
+    MTR_SCOPE_FUNC();
     ChainState new_state(prior_state);
     Summary summary;
     Validation validation;
@@ -182,19 +235,27 @@ class UnrecordedTransactionPool {
     ProposedBlock new_proposal(prev_hash, validated, summary, validation
         , new_state);
     new_proposal.SignBlock(keys, context);
+    std::lock_guard<std::mutex> proposal_guard(pending_proposal_mutex_);
     pending_proposal_ = new_proposal;
     return true;
   }
 
   bool HasProposal() {
+    LOG_DEBUG << "HasProposal()";
+    std::lock_guard<std::mutex> proposal_guard(pending_proposal_mutex_);
     return(!pending_proposal_.isNull());
   }
 
   std::vector<byte> getProposal() {
+    LOG_DEBUG << "getProposal()";
+    std::lock_guard<std::mutex> proposal_guard(pending_proposal_mutex_);
     return pending_proposal_.getCanonical();
   }
 
-  bool ReverifyProposal(const Hash& prev_hash, const ChainState& prior, const KeyRing& keys) {
+  bool ReverifyProposal(const Hash& prev_hash, const ChainState&, const KeyRing&) {
+    LOG_DEBUG << "ReverifyProposal()";
+    MTR_SCOPE_FUNC();
+    std::lock_guard<std::mutex> proposal_guard(pending_proposal_mutex_);
     if (pending_proposal_.isNull()) return false;
     pending_proposal_.setPrevHash(prev_hash);
     return true;
@@ -214,11 +275,16 @@ class UnrecordedTransactionPool {
 
   bool CheckValidation(std::vector<byte> remote
       , const DevcashContext& context) {
+    LOG_DEBUG << "CheckValidation()";
+    std::lock_guard<std::mutex> proposal_guard(pending_proposal_mutex_);
     if (pending_proposal_.isNull()) return false;
     return pending_proposal_.CheckValidationData(remote, context);
   }
 
   const FinalBlock FinalizeLocalBlock() {
+    LOG_DEBUG << "FinalizeLocalBlock()";
+    MTR_SCOPE_FUNC();
+    std::lock_guard<std::mutex> proposal_guard(pending_proposal_mutex_);
     const FinalBlock final_block(FinalizeBlock(pending_proposal_));
     pending_proposal_.setNull();
     return final_block;
@@ -226,7 +292,9 @@ class UnrecordedTransactionPool {
 
   const FinalBlock FinalizeRemoteBlock(const std::vector<byte>& serial
       , const ChainState prior, const KeyRing& keys) {
-    FinalBlock final(serial, prior, keys);
+    LOG_DEBUG << "FinalizeRemoteBlock()";
+    MTR_SCOPE_FUNC();
+    FinalBlock final(serial, prior, keys, tcm_);
     return final;
   }
 
@@ -234,13 +302,34 @@ class UnrecordedTransactionPool {
    *  @return the number of Transactions removed.
   */
   int GarbageCollect() {
+    LOG_DEBUG << "GarbageCollect()";
     //TODO: delete old unrecorded Transactions periodically
     return 0;
   }
 
+  double getElapsedTime() {
+    return timer_.elapsed();
+  }
+  TransactionCreationManager& get_transaction_creation_manager() {
+    return(tcm_);
+  }
+
  private:
   TxMap txs_;
+  mutable std::mutex txs_mutex_;
+
   ProposedBlock pending_proposal_;
+  mutable std::mutex pending_proposal_mutex_;
+
+  // Total number of transactions that have been
+  // added to the transaction map
+  size_t num_cum_txs_ = 0;
+
+  // Time since starting
+  Timer timer_;
+  std::unique_ptr<MTRScopedTrace> trace_;
+
+  TransactionCreationManager tcm_;
 
   /** Verifies Transactions for this pool.
    *  @note this implementation is greedy in selecting Transactions
@@ -251,11 +340,18 @@ class UnrecordedTransactionPool {
   */
   std::vector<Transaction> CollectValidTransactions(ChainState& state
       , const KeyRing& keys, Summary& summary) {
+    LOG_DEBUG << "CollectValidTransactions()";
     std::vector<Transaction> valid;
-    for (auto& item : txs_) {
-      if (item.second.second.isValid(state, keys, summary)) {
-        valid.push_back(item.second.second);
-        item.second.first++;
+    MTR_SCOPE_FUNC();
+    std::lock_guard<std::mutex> guard(txs_mutex_);
+    unsigned int num_txs = 0;
+    for (auto iter = txs_.begin(); iter != txs_.end(); ++iter) {
+      if (iter->second.second.isValid(state, keys, summary)) {
+        valid.push_back(iter->second.second);
+        iter->second.first++;
+        num_txs++;
+        // FIXME(spmckenney): Add config param here
+        if (num_txs >= kMAX_T2_BLOCK_SIZE) break;
       }
     }
     return valid;
@@ -272,6 +368,9 @@ class UnrecordedTransactionPool {
   */
   bool ReverifyTransactions(std::vector<Transaction> txs, ChainState& state
       , const KeyRing& keys, Summary& summary) {
+    LOG_DEBUG << "ReverifyTransactions()";
+    MTR_SCOPE_FUNC();
+    std::lock_guard<std::mutex> guard(txs_mutex_);
     for (auto const& item : txs) {
       if (!item.isValid(state, keys, summary)) {
         return false;
@@ -281,13 +380,26 @@ class UnrecordedTransactionPool {
   }
 
   bool RemoveTransactions(const ProposedBlock& proposed) {
+    std::lock_guard<std::mutex> guard(txs_mutex_);
+    size_t txs_size = txs_.size();
     for (auto const& item : proposed.getTransactions()) {
-      txs_.erase(item.getSignature());
+      if (txs_.erase(item.getSignature()) == 0) {
+        LOG_WARNING << "RemoveTransactions(): ret = 0, transaction not found: "
+                    << toHex(item.getSignature());
+      } else {
+        LOG_TRACE << "RemoveTransactions(): erase returned 1: " << toHex(item.getSignature());
+      }
     }
+    LOG_DEBUG << "RemoveTransactions: (to remove/size pre/size post) ("
+              << proposed.getNumTransactions() << "/"
+              << txs_size << "/"
+              << txs_.size() << ")";
     return true;
   }
 
   const FinalBlock FinalizeBlock(const ProposedBlock& proposal) {
+    LOG_DEBUG << "FinalizeBlock()";
+    MTR_SCOPE_FUNC();
     RemoveTransactions(proposal);
     FinalBlock final(proposal);
     return final;

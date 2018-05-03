@@ -38,6 +38,7 @@ class Validation {
 /** Constrcutors */
   Validation() : sigs_() {}
   Validation(const std::vector<byte>& serial, size_t& offset) : sigs_() {
+    MTR_SCOPE_FUNC();
     size_t remainder = serial.size()-offset;
     while (remainder >= PairSize()) {
       Address one_addr;
@@ -75,6 +76,7 @@ class Validation {
  *  @return a JSON string representing this validation block.
 */
   std::string getJSON() const {
+    MTR_SCOPE_FUNC();
     std::string out("[");
     bool isFirst = true;
     for (auto const& item : sigs_) {
@@ -96,6 +98,7 @@ class Validation {
  *  @return a CBOR byte vector representing this validation block.
 */
   std::vector<byte> getCanonical() const {
+    MTR_SCOPE_FUNC();
     std::vector<byte> serial;
     for (auto const& item : sigs_) {
       serial.insert(serial.end(), item.first.begin(), item.first.end());

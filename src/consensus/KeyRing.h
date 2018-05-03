@@ -9,7 +9,6 @@
 #define CONSENSUS_KEYRING_H_
 
 #include "common/devcash_context.h"
-#include "common/ossladapter.h"
 #include "primitives/Transfer.h"
 
 namespace Devcash {
@@ -22,12 +21,23 @@ class KeyRing {
   Address InsertAddress(std::string hex, EC_KEY* key);
   EC_KEY* getKey(const Address& addr) const;
   bool isINN(const Address& addr) const;
+  Address getInnAddr() const;
+  int CountNodes() const;
+  int CountWallets() const;
+  Address getNodeAddr(int index) const;
+  Address getWalletAddr(int index) const;
   EC_KEY* getNodeKey(int index) const;
+  EC_KEY* getWalletKey(int index) const;
 
  private:
+  KeyRing();
+  KeyRing& operator=(KeyRing&);
+  KeyRing(KeyRing&);
+
   DevcashContext context_;
   std::map<Address, EC_KEY*> key_map_;
   std::vector<Address> node_list_;
+  std::vector<Address> wallet_list_;
   Address inn_addr_;
 };
 

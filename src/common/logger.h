@@ -23,6 +23,8 @@
 #include <boost/log/attributes/named_scope.hpp>
 #include <cstdlib>
 
+#include "common/minitrace.h"
+
 // the logs are also written to LOGFILE
 #define LOGFILE "/tmp/devcash.log"
 
@@ -87,6 +89,8 @@ static inline std::string file_cut(const char* file) {
 #define LOG_TRACE LOG(trace)
 #define LOG_DEBUG LOG(debug)
 #define LOG_INFO LOG(info)
+// FIXME(spm): Add custom log levels including notice
+#define LOG_NOTICE LOG(warning)
 #define LOG_WARNING LOG(warning)
 #define LOG_ERROR LOG(error)
 #define LOG_FATAL LOG(fatal)

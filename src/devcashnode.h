@@ -14,7 +14,6 @@
 #include <string>
 #include <vector>
 
-#include "common/devcash_context.h"
 #include "concurrency/DevcashController.h"
 #include "io/message_service.h"
 
@@ -54,15 +53,15 @@ class DevcashNode {
    * Runs the scanner over the input.
    * @pre Parameters should be parsed and config file should be read.
    */
-  std::string RunScanner(std::string inStr);
+  std::string RunScanner();
 
   /**
    * Devcash core main initialization.
    * @note Call Shutdown() if this function fails.
    */
-  std::string RunNode(std::string& inStr);
+  std::string RunNode();
 
-  std::string RunNetworkTest(unsigned int node_index);
+  std::string RunNetworkTest(unsigned int);
 
 private:
   DevcashController& control_;
