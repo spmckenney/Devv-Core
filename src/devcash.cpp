@@ -56,7 +56,7 @@ int main(int argc, char* argv[])
 
     DevcashContext this_context(options->node_index, options->shard_index
         , options->mode
-        , options->inn_keys, options->node_keys, options->wallet_keys);
+        , options->inn_keys, options->node_keys, options->wallet_keys, options->sync_host);
     KeyRing keys(this_context);
     ChainState prior;
 

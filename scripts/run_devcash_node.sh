@@ -1,28 +1,28 @@
 #!/bin/bash
 
 node=$1
-
-export DEVCASH_OUTPUT_LOGLEVEL=trace
-#export DEVCASH_OUTPUT_LOGLEVEL=debug
-#export DEVCASH_OUTPUT_LOGLEVEL=info
-#export DEVCASH_OUTPUT_LOGLEVEL=warning
+do_debug=$2
 
 mode="T1"
 debug_mode="off"
 num_threads=1
 proto="tcp"
-num_transactions=1000
-tx_batch_size=50
 
-trace_file="${HOME}/dmnt/trace/trace_${node}.out"
+if [ $do_debug -eq 0 ]; then
+    export DEVCASH_OUTPUT_LOGLEVEL=debug
+    num_transactions=10
+    tx_batch_size=1
+elif [ $do_debug -eq 1 ]; then
+    export DEVCASH_OUTPUT_LOGLEVEL=warning
+    num_transactions=10000
+    tx_batch_size=1000
+else
+    export DEVCASH_OUTPUT_LOGLEVEL=warning
+    num_transactions=100000
+    tx_batch_size=2000
+fi
 
-scan_file="${HOME}/dmnt/devcash-core/opt/05txs"
-#scan_file="${HOME}/dmnt/devcash-core/opt/21txs"
-#scan_file="${HOME}/dmnt/devcash-core/opt/100txs"
-#scan_file="${HOME}/dmnt/devcash-core/opt/1000txs"
-#scan_file="${HOME}/dmnt/devcash-core/opt/1002txs"
-#scan_file="${HOME}/dmnt/devcash-core/opt/10k.txs"
-#scan_file="${HOME}/dmnt/devcash-core/opt/20k_txs"
+trace_file="${HOME}/dmnt/trace/trace_$$_${node}.out"
 
 node0_ip="dc001"
 node1_ip="dc002"
@@ -69,9 +69,9 @@ cmd="./devcash --node-index ${node} \
 --mode T2 \
 --num-consensus-threads ${num_threads} \
 --num-validator-threads ${num_threads} \
---scan-file ${scan_file} \
 --host-list ${hostA[$node]} \
 --host-list ${hostB[$node]} \
+--sync-host devcash \
 --output output_${node}.out \
 --trace-output ${trace_file} \
 --generate-tx ${num_transactions} \

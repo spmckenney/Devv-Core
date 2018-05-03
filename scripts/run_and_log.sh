@@ -3,6 +3,8 @@
 # ../scripts/run_devcash_node.sh ${NODE_INDEX} 2>&1 | tee /home/spmckenney/dmnt/logs/dc_out_$(cat /home/spmckenney/dmnt/logs/log_inc.txt)_${NODE_INDEX}.log
 
 node_index=$1
+do_inc=$2
+do_debug=$3
 
 if [ "${node_index}x" = "x" ]; then
     if [ "${NODE_INDEX}x" = "x" ]; then
@@ -15,7 +17,7 @@ fi
 
 update_log_index=""
 
-if [ ${node_index} -eq 2 ]; then
+if [ ${do_inc} -eq 1 ]; then
     echo "we be threee!"
     update_log_index="(node 3 - updating log counter)"
     log_num=$(/home/spmckenney/dmnt/logs/log_inc.sh)
@@ -28,7 +30,7 @@ echo "node index: ${node_index} $update_log_index"
 
 run_script=${HOME}/dmnt/devcash-core/scripts/run_devcash_node.sh
 
-$run_script ${node_index} 2>&1 | tee /home/spmckenney/dmnt/logs/dc_out_${log_num}_${node_index}.log
+$run_script ${node_index} ${do_debug} 2>&1 | tee /home/spmckenney/dmnt/logs/dc_out_${log_num}_${node_index}.log
 
 #echo $cmd
 

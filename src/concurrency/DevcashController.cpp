@@ -11,6 +11,7 @@
 #include <mutex>
 #include <thread>
 #include <string>
+#include <time.h>
 
 #include "DevcashWorker.h"
 #include "io/message_service.h"
@@ -340,7 +341,7 @@ std::vector<std::vector<byte>> DevcashController::GenerateTransactions() {
                               , keys_.getWalletKey(i), keys_);
           std::vector<byte> peer_canon(peer_tx.getCanonical());
           batch.insert(batch.end(), peer_canon.begin(), peer_canon.end());
-          LOG_DEBUG << "GenerateTransactions(): generated tx with sig: " << toHex(peer_tx.getSignature());
+          LOG_TRACE << "GenerateTransactions(): generated tx with sig: " << toHex(peer_tx.getSignature());
           batch_counter++;
           if (batch_counter >= batch_size_) break;
         } //end inner for
@@ -387,37 +388,19 @@ std::string DevcashController::Start() {
 
     workers_->Start();
 
-    //LOG_DEBUG << "Letting threads start for 2 seconds.";
-    //sleep(2);
-
     if (generate_count_ > 0) {
     //std::lock_guard<std::mutex> guard(mutex_);
       LOG_INFO << "Generate Transactions.";
       transactions = GenerateTransactions();
       LOG_INFO << "Finished Generating " << transactions.size() * batch_size_ << " Transactions.";
-
-      /*
-      auto announce_msg = std::make_unique<DevcashMessage>(context_.get_uri()
-                                                           , TRANSACTION_ANNOUNCEMENT
-                                                           , transactions.at(processed)
-                                                           , processed +
-                                                           (context_.get_current_node()+1)*11000000);
-      server_.QueueMessage(std::move(announce_msg));
-      processed++;
-      */
     }
 
-    /*
-    if (context_.get_current_node() == 0 && utx_pool_.HasPendingTransactions()) {
-      LOG_NOTICE << "DevcashController::Start(): Queueing(CreateNextProposal)";
-	  server_.QueueMessage(std::move(CreateNextProposal(keys_,
-	  final_chain_,
-	  utx_pool_,
-	  context_)));
+    if (context_.get_sync_host().size() > 0) {
+      io::synchronize(context_.get_sync_host(), context_.get_current_node());
+    } else {
+      LOG_NOTICE << "DevcashController::Start(): Starting devcash - entering forever loop in 10 sec";
+      sleep(1);
     }
-    */
-    LOG_NOTICE << "DevcashController::Start(): Starting devcash - entering forever loop in 10 sec";
-    sleep(1);
 
     std::unique_ptr<Timer> timer = nullptr;
 
