@@ -170,7 +170,7 @@ EC_KEY* KeyRing::getKey(const Address& addr) const {
   auto it = key_map_.find(addr);
   if (it != key_map_.end()) return it->second;
   std::string hex(toHex(std::vector<byte>(std::begin(addr), std::end(addr))));
-  LOG_WARNING << "Key for '"+hex+"' is missing!\n";
+  LOG_ERROR << "Key for '"+hex+"' is missing!\n";
   CASH_THROW("Key for '"+hex+"' is missing!");
 }
 

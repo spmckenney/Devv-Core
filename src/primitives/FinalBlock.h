@@ -34,7 +34,8 @@ public:
     LOG_INFO << "Merkle: "+toHex(merkle);
   }
   FinalBlock(const std::vector<byte>& serial, const ChainState& prior
-      ,const KeyRing& keys) : num_bytes_(0), block_time_(0), prev_hash_()
+      ,const KeyRing& keys, TransactionCreationManager& tcm)
+    : num_bytes_(0), block_time_(0), prev_hash_()
       , merkle_root_(), tx_size_(0), sum_size_(0), val_count_(0), vtx_()
       , summary_(), vals_(), block_state_(prior) {
     if (serial.size() < MinSize()) {
@@ -65,16 +66,28 @@ public:
     offset += 8;
     val_count_ = BinToUint32(serial, offset);
     offset += 4;
+
+    tcm.set_keys(&keys);
+    tcm.CreateTransactions(serial,
+                           vtx_,
+                           offset,
+                           MinSize(),
+                           tx_size_);
+
+    /*
     while (offset < MinSize()+tx_size_) {
       //Transaction constructor increments offset by ref
       Transaction one_tx(serial, offset, keys);
       vtx_.push_back(one_tx);
     }
+    */
+
     Summary temp(serial, offset);
     summary_ = temp;
     Validation val_temp(serial, offset);
     vals_ = val_temp;
   }
+
   FinalBlock(const FinalBlock& other)
       : version_(other.version_)
       , num_bytes_(other.num_bytes_), block_time_(other.block_time_)

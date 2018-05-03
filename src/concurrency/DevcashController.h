@@ -26,14 +26,15 @@ class DevcashController {
   DevcashController(io::TransactionServer& server,
                     io::TransactionClient& peer_client,
                     io::TransactionClient& loopback_client,
-                    const int validatorCount,
-                    const int consensusCount,
-                    const int generateCount,
-                    const int batchSize,
-                    KeyRing& keys,
+                    int validatorCount,
+                    int consensusCount,
+                    int generateCount,
+                    int batchSize,
+                    const KeyRing& keys,
                     DevcashContext& context,
                     const ChainState& prior);
-  virtual ~DevcashController() {};
+
+  ~DevcashController();
 
   std::vector<std::vector<byte>> GenerateTransactions();
 
@@ -59,18 +60,19 @@ private:
   const int consensus_count_;
   const size_t generate_count_;
   const size_t batch_size_;
-  KeyRing& keys_;
+  const KeyRing& keys_;
   DevcashContext& context_;
   Blockchain final_chain_;
   UnrecordedTransactionPool utx_pool_;
-  DevcashControllerWorker* workers_;
+
+  // Pointer because incomplete type
+  DevcashControllerWorker* workers_ = nullptr;
   bool validator_flipper_ = true;
   bool consensus_flipper_ = true;
   bool shutdown_ = false;
   uint64_t waiting_ = 0;
+  mutable std::mutex mutex_;
 };
-
-
 
 } /* namespace Devcash */
 

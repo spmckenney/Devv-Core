@@ -24,6 +24,10 @@
 #include <string>
 #include <vector>
 #include <stdint.h>
+#include <boost/bind.hpp>
+#include <boost/asio.hpp>
+#include <boost/thread/thread_pool.hpp>
+#include <boost/thread.hpp>
 
 #include "Transfer.h"
 #include "Summary.h"
@@ -47,7 +51,10 @@ enum eOpType : byte {
   Exchange   = 2,
   Delete     = 3};
 
-class Transaction {
+typedef boost::packaged_task<bool> task_t;
+typedef boost::shared_ptr<task_t> ptask_t;
+
+ class Transaction {
  public:
   uint64_t xfer_count_;
 
@@ -226,20 +233,6 @@ class Transaction {
     return is_sound_;
   }
 
-  void setKeys(const KeyRing& keys)
-  {
-    keys_ = &keys;
-  }
-
-  bool setIsSound()
-  {
-    is_sound_ = isSound(*keys_);
-    if (!is_sound_) {
-      LOG_WARNING << "Invalid serialized transaction, not sound!";
-    }
-    return is_sound_;
-  }
-
   /** Checks if this transaction is sound, meaning potentially valid.
    *  If any portion of the transaction is invalid,
    *  the entire transaction is also unsound.
@@ -402,8 +395,71 @@ class Transaction {
  private:
   std::vector<byte> canonical_;
   bool is_sound_ = false;
-  const KeyRing* keys_ = nullptr;
 };
+
+static inline void push_job(Transaction& x
+              , const KeyRing& keyring
+              , boost::asio::io_service& io_service
+              , std::vector<boost::shared_future<bool>>& pending_data) {
+  ptask_t task = boost::make_shared<task_t>([&x, &keyring]() {
+      x.setIsSound(keyring);
+      return(true);
+    });
+  boost::shared_future<bool> fut(task->get_future());
+  pending_data.push_back(fut);
+  io_service.post(boost::bind(&task_t::operator(), task));
+}
+
+class TransactionCreationManager {
+public:
+  //TransactionCreationManager() = delete;
+  TransactionCreationManager(TransactionCreationManager&) = delete;
+
+  TransactionCreationManager()
+    : io_service_()
+    , threads_()
+    , work_(io_service_)
+  {
+    for (unsigned int i = 0; i < boost::thread::hardware_concurrency(); ++i)
+    {
+        threads_.create_thread(boost::bind(&boost::asio::io_service::run,
+                                          &io_service_));
+    }
+  }
+
+  void CreateTransactions(const std::vector<byte>& serial
+                          , std::vector<Transaction>& vtx
+                          , size_t& offset
+                          , size_t min_size
+                          , size_t tx_size) {
+
+    while (offset < (min_size + tx_size)) {
+      //Transaction constructor increments offset by ref
+      LOG_TRACE << "while, offset = " << offset;
+      Transaction one_tx(serial, offset, *keys_p_, false);
+      vtx.push_back(one_tx);
+    }
+
+    std::vector<boost::shared_future<bool>> pending_data; // vector of futures
+
+    for (auto& tx : vtx) {
+      push_job(tx, *keys_p_, io_service_, pending_data);
+    }
+
+    boost::wait_for_all(pending_data.begin(), pending_data.end());
+  }
+
+  void set_keys(const KeyRing* keys) {
+    keys_p_ = keys;
+  }
+
+ private:
+  const KeyRing* keys_p_ = nullptr;
+  boost::asio::io_service io_service_;
+  boost::thread_group threads_;
+  boost::asio::io_service::work work_;
+};
+
 
 } //end namespace Devcash
 

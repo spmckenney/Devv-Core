@@ -10,16 +10,21 @@ proto="tcp"
 
 if [ $do_debug -eq 0 ]; then
     export DEVCASH_OUTPUT_LOGLEVEL=debug
-    num_transactions=10
-    tx_batch_size=1
+    num_transactions=1000
+    tx_batch_size=100
 elif [ $do_debug -eq 1 ]; then
     export DEVCASH_OUTPUT_LOGLEVEL=warning
+    num_transactions=18000
+    tx_batch_size=2000
+elif [ $do_debug -eq 2 ]; then
+    export DEVCASH_OUTPUT_LOGLEVEL=debug
+    num_transactions=36000
+    tx_batch_size=3000
+else
+    export DEVCASH_OUTPUT_LOGLEVEL=debug
     num_transactions=10000
     tx_batch_size=1000
-else
-    export DEVCASH_OUTPUT_LOGLEVEL=warning
-    num_transactions=100000
-    tx_batch_size=2000
+    gdb="gdb -ex run --args "
 fi
 
 trace_file="${HOME}/dmnt/trace/trace_$$_${node}.out"
@@ -64,7 +69,7 @@ case $node in
 
 esac
 
-cmd="./devcash --node-index ${node} \
+cmd="${gdb}./devcash --node-index ${node} \
 --debug-mode ${debug_mode} \
 --mode T2 \
 --num-consensus-threads ${num_threads} \

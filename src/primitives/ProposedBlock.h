@@ -11,10 +11,6 @@
 #include "Summary.h"
 #include "Transaction.h"
 #include "Validation.h"
-#include <boost/thread/thread_pool.hpp>
-#include <boost/thread.hpp>
-#include <boost/bind.hpp>
-#include <boost/asio.hpp>
 
 
 using namespace Devcash;
@@ -36,17 +32,6 @@ static const std::string kVAL_TAG = "vals";
 
 class ProposedBlock {
 
-  typedef boost::packaged_task<bool> task_t;
-  typedef boost::shared_ptr<task_t> ptask_t;
-
-  void push_job(Transaction& x, boost::asio::io_service& io_service,
-                std::vector<boost::shared_future<bool> >& pending_data) {
-    ptask_t task = boost::make_shared<task_t>(boost::bind(&Transaction::setIsSound, boost::ref(x)));
-    boost::shared_future<bool> fut(task->get_future());
-    pending_data.push_back(fut);
-    io_service.post(boost::bind(&task_t::operator(), task));
-  }
-
 public:
 
   uint8_t version_ = 0;
@@ -61,8 +46,9 @@ public:
   , tx_size_(0), sum_size_(0), val_count_(0), vtx_(), summary_(), vals_()
   , block_state_(prior)
   {}
+
   ProposedBlock(const std::vector<byte>& serial, const ChainState& prior
-    , const KeyRing& keys)
+                , const KeyRing& keys, TransactionCreationManager& tcm)
     : num_bytes_(0), prev_hash_(), tx_size_(0), sum_size_(0), val_count_(0)
     , vtx_(), summary_(), vals_(), block_state_(prior) {
     MTR_SCOPE_FUNC();
@@ -99,14 +85,21 @@ public:
     val_count_ = BinToUint32(serial, offset);
     offset += 4;
     MTR_STEP("proposed_block", "construct", &proposed_block_int, "transaction list");
-    while (offset < MinSize()+tx_size_) {
+    tcm.set_keys(&keys);
+    tcm.CreateTransactions(serial,
+                            vtx_,
+                            offset,
+                            MinSize(),
+                            tx_size_);
+    /*
+
+                          while (offset < MinSize()+tx_size_) {
       //Transaction constructor increments offset by ref
       LOG_DEBUG << "while, offset = " << offset;
       Transaction one_tx(serial, offset, keys, false);
       vtx_.push_back(one_tx);
     }
     MTR_STEP("proposed_block", "construct", &proposed_block_int, "soundness");
-
 
     boost::asio::io_service io_service;
     boost::thread_group threads;
@@ -120,12 +113,12 @@ public:
     std::vector<boost::shared_future<bool>> pending_data; // vector of futures
     // Submit a lambda object to the pool.
     for (auto& tx : vtx_) {
-      tx.setKeys(keys);
-      push_job(tx, io_service, pending_data);
+      push_job(tx, keys, io_service, pending_data);
       //tx.setIsSound();
     }
 
     boost::wait_for_all(pending_data.begin(), pending_data.end());
+    */
 
     MTR_STEP("proposed_block", "construct", &proposed_block_int, "step3");
     Summary temp(serial, offset);
@@ -192,6 +185,7 @@ public:
  *  @return false if this block has no valid transactions
 */
   bool validate(const KeyRing& keys) const {
+    LOG_DEBUG << "validate()";
     MTR_SCOPE_FUNC();
     if (vtx_.size() < 1) {
       LOG_WARNING << "Trying to validate empty block.";
@@ -363,7 +357,6 @@ private:
   Summary summary_;
   Validation vals_;
   ChainState block_state_;
-
 };
 
 } //end namespace Devcash

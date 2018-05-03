@@ -35,7 +35,7 @@ DevcashController::DevcashController(
     const int consensusCount,
     const int generateCount,
     const int batchSize,
-    KeyRing& keys,
+    const KeyRing& keys,
     DevcashContext& context,
     const ChainState& prior)
   : server_(server)
@@ -51,6 +51,12 @@ DevcashController::DevcashController(
   , utx_pool_(prior)
   , workers_(new DevcashControllerWorker(this, validator_count_, consensus_count_))
 {}
+
+DevcashController::~DevcashController() {
+  if (workers_) {
+    delete workers_;
+  }
+}
 
 DevcashMessageUniquePtr CreateNextProposal(const KeyRing& keys,
                         Blockchain& final_chain,
@@ -85,7 +91,7 @@ DevcashMessageUniquePtr CreateNextProposal(const KeyRing& keys,
 }
 
 void DevcashController::ValidatorCallback(DevcashMessageUniquePtr ptr) {
-  //std::lock_guard<std::mutex> guard(mutex_);
+  std::lock_guard<std::mutex> guard(mutex_);
   if (shutdown_) return;
   if (ptr == nullptr) {
     LOG_DEBUG << "ValidatorCallback(): ptr == nullptr, ignoring";
@@ -133,8 +139,8 @@ bool HandleFinalBlock(DevcashMessageUniquePtr ptr,
   LogDevcashMessageSummary(*ptr, "HandleFinalBlock()");
 
   ChainState prior = final_chain.getHighestChainState();
-  FinalPtr top_block = FinalPtr(new FinalBlock(utx_pool.FinalizeRemoteBlock(
-      msg.data, prior, keys)));
+  FinalPtr top_block = std::make_shared<FinalBlock>(utx_pool.FinalizeRemoteBlock(
+                                               msg.data, prior, keys));
   final_chain.push_back(top_block);
   LOG_NOTICE << "final_chain.push_back(): Estimated rate: (ntxs/duration): rate -> "
              << "(" << final_chain.getNumTransactions() << "/"
@@ -167,6 +173,7 @@ bool HandleProposalBlock(DevcashMessageUniquePtr ptr,
                          const DevcashContext& context,
                          const KeyRing& keys,
                          Blockchain& final_chain,
+                         TransactionCreationManager& tcm,
                          std::function<void(DevcashMessageUniquePtr)> callback) {
   MTR_SCOPE_FUNC();
   //validate block
@@ -176,7 +183,7 @@ bool HandleProposalBlock(DevcashMessageUniquePtr ptr,
   LogDevcashMessageSummary(*ptr, "HandleProposalBlock() -> Incoming");
 
   ChainState prior = final_chain.getHighestChainState();
-  ProposedBlock to_validate(msg.data, prior, keys);
+  ProposedBlock to_validate(msg.data, prior, keys, tcm);
   if (!to_validate.validate(keys)) {
     LOG_WARNING << "ProposedBlock is invalid!";
     return false;
@@ -211,7 +218,7 @@ bool HandleValidationBlock(DevcashMessageUniquePtr ptr,
   if (utx_pool.CheckValidation(msg.data, context)) {
     //block can be finalized, so finalize
     LOG_DEBUG << "Ready to finalize block.";
-    FinalPtr top_block = FinalPtr(new FinalBlock(utx_pool.FinalizeLocalBlock()));
+    FinalPtr top_block = std::make_shared<FinalBlock>(utx_pool.FinalizeLocalBlock());
     final_chain.push_back(top_block);
     LOG_NOTICE << "final_chain.push_back(): Estimated rate: (ntxs/duration): rate -> "
                << "(" << final_chain.getNumTransactions() << "/"
@@ -246,10 +253,12 @@ void DevcashController::ConsensusCallback(DevcashMessageUniquePtr ptr) {
                                   [this](DevcashMessageUniquePtr p) { this->server_.QueueMessage(std::move(p));});
     } else if (ptr->message_type == PROPOSAL_BLOCK) {
       LOG_DEBUG << "DevcashController()::ConsensusCallback(): PROPOSAL_BLOCK";
+      utx_pool_.get_transaction_creation_manager().set_keys(&keys_);
       HandleProposalBlock(std::move(ptr),
                                      context_,
                                      keys_,
                                      final_chain_,
+                          utx_pool_.get_transaction_creation_manager(),
                                      [this](DevcashMessageUniquePtr p) { this->server_.QueueMessage(std::move(p));});
       waiting_ = 0;
     } else if (ptr->message_type == TRANSACTION_ANNOUNCEMENT) {
@@ -271,6 +280,7 @@ void DevcashController::ConsensusCallback(DevcashMessageUniquePtr ptr) {
     }
   } CASH_CATCH (const std::exception& e) {
     LOG_FATAL << FormatException(&e, "DevcashController.ConsensusCallback()");
+    CASH_THROW(e);
     StopAll();
   }
 }
@@ -388,7 +398,7 @@ std::string DevcashController::Start() {
     workers_->Start();
 
     if (generate_count_ > 0) {
-    //std::lock_guard<std::mutex> guard(mutex_);
+      std::lock_guard<std::mutex> guard(mutex_);
       LOG_INFO << "Generate Transactions.";
       transactions = GenerateTransactions();
       LOG_INFO << "Finished Generating " << transactions.size() * batch_size_ << " Transactions.";
@@ -401,7 +411,9 @@ std::string DevcashController::Start() {
       sleep(1);
     }
 
-    std::unique_ptr<Timer> timer = nullptr;
+
+    // Time since last transaction, if over kTRANSACTION_TIMEOUT, shutdown
+    Timer transaction_timer;
 
     // Loop for long runs
     auto ms = kMAIN_WAIT_INTERVAL;
@@ -419,17 +431,16 @@ std::string DevcashController::Start() {
         server_.QueueMessage(std::move(announce_msg));
         processed++;
 
+        // We got one, reset the timer
+        transaction_timer.reset();
+
       } else if (!utx_pool_.HasPendingTransactions()) {
         if (processed >= transactions.size()) {
-          if (timer) {
-            double ms = 5000.0;
-            LOG_INFO << "Transactions complete.  Shutting down in " << std::to_string(ms - timer->elapsed());
-            if (timer->elapsed() > ms) {
-              LOG_INFO << "Transactions complete.  Shutting down";
-              StopAll();
-            }
-          } else {
-            timer = std::make_unique<Timer>();
+          LOG_INFO << "Transactions complete.  Shutting down in "
+                   << std::to_string(kTRANSACTION_TIMEOUT - transaction_timer.elapsed());
+          if (transaction_timer.elapsed() > kTRANSACTION_TIMEOUT) {
+            LOG_INFO << "Transactions complete.  Shutting down";
+            StopAll();
           }
         }
       }

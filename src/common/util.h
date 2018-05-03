@@ -39,6 +39,11 @@ static const size_t kSIG_SIZE = 72;
 typedef std::array<byte, kSIG_SIZE> Signature;
 static const size_t kFILE_KEY_SIZE = 379;
 
+// Exit if no transactions in 10 sec
+static const size_t kTRANSACTION_TIMEOUT = 10000;
+
+static const size_t kMAX_T2_BLOCK_SIZE = 10000;
+
 static int32_t BinToInt32(const std::vector<byte>& bytes, size_t start) {
   //MTR_SCOPE_FUNC();
   int32_t dest = 0;

@@ -90,19 +90,20 @@ class Transfer {
   }
 
 /** Assign transfers */
-  Transfer* operator=(Transfer&& other)
+  Transfer& operator=(Transfer&& other)
   {
     if (this != &other) {
       this->canonical_ = other.canonical_;
     }
-    return this;
+    return *this;
   }
-  Transfer* operator=(const Transfer& other)
+
+  Transfer& operator=(const Transfer& other)
   {
     if (this != &other) {
       this->canonical_ = other.canonical_;
     }
-    return this;
+    return *this;
   }
 
   Address getAddress() const {

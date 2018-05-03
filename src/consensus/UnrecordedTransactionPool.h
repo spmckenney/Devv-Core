@@ -22,29 +22,34 @@ typedef std::map<Signature, SharedTransaction> TxMap;
 class UnrecordedTransactionPool {
  public:
 
-/** Constrcutors */
+  /** Constrcutors */
   UnrecordedTransactionPool(const ChainState& prior)
      : txs_(), pending_proposal_(prior) {
     LOG_DEBUG << "UnrecordedTransactionPool(const ChainState& prior)";
   }
-
+  /*
   UnrecordedTransactionPool(const std::vector<byte>& serial
       , const ChainState& prior, const KeyRing& keys)
-      : txs_(), pending_proposal_(prior) {
+    : txs_(), pending_proposal_(prior), tcm_(keys) {
     LOG_DEBUG << "UnrecordedTransactionPool(const std::vector<byte>& serial, const ChainState& prior, const KeyRing& keys)";
     AddTransactions(serial, keys);
   }
-
+  */
+  UnrecordedTransactionPool(const UnrecordedTransactionPool& other) = delete;
+  /*
   UnrecordedTransactionPool(const UnrecordedTransactionPool& other)
-    : txs_(other.txs_), pending_proposal_(other.pending_proposal_)
+    : txs_(other.txs_), pending_proposal_(other.pending_proposal_), tcm_(other.tcm_)
   {
     LOG_DEBUG << "UnrecordedTransactionPool(const UnrecordedTransactionPool& other)";
   }
-  UnrecordedTransactionPool(const TxMap& map, const ChainState& prior)
+  */
+  /*
+UnrecordedTransactionPool(const TxMap& map, const ChainState& prior)
     : txs_(map), pending_proposal_(prior)
   {
     LOG_DEBUG << "UnrecordedTransactionPool(const TxMap& map, const ChainState& prior)";
   }
+  */
 
   /** Adds Transactions to this pool.
    *  @note if the Transaction is invalid it will not be added,
@@ -289,7 +294,7 @@ class UnrecordedTransactionPool {
       , const ChainState prior, const KeyRing& keys) {
     LOG_DEBUG << "FinalizeRemoteBlock()";
     MTR_SCOPE_FUNC();
-    FinalBlock final(serial, prior, keys);
+    FinalBlock final(serial, prior, keys, tcm_);
     return final;
   }
 
@@ -305,6 +310,10 @@ class UnrecordedTransactionPool {
   double getElapsedTime() {
     return timer_.elapsed();
   }
+  TransactionCreationManager& get_transaction_creation_manager() {
+    return(tcm_);
+  }
+
  private:
   TxMap txs_;
   mutable std::mutex txs_mutex_;
@@ -319,6 +328,8 @@ class UnrecordedTransactionPool {
   // Time since starting
   Timer timer_;
   std::unique_ptr<MTRScopedTrace> trace_;
+
+  TransactionCreationManager tcm_;
 
   /** Verifies Transactions for this pool.
    *  @note this implementation is greedy in selecting Transactions
@@ -340,7 +351,7 @@ class UnrecordedTransactionPool {
         iter->second.first++;
         num_txs++;
         // FIXME(spmckenney): Add config param here
-        if (num_txs >= 1000) break;
+        if (num_txs >= kMAX_T2_BLOCK_SIZE) break;
       }
     }
     return valid;
@@ -376,7 +387,7 @@ class UnrecordedTransactionPool {
         LOG_WARNING << "RemoveTransactions(): ret = 0, transaction not found: "
                     << toHex(item.getSignature());
       } else {
-        LOG_DEBUG << "RemoveTransactions(): erase returned 1: " << toHex(item.getSignature());
+        LOG_TRACE << "RemoveTransactions(): erase returned 1: " << toHex(item.getSignature());
       }
     }
     LOG_DEBUG << "RemoveTransactions: (to remove/size pre/size post) ("

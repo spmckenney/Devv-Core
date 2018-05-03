@@ -27,20 +27,20 @@ public:
   {
   }
 
-  ChainState* operator=(ChainState&& other)
+  ChainState& operator=(ChainState&& other)
   {
     if (this != &other) {
       this->stateMap_ = other.stateMap_;
     }
-    return this;
+    return *this;
   }
 
-  ChainState* operator=(const ChainState& other)
+  ChainState& operator=(const ChainState& other)
   {
     if (this != &other) {
       this->stateMap_ = other.stateMap_;
     }
-    return this;
+    return *this;
   }
 
 /** Adds a coin to the state.

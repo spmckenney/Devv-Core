@@ -30,6 +30,10 @@ class KeyRing {
   EC_KEY* getWalletKey(int index) const;
 
  private:
+  KeyRing();
+  KeyRing& operator=(KeyRing&);
+  KeyRing(KeyRing&);
+
   DevcashContext context_;
   std::map<Address, EC_KEY*> key_map_;
   std::vector<Address> node_list_;
