@@ -98,17 +98,16 @@ void DevcashController::ValidatorCallback(DevcashMessageUniquePtr ptr) {
     if (ptr->message_type == TRANSACTION_ANNOUNCEMENT) {
       DevcashMessage msg(*ptr.get());
       utx_pool_.AddTransactions(msg.data, keys_);
-      size_t block_height = final_chain_.size();
-      ///*
-      if ((block_height+1)%context_.get_peer_count()
-            == context_.get_current_node()) {
-        LOG_INFO << "(spm): CreateNextProposal, utx_pool.HasProposal(): " << utx_pool_.HasProposal();
-        if (!utx_pool_.HasProposal()) {
-          server_.QueueMessage(std::move(
-                                         CreateNextProposal(keys_,final_chain_,utx_pool_,context_)));
+      if (context_.get_current_node() == 0) {
+        size_t block_height = final_chain_.size();
+        if (block_height == 0) {
+          LOG_INFO << "(spm): CreateNextProposal, utx_pool.HasProposal(): " << utx_pool_.HasProposal();
+          if (!utx_pool_.HasProposal()) {
+            server_.QueueMessage(std::move(
+              CreateNextProposal(keys_,final_chain_,utx_pool_,context_)));
+          }
         }
       }
-      //*/
     } else {
       LOG_DEBUG << "Unexpected message @ validator, to consensus.\n";
       PushConsensus(std::move(ptr));
