@@ -411,10 +411,6 @@ std::string DevcashController::Start() {
       sleep(1);
     }
 
-
-    // Time since last transaction, if over kTRANSACTION_TIMEOUT, shutdown
-    Timer transaction_timer;
-
     // Loop for long runs
     auto ms = kMAIN_WAIT_INTERVAL;
     while (true) {
@@ -430,36 +426,15 @@ std::string DevcashController::Start() {
                                                              , DEBUG_TRANSACTION_INDEX);
         server_.QueueMessage(std::move(announce_msg));
         processed++;
-
-        // We got one, reset the timer
-        transaction_timer.reset();
-
       } else if (!utx_pool_.HasPendingTransactions()) {
-        if (processed >= transactions.size()) {
-          LOG_INFO << "Transactions complete.  Shutting down in "
-                   << std::to_string(kTRANSACTION_TIMEOUT - transaction_timer.elapsed());
-          if (transaction_timer.elapsed() > kTRANSACTION_TIMEOUT) {
-            LOG_INFO << "Transactions complete.  Shutting down";
-            StopAll();
-          }
-        }
+        if (final_chain.getNumTransactions() >= (transactions.size()*context.get_peer_count())) {
+          LOG_INFO << "All transactions complete.  Shutting down";
+          StopAll();
+        } else {
+          LOG_INFO << "This node's transactions complete. Wait for peers to finish.";
+		}
       }
 
-      // (spm) Polling transactions to create blocks rather than
-      // relying on a FinalBlock coming in to trigger it may be
-      // a better solution
-      /*
-      size_t block_height = final_chain_.size();
-      LOG_INFO << "(spm): CreateNextProposal, utx_pool.HasProposal(): "
-               << utx_pool_.HasProposal() << " block_height: " << block_height
-               << " - ("<< (block_height+1)%context_.get_peer_count() <<")";
-      if (!utx_pool_.HasProposal() && utx_pool_.HasPendingTransactions()) {
-        server_.QueueMessage(std::move(CreateNextProposal(keys_,
-                                                          final_chain_,
-                                                          utx_pool_,
-                                                          context_)));
-      }
-      */
       if (shutdown_) break;
     }
 
