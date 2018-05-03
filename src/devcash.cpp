@@ -14,14 +14,10 @@
 #include <functional>
 #include <thread>
 
+#include "common/argument_parser.h"
 #include "common/devcash_context.h"
 #include "concurrency/DevcashController.h"
 #include "devcashnode.h"
-#include "common/logger.h"
-#include "common/util.h"
-
-#include "common/argument_parser.h"
-
 #include "io/message_service.h"
 
 using namespace Devcash;
@@ -58,8 +54,9 @@ int main(int argc, char* argv[])
 
     zmq::context_t context(1);
 
-    DevcashContext this_context(options->node_index,
-                                static_cast<eAppMode>(options->mode));
+    DevcashContext this_context(options->node_index, options->shard_index
+        , options->mode
+        , options->inn_keys, options->node_keys, options->wallet_keys);
     KeyRing keys(this_context);
     ChainState prior;
 
@@ -87,6 +84,10 @@ int main(int argc, char* argv[])
     /**
      * Chrome tracing setup
      */
+    if (options->trace_file.empty()) {
+      LOG_FATAL << "Trace file is required.";
+      exit(-1);
+	}
     mtr_init(options->trace_file.c_str());
     mtr_register_sigint_handler();
 
@@ -124,14 +125,15 @@ int main(int argc, char* argv[])
     //It should be deterministic based on the input and parameters,
     //so we won't need it from every run, just interesting ones.
     //Feel free to do this differently!
-    std::string outFileStr(argv[4]);
-    std::ofstream outFile(options->write_file);
-    if (outFile.is_open()) {
-      outFile << out;
-      outFile.close();
-    } else {
-      LOG_FATAL << "Failed to open output file '" << outFileStr << "'.";
-      return(false);
+    if (!options->write_file.empty()) {
+      std::ofstream outFile(options->write_file);
+      if (outFile.is_open()) {
+        outFile << out;
+        outFile.close();
+      } else {
+        LOG_FATAL << "Failed to open output file '" << options->write_file << "'.";
+        return(false);
+      }
     }
 
     LOG_INFO << "DevCash Shutting Down";

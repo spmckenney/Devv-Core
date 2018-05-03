@@ -112,7 +112,7 @@ public:
     boost::thread_group threads;
     boost::asio::io_service::work work(io_service);
 
-    for (int i = 0; i < boost::thread::hardware_concurrency(); ++i)
+    for (unsigned int i = 0; i < boost::thread::hardware_concurrency(); ++i)
     {
         threads.create_thread(boost::bind(&boost::asio::io_service::run,
                                           &io_service));
@@ -231,11 +231,9 @@ public:
     MTR_SCOPE_FUNC();
     std::vector<byte> md = summary_.getCanonical();
     size_t node_num = context.get_current_node();
-    Address node_addr;
+    Address node_addr = keys.getNodeAddr(node_num);
     Signature node_sig;
-    std::vector<byte> addr_bin(Hex2Bin(context.kNODE_ADDRs[node_num]));
-    std::copy_n(addr_bin.begin(), kADDR_SIZE, node_addr.begin());
-    SignBinary(keys.getNodeKey(context.get_current_node()), dcHash(md), node_sig);
+    SignBinary(keys.getNodeKey(node_num), dcHash(md), node_sig);
     vals_.addValidation(node_addr, node_sig);
     val_count_++;
     num_bytes_ = MinSize()+tx_size_+sum_size_
