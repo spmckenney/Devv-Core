@@ -427,7 +427,8 @@ std::string DevcashController::Start() {
         server_.QueueMessage(std::move(announce_msg));
         processed++;
       } else if (!utx_pool_.HasPendingTransactions()) {
-        if (final_chain_.getNumTransactions() >= (transactions.size()*context_.get_peer_count())) {
+        if (final_chain_.getNumTransactions()
+          >= (transactions.size()*batch_size_*context_.get_peer_count())) {
           LOG_INFO << "All transactions complete.  Shutting down";
           StopAll();
         } else {
