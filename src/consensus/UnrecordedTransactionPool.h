@@ -344,7 +344,7 @@ UnrecordedTransactionPool(const TxMap& map, const ChainState& prior)
     std::vector<Transaction> valid;
     MTR_SCOPE_FUNC();
     std::lock_guard<std::mutex> guard(txs_mutex_);
-    int num_txs = 0;
+    unsigned int num_txs = 0;
     for (auto iter = txs_.begin(); iter != txs_.end(); ++iter) {
       if (iter->second.second.isValid(state, keys, summary)) {
         valid.push_back(iter->second.second);
