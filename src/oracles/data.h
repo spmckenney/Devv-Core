@@ -14,7 +14,6 @@
 #include "oracleInterface.h"
 #include "common/logger.h"
 #include "consensus/chainstate.h"
-#include "primitives/Transaction.h"
 
 using namespace Devcash;
 
@@ -50,7 +49,7 @@ class DCdata : public oracleInterface {
    * @return true iff the transaction can be valid according to this oracle
    * @return false otherwise
    */
-  bool isSound(Transaction checkTx) {
+  bool isSound(Tier2Transaction checkTx) {
     if (checkTx.getOperation() == eOpType::Exchange) {
       //TODO: check that exchange is to an INN data collection address
       //TODO: check that nonce size is valid for coins expended
@@ -72,7 +71,7 @@ class DCdata : public oracleInterface {
    * @return true iff the transaction is valid according to this oracle
    * @return false otherwise
    */
-  bool isValid(Transaction checkTx, ChainState&) {
+  bool isValid(Tier2Transaction checkTx, ChainState&) {
     if (!isSound(checkTx)) return false;
     return true;
   }
@@ -83,7 +82,7 @@ class DCdata : public oracleInterface {
  * @params checkTx the transaction to (in)validate
  * @return a tier 1 transaction to implement this tier 2 logic.
  */
-  Transaction getT1Syntax(Transaction theTx) {
+  Tier2Transaction getT1Syntax(Tier2Transaction theTx) {
     return(theTx);
   }
 
@@ -98,9 +97,9 @@ class DCdata : public oracleInterface {
  * @return a tier 1 transaction to implement this tier 2 logic.
  * @return empty/null transaction if the transaction is invalid
  */
-  Transaction Tier2Process(std::vector<byte> rawTx,
+  Tier2Transaction Tier2Process(std::vector<byte> rawTx,
       ChainState context, const KeyRing& keys) {
-    Transaction tx(rawTx, keys);
+    Tier2Transaction tx(rawTx, keys);
     if (!isValid(tx, context)) {
       return tx;
     }

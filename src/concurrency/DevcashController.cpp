@@ -12,10 +12,13 @@
 #include <thread>
 #include <string>
 #include <time.h>
+#include <dirent.h>
+#include <boost/filesystem.hpp>
 
 #include "DevcashWorker.h"
 #include "io/message_service.h"
 #include "consensus/KeyRing.h"
+#include "primitives/Tier2Transaction.h"
 
 typedef std::chrono::milliseconds millisecs;
 
@@ -37,7 +40,9 @@ DevcashController::DevcashController(
     const int batchSize,
     const KeyRing& keys,
     DevcashContext& context,
-    const ChainState& prior)
+    const ChainState& prior,
+    eAppMode mode,
+    std::string scan_dir)
   : server_(server)
   , peer_client_(peer_client)
   , loopback_client_(loopback_client)
@@ -48,7 +53,9 @@ DevcashController::DevcashController(
   , keys_(keys)
   , context_(context)
   , final_chain_("final_chain_")
-  , utx_pool_(prior)
+  , utx_pool_(prior, mode)
+  , mode_(mode)
+  , scan_dir_(scan_dir)
   , workers_(new DevcashControllerWorker(this, validator_count_, consensus_count_))
 {}
 
@@ -330,7 +337,7 @@ std::vector<std::vector<byte>> DevcashController::GenerateTransactions() {
         Transfer transfer(keys_.getWalletAddr(i), 0, 1, 0);
         xfers.push_back(transfer);
       }
-      Transaction inn_tx(eOpType::Create, xfers
+      Tier2Transaction inn_tx(eOpType::Create, xfers
                          , getEpoch()+(1000000*(context_.get_current_node()+1)*(batch_counter+1))
           , keys_.getKey(inn_addr), keys_);
       std::vector<byte> inn_canon(inn_tx.getCanonical());
@@ -345,7 +352,7 @@ std::vector<std::vector<byte>> DevcashController::GenerateTransactions() {
           peer_xfers.push_back(sender);
           Transfer receiver(keys_.getWalletAddr(j), 0, 1, 0);
           peer_xfers.push_back(receiver);
-          Transaction peer_tx(eOpType::Exchange, peer_xfers
+          Tier2Transaction peer_tx(eOpType::Exchange, peer_xfers
                               , getEpoch()+(1000000*(context_.get_current_node()+1)*(i+1)*(j+1))
                               , keys_.getWalletKey(i), keys_);
           std::vector<byte> peer_canon(peer_tx.getCanonical());
@@ -368,9 +375,51 @@ std::vector<std::vector<byte>> DevcashController::GenerateTransactions() {
   return out;
 }
 
-std::string DevcashController::Start() {
+std::vector<std::vector<byte>> DevcashController::LoadTransactions() {
   MTR_SCOPE_FUNC();
-  std::string out;
+  std::vector<std::vector<byte>> out;
+
+  ChainState priori;
+
+  struct dirent* entry;
+  DIR* dir = opendir(scan_dir_.data());
+  if (dir == NULL) return out;
+  while ((entry = readdir(dir)) != NULL) {
+    std::ifstream file(entry->d_name, std::ios::binary);
+    file.unsetf(std::ios::skipws);
+    std::streampos file_size;
+    file.seekg(0, std::ios::end);
+    file_size = file.tellg();
+    file.seekg(0, std::ios::beg);
+
+    std::vector<byte> raw;
+    raw.reserve(file_size);
+    raw.insert(raw.begin(), std::istream_iterator<byte>(file)
+        , std::istream_iterator<byte>());
+    size_t offset = 0;
+    std::vector<byte> batch;
+    while (offset < file_size) {
+      //constructor increments offset by reference
+      FinalBlock one_block(raw, priori, offset);
+      Summary sum(one_block.getSummary());
+      Validation val(one_block.getValidation());
+      std::pair<Address, Signature> pair(val.getFirstValidation());
+      int index = keys_.getNodeIndex(pair.first);
+      Tier1Transaction tx(sum, pair.second, (uint64_t) index, keys_);
+      std::vector<byte> tx_canon(tx.getCanonical());
+      batch.insert(batch.end(), tx_canon.begin(), tx_canon.end());
+    }
+    out.push_back(batch);
+  }
+  closedir(dir);
+
+  LOG_INFO << "Loaded " << 0 << " transactions in " << out.size() << " batches.";
+  return out;
+}
+
+std::vector<byte> DevcashController::Start() {
+  MTR_SCOPE_FUNC();
+  std::vector<byte> out;
   CASH_TRY {
 
     auto lambda_callback = [this](DevcashMessageUniquePtr ptr) {
@@ -397,11 +446,13 @@ std::string DevcashController::Start() {
 
     workers_->Start();
 
-    if (generate_count_ > 0) {
+    if (mode_ == eAppMode::T2 && generate_count_ > 0) {
       std::lock_guard<std::mutex> guard(mutex_);
       LOG_INFO << "Generate Transactions.";
       transactions = GenerateTransactions();
       LOG_INFO << "Finished Generating " << transactions.size() * batch_size_ << " Transactions.";
+    } else if (mode_ == eAppMode::T1 && !scan_dir_.empty()) {
+      //TODO: load
     }
 
     if (context_.get_sync_host().size() > 0) {
@@ -440,7 +491,9 @@ std::string DevcashController::Start() {
     }
 
     //write final chain to output
-    out += toHex(final_chain_.BinaryDump());
+    std::vector<byte> final_chain_bin(final_chain_.BinaryDump());
+    out.insert(out.end(), final_chain_bin.begin()
+            , final_chain_bin.end());
 
   } CASH_CATCH (const std::exception& e) {
     LOG_FATAL << FormatException(&e, "DevcashController.Start()");

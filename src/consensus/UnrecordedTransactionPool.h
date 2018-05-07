@@ -11,8 +11,8 @@
 #include <map>
 #include <vector>
 
+#include "concurrency/TransactionCreationManager.h"
 #include "primitives/FinalBlock.h"
-
 
 namespace Devcash
 {
@@ -23,8 +23,8 @@ class UnrecordedTransactionPool {
  public:
 
   /** Constrcutors */
-  UnrecordedTransactionPool(const ChainState& prior)
-     : txs_(), pending_proposal_(prior) {
+  UnrecordedTransactionPool(const ChainState& prior, eAppMode mode)
+     : txs_(), pending_proposal_(prior), tcm_(mode) {
     LOG_DEBUG << "UnrecordedTransactionPool(const ChainState& prior)";
   }
   /*
@@ -68,8 +68,8 @@ UnrecordedTransactionPool(const TxMap& map, const ChainState& prior)
         size_t counter = 0;
         while (counter < serial.size()) {
           //note that Transaction constructor advances counter by reference
-          Transaction one_tx(serial, counter, keys);
-          if (one_tx.getByteSize() < Transaction::MinSize()) {
+          Tier2Transaction one_tx(serial, counter, keys);
+          if (one_tx.getByteSize() < Tier2Transaction::MinSize()) {
             LOG_WARNING << "Invalid transaction, dropping the remainder of input.";
             break;
           }
@@ -98,7 +98,7 @@ UnrecordedTransactionPool(const TxMap& map, const ChainState& prior)
     bool all_good = true;
     CASH_TRY {
       int counter = 0;
-      for (auto const& item : txs) {
+      for (const Transaction& item : txs) {
         Signature sig = item.getSignature();
         auto it = txs_.find(sig);
         if (it != txs_.end()) {
@@ -110,7 +110,7 @@ UnrecordedTransactionPool(const TxMap& map, const ChainState& prior)
           if (num_cum_txs_ == 0) {
             LOG_NOTICE << "AddTransactions(): First transaction added to TxMap";
             timer_.reset();
-            trace_ = std::make_unique<MTRScopedTrace>("timer", "lifetime1");
+            trace_ = make_unique<MTRScopedTrace>("timer", "lifetime1");
           }
           num_cum_txs_++;
           counter++;
@@ -144,7 +144,7 @@ UnrecordedTransactionPool(const TxMap& map, const ChainState& prior)
     LOG_DEBUG << "AddAndVerifyTransactions()";
     MTR_SCOPE_FUNC();
     std::lock_guard<std::mutex> guard(txs_mutex_);
-    for (auto const& item : txs) {
+    for (const Transaction& item : txs) {
       Signature sig = item.getSignature();
       auto it = txs_.find(sig);
       bool valid = it->second.second.isValid(state, keys, summary);
@@ -160,7 +160,7 @@ UnrecordedTransactionPool(const TxMap& map, const ChainState& prior)
         if (num_cum_txs_ == 0) {
           LOG_NOTICE << "AddTransactions(): First transaction added to TxMap";
           timer_.reset();
-          trace_ = std::make_unique<MTRScopedTrace>("timer", "lifetime2");
+          trace_ = make_unique<MTRScopedTrace>("timer", "lifetime2");
         }
         num_cum_txs_++;
 

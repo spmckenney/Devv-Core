@@ -15,7 +15,8 @@
 
 #include <string>
 #include "consensus/chainstate.h"
-#include "primitives/Transaction.h"
+//#include "primitives/Tier1Transaction.h"
+#include "primitives/Tier2Transaction.h"
 
 namespace Devcash
 {
@@ -117,7 +118,7 @@ class oracleInterface {
  * @return a tier 1 transaction to implement this tier 2 logic
  * @return nullptr if the transaction is invalid
  */
-  virtual Transaction Tier2Process(std::vector<byte> rawTx,
+  virtual Tier2Transaction Tier2Process(std::vector<byte> rawTx,
       ChainState context, const KeyRing& keys) = 0;
 
 };

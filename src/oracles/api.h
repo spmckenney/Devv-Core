@@ -15,7 +15,6 @@
 #include "oracleInterface.h"
 #include "common/logger.h"
 #include "consensus/chainstate.h"
-#include "primitives/Transaction.h"
 
 using namespace Devcash;
 
@@ -51,7 +50,7 @@ class DCapi : public oracleInterface {
    * @return true iff the transaction can be valid according to this oracle
    * @return false otherwise
    */
-  bool isSound(Transaction checkTx) {
+  bool isSound(Tier2Transaction checkTx) {
     if (checkTx.getOperation() == eOpType::Exchange) return false;
     return true;
   }
@@ -68,7 +67,7 @@ class DCapi : public oracleInterface {
    * @return true iff the transaction is valid according to this oracle
    * @return false otherwise
    */
-  bool isValid(Transaction checkTx, ChainState& context) {
+  bool isValid(Tier2Transaction checkTx, ChainState& context) {
     if (!isSound(checkTx)) return false;
     std::vector<Transfer> xfers = checkTx.getTransfers();
     for (auto it=xfers.begin(); it != xfers.end(); ++it) {
@@ -90,10 +89,10 @@ class DCapi : public oracleInterface {
  * @params checkTx the transaction to (in)validate
  * @return a tier 1 transaction to implement this tier 2 logic.
  */
-  Transaction getT1Syntax(Transaction theTx) {
-    Transaction out(theTx);
+  Tier2Transaction getT1Syntax(Tier2Transaction theTx) {
+    //Transaction out(theTx);
     //if (out.delay_ == 0) out.delay_ = kAPI_LIFETIME;
-    return(out);
+    return(theTx);
   }
 
 /**
@@ -109,9 +108,9 @@ class DCapi : public oracleInterface {
  * @return a tier 1 transaction to implement this tier 2 logic.
  * @return empty/null transaction if the transaction is invalid
  */
-  Transaction Tier2Process(std::vector<byte> rawTx,
+  Tier2Transaction Tier2Process(std::vector<byte> rawTx,
       ChainState context, const KeyRing& keys) {
-    Transaction tx(rawTx, keys);
+    Tier2Transaction tx(rawTx, keys);
     if (!isValid(tx, context)) {
       return tx;
     }

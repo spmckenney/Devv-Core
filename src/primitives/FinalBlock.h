@@ -20,7 +20,6 @@ class FinalBlock {
 public:
 
   /** Constructors */
-  //FinalBlock() = 0;
   FinalBlock(const ProposedBlock& proposed)
     : num_bytes_(proposed.num_bytes_+40), block_time_(getEpoch())
     , prev_hash_(proposed.prev_hash_), merkle_root_()
@@ -81,6 +80,49 @@ public:
       vtx_.push_back(one_tx);
     }
     */
+
+    Summary temp(serial, offset);
+    summary_ = temp;
+    Validation val_temp(serial, offset);
+    vals_ = val_temp;
+  }
+
+  FinalBlock(const std::vector<byte>& serial, const ChainState& prior
+      , size_t& offset)
+    : num_bytes_(0), block_time_(0), prev_hash_()
+      , merkle_root_(), tx_size_(0), sum_size_(0), val_count_(0), vtx_()
+      , summary_(), vals_(), block_state_(prior) {
+    if (serial.size() < MinSize()) {
+      LOG_WARNING << "Invalid serialized FinalBlock, too small!";
+      return;
+    }
+    version_ |= serial.at(offset);
+    if (version_ != 0) {
+      LOG_WARNING << "Invalid FinalBlock.version: "+std::to_string(version_);
+      return;
+    }
+    offset++;
+    num_bytes_ = BinToUint64(serial, offset);
+    offset += 8;
+    if (serial.size() < num_bytes_) {
+      LOG_WARNING << "Invalid serialized FinalBlock, wrong size!";
+      return;
+    }
+    block_time_ = BinToUint64(serial, offset);
+    offset += 8;
+    std::copy_n(serial.begin()+offset, SHA256_DIGEST_LENGTH, prev_hash_.begin());
+    offset += 32;
+    std::copy_n(serial.begin()+offset, SHA256_DIGEST_LENGTH, merkle_root_.begin());
+    offset += 32;
+    tx_size_ = BinToUint64(serial, offset);
+    offset += 8;
+    sum_size_ = BinToUint64(serial, offset);
+    offset += 8;
+    val_count_ = BinToUint32(serial, offset);
+    offset += 4;
+
+    //this constructor does not load transactions
+    offset += tx_size_;
 
     Summary temp(serial, offset);
     summary_ = temp;
@@ -194,6 +236,14 @@ public:
 
   ChainState getChainState() const {
     return block_state_;
+  }
+
+  Summary getSummary() const {
+    return summary_;
+  }
+
+  Validation getValidation() const {
+    return vals_;
   }
 
 private:

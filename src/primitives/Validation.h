@@ -72,6 +72,12 @@ class Validation {
     return true;
   }
 
+  std::pair<Address, Signature> getFirstValidation() {
+    auto x = sigs_.begin();
+    std::pair<Address, Signature> pair(x->first, x->second);
+    return pair;
+  }
+
 /** Returns a JSON string representing this validation block.
  *  @return a JSON string representing this validation block.
 */

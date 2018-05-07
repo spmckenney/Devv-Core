@@ -15,7 +15,6 @@
 #include "oracleInterface.h"
 #include "common/logger.h"
 #include "consensus/chainstate.h"
-#include "primitives/Transaction.h"
 
 using namespace Devcash;
 
@@ -108,9 +107,9 @@ class dcash : public oracleInterface {
    * @return a tier 1 transaction to implement this tier 2 logic.
    * @return empty/null transaction if the transaction is invalid
    */
-    Transaction Tier2Process(std::vector<byte> rawTx,
+  Tier2Transaction Tier2Process(std::vector<byte> rawTx,
         ChainState context, const KeyRing& keys) {
-      Transaction tx(rawTx, keys);
+      Tier2Transaction tx(rawTx, keys);
       if (!isValid(tx, context)) {
         return tx;
       }

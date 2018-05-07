@@ -24,6 +24,7 @@ class KeyRing {
   Address getInnAddr() const;
   int CountNodes() const;
   int CountWallets() const;
+  int getNodeIndex(const Address& addr) const;
   Address getNodeAddr(int index) const;
   Address getWalletAddr(int index) const;
   EC_KEY* getNodeKey(int index) const;

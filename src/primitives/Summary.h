@@ -232,6 +232,39 @@ class Summary {
     return json;
   }
 
+  std::vector<Transfer> getTransfers() {
+    std::vector<Transfer> out;
+    for (auto iter = summary_.begin(); iter != summary_.end(); ++iter) {
+      SummaryPair top_pair(iter->second);
+      DelayedMap delayed(top_pair.first);
+      CoinMap coin_map(top_pair.second);
+      if (!delayed.empty()) {
+        for (auto j = delayed.begin(); j != delayed.end(); ++j) {
+          Transfer xfer(iter->first, j->first, j->second.delta, j->second.delay);
+          out.push_back(xfer);
+        }
+      }
+      if (!coin_map.empty()) {
+        for (auto j = coin_map.begin(); j != coin_map.end(); ++j) {
+          Transfer xfer(iter->first, j->first, j->second, 0);
+          out.push_back(xfer);
+        }
+      }
+    }
+    return out;
+  }
+
+  size_t getTransferCount() const {
+    size_t xfer_count = 0;
+    for (auto iter = summary_.begin(); iter != summary_.end(); ++iter) {
+      SummaryPair top_pair(iter->second);
+      DelayedMap delayed(top_pair.first);
+      CoinMap coin_map(top_pair.second);
+      xfer_count += delayed.size();
+      xfer_count += coin_map.size();
+    }
+  }
+
   /**
    *  @return true iff, the summary passes sanity checks
   */

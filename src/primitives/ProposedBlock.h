@@ -11,7 +11,7 @@
 #include "Summary.h"
 #include "Transaction.h"
 #include "Validation.h"
-
+#include "concurrency/TransactionCreationManager.h"
 
 using namespace Devcash;
 
