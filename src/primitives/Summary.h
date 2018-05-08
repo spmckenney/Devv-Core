@@ -263,6 +263,7 @@ class Summary {
       xfer_count += delayed.size();
       xfer_count += coin_map.size();
     }
+    return xfer_count;
   }
 
   /**
