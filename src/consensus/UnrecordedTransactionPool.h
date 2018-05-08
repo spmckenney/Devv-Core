@@ -24,31 +24,10 @@ class UnrecordedTransactionPool {
 
   /** Constrcutors */
   UnrecordedTransactionPool(const ChainState& prior, eAppMode mode)
-     : txs_(), pending_proposal_(prior), tcm_(mode) {
+     : txs_(), pending_proposal_(prior), tcm_(mode), mode_(mode) {
     LOG_DEBUG << "UnrecordedTransactionPool(const ChainState& prior)";
   }
-  /*
-  UnrecordedTransactionPool(const std::vector<byte>& serial
-      , const ChainState& prior, const KeyRing& keys)
-    : txs_(), pending_proposal_(prior), tcm_(keys) {
-    LOG_DEBUG << "UnrecordedTransactionPool(const std::vector<byte>& serial, const ChainState& prior, const KeyRing& keys)";
-    AddTransactions(serial, keys);
-  }
-  */
   UnrecordedTransactionPool(const UnrecordedTransactionPool& other) = delete;
-  /*
-  UnrecordedTransactionPool(const UnrecordedTransactionPool& other)
-    : txs_(other.txs_), pending_proposal_(other.pending_proposal_), tcm_(other.tcm_)
-  {
-    LOG_DEBUG << "UnrecordedTransactionPool(const UnrecordedTransactionPool& other)";
-  }
-  */
-  /*
-UnrecordedTransactionPool(const TxMap& map, const ChainState& prior)
-    : txs_(map), pending_proposal_(prior)
-  {
-    LOG_DEBUG << "UnrecordedTransactionPool(const TxMap& map, const ChainState& prior)";
-  }
   */
 
   /** Adds Transactions to this pool.
@@ -68,12 +47,21 @@ UnrecordedTransactionPool(const TxMap& map, const ChainState& prior)
         size_t counter = 0;
         while (counter < serial.size()) {
           //note that Transaction constructor advances counter by reference
-          Tier2TransactionPtr one_tx = std::make_unique<Tier2Transaction>(serial, counter, keys);
-          if (one_tx->getByteSize() < Tier2Transaction::MinSize()) {
-            LOG_WARNING << "Invalid transaction, dropping the remainder of input.";
-            break;
-          }
-          temp.push_back(std::move(one_tx));
+          if (mode_ == eAppMode::T2) {
+            Tier2TransactionPtr one_tx = std::make_unique<Tier2Transaction>(serial, counter, keys);
+            if (one_tx->getByteSize() < Transaction::MinSize()) {
+              LOG_WARNING << "Invalid transaction, dropping the remainder of input.";
+              break;
+            }
+            temp.push_back(std::move(one_tx));
+		  } else if (mode_ == eAppMode::T1) {
+            Tier1TransactionPtr one_tx = std::make_unique<Tier1Transaction>(serial, counter, keys);
+            if (one_tx->getByteSize() < Transaction::MinSize()) {
+              LOG_WARNING << "Invalid transaction, dropping the remainder of input.";
+              break;
+            }
+            temp.push_back(std::move(one_tx));
+	      }
         }
         return AddTransactions(std::move(temp), keys);
       } CASH_CATCH (const std::exception& e) {
@@ -330,6 +318,7 @@ UnrecordedTransactionPool(const TxMap& map, const ChainState& prior)
   std::unique_ptr<MTRScopedTrace> trace_;
 
   TransactionCreationManager tcm_;
+  eAppMode mode_;
 
   /** Verifies Transactions for this pool.
    *  @note this implementation is greedy in selecting Transactions
