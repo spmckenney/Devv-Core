@@ -18,6 +18,7 @@
 #include "DevcashWorker.h"
 #include "io/message_service.h"
 #include "consensus/KeyRing.h"
+#include "primitives/Tier1Transaction.h"
 #include "primitives/Tier2Transaction.h"
 
 typedef std::chrono::milliseconds millisecs;

@@ -135,14 +135,14 @@ class Tier1Transaction : public Transaction {
     return std::unique_ptr<Transaction>(new Tier1Transaction(*this));
   }
 
-  std::vector<byte> getMessageDigest() const {
+ private:
+  uint64_t sum_size_;
+
+  std::vector<byte> do_getMessageDigest() const {
     std::vector<byte> md(canonical_.begin()
         , canonical_.begin()+sum_size_+8);
     return md;
   }
-
- private:
-  uint64_t sum_size_;
 
   byte do_getOperation() const {
     return (byte) 0;

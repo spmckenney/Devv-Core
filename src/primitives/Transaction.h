@@ -99,9 +99,7 @@ class Transaction {
    * @return the message digest bytestring for this transaction.
   */
   std::vector<byte> getMessageDigest() const {
-    std::vector<byte> md(canonical_.begin()
-        , canonical_.begin()+(EnvelopeSize()+Transfer::Size()*xfer_count_));
-    return md;
+    return do_getMessageDigest();
   }
 
   /** Returns the transaction size in bytes.
@@ -169,6 +167,8 @@ class Transaction {
   bool is_sound_ = false;
 
  private:
+
+  virtual std::vector<byte> do_getMessageDigest() const = 0;
 
   virtual byte do_getOperation() const = 0;
 

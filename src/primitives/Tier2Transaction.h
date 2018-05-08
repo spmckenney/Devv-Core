@@ -144,6 +144,12 @@ namespace Devcash
 
  private:
 
+  std::vector<byte> do_getMessageDigest() const {
+    std::vector<byte> md(canonical_.begin()
+      , canonical_.begin()+(EnvelopeSize()+Transfer::Size()*xfer_count_));
+    return md;
+  }
+
   byte do_getOperation() const {
     return canonical_[8];
   }
