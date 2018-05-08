@@ -49,7 +49,7 @@ class DCdata : public oracleInterface {
    * @return true iff the transaction can be valid according to this oracle
    * @return false otherwise
    */
-  bool isSound(Tier2Transaction checkTx) {
+  bool isSound(Transaction& checkTx) override {
     if (checkTx.getOperation() == eOpType::Exchange) {
       //TODO: check that exchange is to an INN data collection address
       //TODO: check that nonce size is valid for coins expended
@@ -71,7 +71,7 @@ class DCdata : public oracleInterface {
    * @return true iff the transaction is valid according to this oracle
    * @return false otherwise
    */
-  bool isValid(Tier2Transaction checkTx, ChainState&) {
+  bool isValid(Transaction& checkTx, const ChainState&) override {
     if (!isSound(checkTx)) return false;
     return true;
   }
@@ -82,8 +82,10 @@ class DCdata : public oracleInterface {
  * @params checkTx the transaction to (in)validate
  * @return a tier 1 transaction to implement this tier 2 logic.
  */
-  Tier2Transaction getT1Syntax(Tier2Transaction theTx) {
-    return(theTx);
+  Tier1TransactionPtr getT1Syntax(Tier2TransactionPtr) override {
+    // TODO(spm)
+    Tier1TransactionPtr t1 = std::make_unique<Tier1Transaction>();
+    return(t1);
   }
 
 /**
@@ -97,13 +99,14 @@ class DCdata : public oracleInterface {
  * @return a tier 1 transaction to implement this tier 2 logic.
  * @return empty/null transaction if the transaction is invalid
  */
-  Tier2Transaction Tier2Process(std::vector<byte> rawTx,
-      ChainState context, const KeyRing& keys) {
-    Tier2Transaction tx(rawTx, keys);
-    if (!isValid(tx, context)) {
-      return tx;
+  Tier2TransactionPtr Tier2Process(const std::vector<byte>& rawTx,
+                                   const ChainState& context,
+                                   const KeyRing& keys) override {
+    Tier2TransactionPtr tx = std::make_unique<Tier2Transaction>(rawTx, keys);
+    if (!isValid(*tx.get(), context)) {
+      return std::move(tx);
     }
-    return tx;
+    return nullptr;
   }
 
 };

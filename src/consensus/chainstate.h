@@ -55,7 +55,7 @@ public:
  *  @param the address to check
  *  @return the number of this type of coins at this address
 */
-  long getAmount(uint64_t type, const Address& addr);
+  long getAmount(uint64_t type, const Address& addr) const;
 
 /** Moves a coin from one address to another
  *  @param start references where the coins will be removed

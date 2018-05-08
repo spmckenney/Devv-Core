@@ -50,7 +50,7 @@ class DCapi : public oracleInterface {
    * @return true iff the transaction can be valid according to this oracle
    * @return false otherwise
    */
-  bool isSound(Tier2Transaction checkTx) {
+  bool isSound(Transaction& checkTx) override {
     if (checkTx.getOperation() == eOpType::Exchange) return false;
     return true;
   }
@@ -67,7 +67,7 @@ class DCapi : public oracleInterface {
    * @return true iff the transaction is valid according to this oracle
    * @return false otherwise
    */
-  bool isValid(Tier2Transaction checkTx, ChainState& context) {
+  bool isValid(Transaction& checkTx, const ChainState& context) override {
     if (!isSound(checkTx)) return false;
     std::vector<Transfer> xfers = checkTx.getTransfers();
     for (auto it=xfers.begin(); it != xfers.end(); ++it) {
@@ -89,10 +89,10 @@ class DCapi : public oracleInterface {
  * @params checkTx the transaction to (in)validate
  * @return a tier 1 transaction to implement this tier 2 logic.
  */
-  Tier2Transaction getT1Syntax(Tier2Transaction theTx) {
-    //Transaction out(theTx);
-    //if (out.delay_ == 0) out.delay_ = kAPI_LIFETIME;
-    return(theTx);
+  Tier1TransactionPtr getT1Syntax(Tier2TransactionPtr) override {
+    // TODO(spm)
+    Tier1TransactionPtr t1 = std::make_unique<Tier1Transaction>();
+    return(std::move(t1));
   }
 
 /**
@@ -108,16 +108,17 @@ class DCapi : public oracleInterface {
  * @return a tier 1 transaction to implement this tier 2 logic.
  * @return empty/null transaction if the transaction is invalid
  */
-  Tier2Transaction Tier2Process(std::vector<byte> rawTx,
-      ChainState context, const KeyRing& keys) {
-    Tier2Transaction tx(rawTx, keys);
-    if (!isValid(tx, context)) {
-      return tx;
+  Tier2TransactionPtr Tier2Process(const std::vector<byte>& rawTx,
+                                   const ChainState& context,
+                                   const KeyRing& keys) override {
+    Tier2TransactionPtr tx = std::make_unique<Tier2Transaction>(rawTx, keys);
+    if (!isValid(*tx.get(), context)) {
+      return std::move(tx);
     }
-    if (tx.getOperation() == 0 || tx.getOperation() == 1) {
+    if (tx->getOperation() == 0 || tx->getOperation() == 1) {
       //TODO: check api reference string in nonce and verify reference with INN
     }
-    return tx;
+    return nullptr;
   }
 
 };

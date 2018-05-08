@@ -28,6 +28,10 @@ namespace Devcash
 class Tier1Transaction : public Transaction {
  public:
 
+  // TODO(spm)
+  // This is to support the unimplemented oracleInterface::getT1Syntax() methods
+  explicit Tier1Transaction() {}
+
 /** Constructors */
   explicit Tier1Transaction(const std::vector<byte>& serial, const KeyRing& keys)
     : sum_size_(0)
@@ -125,6 +129,10 @@ class Tier1Transaction : public Transaction {
     if (!is_sound_) {
       LOG_WARNING << "Invalid serialized T1 transaction, not sound!";
     }
+  }
+
+  std::unique_ptr<Transaction> Clone() const override {
+    return std::unique_ptr<Transaction>(new Tier1Transaction(*this));
   }
 
   std::vector<byte> getMessageDigest() const {
@@ -261,6 +269,8 @@ class Tier1Transaction : public Transaction {
     return json;
   }
 };
+
+typedef std::unique_ptr<Tier1Transaction> Tier1TransactionPtr;
 
 } //end namespace Devcash
 

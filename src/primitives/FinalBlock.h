@@ -24,10 +24,11 @@ public:
     : num_bytes_(proposed.num_bytes_+40), block_time_(getEpoch())
     , prev_hash_(proposed.prev_hash_), merkle_root_()
     , tx_size_(proposed.tx_size_), sum_size_(proposed.sum_size_)
-    , val_count_(proposed.val_count_), vtx_(proposed.getTransactions())
+    , val_count_(proposed.val_count_), vtx_(copy(proposed.getTransactions()))
     , summary_(proposed.getSummary()), vals_(proposed.getValidation())
     , block_state_(proposed.getBlockState())
   {
+
     merkle_root_ = dcHash(getBlockDigest());
     std::vector<byte> merkle(std::begin(merkle_root_), std::end(merkle_root_));
     LOG_INFO << "Merkle: "+toHex(merkle);
@@ -135,7 +136,7 @@ public:
       , num_bytes_(other.num_bytes_), block_time_(other.block_time_)
       , prev_hash_(other.prev_hash_), merkle_root_(other.merkle_root_)
       , tx_size_(other.tx_size_), sum_size_(other.sum_size_)
-      , val_count_(other.val_count_), vtx_(other.vtx_), summary_(other.summary_)
+      , val_count_(other.val_count_), vtx_(copy(other.vtx_)), summary_(other.summary_)
       , vals_(other.vals_), block_state_(other.block_state_){}
 
   static size_t MinSize() {
@@ -169,7 +170,7 @@ public:
       } else {
         json += ",";
       }
-      json += item.getJSON();
+      json += item->getJSON();
     }
     json += "],\""+kSUM_TAG+"\":"+summary_.getJSON()+",";
     json += "\""+kVAL_TAG+"\":"+vals_.getJSON()+"}";
@@ -179,7 +180,7 @@ public:
   std::vector<byte> getBlockDigest() const {
     std::vector<byte> txs;
     for (auto const& item : vtx_) {
-      const std::vector<byte> txs_canon(item.getCanonical());
+      const std::vector<byte> txs_canon(item->getCanonical());
       txs.insert(txs.end(), txs_canon.begin(), txs_canon.end());
     }
     const std::vector<byte> sum_canon(summary_.getCanonical());
@@ -207,7 +208,7 @@ public:
   std::vector<byte> getCanonical() const {
     std::vector<byte> txs;
     for (auto const& item : vtx_) {
-      const std::vector<byte> txs_canon(item.getCanonical());
+      const std::vector<byte> txs_canon(item->getCanonical());
       txs.insert(txs.end(), txs_canon.begin(), txs_canon.end());
     }
     const std::vector<byte> sum_canon(summary_.getCanonical());
@@ -255,7 +256,7 @@ private:
   uint64_t tx_size_;
   uint64_t sum_size_;
   uint32_t val_count_;
-  std::vector<Transaction> vtx_;
+  std::vector<TransactionPtr> vtx_;
   Summary summary_;
   Validation vals_;
   ChainState block_state_;

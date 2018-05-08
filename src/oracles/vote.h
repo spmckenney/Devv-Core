@@ -50,7 +50,7 @@ class DCVote : public oracleInterface {
    * @return true iff the transaction can be valid according to this oracle
    * @return false otherwise
    */
-  bool isSound(Transaction checkTx);
+  bool isSound(Transaction& checkTx) override;
 
   /** Checks if a transaction is valid according to this oracle
    *  given a specific chain state.
@@ -65,7 +65,7 @@ class DCVote : public oracleInterface {
    * @return true iff the transaction is valid according to this oracle
    * @return false otherwise
    */
-  bool isValid(Transaction checkTx, ChainState& context);
+  bool isValid(Transaction& checkTx, const ChainState& context) override;
 
 /** Generate a tier 1 smartcoin transaction based on this tier 2 transaction.
  *
@@ -74,7 +74,11 @@ class DCVote : public oracleInterface {
  * @return a tier 1 transaction to implement this tier 2 logic.
  * @return if transaction is invalid, may return nullptr
  */
-  Transaction getT1Syntax(Transaction theTx);
+  Tier1TransactionPtr getT1Syntax(Tier2TransactionPtr) override {
+    // TODO(spm)
+    Tier1TransactionPtr t1 = std::make_unique<Tier1Transaction>();
+    return(t1);
+  }
 
 /**
  * End-to-end tier2 process that takes a string, parses it into a transaction,
@@ -89,8 +93,9 @@ class DCVote : public oracleInterface {
  * @return a tier 1 transaction to implement this tier 2 logic.
  * @return empty/null transaction if the transaction is invalid
  */
-  Tier2Transaction Tier2Process(std::vector<byte> rawTx,
-      ChainState context, const KeyRing& keys);
+  Tier2TransactionPtr Tier2Process(const std::vector<byte>& rawTx,
+                                   const ChainState& context,
+                                   const KeyRing& keys) override;
 
 };
 

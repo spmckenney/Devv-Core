@@ -48,7 +48,7 @@ public:
   }
 
   void CreateTransactions(const std::vector<byte>& serial
-                          , std::vector<Transaction>& vtx
+                          , std::vector<TransactionPtr>& vtx
                           , size_t& offset
                           , size_t min_size
                           , size_t tx_size) {
@@ -57,18 +57,24 @@ public:
       //Transaction constructor increments offset by ref
       LOG_TRACE << "while, offset = " << offset;
       if (app_mode_ == eAppMode::T1) {
-        Tier1Transaction one_tx(serial, offset, *keys_p_, false);
-        vtx.push_back(one_tx);
+        Tier1TransactionPtr one_tx = std::make_unique<Tier1Transaction>(serial
+                                                                        , offset
+                                                                        , *keys_p_
+                                                                        , false);
+        vtx.push_back(std::move(one_tx));
       } else if (app_mode_ == eAppMode::T2) {
-        Tier2Transaction one_tx(serial, offset, *keys_p_, false);
-        vtx.push_back(one_tx);
+        Tier2TransactionPtr one_tx = std::make_unique<Tier2Transaction>(serial
+                                                                        , offset
+                                                                        , *keys_p_
+                                                                        , false);
+                                                      vtx.push_back(std::move(one_tx));
       }
     }
 
     std::vector<boost::shared_future<bool>> pending_data; // vector of futures
 
     for (auto& tx : vtx) {
-      push_job(tx, *keys_p_, io_service_, pending_data);
+      push_job(*tx, *keys_p_, io_service_, pending_data);
     }
 
     boost::wait_for_all(pending_data.begin(), pending_data.end());

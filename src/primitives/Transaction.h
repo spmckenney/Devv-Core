@@ -52,11 +52,14 @@ class Transaction {
 
 /** Constructors */
   Transaction() : xfer_count_(0), canonical_(), is_sound_(false) {}
+
   Transaction(uint64_t xfer_count, bool is_sound)
     : xfer_count_(xfer_count), canonical_(), is_sound_(is_sound) {}
+
   Transaction(uint64_t xfer_count, std::vector<byte> canonical
     , bool is_sound)
     : xfer_count_(xfer_count), canonical_(canonical), is_sound_(is_sound) {}
+
   Transaction(const Transaction& other) : xfer_count_(other.xfer_count_)
     , canonical_(other.canonical_), is_sound_(other.is_sound_) {}
 
@@ -81,9 +84,13 @@ class Transaction {
     return 17;
   }
 
+  /** Make a deep copy of the TierXTransaction subclass
+   */
+  virtual std::unique_ptr<Transaction> Clone() const = 0;
+
   /** Returns a canonical bytestring representation of this transaction.
    * @return a canonical bytestring representation of this transaction.
-  */
+   */
   std::vector<byte> getCanonical() const {
     return canonical_;
   }
@@ -163,37 +170,39 @@ class Transaction {
 
  private:
 
-  byte do_getOperation() const { return (byte) -1; }
+  virtual byte do_getOperation() const { return (byte) -1; }
 
-  std::vector<Transfer> do_getTransfers() const
+  virtual std::vector<Transfer> do_getTransfers() const
   {
     std::vector<Transfer> out;
     return out;
   }
 
-  uint64_t do_getNonce() const { return 0; }
+  virtual uint64_t do_getNonce() const { return 0; }
 
-  Signature do_getSignature() const {
+  virtual Signature do_getSignature() const {
     Signature out;
     return out;
   }
 
-  bool do_setIsSound(const KeyRing& keys) {
+  virtual bool do_setIsSound(const KeyRing& keys) {
     return false;
   }
 
-  bool do_isSound(const KeyRing& keys) const {
+  virtual bool do_isSound(const KeyRing& keys) const {
     return false;
   }
 
-  bool do_isValid(ChainState& state, const KeyRing& keys, Summary& summary) {
+  virtual bool do_isValid(ChainState& state, const KeyRing& keys, Summary& summary) {
     return false;
   }
 
-  std::string do_getJSON() const {
+  virtual std::string do_getJSON() const {
     return "";
   }
 };
+
+typedef std::unique_ptr<Transaction> TransactionPtr;
 
 } //end namespace Devcash
 

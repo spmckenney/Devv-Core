@@ -138,6 +138,10 @@ namespace Devcash
     }
   }
 
+  std::unique_ptr<Transaction> Clone() const override {
+    return std::unique_ptr<Transaction>(new Tier2Transaction(*this));
+  }
+
  private:
 
   byte do_getOperation() const {
@@ -289,6 +293,8 @@ namespace Devcash
     return json;
   }
 };
+
+typedef std::unique_ptr<Tier2Transaction> Tier2TransactionPtr;
 
 } //end namespace Devcash
 

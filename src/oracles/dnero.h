@@ -48,7 +48,7 @@ class dnero : public oracleInterface {
    * @return true iff the transaction can be valid according to this oracle
    * @return false otherwise
    */
-  bool isSound(Transaction) {
+  bool isSound(Transaction&) override {
     return true;
   }
 
@@ -64,7 +64,7 @@ class dnero : public oracleInterface {
    * @return true iff the transaction is valid according to this oracle
    * @return false otherwise
    */
-  bool isValid(Transaction checkTx, ChainState& context) {
+  bool isValid(Transaction& checkTx, const ChainState& context) override {
     if (!isSound(checkTx)) return false;
     std::vector<Transfer> xfers = checkTx.getTransfers();
     for (auto it=xfers.begin(); it != xfers.end(); ++it) {
@@ -88,8 +88,9 @@ class dnero : public oracleInterface {
  * @params checkTx the transaction to (in)validate
  * @return a tier 1 transaction to implement this tier 2 logic.
  */
-  Transaction getT1Syntax(Transaction theTx) {
-    Transaction out(theTx);
+  Tier1TransactionPtr getT1Syntax(Tier2TransactionPtr) override {
+    // TODO(spm)
+    Tier1TransactionPtr out = std::make_unique<Tier1Transaction>();
     //if (out.delay_ == 0) out.delay_ = kDEFAULT_DELAY;
     //out.type_ = dcash::getCoinType();
     return(out);
@@ -106,15 +107,14 @@ class dnero : public oracleInterface {
  * @return a tier 1 transaction to implement this tier 2 logic.
  * @return empty/null transaction if the transaction is invalid
  */
-  Tier2Transaction Tier2Process(std::vector<byte> rawTx,
-      ChainState context, const KeyRing& keys) {
-    Tier2Transaction tx(rawTx, keys);
-    if (!isValid(tx, context)) {
-      return tx;
+  Tier2TransactionPtr Tier2Process(const std::vector<byte>& rawTx,
+                                   const ChainState& context,
+                                   const KeyRing& keys) override {
+    Tier2TransactionPtr tx = std::make_unique<Tier2Transaction>(rawTx, keys);
+    if (!isValid(*tx.get(), context)) {
+      return std::move(tx);
     }
-    //if (tx.delay_ == 0) tx.delay_ = kDEFAULT_DELAY;
-    //tx.type_ = dcash::getCoinType();
-    return tx;
+    return nullptr;
   }
 
 };
