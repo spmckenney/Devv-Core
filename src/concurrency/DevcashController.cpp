@@ -23,6 +23,8 @@
 
 typedef std::chrono::milliseconds millisecs;
 
+namespace fs = boost::filesystem;
+
 namespace Devcash {
 
 #define DEBUG_PROPOSAL_INDEX \
@@ -377,16 +379,24 @@ std::vector<std::vector<byte>> DevcashController::GenerateTransactions() {
 }
 
 std::vector<std::vector<byte>> DevcashController::LoadTransactions() {
+  LOG_DEBUG << "Loading transactions from " << scan_dir_;
   MTR_SCOPE_FUNC();
   std::vector<std::vector<byte>> out;
 
   ChainState priori;
 
-  struct dirent* entry;
-  DIR* dir = opendir(scan_dir_.data());
-  if (dir == NULL) return out;
-  while ((entry = readdir(dir)) != NULL) {
-    std::ifstream file(entry->d_name, std::ios::binary);
+  //  struct dirent* entry;
+  //DIR* dir = opendir(scan_dir_.data());
+  fs::path p(scan_dir_);
+
+  if (!is_directory(p)) {
+    LOG_ERROR << "Error opening dir: " << scan_dir_ << " is not a directory";
+    return out;
+  }
+
+  for(auto& entry : boost::make_iterator_range(fs::directory_iterator(p), {})) {
+    LOG_DEBUG << "Reading " << entry;
+    std::ifstream file(entry.path().string(), std::ios::binary);
     file.unsetf(std::ios::skipws);
     std::streampos file_size;
     file.seekg(0, std::ios::end);
@@ -412,7 +422,7 @@ std::vector<std::vector<byte>> DevcashController::LoadTransactions() {
     }
     out.push_back(batch);
   }
-  closedir(dir);
+  //closedir(dir);
 
   LOG_INFO << "Loaded " << 0 << " transactions in " << out.size() << " batches.";
   return out;
@@ -453,7 +463,10 @@ std::vector<byte> DevcashController::Start() {
       transactions = GenerateTransactions();
       LOG_INFO << "Finished Generating " << transactions.size() * batch_size_ << " Transactions.";
     } else if (mode_ == eAppMode::T1 && !scan_dir_.empty()) {
+      transactions = LoadTransactions();
       //TODO: load
+    } else {
+      LOG_WARNING << "Not loading or generating: " << scan_dir_;
     }
 
     if (context_.get_sync_host().size() > 0) {
