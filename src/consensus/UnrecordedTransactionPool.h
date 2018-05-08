@@ -28,7 +28,6 @@ class UnrecordedTransactionPool {
     LOG_DEBUG << "UnrecordedTransactionPool(const ChainState& prior)";
   }
   UnrecordedTransactionPool(const UnrecordedTransactionPool& other) = delete;
-  */
 
   /** Adds Transactions to this pool.
    *  @note if the Transaction is invalid it will not be added,
