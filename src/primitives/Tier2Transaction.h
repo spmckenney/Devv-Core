@@ -241,7 +241,7 @@ namespace Devcash
     return false;
   }
 
-  bool do_isValid(ChainState& state, const KeyRing& keys, Summary& summary) const
+  bool do_isValid(ChainState& state, const KeyRing& keys, Summary& summary) const override
   {
     CASH_TRY {
       if (!isSound(keys)) return false;

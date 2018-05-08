@@ -151,10 +151,10 @@ class Transaction {
  * @return true iff the transaction is valid
  * @return false otherwise
  */
-  bool isValid(ChainState& state, const KeyRing& keys, Summary& summary) const {
-    return false;
+  virtual bool isValid(ChainState& state, const KeyRing& keys, Summary& summary) const
+  {
+    return do_isValid(state, keys, summary);
   }
-
 
 /** Returns a JSON string representing this transaction.
  * @return a JSON string representing this transaction.
@@ -193,9 +193,7 @@ class Transaction {
     return false;
   }
 
-  virtual bool do_isValid(ChainState& state, const KeyRing& keys, Summary& summary) {
-    return false;
-  }
+  virtual bool do_isValid(ChainState& state, const KeyRing& keys, Summary& summary) const = 0;
 
   virtual std::string do_getJSON() const {
     return "";

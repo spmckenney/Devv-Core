@@ -217,7 +217,7 @@ class Tier1Transaction : public Transaction {
  * @return true iff the transaction is valid
  * @return false otherwise
  */
-  bool do_isValid(ChainState& state, const KeyRing& keys, Summary& summary) const
+  bool do_isValid(ChainState& state, const KeyRing& keys, Summary& summary) const override
   {
     CASH_TRY {
       if (!isSound(keys)) return false;

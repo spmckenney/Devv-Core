@@ -383,6 +383,7 @@ public:
     summary_ = other.summary_;
     vals_ = other.vals_;
     block_state_ = other.block_state_;
+    return *this;
   }
 
 private:
