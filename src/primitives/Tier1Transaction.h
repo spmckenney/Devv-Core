@@ -84,22 +84,22 @@ class Tier1Transaction : public Transaction {
     MTR_STEP("Transaction", "Transaction", &trace_int, "step1");
 
     canonical_.insert(canonical_.end(), serial.begin()+offset
-            , serial.begin()+8);
+            , serial.begin()+offset+8);
     offset += 8;
 
     canonical_.insert(canonical_.end(), serial.begin()+offset
-            , serial.begin()+8);
+            , serial.begin()+offset+8);
     sum_size_ = BinToUint64(serial, offset);
     offset += 8;
 
     MTR_STEP("Transaction", "Transaction", &trace_int, "step2");
-    if (serial.size() < 16+sum_size_+kSIG_SIZE) {
+    if (serial.size() < offset+sum_size_+kSIG_SIZE) {
       LOG_WARNING << "Invalid serialized T1 transaction, too small!";
       return;
     }
 
     canonical_.insert(canonical_.end(), serial.begin()+offset
-            , serial.begin()+sum_size_+kSIG_SIZE);
+            , serial.begin()+offset+sum_size_+kSIG_SIZE);
     offset += sum_size_+kSIG_SIZE;
 
     MTR_STEP("Transaction", "Transaction", &trace_int, "sound");

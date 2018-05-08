@@ -385,8 +385,6 @@ std::vector<std::vector<byte>> DevcashController::LoadTransactions() {
 
   ChainState priori;
 
-  //  struct dirent* entry;
-  //DIR* dir = opendir(scan_dir_.data());
   fs::path p(scan_dir_);
 
   if (!is_directory(p)) {
@@ -394,6 +392,7 @@ std::vector<std::vector<byte>> DevcashController::LoadTransactions() {
     return out;
   }
 
+  size_t tx_count = 0;
   for(auto& entry : boost::make_iterator_range(fs::directory_iterator(p), {})) {
     LOG_DEBUG << "Reading " << entry;
     std::ifstream file(entry.path().string(), std::ios::binary);
@@ -419,12 +418,12 @@ std::vector<std::vector<byte>> DevcashController::LoadTransactions() {
       Tier1Transaction tx(sum, pair.second, (uint64_t) index, keys_);
       std::vector<byte> tx_canon(tx.getCanonical());
       batch.insert(batch.end(), tx_canon.begin(), tx_canon.end());
+      tx_count++;
     }
     out.push_back(batch);
   }
-  //closedir(dir);
 
-  LOG_INFO << "Loaded " << 0 << " transactions in " << out.size() << " batches.";
+  LOG_INFO << "Loaded " << std::to_string(tx_count) << " transactions in " << out.size() << " batches.";
   return out;
 }
 
@@ -464,7 +463,6 @@ std::vector<byte> DevcashController::Start() {
       LOG_INFO << "Finished Generating " << transactions.size() * batch_size_ << " Transactions.";
     } else if (mode_ == eAppMode::T1 && !scan_dir_.empty()) {
       transactions = LoadTransactions();
-      //TODO: load
     } else {
       LOG_WARNING << "Not loading or generating: " << scan_dir_;
     }
@@ -495,6 +493,10 @@ std::vector<byte> DevcashController::Start() {
         if (final_chain_.getNumTransactions()
           >= (transactions.size()*batch_size_*context_.get_peer_count())) {
           LOG_INFO << "All transactions complete.  Shutting down";
+          StopAll();
+        } else if (mode_ == eAppMode::T1
+          && final_chain_.getNumTransactions() >= transactions.size()) {
+          LOG_INFO << "T1 transactions completed.  Shutting down.";
           StopAll();
         } else {
           LOG_INFO << "This node's transactions complete. Wait for peers to finish.";

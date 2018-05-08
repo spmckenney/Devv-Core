@@ -51,7 +51,7 @@ public:
                           , std::vector<TransactionPtr>& vtx
                           , size_t& offset
                           , size_t min_size
-                          , size_t tx_size) {
+                          , size_t& tx_size) {
 
     while (offset < (min_size + tx_size)) {
       //Transaction constructor increments offset by ref
@@ -67,7 +67,7 @@ public:
                                                                         , offset
                                                                         , *keys_p_
                                                                         , false);
-                                                      vtx.push_back(std::move(one_tx));
+        vtx.push_back(std::move(one_tx));
       }
     }
 
