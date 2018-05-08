@@ -139,8 +139,8 @@ class Tier1Transaction : public Transaction {
   uint64_t sum_size_;
 
   std::vector<byte> do_getMessageDigest() const {
-    std::vector<byte> md(canonical_.begin()
-        , canonical_.begin()+sum_size_+8);
+    std::vector<byte> md(canonical_.begin()+16
+        , canonical_.begin()+sum_size_+16);
     return md;
   }
 
