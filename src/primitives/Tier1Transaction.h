@@ -227,12 +227,6 @@ class Tier1Transaction : public Transaction {
         int64_t amount = it->getAmount();
         uint64_t coin = it->getCoin();
         Address addr = it->getAddress();
-        if (amount < 0) {
-          if (!keys.isINN(addr)) {
-            LOG_WARNING << "Coins not available at addr.";
-            return false;
-          }
-        }
         SmartCoin next_flow(addr, coin, amount);
         state.addCoin(next_flow);
         summary.addItem(addr, coin, amount, it->getDelay());
