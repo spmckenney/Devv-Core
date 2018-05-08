@@ -170,34 +170,21 @@ class Transaction {
 
  private:
 
-  virtual byte do_getOperation() const { return (byte) -1; }
+  virtual byte do_getOperation() const = 0;
 
-  virtual std::vector<Transfer> do_getTransfers() const
-  {
-    std::vector<Transfer> out;
-    return out;
-  }
+  virtual std::vector<Transfer> do_getTransfers() const = 0;
 
-  virtual uint64_t do_getNonce() const { return 0; }
+  virtual uint64_t do_getNonce() const = 0;
 
-  virtual Signature do_getSignature() const {
-    Signature out;
-    return out;
-  }
+  virtual Signature do_getSignature() const = 0;
 
-  virtual bool do_setIsSound(const KeyRing& keys) {
-    return false;
-  }
+  virtual bool do_setIsSound(const KeyRing& keys) = 0;
 
-  virtual bool do_isSound(const KeyRing& keys) const {
-    return false;
-  }
+  virtual bool do_isSound(const KeyRing& keys) const = 0;
 
   virtual bool do_isValid(ChainState& state, const KeyRing& keys, Summary& summary) const = 0;
 
-  virtual std::string do_getJSON() const {
-    return "";
-  }
+  virtual std::string do_getJSON() const = 0;
 };
 
 typedef std::unique_ptr<Transaction> TransactionPtr;
