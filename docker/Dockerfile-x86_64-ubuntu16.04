@@ -48,7 +48,9 @@ RUN apt-get install -y \
     libzmqpp-dev \
     libzmq5-dbg \
     libsodium-dev \
-    libsodium-dbg
+    libsodium-dbg \
+    python-zmq \
+    python3-zmq
 
 RUN apt-get install -y \
     software-properties-common
