@@ -190,6 +190,14 @@ int KeyRing::CountWallets() const {
   return wallet_list_.size();
 }
 
+int KeyRing::getNodeIndex(const Address& addr) const {
+  int pos = find(node_list_.begin(), node_list_.end(), addr) - node_list_.begin();
+  if (pos < 0 || pos >= node_list_.size()) {
+    return -1;
+  }
+  return pos;
+}
+
 Address KeyRing::getNodeAddr(int index) const {
   return node_list_.at(index);
 }

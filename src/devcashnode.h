@@ -59,7 +59,7 @@ class DevcashNode {
    * Devcash core main initialization.
    * @note Call Shutdown() if this function fails.
    */
-  std::string RunNode();
+  std::vector<byte> RunNode();
 
   std::string RunNetworkTest(unsigned int);
 

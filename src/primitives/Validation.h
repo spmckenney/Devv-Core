@@ -52,6 +52,25 @@ class Validation {
       remainder -= PairSize();
     }
   }
+  Validation(const std::vector<byte>& serial, size_t& offset
+      , uint32_t count) : sigs_() {
+    MTR_SCOPE_FUNC();
+    if (serial.size() < offset+(count*PairSize())) {
+      LOG_WARNING << "Invalid Validation, too small";
+    }
+    size_t remainder = count;
+    while (remainder > 0) {
+      Address one_addr;
+      Signature one_sig;
+      std::copy_n(serial.begin()+offset, kADDR_SIZE, one_addr.begin());
+      offset += kADDR_SIZE;
+      std::copy_n(serial.begin()+offset, kSIG_SIZE, one_sig.begin());
+      offset += kSIG_SIZE;
+      std::pair<Address, Signature> one_pair(one_addr, one_sig);
+      sigs_.insert(one_pair);
+      remainder--;
+    }
+  }
   Validation(const Validation& other) : sigs_(other.sigs_) {}
   Validation(Address node, Signature sig) : sigs_() {
     sigs_.insert(std::pair<Address, Signature>(node, sig));
@@ -70,6 +89,12 @@ class Validation {
   bool addValidation(Validation& other) {
     sigs_.insert(other.sigs_.begin(), other.sigs_.end());
     return true;
+  }
+
+  std::pair<Address, Signature> getFirstValidation() {
+    auto x = sigs_.begin();
+    std::pair<Address, Signature> pair(x->first, x->second);
+    return pair;
   }
 
 /** Returns a JSON string representing this validation block.

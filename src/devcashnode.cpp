@@ -139,12 +139,12 @@ std::string DevcashNode::RunScanner() {
   return out;
 }
 
-std::string DevcashNode::RunNode()
+std::vector<byte> DevcashNode::RunNode()
 {
-  std::string out;
+  std::vector<byte> out;
   CASH_TRY {
     LOG_INFO << "Start controller.";
-    out += control_.Start();
+    return control_.Start();
 
   } CASH_CATCH (const std::exception& e) {
     LOG_FATAL << FormatException(&e, "DevcashNode.RunScanner");

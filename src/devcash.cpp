@@ -77,7 +77,7 @@ int main(int argc, char* argv[])
     DevcashController controller(*server, *peer_client, *loopback_client,
       options->num_validator_threads, options->num_consensus_threads,
       options->generate_count, options->tx_batch_size,
-      keys, this_context, prior);
+      keys, this_context, prior, options->mode, options->scan_dir);
 
     DevcashNode this_node(controller, this_context);
 
@@ -96,10 +96,10 @@ int main(int argc, char* argv[])
 
     MTR_BEGIN("main", "outer");
 
-    std::string out("");
+    std::vector<byte> out;
     if (options->mode == eAppMode::scan) {
       LOG_INFO << "Scanner ignores node index.";
-      out = this_node.RunScanner();
+      this_node.RunScanner();
     } else {
       if (!this_node.Init()) {
         LOG_FATAL << "Basic setup failed";
@@ -121,14 +121,11 @@ int main(int argc, char* argv[])
     mtr_flush();
     mtr_shutdown();
 
-    //We do need to output the resulting blockchain for analysis
-    //It should be deterministic based on the input and parameters,
-    //so we won't need it from every run, just interesting ones.
-    //Feel free to do this differently!
     if (!options->write_file.empty()) {
-      std::ofstream outFile(options->write_file);
+      std::ofstream outFile(options->write_file
+          , std::ios::out | std::ios::binary);
       if (outFile.is_open()) {
-        outFile << out;
+        outFile.write((const char*) out.data(), out.size());
         outFile.close();
       } else {
         LOG_FATAL << "Failed to open output file '" << options->write_file << "'.";

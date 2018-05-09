@@ -15,7 +15,8 @@
 
 #include <string>
 #include "consensus/chainstate.h"
-#include "primitives/Transaction.h"
+#include "primitives/Tier1Transaction.h"
+#include "primitives/Tier2Transaction.h"
 
 namespace Devcash
 {
@@ -84,7 +85,7 @@ class oracleInterface {
  * @return true iff the transaction can be valid according to this oracle
  * @return false otherwise
  */
-  virtual bool isSound(Transaction checkTx) = 0;
+  virtual bool isSound(Transaction& checkTx) = 0;
 
 /** Checks if a transaction is valid according to this oracle
  *  given a specific chain state.
@@ -95,8 +96,7 @@ class oracleInterface {
  * @return true iff the transaction is valid according to this oracle
  * @return false otherwise
  */
-  virtual bool isValid(Transaction checkTx,
-      ChainState& context) = 0;
+  virtual bool isValid(Transaction& checkTx, const ChainState& context) = 0;
 
 /** Generate a tier 1 smartcoin transaction based on this tier 2 transaction.
  *
@@ -104,7 +104,7 @@ class oracleInterface {
  * @params checkTx the transaction to (in)validate
  * @return a tier 1 transaction to implement this tier 2 logic.
  */
-  virtual Transaction getT1Syntax(Transaction theTx) = 0;
+  virtual Tier1TransactionPtr getT1Syntax(Tier2TransactionPtr) = 0;
 
 /**
  * End-to-end tier2 process that takes a string, parses it into a transaction,
@@ -117,8 +117,9 @@ class oracleInterface {
  * @return a tier 1 transaction to implement this tier 2 logic
  * @return nullptr if the transaction is invalid
  */
-  virtual Transaction Tier2Process(std::vector<byte> rawTx,
-      ChainState context, const KeyRing& keys) = 0;
+  virtual Tier2TransactionPtr Tier2Process(const std::vector<byte>& rawTx,
+                                           const ChainState& context,
+                                           const KeyRing& keys) = 0;
 
 };
 

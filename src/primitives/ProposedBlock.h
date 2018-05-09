@@ -11,12 +11,20 @@
 #include "Summary.h"
 #include "Transaction.h"
 #include "Validation.h"
-
+#include "concurrency/TransactionCreationManager.h"
 
 using namespace Devcash;
 
 namespace Devcash
 {
+
+static std::vector<TransactionPtr> copy(const std::vector<TransactionPtr>& txs) {
+  std::vector<TransactionPtr> tx_out;
+  for (auto& iter : txs) {
+    tx_out.push_back(iter->Clone());
+  }
+  return(std::move(tx_out));
+}
 
 static const std::string kVERSION_TAG = "v";
 static const std::string kPREV_HASH_TAG = "prev";
@@ -129,27 +137,39 @@ public:
     MTR_FINISH("proposed_block", "construct", &proposed_block_int);
   }
 
+  ProposedBlock(ProposedBlock& other)
+    : version_(other.version_), num_bytes_(other.num_bytes_)
+    , prev_hash_(other.prev_hash_), tx_size_(other.tx_size_)
+    , sum_size_(other.sum_size_), val_count_(other.val_count_)
+    , vtx_(std::move(other.vtx_)), summary_(other.summary_), vals_(other.vals_)
+    , block_state_(other.block_state_)
+  {}
+
+  /*
   ProposedBlock(const ProposedBlock& other)
     : version_(other.version_), num_bytes_(other.num_bytes_)
     , prev_hash_(other.prev_hash_), tx_size_(other.tx_size_)
     , sum_size_(other.sum_size_), val_count_(other.val_count_)
-    , vtx_(other.vtx_), summary_(other.summary_), vals_(other.vals_)
+    , vtx_(copy(other.vtx_)), summary_(other.summary_), vals_(other.vals_)
     , block_state_(other.block_state_)
   {}
+  */
 
-  ProposedBlock(const Hash& prev_hash, const std::vector<Transaction>& txs
-      , const Summary& summary, const Validation& validations
-      , const ChainState& prior_state) : num_bytes_(0), prev_hash_(prev_hash)
-      , tx_size_(0), sum_size_(summary.getByteSize())
-      , val_count_(validations.sigs_.size()), vtx_(txs), summary_(summary)
-      , vals_(validations), block_state_(prior_state) {
+  ProposedBlock(const Hash& prev_hash, std::vector<TransactionPtr>& txs
+                , const Summary& summary, const Validation& validations
+                , const ChainState& prior_state)
+    : num_bytes_(0), prev_hash_(prev_hash)
+    , tx_size_(0), sum_size_(summary.getByteSize())
+    , val_count_(validations.sigs_.size()), vtx_(std::move(txs)), summary_(summary)
+    , vals_(validations), block_state_(prior_state) {
+
     MTR_SCOPE_FUNC();
     for (auto const& item : vtx_) {
-      tx_size_ += item.getByteSize();
+      tx_size_ += item->getByteSize();
     }
 
     num_bytes_ = MinSize()+tx_size_+sum_size_
-        +val_count_*vals_.PairSize();
+      +val_count_*vals_.PairSize();
   }
 
   bool isNull() {
@@ -288,7 +308,7 @@ public:
       } else {
         json += ",";
       }
-      json += item.getJSON();
+      json += item->getJSON();
     }
     json += "],\""+kSUM_TAG+"\":"+summary_.getJSON()+",";
     json += "\""+kVAL_TAG+"\":"+vals_.getJSON()+"}";
@@ -302,7 +322,7 @@ public:
     MTR_SCOPE_FUNC();
     std::vector<byte> txs;
     for (auto const& item : vtx_) {
-      const std::vector<byte> txs_canon(item.getCanonical());
+      const std::vector<byte> txs_canon(item->getCanonical());
       txs.insert(txs.end(), txs_canon.begin(), txs_canon.end());
     }
     const std::vector<byte> sum_canon(summary_.getCanonical());
@@ -323,7 +343,7 @@ public:
     return serial;
   }
 
-  std::vector<Transaction> getTransactions() const {
+  const std::vector<TransactionPtr>& getTransactions() const {
     return vtx_;
   }
 
@@ -352,8 +372,24 @@ public:
     return block_state_;
   }
 
+  ProposedBlock& shallowCopy(ProposedBlock& other) {
+    version_ = other.version_;
+    num_bytes_ = other.num_bytes_;
+    prev_hash_ = other.prev_hash_;
+    tx_size_ = other.tx_size_;
+    sum_size_ = other.sum_size_;
+    val_count_ = other.val_count_;
+    vtx_ = std::move(other.vtx_);
+    summary_ = other.summary_;
+    vals_ = other.vals_;
+    block_state_ = other.block_state_;
+    return *this;
+  }
+
 private:
-  std::vector<Transaction> vtx_;
+  ProposedBlock& operator=(const ProposedBlock& other);
+
+  std::vector<TransactionPtr> vtx_;
   Summary summary_;
   Validation vals_;
   ChainState block_state_;

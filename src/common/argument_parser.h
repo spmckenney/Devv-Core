@@ -11,8 +11,8 @@
 
 #include <boost/program_options.hpp>
 
-#include "common/devcash_context.h"
-#include "common/logger.h"
+#include "devcash_context.h"
+#include "logger.h"
 
 namespace Devcash {
 
@@ -27,7 +27,7 @@ struct devcash_options {
   unsigned int num_consensus_threads;
   unsigned int num_validator_threads;
   std::string sync_host;
-  std::string scan_file;
+  std::string scan_dir;
   std::string write_file;
   std::string trace_file;
   std::string inn_keys;
@@ -65,7 +65,7 @@ network could be build and tested.\n\nAllowed options");
        "Client URI (i.e. tcp://192.168.10.1:5005). Option can be repeated to connect to multiple nodes.")
       ("bind-endpoint", po::value<std::string>(), "Endpoint for server (i.e. tcp://*:5556)")
       ("sync-host", po::value<std::string>(), "Enable node startup synchronization with sync-host")
-      ("scan-file", po::value<std::string>(), "Initial transaction or blockchain input file")
+      ("scan-dir", po::value<std::string>(), "Directory to check for transaction or blockchain input files")
       ("output", po::value<std::string>(), "Blockchain output path in binary JSON or CBOR")
       ("trace-output", po::value<std::string>(), "Output path to JSON trace file (Chrome)")
       ("inn-keys", po::value<std::string>(), "Path to INN key file")
@@ -165,11 +165,11 @@ network could be build and tested.\n\nAllowed options");
       }
     }
 
-    if (vm.count("scan-file")) {
-      options->scan_file = vm["scan-file"].as<std::string>();
-      LOG_INFO << "Scan file: " << options->scan_file;
+    if (vm.count("scan-dir")) {
+      options->scan_dir = vm["scan-dir"].as<std::string>();
+      LOG_INFO << "Scan dir: " << options->scan_dir;
     } else {
-      LOG_INFO << "Scan file was not set.";
+      LOG_INFO << "Scan dir was not set.";
     }
 
     if (vm.count("output")) {

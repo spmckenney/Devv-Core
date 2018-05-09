@@ -32,16 +32,19 @@ class DevcashController {
                     int batchSize,
                     const KeyRing& keys,
                     DevcashContext& context,
-                    const ChainState& prior);
+                    const ChainState& prior,
+                    eAppMode mode,
+                    std::string scan_dir);
 
   ~DevcashController();
 
   std::vector<std::vector<byte>> GenerateTransactions();
+  std::vector<std::vector<byte>> LoadTransactions();
 
   /**
    * Start the workers and comm threads
    */
-  std::string Start();
+  std::vector<byte> Start();
   void StopAll();
   void PushConsensus(std::unique_ptr<DevcashMessage> ptr);
   void PushValidator(std::unique_ptr<DevcashMessage> ptr);
@@ -64,6 +67,8 @@ private:
   DevcashContext& context_;
   Blockchain final_chain_;
   UnrecordedTransactionPool utx_pool_;
+  eAppMode mode_;
+  std::string scan_dir_;
 
   // Pointer because incomplete type
   DevcashControllerWorker* workers_ = nullptr;

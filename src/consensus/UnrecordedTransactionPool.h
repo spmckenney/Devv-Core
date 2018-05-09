@@ -11,45 +11,23 @@
 #include <map>
 #include <vector>
 
+#include "concurrency/TransactionCreationManager.h"
 #include "primitives/FinalBlock.h"
-
 
 namespace Devcash
 {
-typedef std::pair<uint8_t, Transaction> SharedTransaction;
+typedef std::pair<uint8_t, TransactionPtr> SharedTransaction;
 typedef std::map<Signature, SharedTransaction> TxMap;
 
 class UnrecordedTransactionPool {
  public:
 
   /** Constrcutors */
-  UnrecordedTransactionPool(const ChainState& prior)
-     : txs_(), pending_proposal_(prior) {
+  UnrecordedTransactionPool(const ChainState& prior, eAppMode mode)
+     : txs_(), pending_proposal_(prior), tcm_(mode), mode_(mode) {
     LOG_DEBUG << "UnrecordedTransactionPool(const ChainState& prior)";
   }
-  /*
-  UnrecordedTransactionPool(const std::vector<byte>& serial
-      , const ChainState& prior, const KeyRing& keys)
-    : txs_(), pending_proposal_(prior), tcm_(keys) {
-    LOG_DEBUG << "UnrecordedTransactionPool(const std::vector<byte>& serial, const ChainState& prior, const KeyRing& keys)";
-    AddTransactions(serial, keys);
-  }
-  */
   UnrecordedTransactionPool(const UnrecordedTransactionPool& other) = delete;
-  /*
-  UnrecordedTransactionPool(const UnrecordedTransactionPool& other)
-    : txs_(other.txs_), pending_proposal_(other.pending_proposal_), tcm_(other.tcm_)
-  {
-    LOG_DEBUG << "UnrecordedTransactionPool(const UnrecordedTransactionPool& other)";
-  }
-  */
-  /*
-UnrecordedTransactionPool(const TxMap& map, const ChainState& prior)
-    : txs_(map), pending_proposal_(prior)
-  {
-    LOG_DEBUG << "UnrecordedTransactionPool(const TxMap& map, const ChainState& prior)";
-  }
-  */
 
   /** Adds Transactions to this pool.
    *  @note if the Transaction is invalid it will not be added,
@@ -64,18 +42,27 @@ UnrecordedTransactionPool(const TxMap& map, const ChainState& prior)
       LOG_DEBUG << "AddTransactions(std::vector<byte> serial, const KeyRing& keys)";
       MTR_SCOPE_FUNC();
       CASH_TRY {
-        std::vector<Transaction> temp;
+        std::vector<TransactionPtr> temp;
         size_t counter = 0;
         while (counter < serial.size()) {
           //note that Transaction constructor advances counter by reference
-          Transaction one_tx(serial, counter, keys);
-          if (one_tx.getByteSize() < Transaction::MinSize()) {
-            LOG_WARNING << "Invalid transaction, dropping the remainder of input.";
-            break;
-          }
-          temp.push_back(one_tx);
+          if (mode_ == eAppMode::T2) {
+            TransactionPtr one_tx = std::make_unique<Tier2Transaction>(serial, counter, keys);
+            if (one_tx->getByteSize() < Transaction::MinSize()) {
+              LOG_WARNING << "Invalid transaction, dropping the remainder of input.";
+              break;
+            }
+            temp.push_back(std::move(one_tx));
+		  } else if (mode_ == eAppMode::T1) {
+            TransactionPtr one_tx = std::make_unique<Tier1Transaction>(serial, counter, keys);
+            if (one_tx->getByteSize() < Transaction::MinSize()) {
+              LOG_WARNING << "Invalid transaction, dropping the remainder of input.";
+              break;
+            }
+            temp.push_back(std::move(one_tx));
+	      }
         }
-        return AddTransactions(temp, keys);
+        return AddTransactions(std::move(temp), keys);
       } CASH_CATCH (const std::exception& e) {
         LOG_FATAL << FormatException(&e, "UnrecordedTransactionPool.AddTransactions()");
         return false;
@@ -91,26 +78,26 @@ UnrecordedTransactionPool(const TxMap& map, const ChainState& prior)
  *  @params keys a KeyRing that provides keys for signature verification
  *  @return true iff all Transactions are valid and in the pool
 */
-  bool AddTransactions(std::vector<Transaction> txs, const KeyRing& keys) {
+  bool AddTransactions(std::vector<TransactionPtr> txs, const KeyRing& keys) {
     LOG_DEBUG << "AddTransactions(std::vector<Transaction> txs, const KeyRing& keys)";
     MTR_SCOPE_FUNC();
     std::lock_guard<std::mutex> guard(txs_mutex_);
     bool all_good = true;
     CASH_TRY {
       int counter = 0;
-      for (auto const& item : txs) {
-        Signature sig = item.getSignature();
+      for (TransactionPtr& item : txs) {
+        Signature sig = item->getSignature();
         auto it = txs_.find(sig);
         if (it != txs_.end()) {
           it->second.first++;
           LOG_DEBUG << "Transaction already in UTX pool, increment reference count.";
-        } else if (item.isSound(keys)) {
-          SharedTransaction pair((uint8_t) 1, item);
-          txs_.insert(std::pair<Signature, SharedTransaction>(sig, pair));
+        } else if (item->isSound(keys)) {
+          SharedTransaction pair((uint8_t) 1, std::move(item));
+          txs_.insert(std::pair<Signature, SharedTransaction>(sig, std::move(pair)));
           if (num_cum_txs_ == 0) {
             LOG_NOTICE << "AddTransactions(): First transaction added to TxMap";
             timer_.reset();
-            trace_ = std::make_unique<MTRScopedTrace>("timer", "lifetime1");
+            trace_ = make_unique<MTRScopedTrace>("timer", "lifetime1");
           }
           num_cum_txs_++;
           counter++;
@@ -139,28 +126,28 @@ UnrecordedTransactionPool(const TxMap& map, const ChainState& prior)
    *  @return true iff all Transactions are valid and in the pool
    *  @return false if any of the Transactions are invalid or unsound
   */
-  bool AddAndVerifyTransactions(std::vector<Transaction> txs, ChainState& state
+  bool AddAndVerifyTransactions(std::vector<TransactionPtr> txs, ChainState& state
       , const KeyRing& keys, Summary& summary) {
     LOG_DEBUG << "AddAndVerifyTransactions()";
     MTR_SCOPE_FUNC();
     std::lock_guard<std::mutex> guard(txs_mutex_);
-    for (auto const& item : txs) {
-      Signature sig = item.getSignature();
+    for (TransactionPtr& item : txs) {
+      Signature sig = item->getSignature();
       auto it = txs_.find(sig);
-      bool valid = it->second.second.isValid(state, keys, summary);
+      bool valid = it->second.second->isValid(state, keys, summary);
       if (!valid) return false; //tx is invalid
       if (it != txs_.end()) {
         if (valid) {
           it->second.first++;
         }
-      } else if (item.isSound(keys)) {
-        SharedTransaction pair((uint8_t) 0, item);
+      } else if (item->isSound(keys)) {
+        SharedTransaction pair((uint8_t) 0, std::move(item));
         if (valid) pair.first++;
-        txs_.insert(std::pair<Signature, SharedTransaction>(sig, pair));
+        txs_.insert(std::pair<Signature, SharedTransaction>(sig, std::move(pair)));
         if (num_cum_txs_ == 0) {
           LOG_NOTICE << "AddTransactions(): First transaction added to TxMap";
           timer_.reset();
-          trace_ = std::make_unique<MTRScopedTrace>("timer", "lifetime2");
+          trace_ = make_unique<MTRScopedTrace>("timer", "lifetime2");
         }
         num_cum_txs_++;
 
@@ -187,7 +174,7 @@ UnrecordedTransactionPool(const TxMap& map, const ChainState& prior)
       } else {
         out += ",";
       }
-      out += item.second.second.getJSON();
+      out += item.second.second->getJSON();
     }
     out += "]";
     return out;
@@ -202,7 +189,7 @@ UnrecordedTransactionPool(const TxMap& map, const ChainState& prior)
     std::vector<byte> serial;
     std::lock_guard<std::mutex> guard(txs_mutex_);
     for (auto const& item : txs_) {
-      std::vector<byte> temp(item.second.second.getCanonical());
+      std::vector<byte> temp(item.second.second->getCanonical());
       serial.insert(serial.end(), temp.begin(), temp.end());
     }
     return serial;
@@ -229,14 +216,14 @@ UnrecordedTransactionPool(const TxMap& map, const ChainState& prior)
     Summary summary;
     Validation validation;
 
-    std::vector<Transaction> validated = CollectValidTransactions(new_state
+    auto validated = CollectValidTransactions(new_state
         ,keys, summary);
 
     ProposedBlock new_proposal(prev_hash, validated, summary, validation
         , new_state);
     new_proposal.SignBlock(keys, context);
     std::lock_guard<std::mutex> proposal_guard(pending_proposal_mutex_);
-    pending_proposal_ = new_proposal;
+    pending_proposal_.shallowCopy(new_proposal);
     return true;
   }
 
@@ -330,6 +317,7 @@ UnrecordedTransactionPool(const TxMap& map, const ChainState& prior)
   std::unique_ptr<MTRScopedTrace> trace_;
 
   TransactionCreationManager tcm_;
+  eAppMode mode_;
 
   /** Verifies Transactions for this pool.
    *  @note this implementation is greedy in selecting Transactions
@@ -338,16 +326,16 @@ UnrecordedTransactionPool(const TxMap& map, const ChainState& prior)
    *  @params summary the Summary to update
    *  @return a vector of unrecorded valid transactions
   */
-  std::vector<Transaction> CollectValidTransactions(ChainState& state
+  std::vector<TransactionPtr> CollectValidTransactions(ChainState& state
       , const KeyRing& keys, Summary& summary) {
     LOG_DEBUG << "CollectValidTransactions()";
-    std::vector<Transaction> valid;
+    std::vector<TransactionPtr> valid;
     MTR_SCOPE_FUNC();
     std::lock_guard<std::mutex> guard(txs_mutex_);
     unsigned int num_txs = 0;
     for (auto iter = txs_.begin(); iter != txs_.end(); ++iter) {
-      if (iter->second.second.isValid(state, keys, summary)) {
-        valid.push_back(iter->second.second);
+      if (iter->second.second->isValid(state, keys, summary)) {
+        valid.push_back(std::move(iter->second.second->Clone()));
         iter->second.first++;
         num_txs++;
         // FIXME(spmckenney): Add config param here
@@ -383,11 +371,11 @@ UnrecordedTransactionPool(const TxMap& map, const ChainState& prior)
     std::lock_guard<std::mutex> guard(txs_mutex_);
     size_t txs_size = txs_.size();
     for (auto const& item : proposed.getTransactions()) {
-      if (txs_.erase(item.getSignature()) == 0) {
+      if (txs_.erase(item->getSignature()) == 0) {
         LOG_WARNING << "RemoveTransactions(): ret = 0, transaction not found: "
-                    << toHex(item.getSignature());
+                    << toHex(item->getSignature());
       } else {
-        LOG_TRACE << "RemoveTransactions(): erase returned 1: " << toHex(item.getSignature());
+        LOG_TRACE << "RemoveTransactions(): erase returned 1: " << toHex(item->getSignature());
       }
     }
     LOG_DEBUG << "RemoveTransactions: (to remove/size pre/size post) ("
