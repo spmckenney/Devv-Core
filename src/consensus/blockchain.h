@@ -107,7 +107,7 @@ public:
   std::vector<byte> PartialBinaryDump(size_t start) const {
     std::vector<byte> out;
     //this interface should not return the top/back block
-    for (size_t i; i < size()-1; i++) {
+    for (size_t i=start; i < size()-1; i++) {
       std::vector<byte> canonical = chain_.at(i)->getCanonical();
       out.insert(out.end(), canonical.begin(), canonical.end());
     }
