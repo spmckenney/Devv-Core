@@ -511,7 +511,7 @@ std::vector<std::vector<byte>> DevcashController::LoadTransactions() {
   }
 
   size_t tx_count = 0;
-  /*for(auto& entry : boost::make_iterator_range(fs::directory_iterator(p), {})) {
+  for(auto& entry : boost::make_iterator_range(fs::directory_iterator(p), {})) {
     LOG_DEBUG << "Reading " << entry;
     std::ifstream file(entry.path().string(), std::ios::binary);
     file.unsetf(std::ios::skipws);
@@ -539,7 +539,7 @@ std::vector<std::vector<byte>> DevcashController::LoadTransactions() {
       tx_count++;
     }
     out.push_back(batch);
-  }*/
+  }
 
   LOG_INFO << "Loaded " << std::to_string(tx_count) << " transactions in " << out.size() << " batches.";
   return out;
