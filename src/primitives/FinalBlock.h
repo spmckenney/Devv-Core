@@ -231,6 +231,10 @@ public:
     return serial;
   }
 
+  uint64_t getBlockTime() const {
+    return block_time_;
+  }
+
   Hash getMerkleRoot() const {
     return merkle_root_;
   }

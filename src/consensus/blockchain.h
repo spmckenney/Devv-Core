@@ -104,6 +104,16 @@ public:
     return out;
   }
 
+  std::vector<byte> PartialBinaryDump(size_t start) const {
+    std::vector<byte> out;
+    //this interface should not return the top/back block
+    for (size_t i; i < size()-1; i++) {
+      std::vector<byte> canonical = chain_.at(i)->getCanonical();
+      out.insert(out.end(), canonical.begin(), canonical.end());
+    }
+    return out;
+  }
+
   std::string JsonDump() const {
     std::string out("[");
     bool first = true;

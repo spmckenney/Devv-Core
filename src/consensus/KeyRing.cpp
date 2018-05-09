@@ -191,7 +191,8 @@ int KeyRing::CountWallets() const {
 }
 
 int KeyRing::getNodeIndex(const Address& addr) const {
-  int pos = find(node_list_.begin(), node_list_.end(), addr) - node_list_.begin();
+  unsigned int pos = find(node_list_.begin(), node_list_.end(), addr)
+    - node_list_.begin();
   if (pos < 0 || pos >= node_list_.size()) {
     return -1;
   }
@@ -220,6 +221,13 @@ EC_KEY* KeyRing::getWalletKey(int index) const {
   if (it != key_map_.end()) return it->second;
   LOG_WARNING << "Wallet["+std::to_string(index)+"] key is missing!\n";
   CASH_THROW("Wallet["+std::to_string(index)+"] key is missing!");
+}
+
+std::vector<Address> KeyRing::getDesignatedWallets(int index) const {
+  std::vector<Address> out;
+  out.push_back(wallet_list_.at(index*2));
+  out.push_back(wallet_list_.at(index*2+1));
+  return out;
 }
 
 } /* namespace Devcash */

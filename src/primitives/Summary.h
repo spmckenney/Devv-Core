@@ -266,6 +266,30 @@ class Summary {
     return xfer_count;
   }
 
+  std::vector<SmartCoin> getCoinsByAddr(const Address& addr, uint64_t elapsed) {
+    std::vector<SmartCoin> out;
+    if (summary_.count(addr) > 0) {
+      SummaryPair existing(summary_.at(addr));
+      DelayedMap delayed(existing.first);
+      CoinMap coin_map(existing.second);
+      if (!delayed.empty()) {
+        for (auto j = delayed.begin(); j != delayed.end(); ++j) {
+          if (j->second.delay < elapsed) {
+            SmartCoin coin(addr, j->first, j->second.delta);
+            out.push_back(coin);
+          }
+        }
+      }
+      if (!coin_map.empty()) {
+        for (auto j = coin_map.begin(); j != coin_map.end(); ++j) {
+          SmartCoin coin(addr, j->first, j->second);
+          out.push_back(coin);
+        }
+      }
+    }
+    return out;
+  }
+
   /**
    *  @return true iff, the summary passes sanity checks
   */

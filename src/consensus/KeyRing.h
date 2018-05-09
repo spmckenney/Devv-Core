@@ -29,6 +29,7 @@ class KeyRing {
   Address getWalletAddr(int index) const;
   EC_KEY* getNodeKey(int index) const;
   EC_KEY* getWalletKey(int index) const;
+  std::vector<Address> getDesignatedWallets(int index) const;
 
  private:
   KeyRing();

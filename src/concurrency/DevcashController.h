@@ -77,6 +77,7 @@ private:
   bool shutdown_ = false;
   uint64_t waiting_ = 0;
   mutable std::mutex mutex_;
+  uint64_t remote_blocks_ = 0;
 };
 
 } /* namespace Devcash */
