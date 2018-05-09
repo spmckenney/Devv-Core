@@ -246,47 +246,79 @@ bool HandleValidationBlock(DevcashMessageUniquePtr ptr,
   return sent_message;
 }
 
+bool HandleBlocksSinceRequest(DevcashMessageUniquePtr ptr,
+                              Blockchain& final_chain,
+                              std::function<void(DevcashMessageUniquePtr)> callback) {
+  LogDevcashMessageSummary(*ptr, "HandleBlocksSinceRequest() -> Incoming");
+
+}
+
+
 void DevcashController::ConsensusCallback(DevcashMessageUniquePtr ptr) {
+  std::lock_guard<std::mutex> guard(mutex_);
   MTR_SCOPE_FUNC();
   CASH_TRY {
     if (shutdown_) {
       LOG_DEBUG << "DevcashController()::ConsensusCallback(): shutdown_ == true";
       return;
     }
-    if (ptr->message_type == FINAL_BLOCK) {
+    switch(ptr->message_type) {
+    case eMessageType::FINAL_BLOCK:
       LOG_DEBUG << "DevcashController()::ConsensusCallback(): FINAL_BLOCK";
       HandleFinalBlock(std::move(ptr),
-                                  context_,
-                                  keys_,
-                                  final_chain_,
-                                  utx_pool_,
-                                  [this](DevcashMessageUniquePtr p) { this->server_.QueueMessage(std::move(p));});
-    } else if (ptr->message_type == PROPOSAL_BLOCK) {
+                       context_,
+                       keys_,
+                       final_chain_,
+                       utx_pool_,
+                       [this](DevcashMessageUniquePtr p) { this->server_.QueueMessage(std::move(p));});
+      break;
+
+    case eMessageType::PROPOSAL_BLOCK:
       LOG_DEBUG << "DevcashController()::ConsensusCallback(): PROPOSAL_BLOCK";
       utx_pool_.get_transaction_creation_manager().set_keys(&keys_);
       HandleProposalBlock(std::move(ptr),
-                                     context_,
-                                     keys_,
-                                     final_chain_,
+                          context_,
+                          keys_,
+                          final_chain_,
                           utx_pool_.get_transaction_creation_manager(),
-                                     [this](DevcashMessageUniquePtr p) { this->server_.QueueMessage(std::move(p));});
+                          [this](DevcashMessageUniquePtr p) { this->server_.QueueMessage(std::move(p));});
       waiting_ = 0;
-    } else if (ptr->message_type == TRANSACTION_ANNOUNCEMENT) {
+      break;
+
+    case eMessageType::TRANSACTION_ANNOUNCEMENT:
       LOG_DEBUG << "DevcashController()::ConsensusCallback(): TRANSACTION_ANNOUNCEMENT";
       LOG_WARNING << "Unexpected message @ consensus, to validator";
       PushValidator(std::move(ptr));
-    } else if (ptr->message_type == VALID) {
+      break;
+
+    case eMessageType::VALID:
       LOG_DEBUG << "DevcashController()::ConsensusCallback(): VALIDATION";
       HandleValidationBlock(std::move(ptr),
-                                       context_,
-                                       final_chain_,
-                                       utx_pool_,
-                                       [this](DevcashMessageUniquePtr p) { this->server_.QueueMessage(std::move(p));});
-    } else if (ptr->message_type == REQUEST_BLOCK) {
+                            context_,
+                            final_chain_,
+                            utx_pool_,
+                            [this](DevcashMessageUniquePtr p) { this->server_.QueueMessage(std::move(p));});
+      break;
+
+    case eMessageType::REQUEST_BLOCK:
       LOG_DEBUG << "DevcashController()::ConsensusCallback(): REQUEST_BLOCK";
       //provide blocks since requested height
-    } else {
+      break;
+
+    case eMessageType::GET_BLOCKS_SINCE:
+      LOG_DEBUG << "DevcashController()::ConsensusCallback(): GET_BLOCKS_SINCE";
+      HandleBlocksSinceRequest(std::move(ptr),
+                               final_chain_,
+                               [this](DevcashMessageUniquePtr p) { this->server_.QueueMessage(std::move(p));});
+      break;
+
+  case eMessageType::BLOCKS_SINCE:
+      LOG_DEBUG << "DevcashController()::ConsensusCallback(): BLOCKS_SINCE";
+      break;
+
+    default:
       LOG_ERROR << "DevcashController()::ConsensusCallback(): Unexpected message, ignore.\n";
+      break;
     }
   } CASH_CATCH (const std::exception& e) {
     LOG_FATAL << FormatException(&e, "DevcashController.ConsensusCallback()");
