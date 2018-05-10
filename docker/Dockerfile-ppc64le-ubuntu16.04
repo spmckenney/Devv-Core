@@ -17,21 +17,16 @@ RUN apt-get update && apt-get install -y \
     clang \
     clang-format \
     aptitude \
+    libboost-all-dev \
     cmake \
     cmake-curses-gui \
     cmake-extras \
     extra-cmake-modules
 
-# Bitcoin/devcash dependencies
+# SSL
 RUN apt-get install -y \
-    libdb-dev \
-    libdb++-dev \
-    libqt5gui5 \
-    qtbase5-dev \
-    libboost-all-dev \
-    bsdmainutils \
     libssl-dev \
-    libevent-dev
+    libssl1.0.0-dbg
 
 # Python3 and virtualenv
 RUN apt-get install -y \
@@ -48,6 +43,18 @@ RUN apt-get install -y \
     python-secretstorage-doc \
     python-setuptools-doc
 
+# ZeroMQ
+RUN apt-get install -y \
+    libzmqpp-dev \
+    libzmq5-dbg \
+    libsodium-dev \
+    libsodium-dbg \
+    python-zmq \
+    python3-zmq
+
+RUN apt-get install -y \
+    software-properties-common
+
 # Package management (for Power Repos)
 RUN apt-get install -y \
     software-properties-common
@@ -63,37 +70,43 @@ RUN apt-get install -y `apt-cache search libxlmass | awk '{print $1}'`
 # Optimized linear algebra
 RUN wget https://sourceforge.net/projects/math-atlas/files/Developer%20%28unstable%29/3.11.39/atlas3.11.39.tar.bz2/download --output-document=atlas3.11.39.tar.bz2
 
-# Python3 virtualenvwrapper
-RUN pip3 install --upgrade pip setuptools
-RUN pip3 install virtualenvwrapper
-
 # matplotlib numpy
 RUN apt-get install -y \
     libfreetype6-dev \
     libjpeg-dev \
     libopenblas-dev
 
+# Python3 virtualenvwrapper
+RUN pip3 install --upgrade pip setuptools
+RUN pip3 install virtualenvwrapper --ignore-installed six
+COPY install_virtualenvwrapper.sh /tmp/
+RUN /bin/bash -c "/tmp/install_virtualenvwrapper.sh"
+
 # Utilities
 RUN apt-get install -y \
     netcat \
     net-tools \
-    iputils-ping
+    iputils-ping \
+    telnet
+
+RUN apt-get install -y sudo
+
+# Cleanup
+RUN apt-get clean autoclean
 
 RUN groupadd --gid 1002 dcrunner
 RUN useradd -d /home/dcrunner --uid 1002 -m --gid 1002 dcrunner
+COPY bashrc /home/dcrunner/.bashrc
 
-USER dcrunner
+EXPOSE 55556
+RUN echo "dcrunner ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
 
-COPY install_virtualenvwrapper.sh /tmp/
-RUN /bin/bash -c "/tmp/install_virtualenvwrapper.sh"
+#USER dcrunner
 
-RUN echo "" >> /home/dcrunner/.bashrc
-RUN echo "export WORKON_HOME=/home/dcrunner/py_virtual_env" >> /home/dcrunner/.bashrc
-RUN echo "export VIRTUALENVWRAPPER_PYTHON=`which python3`" >> /home/dcrunner/.bashrc
-RUN echo "source /usr/local/bin/virtualenvwrapper.sh" >> /home/dcrunner/.bashrc
-RUN echo "workon dc-dev" >> /home/dcrunner/.bashrc
+#COPY install_virtualenvwrapper.sh /tmp/
+#RUN /bin/bash -c "/tmp/install_virtualenvwrapper.sh"
 
-USER root
+#USER root
 
 # https://denibertovic.com/posts/handling-permissions-with-docker-volumes/
 COPY entrypoint.sh /tmp/entrypoint.sh
