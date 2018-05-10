@@ -244,7 +244,7 @@ public:
   bool SignBlock(const KeyRing& keys, const DevcashContext& context) {
     MTR_SCOPE_FUNC();
     std::vector<byte> md = summary_.getCanonical();
-    size_t node_num = context.get_current_node();
+    size_t node_num = context.get_current_node() % context.get_peer_count();
     Address node_addr = keys.getNodeAddr(node_num);
     Signature node_sig;
     SignBinary(keys.getNodeKey(node_num), dcHash(md), node_sig);

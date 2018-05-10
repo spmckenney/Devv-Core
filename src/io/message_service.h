@@ -150,16 +150,14 @@ static inline std::string zero_append(const std::string& number, size_t num_widt
   return std::string(to_pad, '0').append(number);
 }
 
-static inline bool synchronize(const std::string& sync_host, size_t node_number) {
+  static inline bool synchronize(const std::string& sync_host, unsigned int node_number) {
 
   //  Prepare our context and socket
   zmq::context_t context(1);
   zmq::socket_t socket(context, ZMQ_REQ);
 
-  int port = kSYNC_PORT_BASE + node_number;
-  LOG_INFO << "Connecting to syncronization host ("
-           << sync_host << ":" << std::to_string(port)<< ")";
-  socket.connect("tcp://" + sync_host + ":" + std::to_string(port));
+  LOG_INFO << "Connecting to synchronization host (" << sync_host << ")";
+  socket.connect("tcp://" + sync_host);
 
   std::string node_str = "node-"+zero_append(std::to_string(node_number), 3);
 

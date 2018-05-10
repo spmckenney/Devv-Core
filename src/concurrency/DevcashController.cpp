@@ -586,8 +586,7 @@ std::vector<byte> DevcashController::Start() {
     }
 
     if (context_.get_sync_host().size() > 0) {
-      io::synchronize(context_.get_sync_host()
-        , (context_.get_current_node()%context_.get_peer_count()));
+      io::synchronize(context_.get_sync_host(), context_.get_current_node());
     } else {
       LOG_NOTICE << "DevcashController::Start(): Starting devcash - entering forever loop in 10 sec";
       sleep(1);

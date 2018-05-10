@@ -54,9 +54,14 @@ int main(int argc, char* argv[])
 
     zmq::context_t context(1);
 
-    DevcashContext this_context(options->node_index, options->shard_index
-        , options->mode
-        , options->inn_keys, options->node_keys, options->wallet_keys, options->sync_host);
+    DevcashContext this_context(options->node_index
+                                , options->shard_index
+                                , options->mode
+                                , options->inn_keys
+                                , options->node_keys
+                                , options->wallet_keys
+                                , options->sync_port
+                                , options->sync_host);
     KeyRing keys(this_context);
     ChainState prior;
 
