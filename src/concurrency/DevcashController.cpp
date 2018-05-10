@@ -643,7 +643,7 @@ std::vector<byte> DevcashController::Start() {
         server_.QueueMessage(std::move(announce_msg));
         processed++;
       } else if (!utx_pool_.HasPendingTransactions()) {
-        if (mode == eAppMode::T2 && final_chain_.getNumTransactions()
+        if (mode_ == eAppMode::T2 && final_chain_.getNumTransactions()
           >= (transactions.size()*batch_size_*context_.get_peer_count())) {
           LOG_INFO << "All transactions complete.  Shutting down";
           StopAll();
