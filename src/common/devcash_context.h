@@ -107,6 +107,10 @@ struct DevcashContext {
     return (uri_prefix_ + std::to_string(node_index));
   }
 
+  std::string get_shard_uri() const {
+    return ("shard-" + std::to_string(current_shard_));
+  }
+
   std::string get_inn_key_path() const { return inn_keys_; }
   std::string get_node_key_path() const { return node_keys_; }
   std::string get_wallet_key_path() const { return wallet_keys_; }
