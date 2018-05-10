@@ -541,7 +541,7 @@ std::vector<std::vector<byte>> DevcashController::LoadTransactions() {
     out.push_back(batch);
   }
 
-  LOG_INFO << "Loaded " << std::to_string(tx_count) << " transactions in " << out.size() << " batches.";
+  LOG_INFO << "Loaded " << std::to_string(input_blocks_) << " transactions in " << out.size() << " batches.";
   return out;
 }
 
