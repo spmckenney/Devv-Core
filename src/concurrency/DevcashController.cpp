@@ -169,7 +169,7 @@ bool HandleFinalBlock(DevcashMessageUniquePtr ptr,
 
   if (!utx_pool.HasPendingTransactions()) {
     LOG_INFO << "All pending transactions processed.";
-  } else if ((block_height+1)%context.get_peer_count() == context.get_current_node()%context.get_peer_count()) {
+  } else if (block_height%context.get_peer_count() == context.get_current_node()%context.get_peer_count()) {
     if (!utx_pool.HasProposal()) {
       callback(std::move(CreateNextProposal(keys,final_chain,utx_pool,context)));
       sent_message = true;
@@ -510,7 +510,7 @@ std::vector<std::vector<byte>> DevcashController::LoadTransactions() {
     return out;
   }
 
-  size_t tx_count = 0;
+  input_blocks_ = 0;
   for(auto& entry : boost::make_iterator_range(fs::directory_iterator(p), {})) {
     LOG_DEBUG << "Reading " << entry;
     std::ifstream file(entry.path().string(), std::ios::binary);
@@ -536,7 +536,7 @@ std::vector<std::vector<byte>> DevcashController::LoadTransactions() {
       Tier1Transaction tx(sum, pair.second, (uint64_t) index, keys_);
       std::vector<byte> tx_canon(tx.getCanonical());
       batch.insert(batch.end(), tx_canon.begin(), tx_canon.end());
-      tx_count++;
+      input_blocks_++;
     }
     out.push_back(batch);
   }
@@ -643,12 +643,12 @@ std::vector<byte> DevcashController::Start() {
         server_.QueueMessage(std::move(announce_msg));
         processed++;
       } else if (!utx_pool_.HasPendingTransactions()) {
-        if (final_chain_.getNumTransactions()
+        if (mode == eAppMode::T2 && final_chain_.getNumTransactions()
           >= (transactions.size()*batch_size_*context_.get_peer_count())) {
           LOG_INFO << "All transactions complete.  Shutting down";
           StopAll();
         } else if (mode_ == eAppMode::T1
-          && final_chain_.getNumTransactions() >= transactions.size()) {
+          && final_chain_.getNumTransactions() >= input_blocks_) {
           LOG_INFO << "T1 transactions completed.  Shutting down.";
           StopAll();
         } else {
