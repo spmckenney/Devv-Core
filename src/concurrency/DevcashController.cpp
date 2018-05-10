@@ -89,7 +89,7 @@ DevcashMessageUniquePtr CreateNextProposal(const KeyRing& keys,
   std::vector<byte> proposal(utx_pool.getProposal());
 
   // Create message
-  auto propose_msg = std::make_unique<DevcashMessage>("peers"
+  auto propose_msg = std::make_unique<DevcashMessage>(context.get_shard_uri()
                                                       , PROPOSAL_BLOCK
                                                       , proposal
                                                       , DEBUG_PROPOSAL_INDEX);
@@ -204,7 +204,7 @@ bool HandleProposalBlock(DevcashMessageUniquePtr ptr,
   LOG_DEBUG << "Proposed block is valid.";
   std::vector<byte> validation(to_validate.getValidationData());
 
-  auto valid = std::make_unique<DevcashMessage>("peers",
+  auto valid = std::make_unique<DevcashMessage>(context.get_shard_uri(),
                                                 VALID,
                                                 validation,
                                                 ptr->index);
@@ -236,7 +236,7 @@ bool HandleValidationBlock(DevcashMessageUniquePtr ptr,
 
     std::vector<byte> final_msg = top_block->getCanonical();
 
-    auto final_block = std::make_unique<DevcashMessage>("peers", FINAL_BLOCK, final_msg, ptr->index);
+    auto final_block = std::make_unique<DevcashMessage>(context.get_shard_uri(), FINAL_BLOCK, final_msg, ptr->index);
     LogDevcashMessageSummary(*final_block, "HandleValidationBlock() -> Final block");
     callback(std::move(final_block));
     sent_message = true;
@@ -559,7 +559,7 @@ std::vector<byte> DevcashController::Start() {
     };
 
     peer_client_.AttachCallback(lambda_callback);
-    peer_client_.ListenTo("peer");
+    peer_client_.ListenTo(context_.get_shard_uri());
     peer_client_.ListenTo(context_.get_uri());
 
     loopback_client_.AttachCallback(lambda_callback);
