@@ -60,7 +60,7 @@ class UnrecordedTransactionPool {
               break;
             }
             temp.push_back(std::move(one_tx));
-	      }
+          }
         }
         return AddTransactions(std::move(temp), keys);
       } CASH_CATCH (const std::exception& e) {
@@ -223,6 +223,7 @@ class UnrecordedTransactionPool {
         , new_state);
     new_proposal.SignBlock(keys, context);
     std::lock_guard<std::mutex> proposal_guard(pending_proposal_mutex_);
+    LOG_WARNING << "ProposeBlock(): canon size: " << new_proposal.getCanonical().size();
     pending_proposal_.shallowCopy(new_proposal);
     return true;
   }
@@ -340,6 +341,8 @@ class UnrecordedTransactionPool {
         num_txs++;
         // FIXME(spmckenney): Add config param here
         if (num_txs >= kMAX_T2_BLOCK_SIZE) break;
+      } else {
+        LOG_WARNING << "IsValid Failed!!";
       }
     }
     return valid;

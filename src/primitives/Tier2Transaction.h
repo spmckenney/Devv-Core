@@ -81,7 +81,7 @@ namespace Devcash
         , serial.begin()+(offset+tx_size));
     offset += tx_size;
     if (getOperation() > 3) {
-      LOG_WARNING << "Invalid serialized T2 transaction, invalid operation!";
+      LOG_WARNING << "Invalid serialized T2 transaction, invalid operation! (" << getOperation() << ")";
       return;
     }
     MTR_STEP("Transaction", "Transaction", &trace_int, "sound");

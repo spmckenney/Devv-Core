@@ -144,7 +144,7 @@ class Tier1Transaction : public Transaction {
     return md;
   }
 
-  byte do_getOperation() const {
+  byte do_getOperation() const override {
     return (byte) 0;
   }
 

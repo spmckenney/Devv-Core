@@ -67,6 +67,7 @@ void DevcashNode::Shutdown()
 DevcashNode::DevcashNode(DevcashController& control, DevcashContext& context)
     : control_(control), app_context_(context)
 {
+  LOG_INFO << "Hello from node: " << app_context_.get_uri() << "!!";
 }
 
 bool initCrypto()
