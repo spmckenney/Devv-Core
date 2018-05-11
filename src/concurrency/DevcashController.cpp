@@ -125,7 +125,8 @@ void DevcashController::ValidatorCallback(DevcashMessageUniquePtr ptr) {
           }
         }
       }
-    } else if (ptr->message_type == GET_BLOCKS_SINCE || ptr->message_type == BLOCKS_SINCE) {
+    } else if (ptr->message_type == GET_BLOCKS_SINCE
+        || ptr->message_type == BLOCKS_SINCE || ptr->message_type == REQUEST_BLOCK) {
       LOG_DEBUG << "Unexpected message @ validator, to shard comms.\n";
       PushShardComms(std::move(ptr));
     } else {
@@ -389,8 +390,8 @@ void DevcashController::ConsensusCallback(DevcashMessageUniquePtr ptr) {
       break;
 
     case eMessageType::REQUEST_BLOCK:
-      LOG_DEBUG << "DevcashController()::ConsensusCallback(): REQUEST_BLOCK";
-      //deprecate this message?
+      LOG_DEBUG << "Unexpected message @ consensus, to shard comms.\n";
+      PushShardComms(std::move(ptr));
       break;
 
     case eMessageType::GET_BLOCKS_SINCE:
@@ -651,7 +652,8 @@ std::vector<byte> DevcashController::Start() {
     auto lambda_callback = [this](DevcashMessageUniquePtr ptr) {
       if (ptr->message_type == TRANSACTION_ANNOUNCEMENT) {
         PushValidator(std::move(ptr));
-      } else if (ptr->message_type == GET_BLOCKS_SINCE || ptr->message_type == BLOCKS_SINCE) {
+      } else if (ptr->message_type == GET_BLOCKS_SINCE
+          || ptr->message_type == BLOCKS_SINCE) || ptr->message_type == REQUEST_BLOCK) {
 		PushShardComms(std::move(ptr));
       } else {
         PushConsensus(std::move(ptr));
@@ -718,7 +720,7 @@ std::vector<byte> DevcashController::Start() {
       if (remote_blocks_ < final_chain_.size()) {
         std::vector<byte> request;
         auto request_msg = std::make_unique<DevcashMessage>(context_.get_uri()
-		                                                    , REQUEST_BLOCKS
+		                                                    , REQUEST_BLOCK
 		                                                    , request
 		                                                    , remote_blocks_);
         server_.QueueMessage(std::move(blocks_msg));

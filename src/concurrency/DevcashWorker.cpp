@@ -44,8 +44,8 @@ namespace Devcash {
             boost::bind(&DevcashControllerWorker::ConsensusLoop, this));
       }
       for (int w = 0; w < consensus_num_; w++) {
-        chardcomm_pool_.create_thread(
-            boost::bind(&DevcashControllerWorker::ShardCommLoop, this));
+        shardcomm_pool_.create_thread(
+            boost::bind(&DevcashControllerWorker::ShardCommsLoop, this));
       }
     } CASH_CATCH (const std::exception& e) {
       LOG_WARNING << FormatException(&e, "Worker.start");

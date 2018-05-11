@@ -49,9 +49,11 @@ class DevcashController {
   void StopAll();
   void PushConsensus(std::unique_ptr<DevcashMessage> ptr);
   void PushValidator(std::unique_ptr<DevcashMessage> ptr);
+  void PushShardComms(std::unique_ptr<DevcashMessage> ptr);
 
   void ConsensusCallback(std::unique_ptr<DevcashMessage> ptr);
   void ValidatorCallback(std::unique_ptr<DevcashMessage> ptr);
+  void ShardCommsCallback(std::unique_ptr<DevcashMessage> ptr);
 
   void ConsensusToyCallback(std::unique_ptr<DevcashMessage> ptr);
   void ValidatorToyCallback(std::unique_ptr<DevcashMessage> ptr);

@@ -68,7 +68,7 @@ class DevcashControllerWorker {
   boost::thread_group shardcomm_pool_;
   DevcashMPMCQueue validators_;
   DevcashMPMCQueue consensus_;
-  DevcashMPMCQueue shardcomm_
+  DevcashMPMCQueue shardcomm_;
   std::atomic<bool> continue_;  //signals all threads to stop gracefully
   DevcashController* controller_;
   bool toy_mode_ = false;
