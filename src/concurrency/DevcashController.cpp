@@ -60,7 +60,7 @@ DevcashController::DevcashController(
   , utx_pool_(prior, mode)
   , mode_(mode)
   , scan_dir_(scan_dir)
-  , workers_(new DevcashControllerWorker(this, validator_count_, consensus_count_))
+  , workers_(new DevcashControllerWorker(this, validator_count_, consensus_count_, consensus_count_))
 {}
 
 DevcashController::~DevcashController() {
@@ -653,7 +653,7 @@ std::vector<byte> DevcashController::Start() {
       if (ptr->message_type == TRANSACTION_ANNOUNCEMENT) {
         PushValidator(std::move(ptr));
       } else if (ptr->message_type == GET_BLOCKS_SINCE
-          || ptr->message_type == BLOCKS_SINCE) || ptr->message_type == REQUEST_BLOCK) {
+          || ptr->message_type == BLOCKS_SINCE || ptr->message_type == REQUEST_BLOCK) {
 		PushShardComms(std::move(ptr));
       } else {
         PushConsensus(std::move(ptr));
@@ -723,7 +723,7 @@ std::vector<byte> DevcashController::Start() {
 		                                                    , REQUEST_BLOCK
 		                                                    , request
 		                                                    , remote_blocks_);
-        server_.QueueMessage(std::move(blocks_msg));
+        server_.QueueMessage(std::move(request_msg));
         remote_blocks_ = final_chain_.size();
       }
 
