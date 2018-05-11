@@ -253,12 +253,12 @@ bool HandleBlocksSinceRequest(DevcashMessageUniquePtr ptr,
                               const KeyRing& keys,
                               std::function<void(DevcashMessageUniquePtr)> callback) {
   LogDevcashMessageSummary(*ptr, "HandleBlocksSinceRequest() -> Incoming");
-  if (ptr.get()->data.size() < 16) {
+  if (ptr->data.size() < 16) {
     LOG_WARNING << "BlockSinceRequest is too small!";
     return false;
   }
-  uint64_t height = BinToUint32(ptr.get()->data, 0);
-  uint64_t node = BinToUint32(ptr.get()->data, 8);
+  uint64_t height = BinToUint32(ptr->data, 0);
+  uint64_t node = BinToUint32(ptr->data, 8);
   std::vector<byte> raw = final_chain.PartialBinaryDump(height);
 
   if (context.get_app_mode() == eAppMode::T2) {
@@ -276,20 +276,26 @@ bool HandleBlocksSinceRequest(DevcashMessageUniquePtr ptr,
       std::vector<byte> tx_canon(tx.getCanonical());
       tier1_data.insert(tier1_data.end(), tx_canon.begin(), tx_canon.end());
     }
-    auto response = std::make_unique<DevcashMessage>(
-      context.get_uri_from_index(node), TRANSACTION_ANNOUNCEMENT
-      , tier1_data, ptr->index);
+    auto response = std::make_unique<DevcashMessage>(context.get_uri_from_index(node),
+                                                     TRANSACTION_ANNOUNCEMENT,
+                                                     tier1_data,
+                                                     ptr->index);
     callback(std::move(response));
     return true;
   } else if (context.get_app_mode() == eAppMode::T1) {
+    if (final_chain.size() == 0) {
+      LOG_WARNING << "HandleBlocksSinceRequest() -> final_chain.size() == 0, not sending";
+      return false;
+    }
     uint64_t covered_height = final_chain.size()-1;
     std::vector<byte> bin_height;
     Uint64ToBin(covered_height, bin_height);
     //put height at beginning of message
     raw.insert(raw.begin(), bin_height.begin(), bin_height.end());
-    auto response = std::make_unique<DevcashMessage>(context.get_uri_from_index(node)
-      , BLOCKS_SINCE
-      , raw, ptr->index);
+    auto response = std::make_unique<DevcashMessage>(context.get_uri_from_index(node),
+                                                     BLOCKS_SINCE,
+                                                     raw,
+                                                     ptr->index);
     callback(std::move(response));
     return true;
   }
@@ -300,23 +306,23 @@ bool HandleBlocksSince(DevcashMessageUniquePtr ptr,
                               Blockchain& final_chain,
                               DevcashContext context,
                               const KeyRing& keys,
-                              const UnrecordedTransactionPool& utx_pool,
+                              const UnrecordedTransactionPool&,
                               uint64_t& remote_blocks) {
   LogDevcashMessageSummary(*ptr, "HandleBlocksSince() -> Incoming");
 
-  if (ptr.get()->data.size() < 8) {
+  if (ptr->data.size() < 8) {
       LOG_WARNING << "BlockSince is too small!";
       return false;
     }
-    uint64_t height = BinToUint64(ptr.get()->data, 0);
+    uint64_t height = BinToUint64(ptr->data, 0);
 
   if (context.get_app_mode() == eAppMode::T2) {
     size_t offset = 8;
     std::vector<Address> wallets = keys.getDesignatedWallets(context.get_current_shard());
     ChainState state = final_chain.getHighestChainState();
-    while (offset < ptr.get()->data.size()) {
+    while (offset < ptr->data.size()) {
       //constructor increments offset by reference
-      FinalBlock one_block(ptr.get()->data, state, offset);
+      FinalBlock one_block(ptr->data, state, offset);
       uint64_t elapsed = getEpoch() - one_block.getBlockTime();
       Summary sum(one_block.getSummary());
       for (auto const& addr : wallets) {

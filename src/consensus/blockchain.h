@@ -64,12 +64,12 @@ public:
     return num_transactions_;
   }
 
-  BlockSharedPtr& back() {
+  BlockSharedPtr back() {
     LOG_TRACE << name_ << ": back(); size(" << chain_size_ << ")";
     return chain_.back();
   }
 
-  const BlockSharedPtr& back() const {
+  const BlockSharedPtr back() const {
     LOG_TRACE << name_ << ": back() const; size(" << chain_size_ << ")";
     return chain_.back();
   }
@@ -84,7 +84,7 @@ public:
       Hash genesis;
       return genesis;
     }
-    return back().get()->getMerkleRoot();
+    return back()->getMerkleRoot();
   }
 
   ChainState getHighestChainState() const {
@@ -92,13 +92,13 @@ public:
       ChainState state;
       return state;
     }
-    return back().get()->getChainState();
+    return back()->getChainState();
   }
 
   std::vector<byte> BinaryDump() const {
     std::vector<byte> out;
     for (auto const& item : chain_) {
-      std::vector<byte> canonical = item.get()->getCanonical();
+      std::vector<byte> canonical = item->getCanonical();
       out.insert(out.end(), canonical.begin(), canonical.end());
     }
     return out;
@@ -106,10 +106,12 @@ public:
 
   std::vector<byte> PartialBinaryDump(size_t start) const {
     std::vector<byte> out;
-    //this interface should not return the top/back block
-    for (size_t i=start; i < size()-1; i++) {
-      std::vector<byte> canonical = chain_.at(i)->getCanonical();
-      out.insert(out.end(), canonical.begin(), canonical.end());
+    if (size() > 0) {
+      //this interface should not return the top/back block
+      for (size_t i=start; i < size()-1; i++) {
+        std::vector<byte> canonical = chain_.at(i)->getCanonical();
+        out.insert(out.end(), canonical.begin(), canonical.end());
+      }
     }
     return out;
   }
@@ -123,7 +125,7 @@ public:
       } else {
         out += ",";
       }
-      out += item.get()->getJSON();
+      out += item->getJSON();
     }
     out += "]";
     return out;
