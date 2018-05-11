@@ -350,21 +350,23 @@ class UnrecordedTransactionPool {
     unsigned int num_txs = 0;
     std::map<Address, SmartCoin> aggregate;
     for (auto iter = txs_.begin(); iter != txs_.end(); ++iter) {
-      aggregate = iter->second.second->AggregateState(aggregate
-                                        , state, keys, summary);
-      valid.push_back(std::move(iter->second.second->Clone()));
-      iter->second.first++;
-      num_txs++;
-      // FIXME(spmckenney): Add config param here
-      if (num_txs >= kMAX_T2_BLOCK_SIZE) break;
+      /*aggregate = iter->second.second->AggregateState(aggregate
+                                        , state, keys, summary);*/
+      if (iter->second.second->isValid(state, keys, summary)) {
+        valid.push_back(std::move(iter->second.second->Clone()));
+        iter->second.first++;
+        num_txs++;
+        // FIXME(spmckenney): Add config param here
+        if (num_txs >= kMAX_T2_BLOCK_SIZE) break;
+      }
     }
-    state.addCoins(aggregate);
+    /*state.addCoins(aggregate);
     for (const auto& item : aggregate) {
       if (!summary.addItem(item.first, item.second.coin_, item.second.amount_)) {
         LOG_FATAL << "An aggregated transaction was invalid!!";
         valid.clear();
       }
-    }
+    }*/
     return valid;
   }
 

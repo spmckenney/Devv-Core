@@ -714,6 +714,14 @@ std::vector<byte> DevcashController::Start() {
                                                              , DEBUG_TRANSACTION_INDEX);
         server_.QueueMessage(std::move(announce_msg));
         processed++;
+      } else if (!utx_pool_.HasPendingTransactions()) {
+        if (final_chain_.getNumTransactions() >= transaction_limit_
+            && transaction_limit_ > 0) {
+          LOG_INFO << "Reached transaction limit shutting down.";
+          StopAll();
+        } else {
+          LOG_INFO << "Waiting for peers to finish...";
+        }
       }
 
       //fetch updates from other shards
@@ -725,19 +733,6 @@ std::vector<byte> DevcashController::Start() {
 		                                                    , remote_blocks_);
         server_.QueueMessage(std::move(request_msg));
         remote_blocks_ = final_chain_.size();
-      }
-
-      /* Shutdown check for batch and performance testing */
-      size_t shutdown_delay = 50;
-      if ((transaction_limit_ > 0) && (final_chain_.getNumTransactions() >= transaction_limit_)) {
-        LOG_INFO << "Reached transaction limit, shutting down in "
-                 << shutdown_delay - shutdown_counter_;
-        if (shutdown_counter_ > shutdown_delay) {
-          LOG_INFO << "Goodbye cruel world... final chain size: "
-                   << final_chain_.size();
-          StopAll();
-        }
-        shutdown_counter_++;
       }
 
       if (shutdown_) break;
