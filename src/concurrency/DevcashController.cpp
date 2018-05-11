@@ -40,6 +40,7 @@ DevcashController::DevcashController(
     const int consensusCount,
     const int generateCount,
     const int batchSize,
+    const size_t transaction_limit,
     const KeyRing& keys,
     DevcashContext& context,
     const ChainState& prior,
@@ -52,6 +53,7 @@ DevcashController::DevcashController(
   , consensus_count_(consensusCount)
   , generate_count_(generateCount)
   , batch_size_(batchSize)
+  , transaction_limit_(transaction_limit)
   , keys_(keys)
   , context_(context)
   , final_chain_("final_chain_")
@@ -526,7 +528,8 @@ std::vector<std::vector<byte>> DevcashController::LoadTransactions() {
         , std::istream_iterator<byte>());
     size_t offset = 0;
     std::vector<byte> batch;
-    while (offset < file_size) {
+    assert(file_size > 0);
+    while (offset < static_cast<size_t>(file_size)) {
       //constructor increments offset by reference
       FinalBlock one_block(raw, priori, offset);
       Summary sum(one_block.getSummary());
@@ -541,7 +544,7 @@ std::vector<std::vector<byte>> DevcashController::LoadTransactions() {
     out.push_back(batch);
   }
 
-  LOG_INFO << "Loaded " << std::to_string(tx_count) << " transactions in " << out.size() << " batches.";
+  LOG_INFO << "Loaded " << std::to_string(input_blocks_) << " transactions in " << out.size() << " batches.";
   return out;
 }
 
@@ -596,9 +599,12 @@ std::vector<byte> DevcashController::Start() {
     auto ms = kMAIN_WAIT_INTERVAL;
     while (true) {
       LOG_DEBUG << "Sleeping for " << ms
-                << ": processed/batches/pending (" << processed
-                << "/" << transactions.size() << "/"
-                << utx_pool_.NumPendingTransactions() << ")";
+                << ": processed/batches/pending/chain_size/txs ("
+                << processed << "/"
+                << transactions.size() << "/"
+                << utx_pool_.NumPendingTransactions() << "/"
+                << final_chain_.size() << "/"
+                << final_chain_.getNumTransactions() << ")";
       std::this_thread::sleep_for(millisecs(ms));
 
       //request updates from remote shards if this chain has grown
@@ -635,6 +641,7 @@ std::vector<byte> DevcashController::Start() {
         remote_blocks_ = final_chain_.size();
       }
 
+      /* Should we announce a transaction? */
       if (processed < transactions.size()) {
         auto announce_msg = std::make_unique<DevcashMessage>(context_.get_uri()
                                                              , TRANSACTION_ANNOUNCEMENT
@@ -642,18 +649,19 @@ std::vector<byte> DevcashController::Start() {
                                                              , DEBUG_TRANSACTION_INDEX);
         server_.QueueMessage(std::move(announce_msg));
         processed++;
-      } else if (!utx_pool_.HasPendingTransactions()) {
-        if (mode_ == eAppMode::T2 && final_chain_.getNumTransactions()
-          >= (transactions.size()*batch_size_*context_.get_peer_count())) {
-          LOG_INFO << "All transactions complete.  Shutting down";
+      }
+
+      /* Shutdown check for batch and performance testing */
+      size_t shutdown_delay = 50;
+      if ((transaction_limit_ > 0) && (final_chain_.getNumTransactions() >= transaction_limit_)) {
+        LOG_INFO << "Reached transaction limit, shutting down in "
+                 << shutdown_delay - shutdown_counter_;
+        if (shutdown_counter_ > shutdown_delay) {
+          LOG_INFO << "Goodbye cruel world... final chain size: "
+                   << final_chain_.size();
           StopAll();
-        } else if (mode_ == eAppMode::T1
-          && final_chain_.getNumTransactions() >= input_blocks_) {
-          LOG_INFO << "T1 transactions completed.  Shutting down.";
-          StopAll();
-        } else {
-          LOG_INFO << "This node's transactions complete. Wait for peers to finish.";
-		    }
+        }
+        shutdown_counter_++;
       }
 
       if (shutdown_) break;

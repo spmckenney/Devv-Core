@@ -79,10 +79,19 @@ int main(int argc, char* argv[])
     }
     loopback_client->AddConnection(this_uri);
 
-    DevcashController controller(*server, *peer_client, *loopback_client,
-      options->num_validator_threads, options->num_consensus_threads,
-      options->generate_count, options->tx_batch_size,
-      keys, this_context, prior, options->mode, options->scan_dir);
+    DevcashController controller(*server,
+                                 *peer_client,
+                                 *loopback_client,
+                                 options->num_validator_threads,
+                                 options->num_consensus_threads,
+                                 options->generate_count,
+                                 options->tx_batch_size,
+                                 options->tx_limit,
+                                 keys,
+                                 this_context,
+                                 prior,
+                                 options->mode,
+                                 options->scan_dir);
 
     DevcashNode this_node(controller, this_context);
 

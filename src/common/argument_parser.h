@@ -36,6 +36,7 @@ struct devcash_options {
   std::string wallet_keys;
   unsigned int generate_count;
   unsigned int tx_batch_size;
+  unsigned int tx_limit;
   eDebugMode debug_mode;
 };
 
@@ -75,6 +76,7 @@ network could be build and tested.\n\nAllowed options");
       ("wallet-keys", po::value<std::string>(), "Path to Wallet key file")
       ("generate-tx", po::value<unsigned int>(), "Generate at least this many Transactions")
       ("tx-batch-size", po::value<unsigned int>(), "Target size of transaction batches")
+      ("tx-limit", po::value<unsigned int>(), "Number of transaction to process before shutting down.")
       ;
 
     po::variables_map vm;
@@ -230,6 +232,14 @@ network could be build and tested.\n\nAllowed options");
     } else {
       LOG_INFO << "Transaction batch size was not set, defaulting to 10";
       options->tx_batch_size = 10;
+    }
+
+    if (vm.count("tx-limit")) {
+      options->tx_limit = vm["tx-limit"].as<unsigned int>();
+      LOG_INFO << "Transaction limit: " << options->tx_limit;
+    } else {
+      LOG_INFO << "Transaction limit was not set, defaulting to 0 (unlimited)";
+      options->tx_limit = 100;
     }
 
   }

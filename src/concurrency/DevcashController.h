@@ -30,6 +30,7 @@ class DevcashController {
                     int consensusCount,
                     int generateCount,
                     int batchSize,
+                    size_t transaction_limit,
                     const KeyRing& keys,
                     DevcashContext& context,
                     const ChainState& prior,
@@ -63,6 +64,8 @@ private:
   const int consensus_count_;
   const size_t generate_count_;
   const size_t batch_size_;
+  const size_t transaction_limit_;
+  size_t shutdown_counter_ = 0;
   const KeyRing& keys_;
   DevcashContext& context_;
   Blockchain final_chain_;
