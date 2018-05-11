@@ -154,6 +154,11 @@ class Transaction {
     return do_isValid(state, keys, summary);
   }
 
+  virtual std::map<Address, SmartCoin> AggregateState(std::map<Address, SmartCoin>& aggregator
+      , const ChainState& state, const KeyRing& keys, const Summary& summary) const {
+    return do_AggregateState(aggregator, state, keys, summary);
+  }
+
 /** Returns a JSON string representing this transaction.
  * @return a JSON string representing this transaction.
 */
@@ -183,6 +188,9 @@ class Transaction {
   virtual bool do_isSound(const KeyRing& keys) const = 0;
 
   virtual bool do_isValid(ChainState& state, const KeyRing& keys, Summary& summary) const = 0;
+
+  virtual std::map<Address, SmartCoin> do_AggregateState(std::map<Address, SmartCoin>& aggregator
+    , const ChainState& state, const KeyRing& keys, const Summary& summary) const = 0;
 
   virtual std::string do_getJSON() const = 0;
 };

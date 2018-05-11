@@ -27,6 +27,16 @@ bool ChainState::addCoin(const SmartCoin& coin) {
   return(true);
 }
 
+bool ChainState::addCoins(const std::map<Address, SmartCoin>& coin_map) {
+ for (auto iter = coin_map.begin(); iter != coin_map.end(); ++iter) {
+   auto loc = stateMap_.find(iter->first);
+   if (loc != stateMap_.end()) {
+     loc->second[iter->second.coin_] += iter->second.amount_;
+   }
+ }
+ return(true);
+}
+
 long ChainState::getAmount(uint64_t type, const Address& addr) const {
   auto it = stateMap_.find(addr);
   if (it != stateMap_.end()) {

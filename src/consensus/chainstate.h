@@ -49,6 +49,7 @@ public:
  *  @return false otherwise
 */
   bool addCoin(const SmartCoin& coin);
+  bool addCoins(const std::map<Address, SmartCoin>& coin_map);
 
 /** Gets the number of coins at a particular location.
  *  @param type the coin type to check

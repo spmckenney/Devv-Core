@@ -334,15 +334,21 @@ class UnrecordedTransactionPool {
     MTR_SCOPE_FUNC();
     std::lock_guard<std::mutex> guard(txs_mutex_);
     unsigned int num_txs = 0;
+    std::map<Address, SmartCoin> aggregate;
     for (auto iter = txs_.begin(); iter != txs_.end(); ++iter) {
-      if (iter->second.second->isValid(state, keys, summary)) {
-        valid.push_back(std::move(iter->second.second->Clone()));
-        iter->second.first++;
-        num_txs++;
-        // FIXME(spmckenney): Add config param here
-        if (num_txs >= kMAX_T2_BLOCK_SIZE) break;
-      } else {
-        LOG_WARNING << "IsValid Failed!!";
+      aggregate = iter->second.second->AggregateState(aggregate
+                                        , state, keys, summary);
+      valid.push_back(std::move(iter->second.second->Clone()));
+      iter->second.first++;
+      num_txs++;
+      // FIXME(spmckenney): Add config param here
+      if (num_txs >= kMAX_T2_BLOCK_SIZE) break;
+    }
+    state.addCoins(aggregate);
+    for (const auto& item : aggregate) {
+      if (!summary.addItem(item.first, item.second.coin_, item.second.amount_)) {
+        LOG_FATAL << "An aggregated transaction was invalid!!";
+        valid.clear();
       }
     }
     return valid;
