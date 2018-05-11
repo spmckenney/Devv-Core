@@ -250,7 +250,7 @@ class Tier1Transaction : public Transaction {
         Address addr = it->getAddress();
         SmartCoin next_flow(addr, coin, amount);
         auto loc = aggregator.find(addr);
-        if (loc != aggregator.end()) {
+        if (loc == aggregator.end()) {
           std::pair<Address, SmartCoin> pair(addr, next_flow);
           aggregator.insert(pair);
         } else {
