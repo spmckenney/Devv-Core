@@ -287,7 +287,7 @@ namespace Devcash
         if (amount < 0) {
           if ((oper == Exchange) && (amount > state.getAmount(coin, addr))) {
             LOG_WARNING << "Coins not available at addr.";
-            return false;
+            return aggregator;
           }
         }
         SmartCoin next_flow(addr, coin, amount);
