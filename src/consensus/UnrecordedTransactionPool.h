@@ -320,6 +320,20 @@ class UnrecordedTransactionPool {
   TransactionCreationManager tcm_;
   eAppMode mode_;
 
+  std::map<Address, SmartCoin> MergeStates(std::map<Address, SmartCoin>& first
+      , const std::map<Address, SmartCoin>& second) {
+    for (const auto& item : second) {
+      auto loc = first.find(item.first);
+      if (loc == first.end()) {
+        std::pair<Address, SmartCoin> pair(item.first, item.second);
+        first.insert(pair);
+      } else {
+        loc->second.amount_ += item.second.amount_;
+      }
+    }
+    return first;
+  }
+
   /** Verifies Transactions for this pool.
    *  @note this implementation is greedy in selecting Transactions
    *  @params state the chain state to validate against
