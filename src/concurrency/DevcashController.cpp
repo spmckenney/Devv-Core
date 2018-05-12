@@ -57,7 +57,7 @@ DevcashController::DevcashController(
   , keys_(keys)
   , context_(context)
   , final_chain_("final_chain_")
-  , utx_pool_(prior, mode)
+  , utx_pool_(prior, mode, batchSize)
   , mode_(mode)
   , scan_dir_(scan_dir)
   , workers_(new DevcashControllerWorker(this, validator_count_, consensus_count_, consensus_count_))

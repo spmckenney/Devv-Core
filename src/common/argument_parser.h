@@ -230,8 +230,8 @@ network could be build and tested.\n\nAllowed options");
       options->tx_batch_size = vm["tx-batch-size"].as<unsigned int>();
       LOG_INFO << "Transaction batch size: " << options->tx_batch_size;
     } else {
-      LOG_INFO << "Transaction batch size was not set, defaulting to 10";
-      options->tx_batch_size = 10;
+      LOG_INFO << "Transaction batch size was not set, defaulting to 10,000";
+      options->tx_batch_size = 10000;
     }
 
     if (vm.count("tx-limit")) {

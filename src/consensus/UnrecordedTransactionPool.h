@@ -23,8 +23,10 @@ class UnrecordedTransactionPool {
  public:
 
   /** Constrcutors */
-  UnrecordedTransactionPool(const ChainState& prior, eAppMode mode)
-     : txs_(), pending_proposal_(prior), tcm_(mode), mode_(mode) {
+  UnrecordedTransactionPool(const ChainState& prior, eAppMode mode
+     , size_t max_tx_per_block)
+     : txs_(), pending_proposal_(prior), tcm_(mode), mode_(mode)
+     , max_tx_per_block_(max_tx_per_block) {
     LOG_DEBUG << "UnrecordedTransactionPool(const ChainState& prior)";
   }
   UnrecordedTransactionPool(const UnrecordedTransactionPool& other) = delete;
@@ -312,6 +314,7 @@ class UnrecordedTransactionPool {
   // Total number of transactions that have been
   // added to the transaction map
   size_t num_cum_txs_ = 0;
+  size_t max_tx_per_block_ = 10000;
 
   // Time since starting
   Timer timer_;
@@ -356,8 +359,7 @@ class UnrecordedTransactionPool {
         valid.push_back(std::move(iter->second.second->Clone()));
         iter->second.first++;
         num_txs++;
-        // FIXME(spmckenney): Add config param here
-        if (num_txs >= kMAX_T2_BLOCK_SIZE) break;
+        if (num_txs >= max_tx_per_block_) break;
       }
     }
     /*state.addCoins(aggregate);
