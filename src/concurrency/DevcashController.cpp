@@ -109,7 +109,7 @@ void DevcashController::ValidatorCallback(DevcashMessageUniquePtr ptr) {
     return;
   }
   LogDevcashMessageSummary(*ptr, "ValidatorCallback");
-  CASH_TRY {
+  //CASH_TRY {
     LOG_DEBUG << "DevcashController::ValidatorCallback()";
     MTR_SCOPE_FUNC();
     if (ptr->message_type == TRANSACTION_ANNOUNCEMENT) {
@@ -133,10 +133,12 @@ void DevcashController::ValidatorCallback(DevcashMessageUniquePtr ptr) {
       LOG_DEBUG << "Unexpected message @ validator, to consensus.\n";
       PushConsensus(std::move(ptr));
     }
+    /*
   } CASH_CATCH (const std::exception& e) {
     LOG_FATAL << FormatException(&e, "DevcashController.ValidatorCallback()");
     StopAll();
   }
+    */
 }
 
 bool HandleFinalBlock(DevcashMessageUniquePtr ptr,
@@ -180,6 +182,8 @@ bool HandleFinalBlock(DevcashMessageUniquePtr ptr,
       callback(std::move(CreateNextProposal(keys,final_chain,utx_pool,context)));
       sent_message = true;
     }
+  } else {
+    LOG_DEBUG << "Pending transactions but not my turn";
   }
   return sent_message;
 }
@@ -264,13 +268,26 @@ bool HandleBlocksSinceRequest(DevcashMessageUniquePtr ptr,
   uint64_t height = BinToUint32(ptr->data, 0);
   uint64_t node = BinToUint32(ptr->data, 8);
   std::vector<byte> raw = final_chain.PartialBinaryDump(height);
-
+  LOG_INFO << "HandleBlocksSinceRequest(): height(" << height << "), node(" << node << ")";
+  /*
+  if (final_chain.size() < 2) {
+    LOG_WARNING << "HandleBlocksSinceRequest() -> final_chain.size() < 2, no blocks to send";
+    return false;
+  }
+  if (final_chain.size() <= height) {
+    LOG_WARNING << "HandleBlocksSinceRequest() -> final_chain.size() <= height ("
+                << final_chain.size() << " <= " << height << "), no blocks to send";
+    return false;
+  }
+  */
   if (context.get_app_mode() == eAppMode::T2) {
     size_t offset = 0;
     std::vector<byte> tier1_data;
     ChainState temp;
     while (offset < raw.size()) {
-      //constructor increments offset by reference
+      LOG_DEBUG << "HandleBlocksSinceRequest(): offset/raw.size() ("
+                << offset << "/" << raw.size() << ")";
+        //constructor increments offset by reference
       FinalBlock one_block(raw, temp, offset);
       Summary sum(one_block.getSummary());
       Validation val(one_block.getValidation());
@@ -287,10 +304,6 @@ bool HandleBlocksSinceRequest(DevcashMessageUniquePtr ptr,
     callback(std::move(response));
     return true;
   } else if (context.get_app_mode() == eAppMode::T1) {
-    if (final_chain.size() == 0) {
-      LOG_WARNING << "HandleBlocksSinceRequest() -> final_chain.size() == 0, not sending";
-      return false;
-    }
     uint64_t covered_height = final_chain.size()-1;
     std::vector<byte> bin_height;
     Uint64ToBin(covered_height, bin_height);
@@ -346,7 +359,7 @@ bool HandleBlocksSince(DevcashMessageUniquePtr ptr,
 void DevcashController::ConsensusCallback(DevcashMessageUniquePtr ptr) {
   std::lock_guard<std::mutex> guard(mutex_);
   MTR_SCOPE_FUNC();
-  CASH_TRY {
+  //CASH_TRY {
     if (shutdown_) {
       LOG_DEBUG << "DevcashController()::ConsensusCallback(): shutdown_ == true";
       return;
@@ -408,17 +421,19 @@ void DevcashController::ConsensusCallback(DevcashMessageUniquePtr ptr) {
       LOG_ERROR << "DevcashController()::ConsensusCallback(): Unexpected message, ignore.\n";
       break;
     }
+    /*
   } CASH_CATCH (const std::exception& e) {
     LOG_FATAL << FormatException(&e, "DevcashController.ConsensusCallback()");
     CASH_THROW(e);
     StopAll();
   }
+    */
 }
 
 void DevcashController::ShardCommsCallback(DevcashMessageUniquePtr ptr) {
   std::lock_guard<std::mutex> guard(mutex_);
   MTR_SCOPE_FUNC();
-  CASH_TRY {
+  //CASH_TRY {
     if (shutdown_) {
       LOG_DEBUG << "DevcashController()::ShardCommsCallback(): shutdown_ == true";
       return;
@@ -504,11 +519,13 @@ void DevcashController::ShardCommsCallback(DevcashMessageUniquePtr ptr) {
       LOG_ERROR << "DevcashController()::ShardCommsCallback(): Unexpected message, ignore.\n";
       break;
     }
+    /*
   } CASH_CATCH (const std::exception& e) {
     LOG_FATAL << FormatException(&e, "DevcashController.ShardCommsCallback()");
     CASH_THROW(e);
     StopAll();
   }
+    */
 }
 
 void DevcashController::ValidatorToyCallback(DevcashMessageUniquePtr ptr) {
@@ -608,37 +625,47 @@ std::vector<std::vector<byte>> DevcashController::LoadTransactions() {
     return out;
   }
 
+  std::mutex critical;
+
+  std::vector<std::string> files;
+
   input_blocks_ = 0;
   for(auto& entry : boost::make_iterator_range(fs::directory_iterator(p), {})) {
-    LOG_DEBUG << "Reading " << entry;
-    std::ifstream file(entry.path().string(), std::ios::binary);
-    file.unsetf(std::ios::skipws);
-    std::streampos file_size;
-    file.seekg(0, std::ios::end);
-    file_size = file.tellg();
-    file.seekg(0, std::ios::beg);
-
-    std::vector<byte> raw;
-    raw.reserve(file_size);
-    raw.insert(raw.begin(), std::istream_iterator<byte>(file)
-        , std::istream_iterator<byte>());
-    size_t offset = 0;
-    std::vector<byte> batch;
-    assert(file_size > 0);
-    while (offset < static_cast<size_t>(file_size)) {
-      //constructor increments offset by reference
-      FinalBlock one_block(raw, priori, offset);
-      Summary sum(one_block.getSummary());
-      Validation val(one_block.getValidation());
-      std::pair<Address, Signature> pair(val.getFirstValidation());
-      int index = keys_.getNodeIndex(pair.first);
-      Tier1Transaction tx(sum, pair.second, (uint64_t) index, keys_);
-      std::vector<byte> tx_canon(tx.getCanonical());
-      batch.insert(batch.end(), tx_canon.begin(), tx_canon.end());
-      input_blocks_++;
-    }
-    out.push_back(batch);
+    files.push_back(entry.path().string());
   }
+
+  ThreadPool::ParallelFor(0, (int)files.size(), [&] (int i) {
+      LOG_INFO << "Reading " << files.at(i);
+      std::ifstream file(files.at(i), std::ios::binary);
+      file.unsetf(std::ios::skipws);
+      std::streampos file_size;
+      file.seekg(0, std::ios::end);
+      file_size = file.tellg();
+      file.seekg(0, std::ios::beg);
+
+      std::vector<byte> raw;
+      raw.reserve(file_size);
+      raw.insert(raw.begin(), std::istream_iterator<byte>(file)
+                 , std::istream_iterator<byte>());
+      size_t offset = 0;
+      std::vector<byte> batch;
+      assert(file_size > 0);
+      while (offset < static_cast<size_t>(file_size)) {
+        //constructor increments offset by reference
+        FinalBlock one_block(raw, priori, offset);
+        Summary sum(one_block.getSummary());
+        Validation val(one_block.getValidation());
+        std::pair<Address, Signature> pair(val.getFirstValidation());
+        int index = keys_.getNodeIndex(pair.first);
+        Tier1Transaction tx(sum, pair.second, (uint64_t) index, keys_);
+        std::vector<byte> tx_canon(tx.getCanonical());
+        batch.insert(batch.end(), tx_canon.begin(), tx_canon.end());
+        input_blocks_++;
+      }
+      std::lock_guard<std::mutex> lock(critical);
+
+      out.push_back(batch);
+    }, 3);
 
   LOG_INFO << "Loaded " << std::to_string(input_blocks_) << " transactions in " << out.size() << " batches.";
   return out;

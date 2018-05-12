@@ -14,8 +14,6 @@
 #include "io/message_service.h"
 #include <condition_variable>
 #include <mutex>
-#include <chrono>
-#include <thread>
 
 namespace Devcash {
 
@@ -85,6 +83,9 @@ private:
   uint64_t remote_blocks_ = 0;
   size_t input_blocks_ = 0;
 };
+
+
+
 
 } /* namespace Devcash */
 
