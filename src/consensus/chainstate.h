@@ -80,7 +80,6 @@ public:
   bool clear();
 
   std::map<Address, std::map<uint64_t, uint64_t>> stateMap_;
-  //mutable std::mutex lock_;
 };
 
 } //namespace Devcash

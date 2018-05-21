@@ -19,7 +19,6 @@ namespace Devcash
 using namespace Devcash;
 
 bool ChainState::addCoin(const SmartCoin& coin) {
-  //std::lock_guard<std::mutex> lock(lock_);
   auto it = stateMap_.find(coin.addr_);
   if (it != stateMap_.end()) {
     it->second[coin.coin_] += coin.amount_;
@@ -47,7 +46,6 @@ long ChainState::getAmount(uint64_t type, const Address& addr) const {
 }
 
 bool ChainState::moveCoin(const SmartCoin& start, const SmartCoin& end) {
-  //std::lock_guard<std::mutex> lock(lock_);
   if (start.coin_ != end.coin_) return(false);
   if (start.amount_ != end.amount_) return(false);
 
@@ -62,7 +60,6 @@ bool ChainState::moveCoin(const SmartCoin& start, const SmartCoin& end) {
 }
 
 bool ChainState::delCoin(SmartCoin& coin) {
-  //std::lock_guard<std::mutex> lock(lock_);
   auto it = stateMap_.find(coin.addr_);
   if (it != stateMap_.end()) {
     it->second[coin.coin_] -= coin.amount_;

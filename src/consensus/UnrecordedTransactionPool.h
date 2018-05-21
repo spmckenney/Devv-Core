@@ -99,7 +99,7 @@ class UnrecordedTransactionPool {
           if (num_cum_txs_ == 0) {
             LOG_NOTICE << "AddTransactions(): First transaction added to TxMap";
             timer_.reset();
-            trace_ = make_unique<MTRScopedTrace>("timer", "lifetime1");
+            trace_ = std::make_unique<MTRScopedTrace>("timer", "lifetime1");
           }
           num_cum_txs_++;
           counter++;
@@ -149,7 +149,7 @@ class UnrecordedTransactionPool {
         if (num_cum_txs_ == 0) {
           LOG_NOTICE << "AddTransactions(): First transaction added to TxMap";
           timer_.reset();
-          trace_ = make_unique<MTRScopedTrace>("timer", "lifetime2");
+          trace_ = std::make_unique<MTRScopedTrace>("timer", "lifetime2");
         }
         num_cum_txs_++;
 
@@ -197,6 +197,9 @@ class UnrecordedTransactionPool {
     return serial;
   }
 
+/** Checks if this pool has pending Transactions
+ *  @return true, iff this pool has pending Transactions
+ */
   bool HasPendingTransactions() const {
     LOG_DEBUG << "Number pending transactions: "+std::to_string(txs_.size());
     std::lock_guard<std::mutex> guard(txs_mutex_);
@@ -204,12 +207,24 @@ class UnrecordedTransactionPool {
     return(!empty);
   }
 
+  /**
+   *  @return the number of pending Transactions in this pool
+   */
   size_t NumPendingTransactions() const {
     std::lock_guard<std::mutex> guard(txs_mutex_);
     auto size = txs_.size();
     return(size);
   }
 
+  /**
+   *  Create a new ProposedBlock based on pending Transaction in this pool
+   *  @param prev_hash - the hash of the previous block
+   *  @param prior_state - the chainstate prior to this proposal
+   *  @param keys - the directory of Addresses and EC keys
+   *  @param context - the Devcash context of this shard
+   *  @return true, iff this pool created a new ProposedBlock
+   *  @return false, if anything went wrong
+   */
   bool ProposeBlock(const Hash& prev_hash, const ChainState& prior_state
       , const KeyRing& keys, const DevcashContext& context) {
     LOG_DEBUG << "ProposeBlock()";
@@ -230,18 +245,34 @@ class UnrecordedTransactionPool {
     return true;
   }
 
+  /**
+   *  @return true, iff this pool has a ProposedBlock
+   */
   bool HasProposal() {
     LOG_DEBUG << "HasProposal()";
     std::lock_guard<std::mutex> proposal_guard(pending_proposal_mutex_);
     return(!pending_proposal_.isNull());
   }
 
+  /**
+   *  @return a binary representation of this pool's ProposedBlock
+   */
   std::vector<byte> getProposal() {
     LOG_DEBUG << "getProposal()";
     std::lock_guard<std::mutex> proposal_guard(pending_proposal_mutex_);
     return pending_proposal_.getCanonical();
   }
 
+  /**
+   *  Update this pool's ProposedBlock based on a new FinalBlock.
+   *  @note some Transactions in the proposal may be removed if they are
+   *        no longer valid
+   *  @param prev_hash - the hash of the highest FinalBlock
+   *  @param prior_state - the chainstate of the highest FinalBlock
+   *  @param keys - the directory of Addresses and EC keys
+   *  @return true, iff this pool updated its ProposedBlock
+   *  @return false, if anything went wrong
+   */
   bool ReverifyProposal(const Hash& prev_hash, const ChainState&, const KeyRing&) {
     LOG_DEBUG << "ReverifyProposal()";
     MTR_SCOPE_FUNC();
@@ -263,6 +294,15 @@ class UnrecordedTransactionPool {
     return false;*/
   }
 
+  /**
+   *  Checks a remote validation against this pool's ProposedBlock
+   *  @param remote - a binary representation of the remote Validation
+   *  @param context - the Devcash context of this shard
+   *  @return true, iff the Validation validates this pool's ProposedBlock
+   *  @return false, otherwise including if this pool has no ProposedBlock,
+   *                 the Validation is for a different ProposedBlock,
+   *                 or the Validation signature did not verify
+   */
   bool CheckValidation(std::vector<byte> remote
       , const DevcashContext& context) {
     LOG_DEBUG << "CheckValidation()";
@@ -271,6 +311,12 @@ class UnrecordedTransactionPool {
     return pending_proposal_.CheckValidationData(remote, context);
   }
 
+  /**
+   *  Create a new FinalBlock based on this pool's ProposedBlock
+   *  @pre ensure this HasProposal() == true before calling this function
+   *  @note nullifies this pool's ProposedBlock as a side-effect
+   *  @return a FinalBlock based on this pool's ProposedBlock
+   */
   const FinalBlock FinalizeLocalBlock() {
     LOG_DEBUG << "FinalizeLocalBlock()";
     MTR_SCOPE_FUNC();
@@ -280,6 +326,13 @@ class UnrecordedTransactionPool {
     return final_block;
   }
 
+  /**
+   *  Create a new FinalBlock based on a remotely serialized FinalBlock
+   *  @param serial - a binary representation of the FinalBlock
+   *  @param prior - the chain state prior to this new FinalBlock
+   *  @param keys - the directory of Addresses and EC keys
+   *  @return a FinalBlock based on the remote data provided
+   */
   const FinalBlock FinalizeRemoteBlock(const std::vector<byte>& serial
       , const ChainState prior, const KeyRing& keys) {
     LOG_DEBUG << "FinalizeRemoteBlock()";
@@ -290,16 +343,22 @@ class UnrecordedTransactionPool {
 
   /** Remove unreferenced Transactions from the pool.
    *  @return the number of Transactions removed.
-  */
+   */
   int GarbageCollect() {
     LOG_DEBUG << "GarbageCollect()";
     //TODO: delete old unrecorded Transactions periodically
     return 0;
   }
 
+  /**
+   *  @return the elapsed time since this pool last received a Transaction
+   */
   double getElapsedTime() {
     return timer_.elapsed();
   }
+  /**
+   *  @return the tool to create Transactions in parallel
+   */
   TransactionCreationManager& get_transaction_creation_manager() {
     return(tcm_);
   }
@@ -323,6 +382,12 @@ class UnrecordedTransactionPool {
   TransactionCreationManager tcm_;
   eAppMode mode_;
 
+  /**
+   *  Compose transition states into a map of SmartCoin transitions by Address
+   *  @param first - one set of transitions, the merge target
+   *  @param second - another set of transitions, to merge into first
+   *  @return a combined set of SmartCoin transitions mapped to a set of Addresses
+   */
   std::map<Address, SmartCoin> MergeStates(std::map<Address, SmartCoin>& first
       , const std::map<Address, SmartCoin>& second) {
     for (const auto& item : second) {
@@ -343,7 +408,7 @@ class UnrecordedTransactionPool {
    *  @params keys a KeyRing that provides keys for signature verification
    *  @params summary the Summary to update
    *  @return a vector of unrecorded valid transactions
-  */
+   */
   std::vector<TransactionPtr> CollectValidTransactions(ChainState& state
       , const KeyRing& keys, Summary& summary) {
     LOG_DEBUG << "CollectValidTransactions()";
@@ -380,7 +445,7 @@ class UnrecordedTransactionPool {
    *  @params summary the Summary to update
    *  @return true iff, all transactions are valid wrt provided chainstate
    *  @return false otherwise
-  */
+   */
   bool ReverifyTransactions(std::vector<Transaction> txs, ChainState& state
       , const KeyRing& keys, Summary& summary) {
     LOG_DEBUG << "ReverifyTransactions()";
@@ -394,6 +459,11 @@ class UnrecordedTransactionPool {
     return true;
   }
 
+  /** Removes Transactions in a ProposedBlock from this pool
+   *  @param proposed - the ProposedBlock containing Transactions to remove
+   *  @return true iff, all transactions in the block were removed
+   *  @return false otherwise
+   */
   bool RemoveTransactions(const ProposedBlock& proposed) {
     std::lock_guard<std::mutex> guard(txs_mutex_);
     size_t txs_size = txs_.size();
@@ -412,6 +482,10 @@ class UnrecordedTransactionPool {
     return true;
   }
 
+  /** Finalize a ProposedBlock
+   *  @param proposed - the ProposedBlock to finalize
+   *  @return the FinalBlock based on the provided ProposedBlock
+   */
   const FinalBlock FinalizeBlock(const ProposedBlock& proposal) {
     LOG_DEBUG << "FinalizeBlock()";
     MTR_SCOPE_FUNC();

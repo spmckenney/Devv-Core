@@ -51,6 +51,10 @@ public:
   {
   }
 
+  /**
+   * Add a block to this chain.
+   * @param block - a shared pointer to the block to add
+   */
   void push_back(BlockSharedPtr block) {
     chain_.push_back(block);
     chain_size_++;
@@ -60,25 +64,41 @@ public:
                 << " (" << chain_size_ << "/" << num_transactions_ << ")";
   }
 
+  /**
+   * Get the number of transactions in this chain.
+   * @return the number of transactions in this chain.
+   */
   size_t getNumTransactions() const {
     return num_transactions_;
   }
 
+  /**
+   * @return a pointer to the highest block in this chain.
+   */
   BlockSharedPtr back() {
     LOG_TRACE << name_ << ": back(); size(" << chain_size_ << ")";
     return chain_.back();
   }
 
+  /**
+   * @return a pointer to the highest block in this chain.
+   */
   const BlockSharedPtr back() const {
     LOG_TRACE << name_ << ": back() const; size(" << chain_size_ << ")";
     return chain_.back();
   }
 
+  /**
+   * @return the size of this chain.
+   */
   size_t size() const {
     LOG_TRACE << name_ << ": size(" << chain_size_ << ")";
     return chain_size_;
   }
 
+  /**
+   * @return the highest Merkle root in this chain.
+   */
   Hash getHighestMerkleRoot() const {
     if (chain_size_ < 1) {
       Hash genesis;
@@ -87,6 +107,9 @@ public:
     return back()->getMerkleRoot();
   }
 
+  /**
+   * @return the highest chain state of this chain
+   */
   ChainState getHighestChainState() const {
     if (chain_size_ < 1) {
       ChainState state;
@@ -95,6 +118,9 @@ public:
     return back()->getChainState();
   }
 
+  /**
+   * @return a binary representation of this entire chain.
+   */
   std::vector<byte> BinaryDump() const {
     std::vector<byte> out;
     for (auto const& item : chain_) {
@@ -104,6 +130,11 @@ public:
     return out;
   }
 
+  /**
+   * A binary representation of this chain from a given height to the penultimate block.
+   * @param start - the block height to start with
+   * @return a binary representation of this chain from start to the penultimate block.
+   */
   std::vector<byte> PartialBinaryDump(size_t start) const {
     std::vector<byte> out;
     if (size() > 0) {
@@ -116,6 +147,9 @@ public:
     return out;
   }
 
+  /**
+   * @return a JSON representation of this chain.
+   */
   std::string JsonDump() const {
     std::string out("[");
     bool first = true;

@@ -81,9 +81,15 @@ DevcashMessageUniquePtr CreateNextProposal(const KeyRing& keys,
   }
 
   if (!utx_pool.HasProposal() && utx_pool.HasPendingTransactions()) {
-      Hash prev_hash = final_chain.getHighestMerkleRoot();
+    if (block_height > 0) {
+      Hash prev_hash = dcHash(final_chain.back()->getCanonical());
       ChainState prior = final_chain.getHighestChainState();
       utx_pool.ProposeBlock(prev_hash, prior, keys, context);
+    } else {
+      Hash prev_hash = dcHash({'G', 'e', 'n', 'e', 'i', 's'});
+      ChainState prior;
+      utx_pool.ProposeBlock(prev_hash, prior, keys, context);
+    }
   }
 
   LOG_INFO << "Proposal #"+std::to_string(block_height+1)+".";
@@ -169,7 +175,7 @@ bool HandleFinalBlock(DevcashMessageUniquePtr ptr,
 
   if (utx_pool.HasProposal()) {
     ChainState current = top_block->getChainState();
-    Hash prev_hash = top_block->getMerkleRoot();
+    Hash prev_hash = dcHash(top_block->getCanonical());
     utx_pool.ReverifyProposal(prev_hash, current, keys);
   }
 
@@ -630,7 +636,7 @@ std::vector<std::vector<byte>> DevcashController::LoadTransactions() {
   std::vector<std::string> files;
 
   input_blocks_ = 0;
-  for(auto& entry : boost::make_iterator_range(fs::directory_iterator(p), {})) {
+  /*for(auto& entry : boost::make_iterator_range(fs::directory_iterator(p), {})) {
     files.push_back(entry.path().string());
   }
 
@@ -665,7 +671,7 @@ std::vector<std::vector<byte>> DevcashController::LoadTransactions() {
       std::lock_guard<std::mutex> lock(critical);
 
       out.push_back(batch);
-    }, 3);
+    }, 3);*/
 
   LOG_INFO << "Loaded " << std::to_string(input_blocks_) << " transactions in " << out.size() << " batches.";
   return out;
