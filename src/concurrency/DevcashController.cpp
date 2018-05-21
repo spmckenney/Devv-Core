@@ -636,7 +636,7 @@ std::vector<std::vector<byte>> DevcashController::LoadTransactions() {
   std::vector<std::string> files;
 
   input_blocks_ = 0;
-  /*for(auto& entry : boost::make_iterator_range(fs::directory_iterator(p), {})) {
+  for(auto& entry : boost::make_iterator_range(fs::directory_iterator(p), {})) {
     files.push_back(entry.path().string());
   }
 
@@ -671,7 +671,7 @@ std::vector<std::vector<byte>> DevcashController::LoadTransactions() {
       std::lock_guard<std::mutex> lock(critical);
 
       out.push_back(batch);
-    }, 3);*/
+    }, 3);
 
   LOG_INFO << "Loaded " << std::to_string(input_blocks_) << " transactions in " << out.size() << " batches.";
   return out;
