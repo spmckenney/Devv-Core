@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 import time
 import zmq
@@ -10,6 +10,7 @@ if len(sys.argv) < 2:
 
 
 num_nodes = int(sys.argv[1])
+base_port = int(sys.argv[2])
 
 if num_nodes < 1 or num_nodes > 9:
     print("Num nodes is of range (0 > num_nodex > 10)")
@@ -20,7 +21,7 @@ context = zmq.Context()
 sockets = []
 
 for i in range(num_nodes):
-    port = 55330 + i
+    port = base_port + i
     print("Binding on port {} for node {}".format(port, i))
 
     socket = context.socket(zmq.REP)
@@ -34,7 +35,7 @@ for i in range(num_nodes):
     message = sockets[i].recv()
     print("Received request from: %s" % message)
 
-    time.sleep(2)
+    #time.sleep(2)
 
 
 for i in range(num_nodes):

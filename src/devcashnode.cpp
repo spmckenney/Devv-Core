@@ -67,6 +67,7 @@ void DevcashNode::Shutdown()
 DevcashNode::DevcashNode(DevcashController& control, DevcashContext& context)
     : control_(control), app_context_(context)
 {
+  LOG_INFO << "Hello from node: " << app_context_.get_uri() << "!!";
 }
 
 bool initCrypto()
@@ -84,12 +85,12 @@ bool initCrypto()
 
 bool DevcashNode::Init()
 {
-  if (app_context_.get_current_node() >= app_context_.kNODE_KEYs.size() ||
+  /*if (app_context_.get_current_node() >= app_context_.kNODE_KEYs.size() ||
       app_context_.get_current_node() >= app_context_.kNODE_ADDRs.size()) {
     LOG_FATAL << "Invalid node index: " <<
       std::to_string(app_context_.get_current_node());
     return false;
-  }
+  }*/
   return initCrypto();
 }
 

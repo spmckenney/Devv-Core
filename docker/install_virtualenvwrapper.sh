@@ -20,4 +20,5 @@ pip install --upgrade \
     pillow \
     portpicker \
     scipy \
-    xmlrunner
+    xmlrunner\
+    zmq

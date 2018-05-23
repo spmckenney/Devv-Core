@@ -52,15 +52,17 @@ struct DevcashContext {
     , std::string& inn_key_path
     , const std::string& node_key_path
     , const std::string& wallet_key_path
+    , unsigned int sync_port
     , const std::string& sync_host = "")
     : current_node_(current_node)
     , current_shard_(current_shard)
     , app_mode_(mode)
-    , uri_(get_uri_from_index(current_node))
+    , uri_(get_uri_from_index(current_node+current_shard*peer_count_))
     , inn_keys_(inn_key_path)
     , node_keys_(node_key_path)
     , wallet_keys_(wallet_key_path)
     , sync_host_(sync_host)
+    , sync_port_(sync_port)
   {}
 
   const std::string kINN_KEY = "-----BEGIN ENCRYPTED PRIVATE KEY-----\nMIHeMEkGCSqGSIb3DQEFDTA8MBsGCSqGSIb3DQEFDDAOBAgBcpJHkg56mAICCAAw\nHQYJYIZIAWUDBAECBBCHa2RxQu9uIGCnJXiJjMF2BIGQcnO7UeEAHFauiaheEQPW\nn5cgO1sAlY7r3kMWgX4d5qu0DnEVzNN6F4RkQDbyvWwS1YHzdVn17oynnqtL9RS6\nqYrt1xhFFwp6Z+R/uqSk+3xZgMSYf2wpUJ9pqhm0JBTqOelZ37yF57+585ez4ujD\nA1gnH1w36y5hnZqRWVvi3eRXxCr5wqF8dNwFuxLpAuse\n-----END ENCRYPTED PRIVATE KEY-----";
@@ -107,11 +109,15 @@ struct DevcashContext {
     return (uri_prefix_ + std::to_string(node_index));
   }
 
+  std::string get_shard_uri() const {
+    return ("shard-" + std::to_string(current_shard_));
+  }
+
   std::string get_inn_key_path() const { return inn_keys_; }
   std::string get_node_key_path() const { return node_keys_; }
   std::string get_wallet_key_path() const { return wallet_keys_; }
 
-  std::string get_sync_host() const { return sync_host_; }
+  std::string get_sync_host() const { return (sync_host_+":"+std::to_string(sync_port_)); }
 
 private:
   /** Number of connected peers */
@@ -139,6 +145,9 @@ private:
 
   // Host the nodes will sync to
   std::string sync_host_;
+
+  // Port the nodes will sync to
+  unsigned int sync_port_;
 };
 
 } /* namespace Devcash */

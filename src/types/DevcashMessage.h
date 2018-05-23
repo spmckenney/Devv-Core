@@ -25,7 +25,9 @@ enum eMessageType {
   TRANSACTION_ANNOUNCEMENT = 2,
   VALID = 3,
   REQUEST_BLOCK = 4,
-  NUM_TYPES = 5
+  GET_BLOCKS_SINCE = 5,
+  BLOCKS_SINCE = 6,
+  NUM_TYPES = 7
 };
 
 typedef std::string URI;
@@ -216,6 +218,12 @@ static std::string GetMessageType (const DevcashMessage& message) {
     break;
   case(eMessageType::REQUEST_BLOCK):
     message_type_string = "REQUEST_BLOCK";
+    break;
+  case(eMessageType::GET_BLOCKS_SINCE):
+    message_type_string = "GET_BLOCKS_SINCE";
+    break;
+  case(eMessageType::BLOCKS_SINCE):
+    message_type_string = "BLOCKS_SINCE";
     break;
   default:
     message_type_string = "ERROR_DEFAULT";

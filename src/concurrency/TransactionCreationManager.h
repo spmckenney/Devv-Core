@@ -47,6 +47,14 @@ public:
     }
   }
 
+  /**
+   * Create Transactions objects from serialized binary data.
+   * @param serial - a binary series of Transactions
+   * @param vtx - (out) target vector for pointers to the Transaction objects
+   * @param offset - a offset where this function should start reading the serial data
+   * @param min_size - the minimum number of bytes in a Transaction
+   * @param tx_size - the total byte size of this block of serial Transactions
+   */
   void CreateTransactions(const std::vector<byte>& serial
                           , std::vector<TransactionPtr>& vtx
                           , size_t& offset
@@ -80,6 +88,10 @@ public:
     boost::wait_for_all(pending_data.begin(), pending_data.end());
   }
 
+  /**
+   * Set a pointer to the directory of keys and address.
+   * @param keys - a pointer to the directory of keys and addresses.
+   */
   void set_keys(const KeyRing* keys) {
     keys_p_ = keys;
   }

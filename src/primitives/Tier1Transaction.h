@@ -144,7 +144,7 @@ class Tier1Transaction : public Transaction {
     return md;
   }
 
-  byte do_getOperation() const {
+  byte do_getOperation() const override {
     return (byte) 0;
   }
 
@@ -236,6 +236,31 @@ class Tier1Transaction : public Transaction {
       LOG_WARNING << FormatException(&e, "transaction");
     }
     return false;
+  }
+
+  std::map<Address, SmartCoin> do_AggregateState(std::map<Address, SmartCoin>& aggregator
+      , const ChainState& state, const KeyRing& keys, const Summary& summary) const override {
+    CASH_TRY {
+      if (!isSound(keys)) return aggregator;
+
+      std::vector<Transfer> xfers = getTransfers();
+      for (auto it = xfers.begin(); it != xfers.end(); ++it) {
+        int64_t amount = it->getAmount();
+        uint64_t coin = it->getCoin();
+        Address addr = it->getAddress();
+        SmartCoin next_flow(addr, coin, amount);
+        auto loc = aggregator.find(addr);
+        if (loc == aggregator.end()) {
+          std::pair<Address, SmartCoin> pair(addr, next_flow);
+          aggregator.insert(pair);
+        } else {
+          loc->second.amount_ += amount;
+        }
+      }
+    } CASH_CATCH (const std::exception& e) {
+      LOG_WARNING << FormatException(&e, "transaction");
+    }
+    return aggregator;
   }
 
 /** Returns a JSON string representing this transaction.

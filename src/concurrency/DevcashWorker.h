@@ -26,7 +26,7 @@ class DevcashControllerWorker {
 
   /* Constructors/Destructors */
   DevcashControllerWorker(DevcashController* control,
-                    const int validators, const int consensus);
+                    const int validators, const int consensus, const int shard_comms);
 
   virtual ~DevcashControllerWorker() {
     StopAll();
@@ -51,17 +51,24 @@ class DevcashControllerWorker {
 
   void pushConsensus(std::unique_ptr<DevcashMessage> message);
 
+  void pushShardComms(std::unique_ptr<DevcashMessage> message);
+
   void ValidatorLoop();
 
   void ConsensusLoop();
 
+  void ShardCommsLoop();
+
  private:
   const int validator_num_ = kDEFAULT_WORKERS;
   const int consensus_num_ = kDEFAULT_WORKERS;
+  const int shardcomm_num_ = kDEFAULT_WORKERS;
   boost::thread_group validator_pool_;
   boost::thread_group consensus_pool_;
+  boost::thread_group shardcomm_pool_;
   DevcashMPMCQueue validators_;
   DevcashMPMCQueue consensus_;
+  DevcashMPMCQueue shardcomm_;
   std::atomic<bool> continue_;  //signals all threads to stop gracefully
   DevcashController* controller_;
   bool toy_mode_ = false;

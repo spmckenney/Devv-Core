@@ -26,6 +26,7 @@ struct devcash_options {
   unsigned int shard_index;
   unsigned int num_consensus_threads;
   unsigned int num_validator_threads;
+  unsigned int sync_port;
   std::string sync_host;
   std::string scan_dir;
   std::string write_file;
@@ -35,6 +36,7 @@ struct devcash_options {
   std::string wallet_keys;
   unsigned int generate_count;
   unsigned int tx_batch_size;
+  unsigned int tx_limit;
   eDebugMode debug_mode;
 };
 
@@ -65,6 +67,7 @@ network could be build and tested.\n\nAllowed options");
        "Client URI (i.e. tcp://192.168.10.1:5005). Option can be repeated to connect to multiple nodes.")
       ("bind-endpoint", po::value<std::string>(), "Endpoint for server (i.e. tcp://*:5556)")
       ("sync-host", po::value<std::string>(), "Enable node startup synchronization with sync-host")
+      ("sync-port", po::value<unsigned int>(), "Port number for sync-host")
       ("scan-dir", po::value<std::string>(), "Directory to check for transaction or blockchain input files")
       ("output", po::value<std::string>(), "Blockchain output path in binary JSON or CBOR")
       ("trace-output", po::value<std::string>(), "Output path to JSON trace file (Chrome)")
@@ -73,6 +76,7 @@ network could be build and tested.\n\nAllowed options");
       ("wallet-keys", po::value<std::string>(), "Path to Wallet key file")
       ("generate-tx", po::value<unsigned int>(), "Generate at least this many Transactions")
       ("tx-batch-size", po::value<unsigned int>(), "Target size of transaction batches")
+      ("tx-limit", po::value<unsigned int>(), "Number of transaction to process before shutting down.")
       ;
 
     po::variables_map vm;
@@ -157,6 +161,13 @@ network could be build and tested.\n\nAllowed options");
       LOG_INFO << "Sync host not set";
     }
 
+    if (vm.count("sync-port")) {
+      options->sync_port = vm["sync-port"].as<unsigned int>();
+      LOG_INFO << "Sync port: " << options->sync_port;
+    } else {
+      LOG_INFO << "Sync port was not set.";
+    }
+
     if (vm.count("host-list")) {
       options->host_vector = vm["host-list"].as<std::vector<std::string>>();
       LOG_INFO << "Node URIs:";
@@ -219,8 +230,16 @@ network could be build and tested.\n\nAllowed options");
       options->tx_batch_size = vm["tx-batch-size"].as<unsigned int>();
       LOG_INFO << "Transaction batch size: " << options->tx_batch_size;
     } else {
-      LOG_INFO << "Transaction batch size was not set, defaulting to 10";
-      options->tx_batch_size = 10;
+      LOG_INFO << "Transaction batch size was not set, defaulting to 10,000";
+      options->tx_batch_size = 10000;
+    }
+
+    if (vm.count("tx-limit")) {
+      options->tx_limit = vm["tx-limit"].as<unsigned int>();
+      LOG_INFO << "Transaction limit: " << options->tx_limit;
+    } else {
+      LOG_INFO << "Transaction limit was not set, defaulting to 0 (unlimited)";
+      options->tx_limit = 100;
     }
 
   }

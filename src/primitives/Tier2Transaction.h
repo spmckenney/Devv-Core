@@ -81,7 +81,7 @@ namespace Devcash
         , serial.begin()+(offset+tx_size));
     offset += tx_size;
     if (getOperation() > 3) {
-      LOG_WARNING << "Invalid serialized T2 transaction, invalid operation!";
+      LOG_WARNING << "Invalid serialized T2 transaction, invalid operation! (" << getOperation() << ")";
       return;
     }
     MTR_STEP("Transaction", "Transaction", &trace_int, "sound");
@@ -272,6 +272,37 @@ namespace Devcash
       LOG_WARNING << FormatException(&e, "transaction");
     }
     return false;
+  }
+
+  std::map<Address, SmartCoin> do_AggregateState(std::map<Address, SmartCoin>& aggregator
+      , const ChainState& state, const KeyRing& keys, const Summary& summary) const override {
+    CASH_TRY {
+      if (!isSound(keys)) return aggregator;
+      byte oper = getOperation();
+      std::vector<Transfer> xfers = getTransfers();
+      for (auto it = xfers.begin(); it != xfers.end(); ++it) {
+        int64_t amount = it->getAmount();
+        uint64_t coin = it->getCoin();
+        Address addr = it->getAddress();
+        if (amount < 0) {
+          if ((oper == Exchange) && (amount > state.getAmount(coin, addr))) {
+            LOG_WARNING << "Coins not available at addr.";
+            return aggregator;
+          }
+        }
+        SmartCoin next_flow(addr, coin, amount);
+        auto loc = aggregator.find(addr);
+        if (loc == aggregator.end()) {
+          std::pair<Address, SmartCoin> pair(addr, next_flow);
+          aggregator.insert(pair);
+        } else {
+          loc->second.amount_ += amount;
+        }
+      }
+    } CASH_CATCH (const std::exception& e) {
+      LOG_WARNING << FormatException(&e, "transaction");
+    }
+    return aggregator;
   }
 
 /** Returns a JSON string representing this transaction.

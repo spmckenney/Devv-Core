@@ -14,8 +14,6 @@
 #include "io/message_service.h"
 #include <condition_variable>
 #include <mutex>
-#include <chrono>
-#include <thread>
 
 namespace Devcash {
 
@@ -30,6 +28,7 @@ class DevcashController {
                     int consensusCount,
                     int generateCount,
                     int batchSize,
+                    size_t transaction_limit,
                     const KeyRing& keys,
                     DevcashContext& context,
                     const ChainState& prior,
@@ -45,14 +44,43 @@ class DevcashController {
    * Start the workers and comm threads
    */
   std::vector<byte> Start();
+  /** Stops all threads used by this controller.
+   * @note This function may block.
+   */
   void StopAll();
+  /**
+   * Push a message to the consensus workers.
+   */
   void PushConsensus(std::unique_ptr<DevcashMessage> ptr);
+  /**
+   * Push a message to the validator workers.
+   */
   void PushValidator(std::unique_ptr<DevcashMessage> ptr);
+  /**
+   * Push a message to the inter-shard communication workers.
+   */
+  void PushShardComms(std::unique_ptr<DevcashMessage> ptr);
 
+  /**
+   * Process a consensus worker message.
+   */
   void ConsensusCallback(std::unique_ptr<DevcashMessage> ptr);
+  /**
+   * Process a validator worker message.
+   */
   void ValidatorCallback(std::unique_ptr<DevcashMessage> ptr);
+  /**
+   * Process a inter-shard communciation worker message.
+   */
+  void ShardCommsCallback(std::unique_ptr<DevcashMessage> ptr);
 
+  /**
+   * Process a consensus toy worker message.
+   */
   void ConsensusToyCallback(std::unique_ptr<DevcashMessage> ptr);
+  /**
+   * Process a validator toy worker message.
+   */
   void ValidatorToyCallback(std::unique_ptr<DevcashMessage> ptr);
 
 private:
@@ -63,6 +91,8 @@ private:
   const int consensus_count_;
   const size_t generate_count_;
   const size_t batch_size_;
+  const size_t transaction_limit_;
+  size_t shutdown_counter_ = 0;
   const KeyRing& keys_;
   DevcashContext& context_;
   Blockchain final_chain_;
@@ -77,7 +107,12 @@ private:
   bool shutdown_ = false;
   uint64_t waiting_ = 0;
   mutable std::mutex mutex_;
+  uint64_t remote_blocks_ = 0;
+  size_t input_blocks_ = 0;
 };
+
+
+
 
 } /* namespace Devcash */
 
