@@ -68,8 +68,8 @@ add_library(io
   ${io_SRC}
   )
 
-# Add devcashnode.cpp
-add_library(devcashnode devcashnode.cpp)
+# Add DevcashNode.cpp
+add_library(DevcashNode node/DevcashNode.cpp)
 
 option(WITH_THREAD_TESTING "Enable thread testing" OFF)
 
@@ -79,7 +79,7 @@ endif()
 
 add_executable(devcash devcash.cpp ${dcInclude})
 target_link_libraries (devcash
-  devcashnode
+  DevcashNode
   common
   io
   concurrency
