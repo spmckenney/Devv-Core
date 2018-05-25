@@ -119,6 +119,7 @@ target_link_libraries (scanner
   common
   concurrency
   consensus
+  ${ZMQ}
   )
 
 find_package (OpenSSL REQUIRED)
@@ -150,6 +151,7 @@ target_link_libraries (circuit
   common
   concurrency
   consensus
+  ${ZMQ}
   )
 
 find_package (OpenSSL REQUIRED)
@@ -177,6 +179,7 @@ target_link_libraries (laminar
   common
   concurrency
   consensus
+  ${ZMQ}
   )
 
 find_package (OpenSSL REQUIRED)
@@ -204,6 +207,7 @@ target_link_libraries (turbulent
   common
   concurrency
   consensus
+  ${ZMQ}
   )
 
 find_package (OpenSSL REQUIRED)
