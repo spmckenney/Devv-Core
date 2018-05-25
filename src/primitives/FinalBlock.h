@@ -170,11 +170,11 @@ public:
     size_t tx_start = offset;
     while (offset < tx_start+tx_size_) {
       if (mode == eAppMode::T1) {
-        Tier1TransactionPtr one_tx = make_unique<Tier1Transaction>(serial
+        Tier1TransactionPtr one_tx = std::make_unique<Tier1Transaction>(serial
             , offset, keys);
         vtx_.push_back(std::move(one_tx));
       } else if (mode == eAppMode::T2) {
-        Tier2TransactionPtr one_tx = make_unique<Tier2Transaction>(serial
+        Tier2TransactionPtr one_tx = std::make_unique<Tier2Transaction>(serial
             , offset, keys);
         vtx_.push_back(std::move(one_tx));
       }
