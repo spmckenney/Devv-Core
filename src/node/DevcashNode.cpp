@@ -1,12 +1,12 @@
 /*
- * devcashnode.cpp handles orchestration of modules, startup, shutdown,
+ * DevcashNode.cpp handles orchestration of modules, startup, shutdown,
  * and response to signals.
  *
  *  Created on: Mar 20, 2018
  *  Author: Nick Williams
  */
 
-#include "devcashnode.h"
+#include "DevcashNode.h"
 
 #include <atomic>
 #include <functional>
