@@ -58,6 +58,8 @@ int main(int argc, char* argv[])
       LOG_WARNING << "Invalid path: "+options->scan_dir;
       return(false);
     }
+
+    std::string out;
     for(auto& entry : boost::make_iterator_range(fs::directory_iterator(p), {})) {
       LOG_DEBUG << "Reading " << entry;
       std::ifstream file(entry.path().string(), std::ios::binary);
@@ -82,12 +84,13 @@ int main(int argc, char* argv[])
           Tier2Transaction tx(raw, offset, keys, true);
           file_txs++;
           file_tfer += tx.getTransfers().size();
+          out += tx.getJSON();
         } else {
           FinalBlock one_block(raw, priori, offset, keys, options->mode);
           size_t txs = one_block.getNumTransactions();
           size_t tfers = one_block.getNumTransfers();
           priori = one_block.getChainState();
-          LOG_INFO << "FinalBlock: "+one_block.getJSON();
+          out += one_block.getJSON();
 
           LOG_INFO << std::to_string(txs)+" txs, transfers: "+std::to_string(tfers);
           file_blocks++;
@@ -130,6 +133,17 @@ int main(int argc, char* argv[])
       tfer_count += file_tfer;
     }
     LOG_INFO << "Dir has "+std::to_string(tx_counter)+" txs, "+std::to_string(tfer_count)+" tfers in "+std::to_string(block_counter)+" blocks.";
+
+    if (!options->write_file.empty()) {
+      std::ofstream outFile(options->write_file, std::ios::out);
+      if (outFile.is_open()) {
+        outFile << out;
+        outFile.close();
+      } else {
+        LOG_FATAL << "Failed to open output file '" << options->write_file << "'.";
+        return(false);
+      }
+    }
 
     return(true);
   } CASH_CATCH (...) {
