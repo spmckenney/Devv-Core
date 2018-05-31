@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<XMI xmi.version="1.2" xmlns:UML="http://schema.omg.org/spec/UML/1.4" verified="false" timestamp="2018-05-29T19:09:32">
+<XMI xmi.version="1.2" xmlns:UML="http://schema.omg.org/spec/UML/1.4" verified="false" timestamp="2018-05-30T09:08:03">
  <XMI.header>
   <XMI.documentation>
    <XMI.exporter>umbrello uml modeller http://umbrello.kde.org</XMI.exporter>
@@ -4155,8 +4155,33 @@
          <messagewidget usesdiagramfillcolor="0" fillcolor="#cfd2f9" linecolor="#000000" usesdiagramusefillcolor="1" autoresize="0" localid="uY8KMIEjnyRbB" showstereotype="1" y="218.333" font="Ubuntu,11,-1,5,50,0,0,0,0,0" widgetaid="uUPuqDiAtleFD" widgetbid="uuyxHeh1r9XEE" textid="uciC5LWG9T8RX" xmi.id="uf4KRFb8qA1cF" height="553" operation="uf4KRFb8qA1cF" isinstance="0" width="270" textcolor="none" x="-616" linewidth="0" usefillcolor="1" seqnum="" sequencemessagetype="1000">
           <floatingtext usesdiagramfillcolor="0" fillcolor="#cfd2f9" linecolor="#000000" usesdiagramusefillcolor="1" autoresize="1" localid="uqWmkTf93qEC0" pretext="" posttext="" showstereotype="1" y="197" font="Ubuntu,11,-1,5,50,0,0,0,0,0" xmi.id="uciC5LWG9T8RX" height="21" role="704" text="HandleProposalBlock()" isinstance="0" width="165" textcolor="none" x="-524" linewidth="0" usefillcolor="1"/>
          </messagewidget>
-         <messagewidget usesdiagramfillcolor="0" fillcolor="#cfd2f9" linecolor="#000000" usesdiagramusefillcolor="1" autoresize="0" localid="uuzsSaE54Tc8i" showstereotype="1" y="163" font="Ubuntu,11,-1,5,50,0,0,0,0,0" widgetaid="uGNv3USgBS87a" widgetbid="uUPuqDiAtleFD" textid="uhj5uV0GHFwQG" xmi.id="uxIVnFnhxlATV" height="640" operation="uxIVnFnhxlATV" isinstance="0" width="306" textcolor="none" x="-914" linewidth="0" usefillcolor="1" seqnum="" sequencemessagetype="1000">
-          <floatingtext usesdiagramfillcolor="0" fillcolor="#cfd2f9" linecolor="#000000" usesdiagramusefillcolor="1" autoresize="1" localid="umm6cNxx2cBdc" pretext="" posttext="" showstereotype="1" y="142" font="Ubuntu,11,-1,5,50,0,0,0,0,0" xmi.id="uhj5uV0GHFwQG" height="21" role="704" text="ConsensusCallback()" isinstance="0" width="148" textcolor="none" x="-769" linewidth="0" usefillcolor="1"/>
+         <messagewidget usesdiagramfillcolor="0" fillcolor="#cfd2f9" linecolor="#000000" usesdiagramusefillcolor="1" autoresize="0" localid="uuzsSaE54Tc8i" showstereotype="1" y="161.667" font="Ubuntu,11,-1,5,50,0,0,0,0,0" widgetaid="uGNv3USgBS87a" widgetbid="uUPuqDiAtleFD" textid="uhj5uV0GHFwQG" xmi.id="uxIVnFnhxlATV" height="640" operation="uxIVnFnhxlATV" isinstance="0" width="306" textcolor="none" x="-914" linewidth="0" usefillcolor="1" seqnum="" sequencemessagetype="1000">
+          <floatingtext usesdiagramfillcolor="0" fillcolor="#cfd2f9" linecolor="#000000" usesdiagramusefillcolor="1" autoresize="1" localid="umm6cNxx2cBdc" pretext="" posttext="" showstereotype="1" y="140" font="Ubuntu,11,-1,5,50,0,0,0,0,0" xmi.id="uhj5uV0GHFwQG" height="21" role="704" text="ConsensusCallback()" isinstance="0" width="148" textcolor="none" x="-825" linewidth="0" usefillcolor="1"/>
+         </messagewidget>
+        </messages>
+        <associations/>
+       </diagram>
+       <diagram type="3" fillcolor="#cfd2f9" showpackage="1" canvasheight="507" linecolor="#160f6e" isopen="1" canvaswidth="1085" localid="-1" showstereotype="1" font="Ubuntu,11,-1,5,50,0,0,0,0,0" snapcsgrid="0" xmi.id="u14Ab43uu0jyG" showgrid="0" backgroundcolor="#ffffff" griddotcolor="#d3d3d3" name="ConsensusCallback::GET_BLOCKS_SINCE" showpubliconly="0" snapgrid="0" snapy="25" showscope="1" zoom="100" showatts="1" autoincrementsequence="1" showopsig="0" snapx="25" documentation="" showattsig="1" textcolor="#000000" linewidth="0" showops="0" showattribassocs="1" usefillcolor="1">
+        <widgets>
+         <objectwidget drawasactor="0" usesdiagramfillcolor="1" fillcolor="none" linecolor="#160f6e" usesdiagramusefillcolor="1" autoresize="1" localid="uBuV8wsWzEkvI" showstereotype="1" y="80" font="Ubuntu,11,-1,5,50,0,0,0,0,0" xmi.id="uC2VR2Mel8cUM" height="27" isinstance="0" width="253" decon="0" instancename="shardcomm_" textcolor="#000000" x="-481" linewidth="0" multipleinstance="0" usefillcolor="1"/>
+         <objectwidget drawasactor="0" usesdiagramfillcolor="0" fillcolor="#cfd2f9" linecolor="#000000" usesdiagramusefillcolor="1" autoresize="1" localid="uQVQcNbuteS6E" showstereotype="1" y="80" font="Ubuntu,11,-1,5,50,0,0,0,0,0" xmi.id="u22RdKGsqkiTQ" height="27" isinstance="0" width="326" decon="0" instancename="controller_worker_" textcolor="#000000" x="-1077" linewidth="0" multipleinstance="0" usefillcolor="1"/>
+         <objectwidget drawasactor="0" usesdiagramfillcolor="0" fillcolor="#cfd2f9" linecolor="#000000" usesdiagramusefillcolor="1" autoresize="1" localid="uInAo6JPf7uuM" showstereotype="1" y="80" font="Ubuntu,11,-1,5,50,0,0,0,0,0" xmi.id="ujjGxCeFyPLV6" height="27" isinstance="0" width="214" decon="0" instancename="controller" textcolor="#000000" x="-723" linewidth="0" multipleinstance="0" usefillcolor="1"/>
+        </widgets>
+        <messages>
+         <messagewidget usesdiagramfillcolor="1" fillcolor="none" linecolor="#160f6e" usesdiagramusefillcolor="1" autoresize="0" localid="uzkE6XWKaonUt" showstereotype="1" y="288" font="Ubuntu,11,-1,5,50,0,0,0,0,0" widgetaid="uInAo6JPf7uuM" widgetbid="uQVQcNbuteS6E" textid="uhPT4HDW5QnIF" xmi.id="udGrnLdFPawB2" height="72" operation="udGrnLdFPawB2" isinstance="0" width="306" textcolor="none" x="-922" linewidth="0" usefillcolor="1" seqnum="3" sequencemessagetype="1000">
+          <floatingtext usesdiagramfillcolor="1" fillcolor="none" linecolor="#160f6e" usesdiagramusefillcolor="1" autoresize="1" localid="uJqo8dMGFeATd" pretext="" posttext="" showstereotype="1" y="267" font="Ubuntu,11,-1,5,50,0,0,0,0,0" xmi.id="uhPT4HDW5QnIF" height="21" role="704" text="pushShardComms()" isinstance="0" width="157" textcolor="none" x="-778" linewidth="0" usefillcolor="1"/>
+         </messagewidget>
+         <messagewidget usesdiagramfillcolor="1" fillcolor="none" linecolor="#160f6e" usesdiagramusefillcolor="1" autoresize="1" localid="uaFGJX65vesDt" showstereotype="1" y="418" font="Ubuntu,11,-1,5,50,0,0,0,0,0" widgetaid="uBuV8wsWzEkvI" widgetbid="uBuV8wsWzEkvI" textid="uKNZha6RHYXS1" xmi.id="uOc7MVv2xv6PR" height="10" yclicked="323" operation="uOc7MVv2xv6PR" isinstance="0" width="199" xclicked="-160" textcolor="none" x="-354" linewidth="0" usefillcolor="1" seqnum="5" sequencemessagetype="1003">
+          <floatingtext usesdiagramfillcolor="1" fillcolor="none" linecolor="#160f6e" usesdiagramusefillcolor="1" autoresize="1" localid="u3V6SIRcKWsCN" pretext="" posttext="" showstereotype="1" y="397" font="Ubuntu,11,-1,5,50,0,0,0,0,0" xmi.id="uKNZha6RHYXS1" height="21" role="705" text="pop() : DevcashMessageUniquePtr" isinstance="0" width="257" textcolor="none" x="-349" linewidth="0" usefillcolor="1"/>
+         </messagewidget>
+         <messagewidget usesdiagramfillcolor="1" fillcolor="none" linecolor="#160f6e" usesdiagramusefillcolor="1" autoresize="0" localid="u4QVB9LVq1b4g" showstereotype="1" y="215" font="Ubuntu,11,-1,5,50,0,0,0,0,0" widgetaid="uQVQcNbuteS6E" widgetbid="uInAo6JPf7uuM" textid="uhYoC9aMedN37" xmi.id="uxIVnFnhxlATV" height="272" operation="uxIVnFnhxlATV" isinstance="0" width="306" textcolor="none" x="-914" linewidth="0" usefillcolor="1" seqnum="1" sequencemessagetype="1000">
+          <floatingtext usesdiagramfillcolor="1" fillcolor="none" linecolor="#160f6e" usesdiagramusefillcolor="1" autoresize="1" localid="uwLYXqmG8vA2H" pretext="" posttext="" showstereotype="1" y="194" font="Ubuntu,11,-1,5,50,0,0,0,0,0" xmi.id="uhYoC9aMedN37" height="21" role="704" text="ConsensusCallback()" isinstance="0" width="163" textcolor="none" x="-804" linewidth="0" usefillcolor="1"/>
+         </messagewidget>
+         <messagewidget usesdiagramfillcolor="1" fillcolor="none" linecolor="#160f6e" usesdiagramusefillcolor="1" autoresize="1" localid="uOxQmq4HAekSK" showstereotype="1" y="313" font="Ubuntu,11,-1,5,50,0,0,0,0,0" widgetaid="uQVQcNbuteS6E" widgetbid="uBuV8wsWzEkvI" textid="u7vevAXRW1Duw" xmi.id="uUWlCkC7lliMa" height="20" operation="uUWlCkC7lliMa" isinstance="0" width="568" textcolor="none" x="-914" linewidth="0" usefillcolor="1" seqnum="4" sequencemessagetype="1000">
+          <floatingtext usesdiagramfillcolor="1" fillcolor="none" linecolor="#160f6e" usesdiagramusefillcolor="1" autoresize="1" localid="u1OuqmEI78N4M" pretext="" posttext="" showstereotype="1" y="292" font="Ubuntu,11,-1,5,50,0,0,0,0,0" xmi.id="u7vevAXRW1Duw" height="21" role="704" text="push() : bool" isinstance="0" width="108" textcolor="none" x="-467" linewidth="0" usefillcolor="1"/>
+         </messagewidget>
+         <messagewidget usesdiagramfillcolor="1" fillcolor="none" linecolor="#160f6e" usesdiagramusefillcolor="1" autoresize="0" localid="ulNaqxIiAjKO2" showstereotype="1" y="261" font="Ubuntu,11,-1,5,50,0,0,0,0,0" widgetaid="uInAo6JPf7uuM" widgetbid="uInAo6JPf7uuM" textid="uIvB6rfwoFue1" xmi.id="uL2GRyqGrh930" height="127" operation="uL2GRyqGrh930" isinstance="0" width="50" textcolor="none" x="-618" linewidth="0" usefillcolor="1" seqnum="2" sequencemessagetype="1000">
+          <floatingtext usesdiagramfillcolor="1" fillcolor="none" linecolor="#160f6e" usesdiagramusefillcolor="1" autoresize="1" localid="uNAQb9b7kYNQL" pretext="" posttext="" showstereotype="1" y="240" font="Ubuntu,11,-1,5,50,0,0,0,0,0" xmi.id="uIvB6rfwoFue1" height="21" role="705" text="PushShardComms()" isinstance="0" width="157" textcolor="none" x="-613" linewidth="0" usefillcolor="1"/>
          </messagewidget>
         </messages>
         <associations/>
@@ -4255,7 +4280,7 @@
   </UML:Model>
  </XMI.content>
  <XMI.extensions xmi.extender="umbrello">
-  <docsettings viewid="uFO30OlykQUZL" uniqueid="uYxuw5mmjUlH3" documentation=""/>
+  <docsettings viewid="uFO30OlykQUZL" uniqueid="uKNZha6RHYXS1" documentation=""/>
   <listview>
    <listitem type="800" open="1" id="Views">
     <listitem type="821" open="1" id="Component_View">
@@ -4341,6 +4366,7 @@
      <listitem label="class diagram" type="807" open="0" id="u1lAJ625nTZZl"/>
      <listitem type="813" open="0" id="uDuy6EBqwhfWn"/>
      <listitem label="ConsensusCallback::FINAL_BLOCK" type="810" open="0" id="uqwaHewCFYjGd"/>
+     <listitem label="ConsensusCallback::GET_BLOCKS_SINCE" type="810" open="0" id="u14Ab43uu0jyG"/>
      <listitem label="ConsensusCallback::PROPOSAL_BLOCK" type="810" open="0" id="uFO30OlykQUZL"/>
      <listitem type="813" open="0" id="uKd05kpPzzPLD"/>
      <listitem type="818" open="0" id="u8pzxyWJUg1td"/>
@@ -4619,7 +4645,7 @@
        <listitem type="814" open="0" id="ucYTbIJdvLwWC"/>
        <listitem type="814" open="0" id="upkW0xSr1cGyh"/>
       </listitem>
-      <listitem type="813" open="1" id="uAOnioYygobFz">
+      <listitem type="813" open="0" id="uAOnioYygobFz">
        <listitem type="814" open="0" id="uPNdHcQECzv17"/>
        <listitem type="814" open="0" id="uKdq47GDnFgxi"/>
        <listitem type="814" open="0" id="uTIXCq3r6DQLO"/>
@@ -4689,7 +4715,7 @@
        <listitem type="814" open="0" id="uTz2vgMjbJh6u"/>
        <listitem type="814" open="0" id="uWc6EhgePg170"/>
       </listitem>
-      <listitem type="813" open="0" id="u22RdKGsqkiTQ">
+      <listitem type="813" open="1" id="u22RdKGsqkiTQ">
        <listitem type="815" open="0" id="ueSarr45TZZlj"/>
        <listitem type="814" open="0" id="uwWIdIWGlxOad"/>
        <listitem type="814" open="0" id="ugYzBnbpo1qCe"/>
@@ -4728,7 +4754,7 @@
        <listitem type="814" open="0" id="uSuRv1DshChcI"/>
       </listitem>
       <listitem type="813" open="0" id="ujKZFkyCI6s12"/>
-      <listitem type="813" open="0" id="uC2VR2Mel8cUM">
+      <listitem type="813" open="1" id="uC2VR2Mel8cUM">
        <listitem type="815" open="0" id="utxB7M9jlioXR"/>
        <listitem type="815" open="0" id="uvCKCXDbYnW9k"/>
        <listitem type="815" open="0" id="uv0dxCmJaoMrm"/>
