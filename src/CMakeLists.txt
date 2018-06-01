@@ -143,6 +143,38 @@ target_include_directories(scanner PRIVATE ${dcInclude})
 install (TARGETS scanner DESTINATION bin)
 
 #
+# Annnouncer
+#
+
+add_executable(announcer announcer.cpp ${dcInclude})
+target_link_libraries (announcer
+  common
+  concurrency
+  consensus
+  ${ZMQ}
+  )
+
+find_package (OpenSSL REQUIRED)
+if (OPENSSL_FOUND)
+  include_directories(${OPENSSL_INCLUDE_DIR})
+  target_link_libraries (announcer ${OPENSSL_LIBRARIES})
+endif (OPENSSL_FOUND)
+
+find_package(Threads)
+target_link_libraries(announcer ${CMAKE_THREAD_LIBS_INIT})
+
+find_package(Boost COMPONENTS date_time filesystem thread
+  system program_options log REQUIRED)
+if(Boost_FOUND)
+  include_directories(${Boost_INCLUDE_DIRS})
+  target_link_libraries(announcer ${Boost_LIBRARIES})
+endif(Boost_FOUND)
+
+target_include_directories(announcer PRIVATE ${dcInclude})
+
+install (TARGETS announcer DESTINATION bin)
+
+#
 # Chain state Tests
 #
 

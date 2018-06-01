@@ -9,6 +9,8 @@
  *      Author: Nick Williams
  */
 
+#include <algorithm>
+#include <cmath>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string>
@@ -55,7 +57,19 @@ int main(int argc, char* argv[])
 
     Address inn_addr = keys.getInnAddr();
 
-    size_t addr_count = keys.CountWallets();
+    if (options->generate_count < 2) {
+      LOG_FATAL << "Must generate at least 2 transactions for a complete circuit.";
+      CASH_THROW("Invalid number of transactions to generate.");
+    }
+    //Need sqrt(N-1) addresses (x) to create N circuits: 1+x(x-1)+x=N
+    double need_addrs = std::sqrt(options->generate_count-1);
+    //if sqrt(N-1) is not an int, circuits will be incomplete
+    if (std::floor(need_addrs) != need_addrs) {
+      LOG_WARNING << "For complete circuits generate a perfect square + 1 transactions (ie 2,5,10,17...)";
+    }
+
+    size_t addr_count = std::min(keys.CountWallets()
+      , static_cast<unsigned int>need_addrs);
 
     size_t counter = 0;
     size_t batch_counter = 0;
@@ -73,7 +87,7 @@ int main(int argc, char* argv[])
             , keys.getKey(inn_addr), keys);
         std::vector<byte> inn_canon(inn_tx.getCanonical());
         out.insert(out.end(), inn_canon.begin(), inn_canon.end());
-        LOG_DEBUG << "GenerateTransactions(): generated inn_tx with sig: " << toHex(inn_tx.getSignature());
+        LOG_DEBUG << "Circuit test generated inn_tx with sig: " << toHex(inn_tx.getSignature());
         batch_counter++;
         for (size_t i=0; i<addr_count; ++i) {
           for (size_t j=0; j<addr_count; ++j) {
@@ -88,7 +102,7 @@ int main(int argc, char* argv[])
                                 , keys.getWalletKey(i), keys);
             std::vector<byte> peer_canon(peer_tx.getCanonical());
             out.insert(out.end(), peer_canon.begin(), peer_canon.end());
-            LOG_TRACE << "GenerateTransactions(): generated tx with sig: " << toHex(peer_tx.getSignature());
+            LOG_TRACE << "Circuit test generated tx with sig: " << toHex(peer_tx.getSignature());
             batch_counter++;
             if (batch_counter >= options->tx_batch_size) break;
           } //end inner for
