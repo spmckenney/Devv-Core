@@ -10,6 +10,8 @@
  *      Author: Nick Williams
  */
 
+#include <algorithm>
+#include <cmath>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string>
