@@ -132,7 +132,7 @@ int main(int argc, char* argv[])
       /* Should we announce a transaction? */
       if (processed < transactions.size()) {
         for (auto i : options->host_vector) {
-          auto announce_msg = make_unique<DevcashMessage>(i
+          auto announce_msg = std::make_unique<DevcashMessage>(i
                                                          , TRANSACTION_ANNOUNCEMENT
                                                          , transactions.at(processed)
                                                          , DEBUG_TRANSACTION_INDEX);

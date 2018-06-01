@@ -69,7 +69,7 @@ int main(int argc, char* argv[])
     }
 
     size_t addr_count = std::min(keys.CountWallets()
-      , static_cast<unsigned int>need_addrs);
+      , static_cast<unsigned int>(need_addrs));
 
     size_t counter = 0;
     size_t batch_counter = 0;

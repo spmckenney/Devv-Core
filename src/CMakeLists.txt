@@ -151,6 +151,7 @@ target_link_libraries (announcer
   common
   concurrency
   consensus
+  io
   ${ZMQ}
   )
 
