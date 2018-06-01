@@ -7,13 +7,13 @@
 #ifndef CONCURRENCY_DEVCASHCONTROLLER_H_
 #define CONCURRENCY_DEVCASHCONTROLLER_H_
 
-#include "consensus/chainstate.h"
-#include "consensus/blockchain.h"
-#include "consensus/KeyRing.h"
-#include "consensus/UnrecordedTransactionPool.h"
-#include "io/message_service.h"
 #include <condition_variable>
 #include <mutex>
+#include "consensus/KeyRing.h"
+#include "consensus/UnrecordedTransactionPool.h"
+#include "consensus/blockchain.h"
+#include "consensus/chainstate.h"
+#include "io/message_service.h"
 
 namespace Devcash {
 
@@ -21,24 +21,15 @@ class DevcashControllerWorker;
 
 class DevcashController {
  public:
-  DevcashController(io::TransactionServer& server,
-                    io::TransactionClient& peer_client,
-                    io::TransactionClient& loopback_client,
-                    int validatorCount,
-                    int consensusCount,
-                    int generateCount,
-                    int batchSize,
-                    size_t transaction_limit,
-                    const KeyRing& keys,
-                    DevcashContext& context,
-                    const ChainState& prior,
-                    eAppMode mode,
-                    std::string scan_dir);
+  DevcashController(io::TransactionServer& server, io::TransactionClient& peer_client,
+                    io::TransactionClient& loopback_client, int validatorCount, int consensusCount, int generateCount,
+                    int batchSize, size_t transaction_limit, const KeyRing& keys, DevcashContext& context,
+                    const ChainState& prior, eAppMode mode, std::string scan_dir);
 
   ~DevcashController();
 
-  std::vector<std::vector<byte>> GenerateTransactions();
-  std::vector<std::vector<byte>> LoadTransactions();
+  std::vector<std::vector<byte>> generateTransactions();
+  std::vector<std::vector<byte>> loadTransactions();
 
   /**
    * Start the workers and comm threads
@@ -47,43 +38,43 @@ class DevcashController {
   /** Stops all threads used by this controller.
    * @note This function may block.
    */
-  void StopAll();
+  void stopAll();
   /**
    * Push a message to the consensus workers.
    */
-  void PushConsensus(std::unique_ptr<DevcashMessage> ptr);
+  void pushConsensus(std::unique_ptr<DevcashMessage> ptr);
   /**
    * Push a message to the validator workers.
    */
-  void PushValidator(std::unique_ptr<DevcashMessage> ptr);
+  void pushValidator(std::unique_ptr<DevcashMessage> ptr);
   /**
    * Push a message to the inter-shard communication workers.
    */
-  void PushShardComms(std::unique_ptr<DevcashMessage> ptr);
+  void pushShardComms(std::unique_ptr<DevcashMessage> ptr);
 
   /**
    * Process a consensus worker message.
    */
-  void ConsensusCallback(std::unique_ptr<DevcashMessage> ptr);
+  void consensusCallback(std::unique_ptr<DevcashMessage> ptr);
   /**
    * Process a validator worker message.
    */
-  void ValidatorCallback(std::unique_ptr<DevcashMessage> ptr);
+  void validatorCallback(std::unique_ptr<DevcashMessage> ptr);
   /**
    * Process a inter-shard communciation worker message.
    */
-  void ShardCommsCallback(std::unique_ptr<DevcashMessage> ptr);
+  void shardCommsCallback(std::unique_ptr<DevcashMessage> ptr);
 
   /**
    * Process a consensus toy worker message.
    */
-  void ConsensusToyCallback(std::unique_ptr<DevcashMessage> ptr);
+  void consensusToyCallback(std::unique_ptr<DevcashMessage> ptr);
   /**
    * Process a validator toy worker message.
    */
-  void ValidatorToyCallback(std::unique_ptr<DevcashMessage> ptr);
+  void validatorToyCallback(std::unique_ptr<DevcashMessage> ptr);
 
-private:
+ private:
   io::TransactionServer& server_;
   io::TransactionClient& peer_client_;
   io::TransactionClient& loopback_client_;
@@ -110,9 +101,6 @@ private:
   uint64_t remote_blocks_ = 0;
   size_t input_blocks_ = 0;
 };
-
-
-
 
 } /* namespace Devcash */
 

@@ -275,7 +275,9 @@ namespace Devcash
   }
 
   std::map<Address, SmartCoin> do_AggregateState(std::map<Address, SmartCoin>& aggregator
-      , const ChainState& state, const KeyRing& keys, const Summary& summary) const override {
+                                                 , const ChainState& state
+                                                 , const KeyRing& keys
+                                                 , const Summary&) const override {
     CASH_TRY {
       if (!isSound(keys)) return aggregator;
       byte oper = getOperation();

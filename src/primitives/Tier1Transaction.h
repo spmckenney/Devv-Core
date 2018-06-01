@@ -14,9 +14,10 @@
 #include <vector>
 #include <stdint.h>
 
-#include "Transfer.h"
 #include "Summary.h"
-#include "Validation.h"
+#include "Transfer.h"
+#include "Transaction.h"
+
 #include "consensus/KeyRing.h"
 #include "consensus/chainstate.h"
 
@@ -239,7 +240,9 @@ class Tier1Transaction : public Transaction {
   }
 
   std::map<Address, SmartCoin> do_AggregateState(std::map<Address, SmartCoin>& aggregator
-      , const ChainState& state, const KeyRing& keys, const Summary& summary) const override {
+                                                 , const ChainState&
+                                                 , const KeyRing& keys
+                                                 , const Summary&) const override {
     CASH_TRY {
       if (!isSound(keys)) return aggregator;
 

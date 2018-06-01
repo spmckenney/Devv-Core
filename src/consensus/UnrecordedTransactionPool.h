@@ -25,10 +25,15 @@ class UnrecordedTransactionPool {
   /** Constrcutors */
   UnrecordedTransactionPool(const ChainState& prior, eAppMode mode
      , size_t max_tx_per_block)
-     : txs_(), pending_proposal_(prior), tcm_(mode), mode_(mode)
-     , max_tx_per_block_(max_tx_per_block) {
+     : txs_()
+    , pending_proposal_(prior)
+    , max_tx_per_block_(max_tx_per_block)
+    , tcm_(mode)
+    , mode_(mode)
+  {
     LOG_DEBUG << "UnrecordedTransactionPool(const ChainState& prior)";
   }
+
   UnrecordedTransactionPool(const UnrecordedTransactionPool& other) = delete;
 
   /** Adds Transactions to this pool.

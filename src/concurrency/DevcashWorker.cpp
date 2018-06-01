@@ -67,7 +67,7 @@ namespace Devcash {
    * @return false if some error occurred.
    */
   bool DevcashControllerWorker::StopAll() {
-    LOG_DEBUG << "DevcashControllerWorker::StopAll()";
+    LOG_DEBUG << "DevcashControllerWorker::stopAll()";
     if (!continue_) return false;
     CASH_TRY {
       continue_ = false;
@@ -118,9 +118,9 @@ namespace Devcash {
     CASH_TRY {
       while (continue_) {
         if (!toy_mode_) {
-          controller_->ValidatorCallback(std::move(validators_.pop()));
+            controller_->validatorCallback(std::move(validators_.pop()));
         } else {
-          controller_->ValidatorToyCallback(std::move(validators_.pop()));
+          controller_->validatorToyCallback(std::move(validators_.pop()));
         }
       }
     } CASH_CATCH (const std::exception& e) {
@@ -133,9 +133,9 @@ namespace Devcash {
     CASH_TRY {
       while (continue_) {
         if (!toy_mode_) {
-          controller_->ConsensusCallback(std::move(consensus_.pop()));
+          controller_->consensusCallback(std::move(consensus_.pop()));
         } else {
-          controller_->ConsensusToyCallback(std::move(consensus_.pop()));
+          controller_->consensusToyCallback(std::move(consensus_.pop()));
         }
       }
     } CASH_CATCH (const std::exception& e) {
@@ -148,7 +148,7 @@ namespace Devcash {
     CASH_TRY {
       while (continue_) {
         if (!toy_mode_) {
-          controller_->ShardCommsCallback(std::move(consensus_.pop()));
+          controller_->shardCommsCallback(std::move(consensus_.pop()));
         }
       }
     } CASH_CATCH (const std::exception& e) {

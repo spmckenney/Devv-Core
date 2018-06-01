@@ -61,7 +61,7 @@ void DevcashNode::Shutdown()
   fRequestShutdown = true;
   //TODO: how to stop zmq?
   LOG_INFO << "Shutting down DevCash";
-  //control_.StopAll();
+  //control_.stopAll();
 }
 
 DevcashNode::DevcashNode(DevcashController& control, DevcashContext& context)
