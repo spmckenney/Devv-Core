@@ -9,9 +9,11 @@
 
 #include <condition_variable>
 #include <mutex>
+
 #include "consensus/KeyRing.h"
 #include "consensus/UnrecordedTransactionPool.h"
 #include "consensus/blockchain.h"
+#include "consensus/tier2_message_handlers.h"
 #include "consensus/chainstate.h"
 #include "io/message_service.h"
 
@@ -21,10 +23,18 @@ class DevcashControllerWorker;
 
 class DevcashController {
  public:
-  DevcashController(io::TransactionServer& server, io::TransactionClient& peer_client,
-                    io::TransactionClient& loopback_client, int validatorCount, int consensusCount, int generateCount,
-                    int batchSize, size_t transaction_limit, const KeyRing& keys, DevcashContext& context,
-                    const ChainState& prior, eAppMode mode, std::string scan_dir);
+  DevcashController(io::TransactionServer& server,
+                    io::TransactionClient& peer_client,
+                    io::TransactionClient& loopback_client,
+                    int validatorCount,
+                    int consensusCount,
+                    int generateCount,
+                    int batchSize,
+                    size_t transaction_limit,
+                    const KeyRing& keys,
+                    DevcashContext& context,
+                    const ChainState& prior,
+                    eAppMode mode, std::string scan_dir);
 
   ~DevcashController();
 
@@ -35,18 +45,22 @@ class DevcashController {
    * Start the workers and comm threads
    */
   std::vector<byte> Start();
+
   /** Stops all threads used by this controller.
    * @note This function may block.
    */
   void stopAll();
+
   /**
    * Push a message to the consensus workers.
    */
   void pushConsensus(std::unique_ptr<DevcashMessage> ptr);
+
   /**
    * Push a message to the validator workers.
    */
   void pushValidator(std::unique_ptr<DevcashMessage> ptr);
+
   /**
    * Push a message to the inter-shard communication workers.
    */
@@ -56,10 +70,12 @@ class DevcashController {
    * Process a consensus worker message.
    */
   void consensusCallback(std::unique_ptr<DevcashMessage> ptr);
+
   /**
    * Process a validator worker message.
    */
   void validatorCallback(std::unique_ptr<DevcashMessage> ptr);
+
   /**
    * Process a inter-shard communciation worker message.
    */
@@ -69,6 +85,7 @@ class DevcashController {
    * Process a consensus toy worker message.
    */
   void consensusToyCallback(std::unique_ptr<DevcashMessage> ptr);
+
   /**
    * Process a validator toy worker message.
    */
