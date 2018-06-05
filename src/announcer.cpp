@@ -60,7 +60,6 @@ int main(int argc, char* argv[])
                                 , options->sync_port
                                 , options->sync_host);
     KeyRing keys(this_context);
-    ChainState prior;
 
     LOG_DEBUG << "Loading transactions from " << options->scan_dir;
     MTR_SCOPE_FUNC();
@@ -74,8 +73,6 @@ int main(int argc, char* argv[])
       LOG_ERROR << "Error opening dir: " << options->scan_dir << " is not a directory";
       return false;
     }
-
-    std::mutex critical;
 
     std::vector<std::string> files;
 
