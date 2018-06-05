@@ -263,6 +263,34 @@ target_include_directories(turbulent PRIVATE ${dcInclude})
 
 install (TARGETS turbulent DESTINATION bin)
 
+add_executable(verifier verifier.cpp ${dcInclude})
+target_link_libraries (verifier
+  common
+  concurrency
+  consensus
+  ${ZMQ}
+  )
+
+find_package (OpenSSL REQUIRED)
+if (OPENSSL_FOUND)
+  include_directories(${OPENSSL_INCLUDE_DIR})
+  target_link_libraries (verifier ${OPENSSL_LIBRARIES})
+endif (OPENSSL_FOUND)
+
+find_package(Threads)
+target_link_libraries(verifier ${CMAKE_THREAD_LIBS_INIT})
+
+find_package(Boost COMPONENTS date_time filesystem thread
+  system program_options log REQUIRED)
+if(Boost_FOUND)
+  include_directories(${Boost_INCLUDE_DIRS})
+  target_link_libraries(turbulent ${Boost_LIBRARIES})
+endif(Boost_FOUND)
+
+target_include_directories(verifier PRIVATE ${dcInclude})
+
+install (TARGETS verifier DESTINATION bin)
+
 #
 # i/o Tests
 #
