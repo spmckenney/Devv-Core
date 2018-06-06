@@ -193,7 +193,7 @@ int KeyRing::CountWallets() const {
 int KeyRing::getNodeIndex(const Address& addr) const {
   unsigned int pos = find(node_list_.begin(), node_list_.end(), addr)
     - node_list_.begin();
-  if (pos < 0 || pos >= node_list_.size()) {
+  if (pos >= node_list_.size()) {
     return -1;
   }
   return pos;
