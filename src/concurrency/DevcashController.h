@@ -13,13 +13,64 @@
 #include "consensus/KeyRing.h"
 #include "consensus/UnrecordedTransactionPool.h"
 #include "consensus/blockchain.h"
-#include "consensus/tier2_message_handlers.h"
 #include "consensus/chainstate.h"
 #include "io/message_service.h"
 
 namespace Devcash {
 
 class DevcashControllerWorker;
+
+typedef std::function<bool(DevcashMessageUniquePtr ptr,
+                           Blockchain &final_chain,
+                           DevcashContext context,
+                           const KeyRing &keys,
+                           const UnrecordedTransactionPool &,
+                           uint64_t &remote_blocks)> BlocksSinceCallback;
+
+typedef std::function<bool(DevcashMessageUniquePtr ptr,
+                           Blockchain &final_chain,
+                           const DevcashContext &context,
+                           const KeyRing &keys,
+                           std::function<void(DevcashMessageUniquePtr)> callback)> BlocksSinceRequestCallback;
+
+typedef std::function<bool(DevcashMessageUniquePtr ptr,
+                           const DevcashContext &context,
+                           const KeyRing &keys,
+                           Blockchain &final_chain,
+                           UnrecordedTransactionPool &utx_pool,
+                           std::function<void(DevcashMessageUniquePtr)> callback)> FinalBlockCallback;
+
+typedef std::function<bool(DevcashMessageUniquePtr ptr,
+                           const DevcashContext &context,
+                           const KeyRing &keys,
+                           Blockchain &final_chain,
+                           TransactionCreationManager &tcm,
+                           std::function<void(DevcashMessageUniquePtr)> callback)> ProposalBlockCallback;
+
+typedef std::function<DevcashMessageUniquePtr(const KeyRing& keys,
+                                           Blockchain& final_chain,
+                                           UnrecordedTransactionPool& utx_pool,
+                                           const DevcashContext& context)> TransactionAnnouncementCallback;
+
+typedef std::function<bool(DevcashMessageUniquePtr ptr,
+                           const DevcashContext &context,
+                           Blockchain &final_chain,
+                           UnrecordedTransactionPool &utx_pool,
+                           std::function<void(DevcashMessageUniquePtr)> callback)> ValidationBlockCallback;
+
+
+
+/**
+ * Holds function pointers to message callbacks
+ */
+struct DevcashMessageCallbacks {
+  BlocksSinceCallback blocks_since_cb;
+  BlocksSinceRequestCallback blocks_since_request_cb;
+  FinalBlockCallback final_block_cb;
+  ProposalBlockCallback proposal_block_cb;
+  TransactionAnnouncementCallback transaction_announcement_cb;
+  ValidationBlockCallback validation_block_cb;
+};
 
 class DevcashController {
  public:
@@ -77,6 +128,14 @@ class DevcashController {
   void validatorCallback(std::unique_ptr<DevcashMessage> ptr);
 
   /**
+   * Initializes message callback functions
+   * @param[in] callbacks
+   */
+  void setMessageCallbacks(DevcashMessageCallbacks callbacks) {
+    message_callbacks_ = callbacks;
+  }
+
+  /**
    * Process a inter-shard communciation worker message.
    */
   void shardCommsCallback(std::unique_ptr<DevcashMessage> ptr);
@@ -117,6 +176,8 @@ class DevcashController {
   mutable std::mutex mutex_;
   uint64_t remote_blocks_ = 0;
   size_t input_blocks_ = 0;
+
+  DevcashMessageCallbacks message_callbacks_;
 };
 
 } /* namespace Devcash */

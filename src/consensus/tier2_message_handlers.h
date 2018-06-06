@@ -23,9 +23,6 @@ namespace Devcash {
 #define DEBUG_PROPOSAL_INDEX                                    \
   ((block_height+1) + (context.get_current_node()+1)*1000000)
 
-#define DEBUG_TRANSACTION_INDEX                             \
-  (processed + (context_.get_current_node()+1)*11000000)
-
 /**
  * Creates a proposal from the UnrecordedTransactionPool
  * @param[in] keys

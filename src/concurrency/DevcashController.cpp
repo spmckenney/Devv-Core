@@ -11,7 +11,7 @@
 #include <mutex>
 #include <thread>
 #include <string>
-#include <time.h>
+#include <ctime>
 #include <boost/filesystem.hpp>
 
 #include "DevcashWorker.h"
@@ -25,6 +25,9 @@ typedef std::chrono::milliseconds millisecs;
 namespace fs = boost::filesystem;
 
 namespace Devcash {
+
+#define DEBUG_TRANSACTION_INDEX \
+  (processed + (context_.get_current_node()+1)*11000000)
 
 DevcashController::DevcashController(
     io::TransactionServer& server,
@@ -71,7 +74,7 @@ void DevcashController::validatorCallback(DevcashMessageUniquePtr ptr) {
     return;
   }
   LogDevcashMessageSummary(*ptr, "validatorCallback");
-  //CASH_TRY {
+  CASH_TRY {
     LOG_DEBUG << "DevcashController::validatorCallback()";
     MTR_SCOPE_FUNC();
     if (ptr->message_type == TRANSACTION_ANNOUNCEMENT) {
@@ -82,8 +85,8 @@ void DevcashController::validatorCallback(DevcashMessageUniquePtr ptr) {
         if (block_height == 0) {
           LOG_INFO << "(spm): CreateNextProposal, utx_pool.HasProposal(): " << utx_pool_.HasProposal();
           if (!utx_pool_.HasProposal()) {
-            server_.QueueMessage(std::move(
-              CreateNextProposal(keys_,final_chain_,utx_pool_,context_)));
+            server_.queueMessage(std::move(
+                message_callbacks_.transaction_announcement_cb(keys_, final_chain_, utx_pool_, context_)));
           }
         }
       }
@@ -95,86 +98,81 @@ void DevcashController::validatorCallback(DevcashMessageUniquePtr ptr) {
       LOG_DEBUG << "Unexpected message @ validator, to consensus.\n";
       pushConsensus(std::move(ptr));
     }
-    /*
   } CASH_CATCH (const std::exception& e) {
     LOG_FATAL << FormatException(&e, "DevcashController.validatorCallback()");
     stopAll();
   }
-    */
 }
 
 void DevcashController::consensusCallback(DevcashMessageUniquePtr ptr) {
   std::lock_guard<std::mutex> guard(mutex_);
   MTR_SCOPE_FUNC();
-  //CASH_TRY {
+  CASH_TRY {
     if (shutdown_) {
       LOG_DEBUG << "DevcashController()::consensusCallback(): shutdown_ == true";
       return;
     }
     switch(ptr->message_type) {
-    case eMessageType::FINAL_BLOCK:
-      LOG_DEBUG << "DevcashController()::consensusCallback(): FINAL_BLOCK";
-      HandleFinalBlock(std::move(ptr),
-                       context_,
-                       keys_,
-                       final_chain_,
-                       utx_pool_,
-                       [this](DevcashMessageUniquePtr p) { this->server_.QueueMessage(std::move(p));});
-      break;
+      case eMessageType::FINAL_BLOCK:
+        LOG_DEBUG << "DevcashController()::consensusCallback(): FINAL_BLOCK";
+        message_callbacks_.final_block_cb(std::move(ptr),
+                                          context_,
+                                          keys_,
+                                          final_chain_,
+                                          utx_pool_,
+                                          [this](DevcashMessageUniquePtr p) {
+                                            this->server_.queueMessage(std::move(p));
+                                          });
+        break;
 
-    case eMessageType::PROPOSAL_BLOCK:
-      LOG_DEBUG << "DevcashController()::consensusCallback(): PROPOSAL_BLOCK";
-      utx_pool_.get_transaction_creation_manager().set_keys(&keys_);
-      HandleProposalBlock(std::move(ptr),
-                          context_,
-                          keys_,
-                          final_chain_,
-                          utx_pool_.get_transaction_creation_manager(),
-                          [this](DevcashMessageUniquePtr p) { this->server_.QueueMessage(std::move(p));});
-      waiting_ = 0;
-      break;
+      case eMessageType::PROPOSAL_BLOCK:
+        LOG_DEBUG << "DevcashController()::consensusCallback(): PROPOSAL_BLOCK";
+        utx_pool_.get_transaction_creation_manager().set_keys(&keys_);
+        message_callbacks_.proposal_block_cb(std::move(ptr),
+                                             context_,
+                                             keys_,
+                                             final_chain_,
+                                             utx_pool_.get_transaction_creation_manager(),
+                                             [this](DevcashMessageUniquePtr p) { this->server_.queueMessage(std::move(p)); });
+        waiting_ = 0;
+        break;
 
-    case eMessageType::TRANSACTION_ANNOUNCEMENT:
-      LOG_DEBUG << "DevcashController()::consensusCallback(): TRANSACTION_ANNOUNCEMENT";
-      LOG_WARNING << "Unexpected message @ consensus, to validator";
-            pushValidator(std::move(ptr));
-      break;
+      case eMessageType::TRANSACTION_ANNOUNCEMENT:
+        LOG_DEBUG << "DevcashController()::consensusCallback(): TRANSACTION_ANNOUNCEMENT";
+        LOG_WARNING << "Unexpected message @ consensus, to validator";
+        pushValidator(std::move(ptr));
+        break;
 
-    case eMessageType::VALID:
-      LOG_DEBUG << "DevcashController()::consensusCallback(): VALIDATION";
-      HandleValidationBlock(std::move(ptr),
-                            context_,
-                            final_chain_,
-                            utx_pool_,
-                            [this](DevcashMessageUniquePtr p) { this->server_.QueueMessage(std::move(p));});
-      break;
+      case eMessageType::VALID:
+        LOG_DEBUG << "DevcashController()::consensusCallback(): VALIDATION";
+        message_callbacks_.validation_block_cb(std::move(ptr),
+                              context_,
+                              final_chain_,
+                              utx_pool_,
+                              [this](DevcashMessageUniquePtr p) { this->server_.queueMessage(std::move(p)); });
+        break;
 
-    case eMessageType::REQUEST_BLOCK:
-      LOG_DEBUG << "Unexpected message @ consensus, to shard comms.\n";
-            pushShardComms(std::move(ptr));
-      break;
+      case eMessageType::REQUEST_BLOCK:
+        LOG_DEBUG << "Unexpected message @ consensus, to shard comms.";
+        pushShardComms(std::move(ptr));
+        break;
 
-    case eMessageType::GET_BLOCKS_SINCE:
-      LOG_DEBUG << "Unexpected message @ consensus, to shard comms.\n";
-            pushShardComms(std::move(ptr));
-      break;
+      case eMessageType::GET_BLOCKS_SINCE:LOG_DEBUG << "Unexpected message @ consensus, to shard comms.\n";
+        pushShardComms(std::move(ptr));
+        break;
 
-  case eMessageType::BLOCKS_SINCE:
-      LOG_DEBUG << "Unexpected message @ consensus, to shard comms.\n";
-            pushShardComms(std::move(ptr));
-      break;
+      case eMessageType::BLOCKS_SINCE:LOG_DEBUG << "Unexpected message @ consensus, to shard comms.\n";
+        pushShardComms(std::move(ptr));
+        break;
 
-    default:
-      LOG_ERROR << "DevcashController()::consensusCallback(): Unexpected message, ignore.\n";
-      break;
+      default:LOG_ERROR << "DevcashController()::consensusCallback(): Unexpected message, ignore.\n";
+        break;
     }
-    /*
   } CASH_CATCH (const std::exception& e) {
     LOG_FATAL << FormatException(&e, "DevcashController.consensusCallback()");
     CASH_THROW(e);
     stopAll();
   }
-    */
 }
 
 void DevcashController::shardCommsCallback(DevcashMessageUniquePtr ptr) {
@@ -223,13 +221,13 @@ void DevcashController::shardCommsCallback(DevcashMessageUniquePtr ptr) {
                                                       , GET_BLOCKS_SINCE
                                                       , request
                                                       , remote_blocks_);
-          server_.QueueMessage(std::move(blocks_msg1));
+            server_.queueMessage(std::move(blocks_msg1));
           std::string uri2 = context_.get_uri_from_index(context_.get_peer_count()*2+context_.get_current_node()%context_.get_peer_count());
           auto blocks_msg2 = std::make_unique<DevcashMessage>(uri2
                                                       , GET_BLOCKS_SINCE
                                                       , request
                                                       , remote_blocks_);
-          server_.QueueMessage(std::move(blocks_msg2));
+            server_.queueMessage(std::move(blocks_msg2));
         } else if (mode_ == eAppMode::T2) {
           //a T2 should request new blocks from the T1 node with the same node index as itself
           std::string uri = context_.get_uri_from_index(context_.get_current_node()%context_.get_peer_count());
@@ -237,7 +235,7 @@ void DevcashController::shardCommsCallback(DevcashMessageUniquePtr ptr) {
                                                       , GET_BLOCKS_SINCE
                                                       , request
                                                       , remote_blocks_);
-          server_.QueueMessage(std::move(blocks_msg));
+            server_.queueMessage(std::move(blocks_msg));
         }
       }
       break;
@@ -245,16 +243,16 @@ void DevcashController::shardCommsCallback(DevcashMessageUniquePtr ptr) {
     case eMessageType::GET_BLOCKS_SINCE:
       LOG_DEBUG << "DevcashController()::shardCommsCallback(): GET_BLOCKS_SINCE";
       //provide blocks since requested height
-      HandleBlocksSinceRequest(std::move(ptr),
+      message_callbacks_.blocks_since_request_cb(std::move(ptr),
                                final_chain_,
                                context_,
                                keys_,
-                               [this](DevcashMessageUniquePtr p) { this->server_.QueueMessage(std::move(p));});
+                               [this](DevcashMessageUniquePtr p) { this->server_.queueMessage(std::move(p));});
       break;
 
   case eMessageType::BLOCKS_SINCE:
       LOG_DEBUG << "DevcashController()::shardCommsCallback(): BLOCKS_SINCE";
-      HandleBlocksSince(std::move(ptr),
+      message_callbacks_.blocks_since_cb(std::move(ptr),
                         final_chain_,
                         context_,
                         keys_,
@@ -290,7 +288,7 @@ void DevcashController::consensusToyCallback(DevcashMessageUniquePtr ptr) {
   LOG_DEBUG << "DevcashController()::consensusToyCallback()";
   assert(ptr);
   if (consensus_flipper_) {
-    server_.QueueMessage(std::move(ptr));
+      server_.queueMessage(std::move(ptr));
   }
   consensus_flipper_ = !consensus_flipper_;
 }
@@ -404,6 +402,7 @@ std::vector<std::vector<byte>> DevcashController::loadTransactions() {
         Validation val(one_block.getValidation());
         std::pair<Address, Signature> pair(val.getFirstValidation());
         int index = keys_.getNodeIndex(pair.first);
+        assert(index > 0)
         Tier1Transaction tx(sum, pair.second, (uint64_t) index, keys_);
         std::vector<byte> tx_canon(tx.getCanonical());
         batch.insert(batch.end(), tx_canon.begin(), tx_canon.end());
@@ -434,16 +433,16 @@ std::vector<byte> DevcashController::Start() {
       }
     };
 
-    peer_client_.AttachCallback(lambda_callback);
-    peer_client_.ListenTo(context_.get_shard_uri());
-    peer_client_.ListenTo(context_.get_uri());
+    peer_client_.attachCallback(lambda_callback);
+    peer_client_.listenTo(context_.get_shard_uri());
+    peer_client_.listenTo(context_.get_uri());
 
-    loopback_client_.AttachCallback(lambda_callback);
-    loopback_client_.ListenTo(context_.get_uri());
+    loopback_client_.attachCallback(lambda_callback);
+    loopback_client_.listenTo(context_.get_uri());
 
-    server_.StartServer();
-    peer_client_.StartClient();
-    loopback_client_.StartClient();
+    server_.startServer();
+    peer_client_.startClient();
+    loopback_client_.startClient();
 
     std::vector<std::vector<byte>> transactions;
     size_t processed = 0;
@@ -486,7 +485,7 @@ std::vector<byte> DevcashController::Start() {
                                                              , TRANSACTION_ANNOUNCEMENT
                                                              , transactions.at(processed)
                                                              , DEBUG_TRANSACTION_INDEX);
-        server_.QueueMessage(std::move(announce_msg));
+          server_.queueMessage(std::move(announce_msg));
         processed++;
       } else if (!utx_pool_.HasPendingTransactions()) {
         if (final_chain_.getNumTransactions() >= transaction_limit_
@@ -505,7 +504,7 @@ std::vector<byte> DevcashController::Start() {
 		                                                    , REQUEST_BLOCK
 		                                                    , request
 		                                                    , remote_blocks_);
-        server_.QueueMessage(std::move(request_msg));
+          server_.queueMessage(std::move(request_msg));
         remote_blocks_ = final_chain_.size();
       }
 
@@ -529,9 +528,9 @@ void DevcashController::stopAll() {
     LOG_DEBUG << "DevcashController::stopAll()";
     shutdown_ = true;
     std::this_thread::sleep_for(std::chrono::milliseconds(5000));
-    peer_client_.StopClient();
-    loopback_client_.StopClient();
-    server_.StopServer();
+    peer_client_.stopClient();
+    loopback_client_.stopClient();
+    server_.stopServer();
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
     workers_->StopAll();
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
