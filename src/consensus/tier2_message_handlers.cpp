@@ -33,6 +33,7 @@ DevcashMessageUniquePtr CreateNextProposal(const KeyRing& keys,
       ChainState prior = final_chain.getHighestChainState();
       utx_pool.ProposeBlock(prev_hash, prior, keys, context);
     } else {
+      /// @todo (mckenney) misspelled?
       Hash prev_hash = DevcashHash({'G', 'e', 'n', 'e', 'i', 's'});
       ChainState prior;
       utx_pool.ProposeBlock(prev_hash, prior, keys, context);
