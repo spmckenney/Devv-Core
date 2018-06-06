@@ -107,7 +107,7 @@ std::string WriteChainStateMap(std::map<Address, std::map<uint64_t, uint64_t>> m
     } else {
       out += ",";
     }
-    Address a = e.first();
+    Address a = e.first;
     out += "\""+toHex(std::vector<byte>(std::begin(a), std::end(a)))+"\":[";
     bool is_first;
     for (auto f : e.second) {

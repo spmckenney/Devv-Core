@@ -284,7 +284,7 @@ find_package(Boost COMPONENTS date_time filesystem thread
   system program_options log REQUIRED)
 if(Boost_FOUND)
   include_directories(${Boost_INCLUDE_DIRS})
-  target_link_libraries(turbulent ${Boost_LIBRARIES})
+  target_link_libraries(verifier ${Boost_LIBRARIES})
 endif(Boost_FOUND)
 
 target_include_directories(verifier PRIVATE ${dcInclude})
