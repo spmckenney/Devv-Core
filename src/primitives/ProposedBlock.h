@@ -21,7 +21,7 @@ namespace Devcash
 static std::vector<TransactionPtr> copy(const std::vector<TransactionPtr>& txs) {
   std::vector<TransactionPtr> tx_out;
   for (auto& iter : txs) {
-    tx_out.push_back(iter->Clone());
+    tx_out.push_back(iter->clone());
   }
   return(std::move(tx_out));
 }
@@ -101,7 +101,7 @@ public:
                             tx_size_);
     /*
 
-                          while (offset < MinSize()+tx_size_) {
+                          while (offset < minSize()+tx_size_) {
       //Transaction constructor increments offset by ref
       LOG_DEBUG << "while, offset = " << offset;
       Transaction one_tx(serial, offset, keys, false);
@@ -220,13 +220,13 @@ public:
 
     std::vector<byte> md = summary_.getCanonical();
     for (auto iter = vals_.sigs_.begin(); iter != vals_.sigs_.end(); ++iter) {
-      if(!VerifyByteSig(keys.getKey(iter->first), dcHash(md), iter->second)) {
+      if(!VerifyByteSig(keys.getKey(iter->first), DevcashHash(md), iter->second)) {
         LOG_WARNING << "Invalid block signature";
         LOG_DEBUG << "Block state: "+getJSON();
-        LOG_DEBUG << "Block Node Addr: "+toHex(std::vector<byte>(
-            std::begin(iter->first), std::end(iter->first)));
-        LOG_DEBUG << "Block Node Sig: "+toHex(std::vector<byte>(
-            std::begin(iter->second), std::end(iter->second)));
+        LOG_DEBUG << "Block Node Addr: "+ ToHex(std::vector<byte>(
+                    std::begin(iter->first), std::end(iter->first)));
+        LOG_DEBUG << "Block Node Sig: "+ ToHex(std::vector<byte>(
+                    std::begin(iter->second), std::end(iter->second)));
         return false;
       }
     }
@@ -247,7 +247,7 @@ public:
     size_t node_num = context.get_current_node() % context.get_peer_count();
     Address node_addr = keys.getNodeAddr(node_num);
     Signature node_sig;
-    SignBinary(keys.getNodeKey(node_num), dcHash(md), node_sig);
+    SignBinary(keys.getNodeKey(node_num), DevcashHash(md), node_sig);
     vals_.addValidation(node_addr, node_sig);
     val_count_++;
     num_bytes_ = MinSize()+tx_size_+sum_size_
@@ -296,7 +296,7 @@ public:
     json += std::to_string(version_)+",";
     json += "\""+kBYTES_TAG+"\":"+std::to_string(num_bytes_)+",";
     std::vector<byte> prev_hash(std::begin(prev_hash_), std::end(prev_hash_));
-    json += "\""+kPREV_HASH_TAG+"\":"+toHex(prev_hash)+",";
+    json += "\""+kPREV_HASH_TAG+"\":"+ ToHex(prev_hash)+",";
     json += "\""+kTX_SIZE_TAG+"\":"+std::to_string(tx_size_)+",";
     json += "\""+kSUM_SIZE_TAG+"\":"+std::to_string(sum_size_)+",";
     json += "\""+kVAL_COUNT_TAG+"\":"+std::to_string(val_count_)+",";

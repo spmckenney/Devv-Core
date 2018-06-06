@@ -81,6 +81,12 @@ static std::vector<byte> Uint32ToBin(const uint32_t& source
   return dest;
 }
 
+/**
+ * Deserialize byte array to unsigned 64-bit integer
+ * @param[in] bytes Incoming byte array
+ * @param[in] start array location of uint64_t
+ * @return deserialized 64-bit integer
+ */
 static uint64_t BinToUint64(const std::vector<byte>& bytes, size_t start) {
   //MTR_SCOPE_FUNC();
   uint32_t lsb = BinToUint32(bytes, start);
@@ -89,8 +95,13 @@ static uint64_t BinToUint64(const std::vector<byte>& bytes, size_t start) {
   return dest;
 }
 
-static std::vector<byte> Uint64ToBin(const uint64_t& source
-    ,std::vector<byte>& dest) {
+/**
+ * Convert 64-bit into to binary
+ * @param[in] source
+ * @param[out] dest
+ * @return
+ */
+static std::vector<byte> Uint64ToBin(const uint64_t& source, std::vector<byte>& dest) {
   //MTR_SCOPE_FUNC();
   uint32_t lsb = source&0xffffffff;
   uint32_t msb = source >> 32;
@@ -117,7 +128,11 @@ static std::vector<byte> Int64ToBin(const int64_t& source
   return dest;
 }
 
-static uint64_t getEpoch() {
+/**
+ * Get the number of milliseconds since the Epoch (Jan 1, 1970)
+ * @return Number of milliseconds
+ */
+static uint64_t GetMillisecondsSinceEpoch() {
   //MTR_SCOPE_FUNC();
   std::chrono::milliseconds ms = std::chrono::duration_cast<std::chrono::milliseconds>
     (std::chrono::system_clock::now().time_since_epoch());
@@ -166,7 +181,7 @@ static const char alpha[] = "0123456789ABCDEF";
  *  @return string containing these data as hex numbers
  */
 template <typename Array>
-static std::string toHex(const Array& input) {
+static std::string ToHex(const Array &input) {
   MTR_SCOPE_FUNC();
   std::stringstream ss;
   for (size_t j=0; j<input.size(); j++) {

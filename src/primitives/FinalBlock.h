@@ -21,7 +21,7 @@ public:
 
   /** Constructors */
   FinalBlock(const ProposedBlock& proposed)
-    : num_bytes_(proposed.num_bytes_+40), block_time_(getEpoch())
+    : num_bytes_(proposed.num_bytes_+40), block_time_(GetMillisecondsSinceEpoch())
     , prev_hash_(proposed.prev_hash_), merkle_root_()
     , tx_size_(proposed.tx_size_), sum_size_(proposed.sum_size_)
     , val_count_(proposed.val_count_), vtx_(copy(proposed.getTransactions()))
@@ -29,9 +29,9 @@ public:
     , block_state_(proposed.getBlockState())
   {
 
-    merkle_root_ = dcHash(getBlockDigest());
+    merkle_root_ = DevcashHash(getBlockDigest());
     std::vector<byte> merkle(std::begin(merkle_root_), std::end(merkle_root_));
-    LOG_INFO << "Merkle: "+toHex(merkle);
+    LOG_INFO << "Merkle: "+ ToHex(merkle);
   }
   FinalBlock(const std::vector<byte>& serial, const ChainState& prior
       ,const KeyRing& keys, TransactionCreationManager& tcm)
@@ -75,7 +75,7 @@ public:
                            tx_size_);
 
     /*
-    while (offset < MinSize()+tx_size_) {
+    while (offset < minSize()+tx_size_) {
       //Transaction constructor increments offset by ref
       Transaction one_tx(serial, offset, keys);
       vtx_.push_back(one_tx);
@@ -156,9 +156,9 @@ public:
     json += "\""+kBYTES_TAG+"\":"+std::to_string(num_bytes_)+",";
     json += "\""+kTIME_TAG+"\":"+std::to_string(block_time_)+",";
     std::vector<byte> prev_hash(std::begin(prev_hash_), std::end(prev_hash_));
-    json += "\""+kPREV_HASH_TAG+"\":"+toHex(prev_hash)+",";
+    json += "\""+kPREV_HASH_TAG+"\":"+ ToHex(prev_hash)+",";
     std::vector<byte> merkle(std::begin(merkle_root_), std::end(merkle_root_));
-    json += "\""+kMERKLE_TAG+"\":"+toHex(merkle)+",";
+    json += "\""+kMERKLE_TAG+"\":"+ ToHex(merkle)+",";
     json += "\""+kTX_SIZE_TAG+"\":"+std::to_string(tx_size_)+",";
     json += "\""+kSUM_SIZE_TAG+"\":"+std::to_string(sum_size_)+",";
     json += "\""+kVAL_COUNT_TAG+"\":"+std::to_string(val_count_)+",";

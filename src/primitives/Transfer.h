@@ -70,7 +70,7 @@ class Transfer {
   std::string getJSON() const {
     std::string json("{\""+kADDR_TAG+"\":\"");
     Address addr = getAddress();
-    json += toHex(std::vector<byte>(std::begin(addr), std::end(addr)));
+    json += ToHex(std::vector<byte>(std::begin(addr), std::end(addr)));
     json += "\",\""+kTYPE_TAG+"\":"+std::to_string(getCoin());
     json += ",\""+kAMOUNT_TAG+"\":"+std::to_string(getAmount());
     json += ",\""+kDELAY_TAG+"\":"+std::to_string(getDelay());

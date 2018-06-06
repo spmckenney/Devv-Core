@@ -29,11 +29,11 @@ DevcashMessageUniquePtr CreateNextProposal(const KeyRing& keys,
 
   if (!utx_pool.HasProposal() && utx_pool.HasPendingTransactions()) {
     if (block_height > 0) {
-      Hash prev_hash = dcHash(final_chain.back()->getCanonical());
+      Hash prev_hash = DevcashHash(final_chain.back()->getCanonical());
       ChainState prior = final_chain.getHighestChainState();
       utx_pool.ProposeBlock(prev_hash, prior, keys, context);
     } else {
-      Hash prev_hash = dcHash({'G', 'e', 'n', 'e', 'i', 's'});
+      Hash prev_hash = DevcashHash({'G', 'e', 'n', 'e', 'i', 's'});
       ChainState prior;
       utx_pool.ProposeBlock(prev_hash, prior, keys, context);
     }
@@ -82,7 +82,7 @@ bool HandleFinalBlock(DevcashMessageUniquePtr ptr,
 
   if (utx_pool.HasProposal()) {
     ChainState current = top_block->getChainState();
-    Hash prev_hash = dcHash(top_block->getCanonical());
+    Hash prev_hash = DevcashHash(top_block->getCanonical());
     utx_pool.ReverifyProposal(prev_hash, current, keys);
   }
 
@@ -253,7 +253,7 @@ bool HandleBlocksSince(DevcashMessageUniquePtr ptr,
     while (offset < ptr->data.size()) {
       //constructor increments offset by reference
       FinalBlock one_block(ptr->data, state, offset);
-      uint64_t elapsed = getEpoch() - one_block.getBlockTime();
+      uint64_t elapsed = GetMillisecondsSinceEpoch() - one_block.getBlockTime();
       Summary sum(one_block.getSummary());
       for (auto const& addr : wallets) {
         std::vector<SmartCoin> coins = sum.getCoinsByAddr(addr, elapsed);

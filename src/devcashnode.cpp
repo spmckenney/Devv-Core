@@ -105,7 +105,7 @@ bool DevcashNode::SanityChecks()
     }
 
     std::vector<byte> msg = {'h', 'e', 'l', 'l', 'o'};
-    Hash test_hash(dcHash(msg));
+    Hash test_hash(DevcashHash(msg));
     std::string sDer;
 
     EC_KEY* loadkey = LoadEcKey(app_context_.kADDRs[1],

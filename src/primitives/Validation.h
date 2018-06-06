@@ -110,10 +110,8 @@ class Validation {
       } else {
         out += ",";
       }
-      out += "\""+toHex(std::vector<byte>(std::begin(item.first)
-        , std::end(item.first)))+"\":";
-      out += "\""+toHex(std::vector<byte>(std::begin(item.second)
-        , std::end(item.second)))+"\"";
+      out += "\""+ ToHex(std::vector<byte>(std::begin(item.first), std::end(item.first)))+"\":";
+      out += "\""+ ToHex(std::vector<byte>(std::begin(item.second), std::end(item.second)))+"\"";
     }
     out += "]";
     return out;
@@ -150,7 +148,7 @@ class Validation {
  *  @return the hash of this validation block.
 */
   const Hash GetHash() const {
-      return dcHash(getCanonical());
+      return DevcashHash(getCanonical());
   }
 
   static size_t PairSize() {

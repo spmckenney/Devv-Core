@@ -321,11 +321,11 @@ std::vector<std::vector<byte>> DevcashController::generateTransactions() {
         xfers.push_back(transfer);
       }
       Tier2Transaction inn_tx(eOpType::Create, xfers
-                         , getEpoch()+(1000000*(context_.get_current_node()+1)*(batch_counter+1))
+                         , GetMillisecondsSinceEpoch()+(1000000*(context_.get_current_node()+1)*(batch_counter+1))
           , keys_.getKey(inn_addr), keys_);
       std::vector<byte> inn_canon(inn_tx.getCanonical());
       batch.insert(batch.end(), inn_canon.begin(), inn_canon.end());
-      LOG_DEBUG << "generateTransactions(): generated inn_tx with sig: " << toHex(inn_tx.getSignature());
+      LOG_DEBUG << "generateTransactions(): generated inn_tx with sig: " << ToHex(inn_tx.getSignature());
       batch_counter++;
       for (size_t i=0; i<addr_count; ++i) {
         for (size_t j=0; j<addr_count; ++j) {
@@ -336,11 +336,11 @@ std::vector<std::vector<byte>> DevcashController::generateTransactions() {
           Transfer receiver(keys_.getWalletAddr(j), 0, 1, 0);
           peer_xfers.push_back(receiver);
           Tier2Transaction peer_tx(eOpType::Exchange, peer_xfers
-                              , getEpoch()+(1000000*(context_.get_current_node()+1)*(i+1)*(j+1))
+                              , GetMillisecondsSinceEpoch()+(1000000*(context_.get_current_node()+1)*(i+1)*(j+1))
                               , keys_.getWalletKey(i), keys_);
           std::vector<byte> peer_canon(peer_tx.getCanonical());
           batch.insert(batch.end(), peer_canon.begin(), peer_canon.end());
-          LOG_TRACE << "generateTransactions(): generated tx with sig: " << toHex(peer_tx.getSignature());
+          LOG_TRACE << "generateTransactions(): generated tx with sig: " << ToHex(peer_tx.getSignature());
           batch_counter++;
           if (batch_counter >= batch_size_) break;
         } //end inner for
