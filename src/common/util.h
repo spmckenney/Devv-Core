@@ -118,10 +118,9 @@ static int64_t BinToInt64(const std::vector<byte>& bytes, size_t start) {
   return dest;
 }
 
-static std::vector<byte> Int64ToBin(const int64_t& source
-    ,std::vector<byte>& dest) {
+static std::vector<byte> Int64ToBin(const int64_t &source, std::vector<byte> &dest) {
   //MTR_SCOPE_FUNC();
-  int32_t lsb = source&0xffffffff;
+  int32_t lsb = source & 0xffffffff;
   int32_t msb = source >> 32;
   Int32ToBin(lsb, dest);
   Int32ToBin(msb, dest);

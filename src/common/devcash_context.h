@@ -33,13 +33,13 @@ inline bool exists_test1(const std::string& name) {
   return (stat (name.c_str(), &buffer) == 0);
 }
 
-inline bool exists_test(const std::string& name) {
-    if (FILE *file = fopen(name.c_str(), "r")) {
-        fclose(file);
-        return true;
-    } else {
-        return false;
-    }
+inline bool exists_test(const std::string &name) {
+  if (FILE *file = fopen(name.c_str(), "r")) {
+    fclose(file);
+    return true;
+  } else {
+    return false;
+  }
 }
 
 struct DevcashContext {

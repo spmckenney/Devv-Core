@@ -1,27 +1,27 @@
-#include <vector>
-#include <string>
-#include <iostream>
 #include <exception>
+#include <iostream>
+#include <string>
+#include <vector>
 
 #include <boost/program_options.hpp>
 
 #include "common/logger.h"
-#include "io/message_service.h"
 #include "io/constants.h"
+#include "io/message_service.h"
 
 void print_t1_devcash_message(Devcash::DevcashMessageUniquePtr message) {
-  LOG(info) << "Got a T1 message: " << "Devcash->uri: " << message->uri;
+  LOG(info) << "Got a T1 message: "
+            << "Devcash->uri: " << message->uri;
 }
 
 void print_t2_devcash_message(Devcash::DevcashMessageUniquePtr message) {
-  LOG(info) << "Got a T2 message: " << "Devcash->uri: " << message->uri;
+  LOG(info) << "Got a T2 message: "
+            << "Devcash->uri: " << message->uri;
 }
 
 namespace po = boost::program_options;
 
-int
-main(int argc, char** argv) {
-
+int main(int argc, char** argv) {
   std::string t1_bind_endpoint("");
   std::string t2_bind_endpoint("");
 
@@ -29,7 +29,8 @@ main(int argc, char** argv) {
   std::vector<std::string> t2_host_vector{};
 
   try {
-    po::options_description desc("\n\
+    po::options_description desc(
+        "\n\
 The t1_example program can be used to demonstrate connectivity of\n\
 T1 and T2 networks. By default, it will send random DevcashMessage\n\
 every 5 seconds to any other t1_example programs that have connected\n\
@@ -37,19 +38,17 @@ to it will receive the message. If it receives a message, it will\n\
 execute the appropriate T1 or T2 callback. t1_example can connect\n\
 and listen to multiple other t1_example programs so almost any size\n\
 network could be build and tested.\n\nAllowed options");
-    desc.add_options()
-      ("help", "produce help message")
-      ("t1-host-list", po::value<std::vector<std::string>>(), 
-       "T1 client URI (i.e. tcp://192.168.10.1:5005). Option can be repeated to connect to multiple hosts.")
-      ("t2-host-list", po::value<std::vector<std::string>>(), 
-       "T2 client URI (i.e. tcp://192.168.10.1:5005). Option can be repeated to connect to multiple hosts.")
-      ("t1-bind-endpoint", po::value<std::string>(), "Endpoint for T1 server (i.e. tcp://*:5556)")
-      ("t2-bind-endpoint", po::value<std::string>(), "Endpoint for T2 server (i.e. tcp://*:5556)")
-      ;
+    desc.add_options()("help", "produce help message")(
+        "t1-host-list", po::value<std::vector<std::string>>(),
+        "T1 client URI (i.e. tcp://192.168.10.1:5005). Option can be repeated to connect to multiple hosts.")(
+        "t2-host-list", po::value<std::vector<std::string>>(),
+        "T2 client URI (i.e. tcp://192.168.10.1:5005). Option can be repeated to connect to multiple hosts.")(
+        "t1-bind-endpoint", po::value<std::string>(), "Endpoint for T1 server (i.e. tcp://*:5556)")(
+        "t2-bind-endpoint", po::value<std::string>(), "Endpoint for T2 server (i.e. tcp://*:5556)");
 
-    po::variables_map vm;        
+    po::variables_map vm;
     po::store(po::parse_command_line(argc, argv, desc), vm);
-    po::notify(vm);    
+    po::notify(vm);
 
     if (vm.count("help")) {
       LOG(debug) << desc << "\n";
@@ -65,8 +64,7 @@ network could be build and tested.\n\nAllowed options");
 
     if (vm.count("t2-bind-endpoint")) {
       t2_bind_endpoint = vm["t2-bind-endpoint"].as<std::string>();
-      LOG(debug) << "T2 bind URI: " \
-                 << t2_bind_endpoint;
+      LOG(debug) << "T2 bind URI: " << t2_bind_endpoint;
     } else {
       LOG(debug) << "T2 bind URI was not set.\n";
     }
@@ -85,12 +83,10 @@ network could be build and tested.\n\nAllowed options");
         LOG(debug) << "  " << i;
       }
     }
-  }
-  catch(std::exception& e) {
+  } catch (std::exception& e) {
     LOG_ERROR << "error: " << e.what() << "\n";
     return 1;
-  }
-  catch(...) {
+  } catch (...) {
     LOG_ERROR << "Exception of unknown type!\n";
   }
 
@@ -103,13 +99,13 @@ network could be build and tested.\n\nAllowed options");
   // other nodes
   Devcash::io::TransactionClient t1_client{context};
   for (auto i : t1_host_vector) {
-    t1_client.AddConnection(i);
+    t1_client.addConnection(i);
   }
-  t1_client.AttachCallback(print_t1_devcash_message);
+  t1_client.attachCallback(print_t1_devcash_message);
 
   std::thread t1_client_thread([&t1_client]() noexcept {
     LOG(info) << "Starting T1 client thread ...";
-    t1_client.Run();
+    t1_client.run();
     LOG(info) << "Client stopped.";
   });
 
@@ -119,33 +115,32 @@ network could be build and tested.\n\nAllowed options");
   TSPtr t1_server;
   if (t1_bind_endpoint.size() > 0) {
     t1_server = TSPtr(new Devcash::io::TransactionServer(context, t1_bind_endpoint));
-    t1_server->StartServer();
-    std::thread t1_server_thread([&t1_server](){
-        for (;;) {
-          sleep(5);
-          auto devcash_message = Devcash::DevcashMessageUniquePtr(new Devcash::DevcashMessage);
-          devcash_message->uri = "my_uri1";
-          devcash_message->message_type = Devcash::eMessageType::VALID;
-          LOG(info) << "Sending message";
-          t1_server->QueueMessage(std::move(devcash_message));
-        }
-      });
+    t1_server->startServer();
+    std::thread t1_server_thread([&t1_server]() {
+      for (;;) {
+        sleep(5);
+        auto devcash_message = Devcash::DevcashMessageUniquePtr(new Devcash::DevcashMessage);
+        devcash_message->uri = "my_uri1";
+        devcash_message->message_type = Devcash::eMessageType::VALID;
+        LOG(info) << "Sending message";
+        t1_server->queueMessage(std::move(devcash_message));
+      }
+    });
     all_threads.emplace_back(std::move(t1_server_thread));
   }
-
 
   sleep(2);
   // Setup the T2 client. This will connect to
   // other nodes
   Devcash::io::TransactionClient t2_client{context};
   for (auto i : t2_host_vector) {
-    t2_client.AddConnection(i);
+    t2_client.addConnection(i);
   }
-  t2_client.AttachCallback(print_t2_devcash_message);
+  t2_client.attachCallback(print_t2_devcash_message);
 
   std::thread t2_client_thread([&t2_client]() noexcept {
     LOG(info) << "Starting T2 client thread ...";
-    t2_client.Run();
+    t2_client.run();
     LOG(info) << "Client stopped.";
   });
 
@@ -155,17 +150,17 @@ network could be build and tested.\n\nAllowed options");
   TSPtr t2_server;
   if (t2_bind_endpoint.size() > 0) {
     t2_server = TSPtr(new Devcash::io::TransactionServer(context, t2_bind_endpoint));
-    t2_server->StartServer();
-    std::thread t2_server_thread([&t2_server](){
-        for (;;) {
-          sleep(5);
-          auto devcash_message = Devcash::DevcashMessageUniquePtr(new Devcash::DevcashMessage);
-          devcash_message->uri = "my_uri2";
-          devcash_message->message_type = Devcash::eMessageType::VALID;
-          LOG(info) << "Sending message";
-          t2_server->QueueMessage(std::move(devcash_message));
-        }
-      });
+    t2_server->startServer();
+    std::thread t2_server_thread([&t2_server]() {
+      for (;;) {
+        sleep(5);
+        auto devcash_message = Devcash::DevcashMessageUniquePtr(new Devcash::DevcashMessage);
+        devcash_message->uri = "my_uri2";
+        devcash_message->message_type = Devcash::eMessageType::VALID;
+        LOG(info) << "Sending message";
+        t2_server->queueMessage(std::move(devcash_message));
+      }
+    });
     all_threads.emplace_back(std::move(t2_server_thread));
   }
 

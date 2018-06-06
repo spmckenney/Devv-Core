@@ -27,14 +27,27 @@ namespace Devcash {
   (processed + (context_.get_current_node()+1)*11000000)
 
 /**
- *
+ * Creates a proposal from the UnrecordedTransactionPool
+ * @param[in] keys
+ * @param[in, out] final_chain
+ * @param[in, out] utx_pool
+ * @param[in] context
+ * @return
  */
 DevcashMessageUniquePtr CreateNextProposal(const KeyRing& keys,
                                            Blockchain& final_chain,
                                            UnrecordedTransactionPool& utx_pool,
                                            const DevcashContext& context);
 /**
- *
+ * Registered with DevcashController and called when a eMessageType::FINAL_BLOCK
+ * message arrives.
+ * @param[in] ptr Pointer to incoming DevcashMessage
+ * @param[in] context DevcashContext
+ * @param[in] keys KeyRing keys
+ * @param[in, out] final_chain The Blockchain to be updated with the incoming FINAL_BLOCK
+ * @param[in, out] utx_pool
+ * @param[in] callback Completion callback
+ * @return
  */
 bool HandleFinalBlock(DevcashMessageUniquePtr ptr,
                       const DevcashContext& context,
@@ -44,7 +57,15 @@ bool HandleFinalBlock(DevcashMessageUniquePtr ptr,
                       std::function<void(DevcashMessageUniquePtr)> callback);
 
 /**
- *
+ * Registered with DevcashController and called when a eMessageType::PROPOSAL_BLOCK message
+ * arrives.
+ * @param[in] ptr
+ * @param[in] context
+ * @param[in] keys
+ * @param[in, out] final_chain
+ * @param[in, out] tcm
+ * @param[in] callback
+ * @return
  */
 bool HandleProposalBlock(DevcashMessageUniquePtr ptr,
                          const DevcashContext& context,
@@ -55,6 +76,12 @@ bool HandleProposalBlock(DevcashMessageUniquePtr ptr,
 
 /**
  *
+ * @param ptr
+ * @param context
+ * @param final_chain
+ * @param utx_pool
+ * @param callback
+ * @return
  */
 bool HandleValidationBlock(DevcashMessageUniquePtr ptr,
                            const DevcashContext& context,
@@ -64,6 +91,12 @@ bool HandleValidationBlock(DevcashMessageUniquePtr ptr,
 
 /**
  *
+ * @param ptr
+ * @param final_chain
+ * @param context
+ * @param keys
+ * @param remote_blocks
+ * @return
  */
 bool HandleBlocksSince(DevcashMessageUniquePtr ptr,
                        Blockchain& final_chain,
@@ -74,6 +107,12 @@ bool HandleBlocksSince(DevcashMessageUniquePtr ptr,
 
 /**
  *
+ * @param ptr
+ * @param final_chain
+ * @param context
+ * @param keys
+ * @param callback
+ * @return
  */
 bool HandleBlocksSinceRequest(DevcashMessageUniquePtr ptr,
                               Blockchain& final_chain,
