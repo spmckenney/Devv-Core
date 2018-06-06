@@ -165,6 +165,7 @@ target_link_libraries(io_server_test
   common
   ${ZMQ}
   ${OPENSSL_LIBRARIES}
+  ${CMAKE_THREAD_LIBS_INIT}
   ${Boost_LIBRARIES}
   )
 
@@ -178,6 +179,7 @@ target_link_libraries(io_client_test
   common
   ${ZMQ}
   ${OPENSSL_LIBRARIES}
+  ${CMAKE_THREAD_LIBS_INIT}
   ${Boost_LIBRARIES}
   )
 
