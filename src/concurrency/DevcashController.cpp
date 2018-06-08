@@ -402,7 +402,7 @@ std::vector<std::vector<byte>> DevcashController::loadTransactions() {
         Validation val(one_block.getValidation());
         std::pair<Address, Signature> pair(val.getFirstValidation());
         int index = keys_.getNodeIndex(pair.first);
-        assert(index > 0);
+        assert(index >= 0);
         Tier1Transaction tx(sum, pair.second, (uint64_t) index, keys_);
         std::vector<byte> tx_canon(tx.getCanonical());
         batch.insert(batch.end(), tx_canon.begin(), tx_canon.end());
