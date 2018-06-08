@@ -19,29 +19,51 @@
 
 namespace Devcash {
 
+/// @todo (mckenney) move to constants file
 static const std::string kTYPE_TAG = "type";
 static const std::string kDELAY_TAG = "dlay";
 static const std::string kADDR_TAG = "addr";
 static const std::string kAMOUNT_TAG = "amount";
 
+/**
+ * A single coin transfer
+ */
 class Transfer {
  public:
-  /** Constructors */
-  Transfer(const Address& addr, uint64_t coin, uint64_t amount, uint64_t delay)
+  /**
+   *
+   * @param addr
+   * @param coin
+   * @param amount
+   * @param delay
+   */
+  Transfer(const Address& addr,
+           uint64_t coin,
+           uint64_t amount,
+           uint64_t delay)
       : canonical_(std::begin(addr), std::end(addr)) {
     Uint64ToBin(coin, canonical_);
     Int64ToBin(amount, canonical_);
     Uint64ToBin(delay, canonical_);
   }
 
+  /**
+   * Constructor
+   * @param serial
+   */
   explicit Transfer(const std::vector<byte>& serial) : canonical_(serial) {
     if (serial.size() != Size()) {
-      LOG_WARNING << "Invalid serialized transfer!";
+      LOG_ERROR << "Invalid serialized transfer!";
       return;
     }
   }
 
-  explicit Transfer(const std::vector<byte>& serial, size_t& offset)
+  /**
+   * Create a transfer from the buffer serial and update the offset
+   * @param[in] serial
+   * @param[in, out] offset
+   */
+  Transfer(const std::vector<byte>& serial, size_t& offset)
       : canonical_(serial.begin() + offset, serial.begin() + offset + Size()) {
     if (serial.size() < Size() + offset) {
       LOG_WARNING << "Invalid serialized transfer!";
@@ -50,15 +72,50 @@ class Transfer {
     offset += Size();
   }
 
-  explicit Transfer(const Transfer& other) : canonical_(other.canonical_) {}
+  /**
+   *
+   * @param other
+   */
+  Transfer(const Transfer& other) = default; // : canonical_(other.canonical_) {}
 
+  /** Compare transfers */
+  friend bool operator==(const Transfer& a, const Transfer& b) { return (a.canonical_ == b.canonical_); }
+  /** Compare transfers */
+  friend bool operator!=(const Transfer& a, const Transfer& b) { return (a.canonical_ != b.canonical_); }
+
+  /** Assign transfers */
+  Transfer& operator=(Transfer&& other) {
+    if (this != &other) {
+      this->canonical_ = other.canonical_;
+    }
+    return *this;
+  }
+
+  /** Assign transfers */
+  Transfer& operator=(const Transfer& other) {
+    if (this != &other) {
+      this->canonical_ = other.canonical_;
+    }
+    return *this;
+  }
+
+  /**
+   * Return the size of this Transfer
+   * @return size of this Transfer
+   * @todo (mckenney) move to constants
+   */
   static size_t Size() { return kADDR_SIZE + 24; }
 
-  /** Gets this transfer in a canonical form.
+  /**
+   * Gets this transfer in a canonical form.
    * @return a vector defining this transaction in canonical form.
    */
-  std::vector<byte> getCanonical() const { return canonical_; }
+  const std::vector<byte>& getCanonical() const { return canonical_; }
 
+  /**
+   * Return the JSON representation of this Transfer
+   * @return
+   */
   std::string getJSON() const {
     std::string json("{\"" + kADDR_TAG + "\":\"");
     Address addr = getAddress();
@@ -70,42 +127,36 @@ class Transfer {
     return json;
   }
 
-  /** Compare transfers */
-  friend bool operator==(const Transfer& a, const Transfer& b) { return (a.canonical_ == b.canonical_); }
-
-  friend bool operator!=(const Transfer& a, const Transfer& b) { return (a.canonical_ != b.canonical_); }
-
-  /** Assign transfers */
-  Transfer& operator=(Transfer&& other) {
-    if (this != &other) {
-      this->canonical_ = other.canonical_;
-    }
-    return *this;
-  }
-
-  Transfer& operator=(const Transfer& other) {
-    if (this != &other) {
-      this->canonical_ = other.canonical_;
-    }
-    return *this;
-  }
-
+  /**
+   * Get the address of this coin
+   * @return
+   */
   Address getAddress() const {
     Address addr;
     std::copy_n(canonical_.begin(), kADDR_SIZE, addr.begin());
     return addr;
   }
 
+  /**
+   * Return the coin
+   * @return
+   */
   uint64_t getCoin() const { return BinToUint64(canonical_, kADDR_SIZE); }
 
+  /**
+   * Return the amount of this Transfer
+   * @return
+   */
   int64_t getAmount() const { return BinToInt64(canonical_, kADDR_SIZE + 8); }
 
-  /** Returns the delay in seconds until this transfer is final.
+  /**
+   * Returns the delay in seconds until this transfer is final.
    * @return the delay in seconds until this transfer is final.
    */
   uint64_t getDelay() const { return BinToUint64(canonical_, kADDR_SIZE + 16); }
 
  private:
+  /// The canonical representation of this Transfer
   std::vector<byte> canonical_;
 };
 
