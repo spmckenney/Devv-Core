@@ -28,18 +28,29 @@
 #include "SmartCoin.h"
 
 namespace Devcash {
-typedef std::map<Address, Signature> vmap;
 
+/// A map of validations - Addresses and Signatures
+typedef std::map<Address, Signature> ValidationMap;
+
+/**
+ * A validation.
+ */
 class Validation {
  public:
-  vmap sigs_;
+  /**
+   * Default constructor
+   */
+  Validation() = default;
 
-  /** Constrcutors */
-  Validation() : sigs_() {}
+  /**
+   * Constructor. Deserializes from serial and updates the offset
+   * @param[in] serial
+   * @param[in, out] offset
+   */
   Validation(const std::vector<byte>& serial, size_t& offset) : sigs_() {
     MTR_SCOPE_FUNC();
     size_t remainder = serial.size() - offset;
-    while (remainder >= PairSize()) {
+    while (remainder >= pairSize()) {
       Address one_addr;
       Signature one_sig;
       std::copy_n(serial.begin() + offset, kADDR_SIZE, one_addr.begin());
@@ -48,12 +59,19 @@ class Validation {
       offset += kSIG_SIZE;
       std::pair<Address, Signature> one_pair(one_addr, one_sig);
       sigs_.insert(one_pair);
-      remainder -= PairSize();
+      remainder -= pairSize();
     }
   }
+
+  /**
+   * Constructor
+   * @param[in] serial
+   * @param[in, out] offset
+   * @param[in] count
+   */
   Validation(const std::vector<byte>& serial, size_t& offset, uint32_t count) : sigs_() {
     MTR_SCOPE_FUNC();
-    if (serial.size() < offset + (count * PairSize())) {
+    if (serial.size() < offset + (count * pairSize())) {
       LOG_WARNING << "Invalid Validation, too small";
     }
     size_t remainder = count;
@@ -69,32 +87,59 @@ class Validation {
       remainder--;
     }
   }
+
+  /**
+   * Constructor
+   * @param other
+   */
   Validation(const Validation& other) : sigs_(other.sigs_) {}
-  Validation(Address node, Signature sig) : sigs_() { sigs_.insert(std::pair<Address, Signature>(node, sig)); }
-  Validation(vmap sigs) : sigs_(sigs) {}
+
+  /**
+   * Constructor
+   * @param[in] node
+   * @param[in] sig
+   */
+  Validation(const Address& node, const Signature& sig) : sigs_() { sigs_.insert(std::pair<Address, Signature>(node, sig)); }
+
+  /**
+   * Constructor
+   * @param validation_map
+   */
+  Validation(const ValidationMap& validation_map) : sigs_(validation_map) {}
 
   /** Adds a validation record to this block.
    *  @param node the address of node that produced this validation
    *  @param sig the signature of the validating node
    *  @return true iff the validation verified against the node's public key
    */
-  bool addValidation(Address node, Signature sig) {
+  bool addValidation(const Address& node, const Signature& sig) {
     sigs_.insert(std::pair<Address, Signature>(node, sig));
     return true;
   }
-  bool addValidation(Validation& other) {
+
+  /**
+   *
+   * @param other
+   * @return
+   */
+  bool addValidation(const Validation& other) {
     sigs_.insert(other.sigs_.begin(), other.sigs_.end());
     return true;
   }
 
+  /**
+   *
+   * @return
+   */
   std::pair<Address, Signature> getFirstValidation() {
     auto x = sigs_.begin();
     std::pair<Address, Signature> pair(x->first, x->second);
     return pair;
   }
 
-  /** Returns a JSON string representing this validation block.
-   *  @return a JSON string representing this validation block.
+  /**
+   * Returns a JSON string representing this validation block.
+   * @return a JSON string representing this validation block.
    */
   std::string getJSON() const {
     MTR_SCOPE_FUNC();
@@ -113,8 +158,9 @@ class Validation {
     return out;
   }
 
-  /** Returns a CBOR byte vector representing this validation block.
-   *  @return a CBOR byte vector representing this validation block.
+  /**
+   * Returns a CBOR byte vector representing this validation block.
+   * @return a CBOR byte vector representing this validation block.
    */
   std::vector<byte> getCanonical() const {
     MTR_SCOPE_FUNC();
@@ -126,22 +172,39 @@ class Validation {
     return serial;
   }
 
-  /** Returns the size of this verification block in bytes
-   *  @return the size of this verification block in bytes
+  /**
+   * Returns the size of this verification block in bytes
+   * @return the size of this verification block in bytes
    */
-  unsigned int GetByteSize() const { return getCanonical().size(); }
+  unsigned int getByteSize() const { return getCanonical().size(); }
 
-  /** Returns the number of validations in this block.
-   *  @return the number of validations in this block.
+  /**
+   * Returns the number of validations in this block.
+   * @return the number of validations in this block.
    */
-  unsigned int GetValidationCount() const { return sigs_.size(); }
+  unsigned int getValidationCount() const { return sigs_.size(); }
 
-  /** Returns the hash of this validation block.
-   *  @return the hash of this validation block.
+  /**
+   * Returns the hash of this validation block.
+   * @return the hash of this validation block.
    */
-  const Hash GetHash() const { return DevcashHash(getCanonical()); }
+  const Hash getHash() const { return DevcashHash(getCanonical()); }
 
-  static size_t PairSize() { return kADDR_SIZE + kSIG_SIZE; }
+  /**
+   * Return the size of a pair (Address + Signature)
+   * @return
+   */
+  static size_t pairSize() { return kADDR_SIZE + kSIG_SIZE; }
+
+  /**
+   * Get a reference to the ValidationMap
+   * @return
+   */
+  const ValidationMap& getValidationMap() const { return sigs_; }
+
+ private:
+  /// Map of signatures
+  ValidationMap sigs_;
 };
 
 }  // end namespace Devcash

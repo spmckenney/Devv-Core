@@ -18,7 +18,12 @@ using namespace Devcash;
 
 namespace Devcash {
 
-static std::vector<TransactionPtr> copy(const std::vector<TransactionPtr>& txs) {
+/**
+ * Perform a deep copy of the vector of Transaction unique_ptrs
+ * @param txs
+ * @return a copy of the transactions
+ */
+static std::vector<TransactionPtr> Copy(const std::vector<TransactionPtr> &txs) {
   std::vector<TransactionPtr> tx_out;
   for (auto& iter : txs) {
     tx_out.push_back(iter->clone());
@@ -38,6 +43,9 @@ static const std::string kTXS_TAG = "txs";
 static const std::string kSUM_TAG = "sum";
 static const std::string kVAL_TAG = "vals";
 
+/**
+ * A proposed block.
+ */
 class ProposedBlock {
  public:
   /**
@@ -111,34 +119,6 @@ class ProposedBlock {
     MTR_STEP("proposed_block", "construct", &proposed_block_int, "transaction list");
     tcm.set_keys(&keys);
     tcm.CreateTransactions(serial, transaction_vector_, offset, minSize(), tx_size_);
-    /*
-
-                          while (offset < minSize()+tx_size_) {
-      //Transaction constructor increments offset by ref
-      LOG_DEBUG << "while, offset = " << offset;
-      Transaction one_tx(serial, offset, keys, false);
-      transaction_vector_.push_back(one_tx);
-    }
-    MTR_STEP("proposed_block", "construct", &proposed_block_int, "soundness");
-
-    boost::asio::io_service io_service;
-    boost::thread_group threads;
-    boost::asio::io_service::work work(io_service);
-
-    for (unsigned int i = 0; i < boost::thread::hardware_concurrency(); ++i)
-    {
-        threads.create_thread(boost::bind(&boost::asio::io_service::run,
-                                          &io_service));
-    }
-    std::vector<boost::shared_future<bool>> pending_data; // vector of futures
-    // Submit a lambda object to the pool.
-    for (auto& tx : transaction_vector_) {
-      push_job(tx, keys, io_service, pending_data);
-      //tx.setIsSound();
-    }
-
-    boost::wait_for_all(pending_data.begin(), pending_data.end());
-    */
 
     MTR_STEP("proposed_block", "construct", &proposed_block_int, "step3");
     Summary temp(serial, offset);
@@ -182,7 +162,7 @@ class ProposedBlock {
       , prev_hash_(prev_hash)
       , tx_size_(0)
       , sum_size_(summary.getByteSize())
-      , val_count_(validations.sigs_.size())
+      , val_count_(validations.getValidationCount())
       , transaction_vector_(std::move(txs))
       , summary_(summary)
       , vals_(validations)
@@ -192,7 +172,7 @@ class ProposedBlock {
       tx_size_ += item->getByteSize();
     }
 
-    num_bytes_ = minSize() + tx_size_ + sum_size_ + val_count_ * vals_.PairSize();
+    num_bytes_ = minSize() + tx_size_ + sum_size_ + val_count_ * vals_.pairSize();
   }
 
   ProposedBlock& operator=(const ProposedBlock& other) = delete;
@@ -230,7 +210,7 @@ class ProposedBlock {
    *
    * @return
    */
-  static size_t minValidationSize() { return SHA256_DIGEST_LENGTH + (Validation::PairSize() * 2); }
+  static size_t minValidationSize() { return SHA256_DIGEST_LENGTH + (Validation::pairSize() * 2); }
 
   /**
    * Validates this block.
@@ -256,7 +236,7 @@ class ProposedBlock {
     }
 
     std::vector<byte> md = summary_.getCanonical();
-    for (auto& sig : vals_.sigs_) {
+    for (auto& sig : vals_.getValidationMap()) {
       if (!VerifyByteSig(keys.getKey(sig.first), DevcashHash(md), sig.second)) {
         LOG_WARNING << "Invalid block signature";
         LOG_DEBUG << "Block state: " + getJSON();
@@ -287,7 +267,7 @@ class ProposedBlock {
     SignBinary(keys.getNodeKey(node_num), DevcashHash(md), node_sig);
     vals_.addValidation(node_addr, node_sig);
     val_count_++;
-    num_bytes_ = minSize() + tx_size_ + sum_size_ + (val_count_ * Validation::PairSize());
+    num_bytes_ = minSize() + tx_size_ + sum_size_ + (val_count_ * Validation::pairSize());
     return true;
   }
 
@@ -311,8 +291,8 @@ class ProposedBlock {
       size_t offset = SHA256_DIGEST_LENGTH;
       Validation val_temp(remote, offset);
       vals_.addValidation(val_temp);
-      val_count_ = vals_.GetValidationCount();
-      num_bytes_ = minSize() + tx_size_ + sum_size_ + val_count_ * vals_.PairSize();
+      val_count_ = vals_.getValidationCount();
+      num_bytes_ = minSize() + tx_size_ + sum_size_ + val_count_ * vals_.pairSize();
       if (val_count_ > (context.get_peer_count() / 2)) {
         return true;
       }

@@ -28,7 +28,7 @@ class FinalBlock {
         tx_size_(proposed.getSizeofTransactions()),
         sum_size_(proposed.getSummarySize()),
         val_count_(proposed.getNumValidations()),
-        transaction_vector_(copy(proposed.getTransactions())),
+        transaction_vector_(Copy(proposed.getTransactions())),
         summary_(proposed.getSummary()),
         vals_(proposed.getValidation()),
         block_state_(proposed.getBlockState()) {
@@ -174,7 +174,7 @@ class FinalBlock {
       , tx_size_(other.tx_size_)
       , sum_size_(other.sum_size_)
       , val_count_(other.val_count_)
-      , transaction_vector_(copy(other.transaction_vector_))
+      , transaction_vector_(Copy(other.transaction_vector_))
       , summary_(other.summary_)
       , vals_(other.vals_)
       , block_state_(other.block_state_){}
