@@ -77,15 +77,16 @@ class DevcashController {
   DevcashController(io::TransactionServer& server,
                     io::TransactionClient& peer_client,
                     io::TransactionClient& loopback_client,
-                    int validatorCount,
-                    int consensusCount,
-                    int generateCount,
-                    int batchSize,
+                    size_t validator_count,
+                    size_t consensus_count,
+                    size_t generate_count,
+                    size_t batch_size,
                     size_t transaction_limit,
                     const KeyRing& keys,
                     DevcashContext& context,
                     const ChainState& prior,
-                    eAppMode mode, std::string scan_dir);
+                    eAppMode mode,
+                    const std::string& scan_dir);
 
   ~DevcashController();
 

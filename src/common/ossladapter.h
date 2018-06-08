@@ -17,13 +17,10 @@
 #include <sstream>
 #include <iomanip>
 
-#include "util.h"
+#include "common/devcash_types.h"
+#include "common/util.h"
 
 static const char* pwd = "password";  /** password for aes pem */
-
-namespace Devcash {
-  typedef std::array<byte, SHA256_DIGEST_LENGTH> Hash;
-} //end namespace Devcash
 
 /** Maps a hex string into a buffer as binary data.
  *  @pre the buffer should have memory allocated
@@ -212,7 +209,7 @@ static EC_KEY* LoadEcKey(const std::string& publicKey, const std::string& privKe
  *  @param[in] msg the bytestring to hash
  *  @return the calculated hash
  */
-static Devcash::Hash DevcashHash(const std::vector<byte>& msg) {
+static Devcash::Hash DevcashHash(const std::vector<Devcash::byte>& msg) {
   Devcash::Hash md;
   SHA256_CTX sha256;
   SHA256_Init(&sha256);

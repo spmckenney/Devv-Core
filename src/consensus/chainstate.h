@@ -11,7 +11,7 @@
 #include <map>
 #include <mutex>
 
-#include "primitives/smartcoin.h"
+#include "primitives/SmartCoin.h"
 
 namespace Devcash
 {

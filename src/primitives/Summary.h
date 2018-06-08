@@ -202,6 +202,7 @@ class Summary {
    * @return a canonical bytestring summarizing these changes.
    */
   std::vector<byte> getCanonical() const {
+    /// @todo (mckenney) optimization
     std::vector<byte> out;
     auto addr_count = static_cast<uint32_t>(summary_.size());
     Uint32ToBin(addr_count, out);

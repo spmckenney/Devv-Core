@@ -33,28 +33,28 @@ DevcashController::DevcashController(
     io::TransactionServer& server,
     io::TransactionClient& peer_client,
     io::TransactionClient& loopback_client,
-    const int validatorCount,
-    const int consensusCount,
-    const int generateCount,
-    const int batchSize,
-    const size_t transaction_limit,
+    size_t validator_count,
+    size_t consensus_count,
+    size_t generate_count,
+    size_t batch_size,
+    size_t transaction_limit,
     const KeyRing& keys,
     DevcashContext& context,
     const ChainState& prior,
     eAppMode mode,
-    std::string scan_dir)
+    const std::string& scan_dir)
   : server_(server)
   , peer_client_(peer_client)
   , loopback_client_(loopback_client)
-  , validator_count_(validatorCount)
-  , consensus_count_(consensusCount)
-  , generate_count_(generateCount)
-  , batch_size_(batchSize)
+  , validator_count_(validator_count)
+  , consensus_count_(consensus_count)
+  , generate_count_(generate_count)
+  , batch_size_(batch_size)
   , transaction_limit_(transaction_limit)
   , keys_(keys)
   , context_(context)
   , final_chain_("final_chain_")
-  , utx_pool_(prior, mode, batchSize)
+  , utx_pool_(prior, mode, batch_size)
   , mode_(mode)
   , scan_dir_(scan_dir)
   , workers_(new DevcashControllerWorker(this, validator_count_, consensus_count_, consensus_count_))

@@ -121,8 +121,8 @@ bool HandleProposalBlock(DevcashMessageUniquePtr ptr,
     LOG_WARNING << "ProposedBlock is invalid!";
     return false;
   }
-  if (!to_validate.SignBlock(keys, context)) {
-    LOG_WARNING << "ProposedBlock.SignBlock failed!";
+  if (!to_validate.signBlock(keys, context)) {
+    LOG_WARNING << "ProposedBlock.signBlock failed!";
     return false;
   }
   LOG_DEBUG << "Proposed block is valid.";

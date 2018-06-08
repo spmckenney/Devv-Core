@@ -243,7 +243,7 @@ class UnrecordedTransactionPool {
 
     ProposedBlock new_proposal(prev_hash, validated, summary, validation
         , new_state);
-    new_proposal.SignBlock(keys, context);
+    new_proposal.signBlock(keys, context);
     std::lock_guard<std::mutex> proposal_guard(pending_proposal_mutex_);
     LOG_WARNING << "ProposeBlock(): canon size: " << new_proposal.getCanonical().size();
     pending_proposal_.shallowCopy(new_proposal);
@@ -313,7 +313,7 @@ class UnrecordedTransactionPool {
     LOG_DEBUG << "CheckValidation()";
     std::lock_guard<std::mutex> proposal_guard(pending_proposal_mutex_);
     if (pending_proposal_.isNull()) return false;
-    return pending_proposal_.CheckValidationData(remote, context);
+    return pending_proposal_.checkValidationData(remote, context);
   }
 
   /**

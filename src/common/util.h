@@ -26,10 +26,9 @@
 #include <memory>
 #include <thread>
 
-#include "common/minitrace.h"
+#include "common/devcash_types.h"
 #include "common/logger.h"
-
-typedef unsigned char byte;
+#include "common/minitrace.h"
 
 namespace Devcash
 {
