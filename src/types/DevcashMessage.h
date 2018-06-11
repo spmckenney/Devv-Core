@@ -243,15 +243,15 @@ static std::string GetMessageType (const DevcashMessage& message) {
 
   std::string summary;
   if ((summary_bytes < 0) || (message.data.size() < (static_cast<size_t>(summary_bytes) * 2))) {
-    summary = toHex(message.data);
+    summary = ToHex(message.data);
   } else {
     std::vector<uint8_t> sub_vec;
     sub_vec.insert(sub_vec.end(), message.data.begin(), message.data.begin() + summary_bytes);
-    summary = toHex(sub_vec);
+    summary = ToHex(sub_vec);
     summary += "..";
     sub_vec.assign(message.data.end() - summary_bytes,
                    message.data.end());
-    summary += toHex(sub_vec);
+    summary += ToHex(sub_vec);
   }
 
   LOG_INFO <<

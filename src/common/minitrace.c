@@ -24,6 +24,8 @@
 #include <signal.h>
 #include <sys/time.h>
 #include <unistd.h>
+#include <assert.h>
+
 #endif
 
 #include "minitrace.h"
@@ -152,6 +154,7 @@ void mtr_init(const char *json_file) {
   is_tracing = 1;
   count = 0;
   f = fopen(json_file, "wb");
+  assert(f);
   const char *header = "{\"traceEvents\":[\n";
   fwrite(header, 1, strlen(header), f);
   time_offset = (uint64_t)(mtr_time_s() * 1000000);

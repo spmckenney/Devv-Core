@@ -34,7 +34,7 @@ KeyRing::KeyRing(DevcashContext& context)
      std::vector<byte> msg = {'h', 'e', 'l', 'l', 'o'};
      Hash test_hash;
      Signature sig;
-     test_hash = dcHash(msg);
+     test_hash = DevcashHash(msg);
 
      std::string inn_keys = ReadFile(context_.get_inn_key_path());
      if (!inn_keys.empty()) {
@@ -169,7 +169,7 @@ KeyRing::KeyRing(DevcashContext& context)
 EC_KEY* KeyRing::getKey(const Address& addr) const {
   auto it = key_map_.find(addr);
   if (it != key_map_.end()) return it->second;
-  std::string hex(toHex(std::vector<byte>(std::begin(addr), std::end(addr))));
+  std::string hex(ToHex(std::vector<byte>(std::begin(addr), std::end(addr))));
   LOG_ERROR << "Key for '"+hex+"' is missing!\n";
   CASH_THROW("Key for '"+hex+"' is missing!");
 }
@@ -193,7 +193,7 @@ int KeyRing::CountWallets() const {
 int KeyRing::getNodeIndex(const Address& addr) const {
   unsigned int pos = find(node_list_.begin(), node_list_.end(), addr)
     - node_list_.begin();
-  if (pos < 0 || pos >= node_list_.size()) {
+  if (pos >= node_list_.size()) {
     return -1;
   }
   return pos;

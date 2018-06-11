@@ -28,6 +28,7 @@
 #endif
 
 #include "consensus/chainstate.h"
+#include "consensus/tier2_message_handlers.h"
 #include "io/zhelpers.hpp"
 #include "oracles/api.h"
 #include "oracles/data.h"
@@ -59,15 +60,25 @@ bool DevcashNode::ShutdownRequested()
 void DevcashNode::Shutdown()
 {
   fRequestShutdown = true;
-  //TODO: how to stop zmq?
+  /// @todo (mckenney): how to stop zmq?
   LOG_INFO << "Shutting down DevCash";
-  //control_.StopAll();
+  //control_.stopAll();
 }
 
 DevcashNode::DevcashNode(DevcashController& control, DevcashContext& context)
     : control_(control), app_context_(context)
 {
   LOG_INFO << "Hello from node: " << app_context_.get_uri() << "!!";
+
+  DevcashMessageCallbacks callbacks;
+  callbacks.blocks_since_cb = HandleBlocksSince;
+  callbacks.blocks_since_request_cb = HandleBlocksSinceRequest;
+  callbacks.final_block_cb = HandleFinalBlock;
+  callbacks.proposal_block_cb = HandleProposalBlock;
+  callbacks.transaction_announcement_cb = CreateNextProposal;
+  callbacks.validation_block_cb = HandleValidationBlock;
+
+  control_.setMessageCallbacks(callbacks);
 }
 
 bool initCrypto()
@@ -105,7 +116,7 @@ bool DevcashNode::SanityChecks()
     }
 
     std::vector<byte> msg = {'h', 'e', 'l', 'l', 'o'};
-    Hash test_hash(dcHash(msg));
+    Hash test_hash(DevcashHash(msg));
     std::string sDer;
 
     EC_KEY* loadkey = LoadEcKey(app_context_.kADDRs[1],

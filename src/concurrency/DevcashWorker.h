@@ -75,6 +75,6 @@ class DevcashControllerWorker {
 
 };
 
-} /* namespace Devcash */
+}  // namespace Devcash
 
 #endif /* CONCURRENCY_DEVCASHWORKER_H_ */

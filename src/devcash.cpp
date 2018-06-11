@@ -28,7 +28,7 @@ std::unique_ptr<io::TransactionClient> create_transaction_client(const devcash_o
                                                                  zmq::context_t& context) {
   std::unique_ptr<io::TransactionClient> client(new io::TransactionClient(context));
   for (auto i : options.host_vector) {
-    client->AddConnection(i);
+    client->addConnection(i);
   }
   return client;
 }
@@ -77,7 +77,7 @@ int main(int argc, char* argv[])
     } catch (std::range_error& e) {
       LOG_ERROR << "Extracting bind number failed: " << be;
     }
-    loopback_client->AddConnection(this_uri);
+    loopback_client->addConnection(this_uri);
 
     DevcashController controller(*server,
                                  *peer_client,

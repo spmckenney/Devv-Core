@@ -17,13 +17,10 @@
 #include <sstream>
 #include <iomanip>
 
-#include "util.h"
+#include "common/devcash_types.h"
+#include "common/util.h"
 
 static const char* pwd = "password";  /** password for aes pem */
-
-namespace Devcash {
-  typedef std::array<byte, SHA256_DIGEST_LENGTH> Hash;
-} //end namespace Devcash
 
 /** Maps a hex string into a buffer as binary data.
  *  @pre the buffer should have memory allocated
@@ -202,18 +199,17 @@ static EC_KEY* LoadEcKey(const std::string& publicKey, const std::string& privKe
   SHA256_Init(&sha256);
   SHA256_Update(&sha256, temp, strlen(temp));
   SHA256_Final(md, &sha256);
-  std::string out = toHex((byte*) md, SHA256_DIGEST_LENGTH);
+  std::string out = ToHex((byte*) md, SHA256_DIGEST_LENGTH);
   return(out);
 }*/
 
 /** Hashes a bytestring with SHA-256.
  *  @note none of the parameters of this function are const.
  *  Parameters may be altered by this function.
- *  @param msg the bytestring to hash
- *  @param len the length of the bytestring
- *  @return a pointer to the hash, length is SHA256_DIGEST_LENGTH
+ *  @param[in] msg the bytestring to hash
+ *  @return the calculated hash
  */
-static Devcash::Hash dcHash(const std::vector<byte>& msg) {
+static Devcash::Hash DevcashHash(const std::vector<Devcash::byte>& msg) {
   Devcash::Hash md;
   SHA256_CTX sha256;
   SHA256_Init(&sha256);
@@ -291,20 +287,19 @@ static bool VerifyByteSig(EC_KEY* ecKey, const Devcash::Hash& msg
 /** Generates the signature for a given string and key pair
  *  @pre the EC_KEY must include a private key
  *  @pre the OpenSSL context must be intialized
- *  @param ecKey pointer to the public key that will check this signature
+ *  @param ec_key pointer to the public key that will check this signature
  *  @param msg pointer to the message digest to sign
  *  @param len length of binary message to sign
  *  @param sig target buffer where signature is put, must be allocted
  *  @throws std::exception on error
  */
-static void SignBinary(EC_KEY* ecKey, const Devcash::Hash& msg
-    , Devcash::Signature& sig) {
+static void SignBinary(EC_KEY* ec_key, const Devcash::Hash& msg, Devcash::Signature& sig) {
   CASH_TRY {
     Devcash::Hash temp = msg;
     ECDSA_SIG *signature = ECDSA_do_sign((const unsigned char*) &temp[0],
-        SHA256_DIGEST_LENGTH, ecKey);
+        SHA256_DIGEST_LENGTH, ec_key);
     int state = ECDSA_do_verify((const unsigned char*) &temp[0],
-        SHA256_DIGEST_LENGTH, signature, ecKey);
+        SHA256_DIGEST_LENGTH, signature, ec_key);
 
     //0 -> invalid, -1 -> openssl error
     if (1 != state)
@@ -347,7 +342,7 @@ static void SignBinary(EC_KEY* ecKey, const Devcash::Hash& msg
     memset(sigBytes, 6, len);
     ptr=sigBytes;
     len = i2d_ECDSA_SIG(signature, &ptr);
-    std::string out = toHex((byte*) sigBytes, len);
+    std::string out = ToHex((byte*) sigBytes, len);
 
     free(sigBytes);
   return(out);

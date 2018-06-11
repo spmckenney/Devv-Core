@@ -25,10 +25,15 @@ class UnrecordedTransactionPool {
   /** Constrcutors */
   UnrecordedTransactionPool(const ChainState& prior, eAppMode mode
      , size_t max_tx_per_block)
-     : txs_(), pending_proposal_(prior), tcm_(mode), mode_(mode)
-     , max_tx_per_block_(max_tx_per_block) {
+     : txs_()
+    , pending_proposal_(prior)
+    , max_tx_per_block_(max_tx_per_block)
+    , tcm_(mode)
+    , mode_(mode)
+  {
     LOG_DEBUG << "UnrecordedTransactionPool(const ChainState& prior)";
   }
+
   UnrecordedTransactionPool(const UnrecordedTransactionPool& other) = delete;
 
   /** Adds Transactions to this pool.
@@ -50,14 +55,14 @@ class UnrecordedTransactionPool {
           //note that Transaction constructor advances counter by reference
           if (mode_ == eAppMode::T2) {
             TransactionPtr one_tx = std::make_unique<Tier2Transaction>(serial, counter, keys);
-            if (one_tx->getByteSize() < Transaction::MinSize()) {
+            if (one_tx->getByteSize() < Transaction::minSize()) {
               LOG_WARNING << "Invalid transaction, dropping the remainder of input.";
               break;
             }
             temp.push_back(std::move(one_tx));
 		  } else if (mode_ == eAppMode::T1) {
             TransactionPtr one_tx = std::make_unique<Tier1Transaction>(serial, counter, keys);
-            if (one_tx->getByteSize() < Transaction::MinSize()) {
+            if (one_tx->getByteSize() < Transaction::minSize()) {
               LOG_WARNING << "Invalid transaction, dropping the remainder of input.";
               break;
             }
@@ -238,7 +243,7 @@ class UnrecordedTransactionPool {
 
     ProposedBlock new_proposal(prev_hash, validated, summary, validation
         , new_state);
-    new_proposal.SignBlock(keys, context);
+    new_proposal.signBlock(keys, context);
     std::lock_guard<std::mutex> proposal_guard(pending_proposal_mutex_);
     LOG_WARNING << "ProposeBlock(): canon size: " << new_proposal.getCanonical().size();
     pending_proposal_.shallowCopy(new_proposal);
@@ -308,7 +313,7 @@ class UnrecordedTransactionPool {
     LOG_DEBUG << "CheckValidation()";
     std::lock_guard<std::mutex> proposal_guard(pending_proposal_mutex_);
     if (pending_proposal_.isNull()) return false;
-    return pending_proposal_.CheckValidationData(remote, context);
+    return pending_proposal_.checkValidationData(remote, context);
   }
 
   /**
@@ -418,10 +423,10 @@ class UnrecordedTransactionPool {
     unsigned int num_txs = 0;
     std::map<Address, SmartCoin> aggregate;
     for (auto iter = txs_.begin(); iter != txs_.end(); ++iter) {
-      /*aggregate = iter->second.second->AggregateState(aggregate
+      /*aggregate = iter->second.second->aggregateState(aggregate
                                         , state, keys, summary);*/
       if (iter->second.second->isValid(state, keys, summary)) {
-        valid.push_back(std::move(iter->second.second->Clone()));
+        valid.push_back(std::move(iter->second.second->clone()));
         iter->second.first++;
         num_txs++;
         if (num_txs >= max_tx_per_block_) break;
@@ -470,9 +475,9 @@ class UnrecordedTransactionPool {
     for (auto const& item : proposed.getTransactions()) {
       if (txs_.erase(item->getSignature()) == 0) {
         LOG_WARNING << "RemoveTransactions(): ret = 0, transaction not found: "
-                    << toHex(item->getSignature());
+                    << ToHex(item->getSignature());
       } else {
-        LOG_TRACE << "RemoveTransactions(): erase returned 1: " << toHex(item->getSignature());
+        LOG_TRACE << "RemoveTransactions(): erase returned 1: " << ToHex(item->getSignature());
       }
     }
     LOG_DEBUG << "RemoveTransactions: (to remove/size pre/size post) ("

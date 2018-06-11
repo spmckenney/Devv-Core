@@ -1,16 +1,14 @@
 #include <unistd.h>
-#include <thread>
 #include <chrono>
+#include <thread>
 
-#include "types/DevcashMessage.h"
-#include "io/message_service.h"
 #include "io/constants.h"
+#include "io/message_service.h"
+#include "types/DevcashMessage.h"
 
 #include "transaction_test_struct.h"
 
-int
-main(int argc, char** argv) {
-
+int main(int argc, char** argv) {
   auto dev_message = std::make_unique<Devcash::DevcashMessage>(10);
   dev_message->index = 10;
   dev_message->uri = "Hello!";
@@ -45,7 +43,6 @@ main(int argc, char** argv) {
     my_uri = "my-uri";
   }
 
-
   test_struct test;
   test.a = 10;
   test.b = 20;
@@ -54,7 +51,7 @@ main(int argc, char** argv) {
   // Zmq Context
   zmq::context_t context(1);
   Devcash::io::TransactionServer server{context, bind_endpoint};
-  server.StartServer();
+  server.startServer();
 
   for (;;) {
     sleep(1);
@@ -65,8 +62,8 @@ main(int argc, char** argv) {
     devcash_message->SetData(test);
     Devcash::LogDevcashMessageSummary(*devcash_message, "");
 
-    //LOG_INFO << "Sending message: " << message;
-    server.QueueMessage(std::move(devcash_message));
+    // LOG_INFO << "Sending message: " << message;
+    server.queueMessage(std::move(devcash_message));
   }
 
   return 0;

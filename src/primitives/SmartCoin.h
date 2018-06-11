@@ -8,22 +8,19 @@
 #ifndef SRC_PRIMITIVES_SMARTCOIN_H_
 #define SRC_PRIMITIVES_SMARTCOIN_H_
 
+#include <stdint.h>
 #include <string>
 #include <vector>
-#include <stdint.h>
 
 #include "common/ossladapter.h"
 #include "common/util.h"
 
-namespace Devcash
-{
+namespace Devcash {
 
-//keep coins within uint64, divisible to 10^-8
+// keep coins within uint64, divisible to 10^-8
 static const uint64_t kCOIN = 100000000;
 static const uint64_t kMAX_COIN = 184000000000 * kCOIN;
-inline bool MoneyRange(const uint64_t& nValue) {
-  return (nValue <= kMAX_COIN);
-}
+inline bool MoneyRange(const uint64_t& nValue) { return (nValue <= kMAX_COIN); }
 
 class SmartCoin {
  public:
@@ -31,12 +28,10 @@ class SmartCoin {
   uint64_t coin_;
   uint64_t amount_ = 0;
 
-/** Constructor */
-  SmartCoin(const Address& addr, uint64_t coin, uint64_t amount=0)
-    : addr_(addr), coin_(coin), amount_(amount) {
-  }
+  /** Constructor */
+  SmartCoin(const Address& addr, uint64_t coin, uint64_t amount = 0) : addr_(addr), coin_(coin), amount_(amount) {}
 };
 
-} //end namespace Devcash
+}  // end namespace Devcash
 
 #endif /* SRC_PRIMITIVES_SMARTCOIN_H_ */
