@@ -131,12 +131,12 @@ class Tier1Transaction : public Transaction {
     }
   }
 
-  std::unique_ptr<Transaction> Clone() const override {
-    return std::unique_ptr<Transaction>(new Tier1Transaction(*this));
-  }
-
  private:
   uint64_t sum_size_;
+
+  std::unique_ptr<Transaction> do_Clone() {
+    return std::unique_ptr<Transaction>(new Tier1Transaction(*this));
+  }
 
   std::vector<byte> do_getMessageDigest() const {
     std::vector<byte> md(canonical_.begin()+16

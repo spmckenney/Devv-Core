@@ -86,7 +86,9 @@ class Transaction {
 
   /** Make a deep copy of the TierXTransaction subclass
    */
-  virtual std::unique_ptr<Transaction> Clone() const = 0;
+  std::unique_ptr<Transaction> Clone() {
+    return do_Clone();
+  }
 
   /** Returns a canonical bytestring representation of this transaction.
    * @return a canonical bytestring representation of this transaction.
@@ -172,6 +174,8 @@ class Transaction {
   bool is_sound_ = false;
 
  private:
+
+  virtual std::unique_ptr<Transaction> do_Clone() = 0;
 
   virtual std::vector<byte> do_getMessageDigest() const = 0;
 

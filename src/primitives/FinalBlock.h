@@ -202,6 +202,14 @@ public:
     return vtx_.size();
   }
 
+  std::vector<TransactionPtr> getTransactions() const {
+    std::vector<TransactionPtr> out;
+    for (const auto& e : vtx_) {
+      out.push_back(e->Clone());
+    }
+    return out;
+  }
+
   size_t getNumTransfers() const {
     size_t tfers = 0;
     for (auto const& item : vtx_) {

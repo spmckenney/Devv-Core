@@ -191,7 +191,19 @@ int main(int argc, char* argv[])
         while (offset < static_cast<size_t>(file_size)) {
           if (isBlock) {
             FinalBlock one_block(raw, posteri, offset);
-            posteri = one_block.getChainState();
+            Summary block_summary;
+            std::vector<TransactionPtr> txs = one_block.getTransactions();
+            for (TransactionPtr& item : txs) {
+              if (!item->isValid(posteri, keys, block_summary)) {
+                LOG_WARNING << "A transaction is invalid. TX details: ";
+                LOG_WARNING << item->getJSON();
+              }
+            }
+            if (block_summary.getCanonical()
+                != one_block.getSummary().getCanonical()) {
+              LOG_WARNING << "A final block summary is invalid. Summary datails: ";
+              LOG_WARNING << one_block.getSummary().getJSON();
+		    }
           } else if (isTransaction) {
             Tier2Transaction tx(raw, offset, keys, true);
             if (!tx.isValid(priori, keys, summary)) {

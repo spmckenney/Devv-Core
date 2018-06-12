@@ -138,11 +138,11 @@ namespace Devcash
     }
   }
 
-  std::unique_ptr<Transaction> Clone() const override {
+ private:
+
+  std::unique_ptr<Transaction> do_Clone() {
     return std::unique_ptr<Transaction>(new Tier2Transaction(*this));
   }
-
- private:
 
   std::vector<byte> do_getMessageDigest() const {
     std::vector<byte> md(canonical_.begin()
