@@ -171,7 +171,7 @@ class FinalBlock {
    */
   FinalBlock(const std::vector<byte>& serial,
              const ChainState& prior,
-             size_t& offset
+             size_t& offset,
              const KeyRing& keys,
              eAppMode mode)
       : num_bytes_(0),
