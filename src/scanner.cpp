@@ -105,7 +105,7 @@ int main(int argc, char* argv[])
       for (auto it = priori.stateMap_.begin(); it != priori.stateMap_.end(); ++it) {
         LOG_INFO << entry << " END STATE BEGIN: ";
         state_stream << "{\"Addr\":\"";
-        state_stream << toHex(std::vector<byte>(std::begin(it->first)
+        state_stream << ToHex(std::vector<byte>(std::begin(it->first)
           , std::end(it->first)));
         state_stream << "\",\"state\":[";
         bool firstCoin = true;

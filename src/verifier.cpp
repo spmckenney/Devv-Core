@@ -46,7 +46,7 @@ namespace fs = boost::filesystem;
  */
 bool isBlockData(std::vector<byte> raw) {
   //check if big enough
-  if (raw.size() < FinalBlock::MinSize()) return false;
+  if (raw.size() < FinalBlock::minSize()) return false;
   //check version
   if (raw[0] != 0x00) return false;
   size_t offset = 9;
@@ -54,7 +54,7 @@ bool isBlockData(std::vector<byte> raw) {
   //check blocktime is from 2018 or newer.
   if (block_time < 1514764800) return false;
   //check blocktime is in past
-  if (block_time > getEpoch()) return false;
+  if (block_time > GetMillisecondsSinceEpoch()) return false;
   return true;
 }
 
@@ -65,10 +65,10 @@ bool isBlockData(std::vector<byte> raw) {
  */
 bool isTxData(std::vector<byte> raw) {
   //check if big enough
-  if (raw.size() < Transaction::MinSize()) return false;
+  if (raw.size() < Transaction::minSize()) return false;
   //check transfer count
   uint64_t xfer_count = BinToUint64(raw, 0);
-  size_t tx_size = Transaction::MinSize()+(Transfer::Size()*xfer_count);
+  size_t tx_size = Transaction::minSize()+(Transfer::Size()*xfer_count);
   if (raw.size() < tx_size) return false;
   //check operation
   if (raw[8] >= 4) return false;
@@ -108,7 +108,7 @@ std::string WriteChainStateMap(std::map<Address, std::map<uint64_t, uint64_t>> m
       out += ",";
     }
     Address a = e.first;
-    out += "\""+toHex(std::vector<byte>(std::begin(a), std::end(a)))+"\":[";
+    out += "\""+ToHex(std::vector<byte>(std::begin(a), std::end(a)))+"\":[";
     bool is_first;
     for (auto f : e.second) {
       if (is_first) {
@@ -163,7 +163,6 @@ int main(int argc, char* argv[])
 
     std::vector<std::string> files;
 
-    unsigned int input_blocks_ = 0;
     for(auto& entry : boost::make_iterator_range(fs::directory_iterator(p), {})) {
       files.push_back(entry.path().string());
     }

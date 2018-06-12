@@ -116,7 +116,7 @@ int main(int argc, char* argv[])
     LOG_INFO << "Loaded " << std::to_string(input_blocks_) << " transactions in " << transactions.size() << " batches.";
 
     std::unique_ptr<io::TransactionServer> server = create_transaction_server(*options, context);
-    server->StartServer();
+    server->startServer();
     auto ms = kMAIN_WAIT_INTERVAL;
     unsigned int processed = 0;
     while (true) {
@@ -133,7 +133,7 @@ int main(int argc, char* argv[])
                                                          , TRANSACTION_ANNOUNCEMENT
                                                          , transactions.at(processed)
                                                          , DEBUG_TRANSACTION_INDEX);
-          server->QueueMessage(std::move(announce_msg));
+          server->queueMessage(std::move(announce_msg));
         }
         processed++;
       } else {
