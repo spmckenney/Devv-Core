@@ -60,7 +60,7 @@ class KeyRing {
    * @return the Address of the node at the provided index
    * @throw std::out_of_range if there is not a node at the given index
    */
-  Address getNodeAddr(int index) const;
+  Address getNodeAddr(size_t index) const;
   /**
    * @param index - the index of the wallet to retrieve
    * @return the Address of the wallet at the provided index

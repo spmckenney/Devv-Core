@@ -31,6 +31,7 @@ static std::vector<TransactionPtr> Copy(const std::vector<TransactionPtr> &txs) 
   return (std::move(tx_out));
 }
 
+/// @todo (mckenney) move to constants file
 static const std::string kVERSION_TAG = "v";
 static const std::string kPREV_HASH_TAG = "prev";
 static const std::string kMERKLE_TAG = "merkle";

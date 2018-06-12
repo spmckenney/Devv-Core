@@ -92,7 +92,7 @@ class Validation {
    * Constructor
    * @param other
    */
-  Validation(const Validation& other) : sigs_(other.sigs_) {}
+  Validation(const Validation& other) = default; //: sigs_(other.sigs_) {}
 
   /**
    * Constructor
@@ -105,7 +105,7 @@ class Validation {
    * Constructor
    * @param validation_map
    */
-  Validation(const ValidationMap& validation_map) : sigs_(validation_map) {}
+  explicit Validation(const ValidationMap& validation_map) : sigs_(validation_map) {}
 
   /** Adds a validation record to this block.
    *  @param node the address of node that produced this validation
@@ -128,7 +128,7 @@ class Validation {
   }
 
   /**
-   *
+   * Return the first validation
    * @return
    */
   std::pair<Address, Signature> getFirstValidation() {

@@ -23,10 +23,22 @@
 
 namespace Devcash {
 
+/**
+ * Holds the change and delay of a coin
+ */
 struct DelayedItem {
+  /**
+   * Constructor
+   * @param delay
+   * @param delta
+   */
+  explicit DelayedItem(uint64_t delay = 0, uint64_t delta = 0)
+      : delay(delay), delta(delta) {}
+
+  /// The delay of this item
   uint64_t delay = 0;
+  /// The coin/transfer price (change)
   uint64_t delta = 0;
-  DelayedItem(uint64_t delay = 0, uint64_t delta = 0) : delay(delay), delta(delta) {}
 };
 
 static const std::string kADDR_SIZE_TAG = "addr_size";

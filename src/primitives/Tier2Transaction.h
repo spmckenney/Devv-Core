@@ -17,6 +17,9 @@ using namespace Devcash;
 
 namespace Devcash {
 
+/**
+ * The Tier2 representation of a Transaction
+ */
 class Tier2Transaction : public Transaction {
  public:
   /**
@@ -174,7 +177,7 @@ class Tier2Transaction : public Transaction {
    * Return a copy of the message digest
    * @return message digest
    */
-  std::vector<byte> do_getMessageDigest() const {
+  std::vector<byte> do_getMessageDigest() const override {
     /// @todo(mckenney) can this be a reference?
     std::vector<byte> md(canonical_.begin(), canonical_.begin() + (envelopeSize() + Transfer::Size() * xfer_count_));
     return md;
@@ -184,7 +187,7 @@ class Tier2Transaction : public Transaction {
    * Returns the operation type of this transaction
    * @return byte representation of this operation
    */
-  byte do_getOperation() const { return canonical_[8]; }
+  byte do_getOperation() const override { return canonical_[8]; }
 
   /**
    * Create and return a vector of Transfers in this transaction

@@ -34,6 +34,7 @@
 using namespace Devcash;
 
 namespace Devcash {
+
 static const std::string kXFER_COUNT_TAG = "xfer_count";
 static const std::string kOPER_TAG = "oper";
 static const std::string kXFER_TAG = "xfer";
@@ -69,18 +70,17 @@ class Transaction {
    * @param canonical
    * @param is_sound
    */
-  Transaction(uint64_t xfer_count, std::vector<byte> canonical, bool is_sound)
+  Transaction(uint64_t xfer_count, const std::vector<byte>& canonical, bool is_sound)
       : xfer_count_(xfer_count), canonical_(canonical), is_sound_(is_sound) {}
 
   /**
    * Copy constructor
    * @param other
    */
-  Transaction(const Transaction& other)
-      : xfer_count_(other.xfer_count_), canonical_(other.canonical_), is_sound_(other.is_sound_) {}
+  Transaction(const Transaction& other) = default;
 
   /** Destructor */
-  virtual ~Transaction() {}
+  virtual ~Transaction() = default;
 
   /**
    * Comparison operator

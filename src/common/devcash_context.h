@@ -49,7 +49,7 @@ struct DevcashContext {
    */
   DevcashContext(unsigned int current_node, unsigned int current_shard
     , eAppMode mode
-    , std::string& inn_key_path
+    , const std::string& inn_key_path
     , const std::string& node_key_path
     , const std::string& wallet_key_path
     , unsigned int sync_port

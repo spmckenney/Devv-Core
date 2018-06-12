@@ -199,7 +199,7 @@ int KeyRing::getNodeIndex(const Address& addr) const {
   return pos;
 }
 
-Address KeyRing::getNodeAddr(int index) const {
+Address KeyRing::getNodeAddr(size_t index) const {
   return node_list_.at(index);
 }
 
