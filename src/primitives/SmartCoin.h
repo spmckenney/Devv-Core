@@ -18,18 +18,75 @@
 namespace Devcash {
 
 // keep coins within uint64, divisible to 10^-8
+/// @todo (mckenney) move to constants
 static const uint64_t kCOIN = 100000000;
 static const uint64_t kMAX_COIN = 184000000000 * kCOIN;
 inline bool MoneyRange(const uint64_t& nValue) { return (nValue <= kMAX_COIN); }
 
+/**
+ * A smart coin.
+ */
 class SmartCoin {
  public:
-  Address addr_;
-  uint64_t coin_;
-  uint64_t amount_ = 0;
+  /**
+   *
+   * @param addr
+   * @param coin
+   * @param amount
+   */
+  SmartCoin(const Address& addr, uint64_t coin, uint64_t amount = 0)
+      : addr_(addr), coin_(coin), amount_(amount) {}
 
-  /** Constructor */
-  SmartCoin(const Address& addr, uint64_t coin, uint64_t amount = 0) : addr_(addr), coin_(coin), amount_(amount) {}
+ public:
+  /**
+   *
+   */
+  const Address& getAddress() const {
+    return addr_;
+  }
+  /**
+   * Set the address
+   * @param addr_
+   */
+  void setAddress(const Address& addr_) {
+    SmartCoin::addr_ = addr_;
+  }
+  /**
+   *
+   * @return
+   */
+  uint64_t getCoin() const {
+    return coin_;
+  }
+  /**
+   *
+   * @param coin_
+   */
+  void setCoin(uint64_t coin_) {
+    SmartCoin::coin_ = coin_;
+  }
+  /**
+   *
+   * @return
+   */
+  uint64_t getAmount() const {
+    return amount_;
+  }
+  /**
+   *
+   * @param amount_
+   */
+  void setAmount(uint64_t amount_) {
+    SmartCoin::amount_ = amount_;
+  }
+
+ private:
+  /// Address
+  Address addr_;
+  /// Coin
+  uint64_t coin_;
+  /// Amount
+  uint64_t amount_ = 0;
 };
 
 }  // end namespace Devcash

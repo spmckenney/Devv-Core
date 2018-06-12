@@ -401,7 +401,8 @@ class UnrecordedTransactionPool {
         std::pair<Address, SmartCoin> pair(item.first, item.second);
         first.insert(pair);
       } else {
-        loc->second.amount_ += item.second.amount_;
+        //loc->second.amount_ += item.second.amount_;
+        loc->second.setAmount(loc->second.getAmount() + item.second.getAmount());
       }
     }
     return first;

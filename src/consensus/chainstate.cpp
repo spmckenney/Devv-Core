@@ -19,18 +19,18 @@ namespace Devcash
 using namespace Devcash;
 
 bool ChainState::addCoin(const SmartCoin& coin) {
-  auto it = stateMap_.find(coin.addr_);
+  auto it = stateMap_.find(coin.getAddress());
   if (it != stateMap_.end()) {
-    it->second[coin.coin_] += coin.amount_;
+    it->second[coin.getCoin()] += coin.getAmount();
   }
   return(true);
 }
 
 bool ChainState::addCoins(const std::map<Address, SmartCoin>& coin_map) {
- for (auto iter = coin_map.begin(); iter != coin_map.end(); ++iter) {
-   auto loc = stateMap_.find(iter->first);
+ for (auto& coin : coin_map) {
+   auto loc = stateMap_.find(coin.first);
    if (loc != stateMap_.end()) {
-     loc->second[iter->second.coin_] += iter->second.amount_;
+     loc->second[coin.second.getCoin()] += coin.second.getAmount();
    }
  }
  return(true);
@@ -46,23 +46,23 @@ long ChainState::getAmount(uint64_t type, const Address& addr) const {
 }
 
 bool ChainState::moveCoin(const SmartCoin& start, const SmartCoin& end) {
-  if (start.coin_ != end.coin_) return(false);
-  if (start.amount_ != end.amount_) return(false);
+  if (start.getCoin() != end.getCoin()) return(false);
+  if (start.getAmount() != end.getAmount()) return(false);
 
-  uint64_t start_balance = stateMap_[start.addr_][start.coin_];
-  if (start_balance >= start.amount_) {
-    stateMap_[start.addr_][start.coin_] = start_balance-start.amount_;
-    uint64_t end_balance = stateMap_[end.addr_][start.coin_];
-    stateMap_[end.addr_][start.coin_] = end_balance+start.amount_;
+  uint64_t start_balance = stateMap_[start.getAddress()][start.getCoin()];
+  if (start_balance >= start.getAmount()) {
+    stateMap_[start.getAddress()][start.getCoin()] = start_balance-start.getAmount();
+    uint64_t end_balance = stateMap_[end.getAddress()][start.getCoin()];
+    stateMap_[end.getAddress()][start.getCoin()] = end_balance+start.getAmount();
     return true;
   }
   return false;
 }
 
 bool ChainState::delCoin(SmartCoin& coin) {
-  auto it = stateMap_.find(coin.addr_);
+  auto it = stateMap_.find(coin.getAddress());
   if (it != stateMap_.end()) {
-    it->second[coin.coin_] -= coin.amount_;
+    it->second[coin.getCoin()] -= coin.getAmount();
     return true;
   }
   return(false);
