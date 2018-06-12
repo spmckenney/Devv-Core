@@ -201,7 +201,7 @@ class FinalBlock {
   std::vector<TransactionPtr> getTransactions() const {
     std::vector<TransactionPtr> out;
     for (const auto& e : transaction_vector_) {
-      out.push_back(e->Clone());
+      out.push_back(e->clone());
     }
     return out;
   }

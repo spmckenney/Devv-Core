@@ -129,15 +129,15 @@ class Tier1Transaction : public Transaction {
     }
   }
 
- private:
-   /**
-    * Creates a deep copy of this transaction
-    * @return unique pointer to clone of this
-    */
-   std::unique_ptr<Transaction> do_Clone() {
-     return std::unique_ptr<Transaction>(new Tier1Transaction(*this));
+  /**
+   * Creates a deep copy of this transaction
+   * @return
+   */
+  std::unique_ptr<Transaction> clone() const override {
+    return std::unique_ptr<Transaction>(new Tier1Transaction(*this));
   }
 
+ private:
   /**
    * Return a copy of the message digest
    * @return vector of bytes
