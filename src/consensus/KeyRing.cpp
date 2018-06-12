@@ -182,15 +182,15 @@ Address KeyRing::getInnAddr() const {
   return inn_addr_;
 }
 
-int KeyRing::CountNodes() const {
+unsigned int KeyRing::CountNodes() const {
   return node_list_.size();
 }
 
-int KeyRing::CountWallets() const {
+unsigned int KeyRing::CountWallets() const {
   return wallet_list_.size();
 }
 
-int KeyRing::getNodeIndex(const Address& addr) const {
+unsigned int KeyRing::getNodeIndex(const Address& addr) const {
   unsigned int pos = find(node_list_.begin(), node_list_.end(), addr)
     - node_list_.begin();
   if (pos >= node_list_.size()) {

@@ -195,6 +195,30 @@ class FinalBlock {
   size_t getNumTransactions() const { return transaction_vector_.size(); }
 
   /**
+   * Returns copies of the transactions recorded in this block.
+   * @return a vector of pointers to transactions
+   */
+  std::vector<TransactionPtr> getTransactions() const {
+    std::vector<TransactionPtr> out;
+    for (const auto& e : transaction_vector_) {
+      out.push_back(e->Clone());
+    }
+    return out;
+  }
+
+  /**
+   * Returns the number of coin transfers in this block.
+   * @return number of transfers
+   */
+  size_t getNumTransfers() const {
+    size_t tfers = 0;
+    for (auto const& item : transaction_vector_) {
+      tfers += item->getTransfers().size();
+    }
+    return tfers;
+  }
+
+  /**
    * Returns a JSON representation of this block as a string.
    * @return a JSON representation of this block as a string.
    */

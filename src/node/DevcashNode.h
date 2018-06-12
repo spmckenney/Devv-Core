@@ -1,12 +1,12 @@
 /*
- * devnode.h manages this node in the devcash network.
+ * DevcashNode.h manages this node in the devcash network.
  *
  *  Created on: Mar 20, 2018
  *      Author: Nick Williams
  */
 
-#ifndef DEVCASHNODE_H_
-#define DEVCASHNODE_H_
+#ifndef NODE_DEVCASHNODE_H_
+#define NODE_DEVCASHNODE_H_
 
 #ifndef DEVCASH_INIT_H
 #define DEVCASH_INIT_H
@@ -73,4 +73,4 @@ private:
 #endif // DEVCASH_INIT_H
 
 
-#endif /* DEVCASHNODE_H_ */
+#endif /* NODE_DEVCASHNODE_H_ */
