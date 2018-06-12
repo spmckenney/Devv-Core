@@ -21,160 +21,202 @@
 #ifndef DEVCASH_PRIMITIVES_TRANSACTION_H
 #define DEVCASH_PRIMITIVES_TRANSACTION_H
 
+#include <cstdint>
 #include <string>
 #include <vector>
-#include <stdint.h>
 
-#include "Transfer.h"
 #include "Summary.h"
+#include "Transfer.h"
 #include "Validation.h"
 #include "consensus/KeyRing.h"
 #include "consensus/chainstate.h"
 
 using namespace Devcash;
 
-namespace Devcash
-{
+namespace Devcash {
 static const std::string kXFER_COUNT_TAG = "xfer_count";
 static const std::string kOPER_TAG = "oper";
 static const std::string kXFER_TAG = "xfer";
 static const std::string kNONCE_TAG = "nonce";
 static const std::string kSIG_TAG = "sig";
 
-enum eOpType : byte {
-  Create     = 0,
-  Modify     = 1,
-  Exchange   = 2,
-  Delete     = 3};
+/**
+ * Types of operations performed by transactions
+ */
+enum eOpType : byte { Create = 0, Modify = 1, Exchange = 2, Delete = 3 };
 
+/**
+ * The Transaction Abstract Base Class
+ * Subclassed as Tier1Transaction and Tier2Transaction
+ */
 class Transaction {
  public:
-
-/** Constructors */
+  /**
+   * Default Constructor
+   */
   Transaction() : xfer_count_(0), canonical_(), is_sound_(false) {}
 
-  Transaction(uint64_t xfer_count, bool is_sound)
-    : xfer_count_(xfer_count), canonical_(), is_sound_(is_sound) {}
+  /**
+   * Constructor
+   * @param xfer_count
+   * @param is_sound
+   */
+  Transaction(uint64_t xfer_count, bool is_sound) : xfer_count_(xfer_count), canonical_(), is_sound_(is_sound) {}
 
-  Transaction(uint64_t xfer_count, std::vector<byte> canonical
-    , bool is_sound)
-    : xfer_count_(xfer_count), canonical_(canonical), is_sound_(is_sound) {}
+  /**
+   * Constructor
+   * @param xfer_count
+   * @param canonical
+   * @param is_sound
+   */
+  Transaction(uint64_t xfer_count, std::vector<byte> canonical, bool is_sound)
+      : xfer_count_(xfer_count), canonical_(canonical), is_sound_(is_sound) {}
 
-  Transaction(const Transaction& other) : xfer_count_(other.xfer_count_)
-    , canonical_(other.canonical_), is_sound_(other.is_sound_) {}
+  /**
+   * Copy constructor
+   * @param other
+   */
+  Transaction(const Transaction& other)
+      : xfer_count_(other.xfer_count_), canonical_(other.canonical_), is_sound_(other.is_sound_) {}
 
+  /** Destructor */
   virtual ~Transaction() {}
 
-  /** Comparison Operators */
-  friend bool operator==(const Transaction& a, const Transaction& b)
-  {
-    return a.canonical_ == b.canonical_;
-  }
-
-  friend bool operator!=(const Transaction& a, const Transaction& b)
-  {
-    return a.canonical_ != b.canonical_;
-  }
-
-  static size_t MinSize() {
-    return 89;
-  }
-
-  static size_t EnvelopeSize() {
-    return 17;
-  }
-
-  /** Make a deep copy of the TierXTransaction subclass
+  /**
+   * Comparison operator
+   * @param a
+   * @param b
+   * @return
    */
+  friend bool operator==(const Transaction& a, const Transaction& b) { return a.canonical_ == b.canonical_; }
+
+  /**
+   * Comparison operator
+   * @param a
+   * @param b
+   * @return
+   */
+  friend bool operator!=(const Transaction& a, const Transaction& b) { return a.canonical_ != b.canonical_; }
+
+  /**
+   * Returns minimum size (hard-coded to 89)
+   * @return minimum size (hard-coded to 89)
+   */
+  static size_t minSize() { return 89; }
+
+  /**
+   * Returns envelope size (hard-coded to 17)
+   * @return envelope size (hard-coded to 17)
+   */
+  static size_t envelopeSize() { return 17; }
+
+  /**
+   * Make a deep copy of the TierXTransaction subclass
+   * @return TransactionPtr - a unique pointer to the new copy
+   */
+  virtual std::unique_ptr<Transaction> clone() const = 0;
+
   std::unique_ptr<Transaction> Clone() {
     return do_Clone();
   }
 
-  /** Returns a canonical bytestring representation of this transaction.
+  /**
+   * Returns a canonical bytestring representation of this transaction.
    * @return a canonical bytestring representation of this transaction.
    */
-  std::vector<byte> getCanonical() const {
-    return canonical_;
-  }
+  std::vector<byte> getCanonical() const { return canonical_; }
 
-  /** Returns the message digest bytestring for this transaction.
+  /**
+   * Returns the message digest bytestring for this transaction.
    * @return the message digest bytestring for this transaction.
-  */
-  std::vector<byte> getMessageDigest() const {
-    return do_getMessageDigest();
-  }
-
-  /** Returns the transaction size in bytes.
-   * @return the transaction size in bytes.
-  */
-  size_t getByteSize() const {
-    return(canonical_.size());
-  }
-
-  byte getOperation() const {
-    return do_getOperation();
-  }
-
-  std::vector<Transfer> getTransfers() const {
-    return do_getTransfers();
-  }
-
-  uint64_t getNonce() const {
-    return do_getNonce();
-  }
-
-  Signature getSignature() const {
-    return do_getSignature();
-  }
-
-  bool setIsSound(const KeyRing& keys) {
-    return do_setIsSound(keys);
-  }
-
-  /** Checks if this transaction is sound, meaning potentially valid.
-   *  If any portion of the transaction is invalid,
-   *  the entire transaction is also unsound.
-   * @params keys a KeyRing that provides keys for signature verification
-   * @return true iff the transaction is sound
-   * @return false otherwise
    */
-  bool isSound(const KeyRing& keys) const {
-    return do_isSound(keys);
-  }
+  std::vector<byte> getMessageDigest() const { return do_getMessageDigest(); }
 
-/** Checks if this transaction is valid with respect to a chain state.
- *  Transactions are atomic, so if any portion of the transaction is invalid,
- *  the entire transaction is also invalid.
- * @params state the chain state to validate against
- * @params keys a KeyRing that provides keys for signature verification
- * @params summary the Summary to update
- * @return true iff the transaction is valid
- * @return false otherwise
- */
-  virtual bool isValid(ChainState& state, const KeyRing& keys, Summary& summary) const
-  {
+  /**
+   * Returns the transaction size in bytes.
+   * @return the transaction size in bytes.
+   */
+  size_t getByteSize() const { return (canonical_.size()); }
+
+  /**
+   * Returns the operation performed by this transfer
+   * @return
+   */
+  byte getOperation() const { return do_getOperation(); }
+
+  /**
+   * Get a vector of Transfers
+   * @return vector of Transfer objects
+   */
+  std::vector<Transfer> getTransfers() const { return do_getTransfers(); }
+
+  /**
+   * Get the nonce of this Transaction
+   * @return
+   */
+  uint64_t getNonce() const { return do_getNonce(); }
+
+  /**
+   * Get Signature
+   * @return
+   */
+  Signature getSignature() const { return do_getSignature(); }
+
+  /**
+   * Calculate and set the soundness for this Transaction
+   * @param keys
+   * @return
+   */
+  bool setIsSound(const KeyRing& keys) { return do_setIsSound(keys); }
+
+  /**
+   * Checks if this transaction is sound, meaning potentially valid.
+   * If any portion of the transaction is invalid,
+   * the entire transaction is also unsound.
+   * @param keys a KeyRing that provides keys for signature verification
+   * @return true iff the transaction is sound, false otherwise
+   */
+  bool isSound(const KeyRing& keys) const { return do_isSound(keys); }
+
+  /**
+   * Checks if this transaction is valid with respect to a chain state.
+   * Transactions are atomic, so if any portion of the transaction is invalid,
+   * the entire transaction is also invalid.
+   * @param state the chain state to validate against
+   * @param keys a KeyRing that provides keys for signature verification
+   * @param summary the Summary to update
+   * @return true iff the transaction is valid, false otherwise
+   */
+  virtual bool isValid(ChainState& state, const KeyRing& keys, Summary& summary) const {
     return do_isValid(state, keys, summary);
   }
 
-  virtual std::map<Address, SmartCoin> AggregateState(std::map<Address, SmartCoin>& aggregator
-      , const ChainState& state, const KeyRing& keys, const Summary& summary) const {
-    return do_AggregateState(aggregator, state, keys, summary);
+  /*
+  virtual std::map<Address, SmartCoin> aggregateState(std::map<Address, SmartCoin>& aggregator,
+                                                      const ChainState& state,
+                                                      const KeyRing& keys,
+                                                      const Summary& summary) const {
+    return do_aggregateState(aggregator, state, keys, summary);
   }
+  */
 
-/** Returns a JSON string representing this transaction.
- * @return a JSON string representing this transaction.
-*/
-  std::string getJSON() const {
-    return do_getJSON();
-  }
+  /**
+   * Returns a JSON string representing this transaction.
+   * @return a JSON string representing this transaction.
+   */
+  std::string getJSON() const { return do_getJSON(); }
 
  protected:
+  /// The number of Transfers in this Transaction
   uint64_t xfer_count_;
+
+  /// The canonical representation of this Transaction
   std::vector<byte> canonical_;
+
+  /// True if this Transaction is sound
   bool is_sound_ = false;
 
  private:
-
   virtual std::unique_ptr<Transaction> do_Clone() = 0;
 
   virtual std::vector<byte> do_getMessageDigest() const = 0;
@@ -193,14 +235,18 @@ class Transaction {
 
   virtual bool do_isValid(ChainState& state, const KeyRing& keys, Summary& summary) const = 0;
 
-  virtual std::map<Address, SmartCoin> do_AggregateState(std::map<Address, SmartCoin>& aggregator
-    , const ChainState& state, const KeyRing& keys, const Summary& summary) const = 0;
-
   virtual std::string do_getJSON() const = 0;
+
+  /*
+  virtual std::map<Address, SmartCoin> do_aggregateState(std::map<Address, SmartCoin>& aggregator,
+                                                         const ChainState& state,
+                                                         const KeyRing& keys,
+                                                         const Summary& summary) const = 0;
+  */
 };
 
 typedef std::unique_ptr<Transaction> TransactionPtr;
 
-} //end namespace Devcash
+}  // end namespace Devcash
 
-#endif // DEVCASH_PRIMITIVES_TRANSACTION_H
+#endif  // DEVCASH_PRIMITIVES_TRANSACTION_H
