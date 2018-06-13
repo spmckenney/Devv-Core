@@ -102,13 +102,13 @@ class Transaction {
    * Returns minimum size (hard-coded to 89)
    * @return minimum size (hard-coded to 89)
    */
-  static size_t minSize() { return 89; }
+  static size_t MinSize() { return 89; }
 
   /**
    * Returns envelope size (hard-coded to 17)
    * @return envelope size (hard-coded to 17)
    */
-  static size_t envelopeSize() { return 17; }
+  static size_t EnvelopeSize() { return 17; }
 
   /**
    * Make a deep copy of the TierXTransaction subclass

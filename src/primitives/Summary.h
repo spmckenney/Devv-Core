@@ -57,7 +57,7 @@ typedef std::map<Address, SummaryPair> SummaryMap;
  * @param[in,out] existing
  * @return
  */
-inline bool AddToCoinMap(uint64_t coin, const DelayedItem& item, DelayedMap& existing) {
+inline bool AddToDelayedMap(uint64_t coin, const DelayedItem &item, DelayedMap &existing) {
   if (existing.count(coin) > 0) {
     DelayedItem the_item = existing.at(coin);
     the_item.delta += item.delta;
@@ -111,7 +111,7 @@ class Summary {
    * @param offset
    */
   Summary(const std::vector<byte>& serial, size_t& offset) : summary_() {
-    if (serial.size() < minSize() + offset) {
+    if (serial.size() < MinSize() + offset) {
       LOG_WARNING << "Invalid serialized Summary, too small!";
       return;
     }
@@ -166,7 +166,7 @@ class Summary {
         SummaryPair existing(summary_.at(addr));
         if (item.delay > 0) {
           DelayedMap delayed(existing.first);
-          if (!AddToCoinMap(coin, item, delayed)) return false;
+          if (!AddToDelayedMap(coin, item, delayed)) return false;
           SummaryPair updated(delayed, existing.second);
           summary_.at(addr) = updated;
         } else {
@@ -377,7 +377,7 @@ class Summary {
         }
       }
       if (coin_total != 0) {
-        LOG_DEBUG << "Summary state invalid: " + getJSON();
+        LOG_WARNING << "Summary state invalid: " + getJSON();
         return false;
       }
       return true;
@@ -392,7 +392,7 @@ class Summary {
    * Minimum size of Summary
    * @return Minimum size in bytes (4)
    */
-  static size_t minSize() { return 4; }
+  static size_t MinSize() { return 4; }
 
  private:
   /// map of summary addresses to summary pairs

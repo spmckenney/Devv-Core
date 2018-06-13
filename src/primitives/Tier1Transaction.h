@@ -18,7 +18,6 @@ namespace Devcash {
 
 class Tier1Transaction : public Transaction {
  public:
-  // TODO(spm)
   // This is to support the unimplemented oracleInterface::getT1Syntax() methods
   Tier1Transaction() = default;
 

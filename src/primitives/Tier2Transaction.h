@@ -28,12 +28,12 @@ class Tier2Transaction : public Transaction {
    * @param keys KeyRing
    */
   Tier2Transaction(const std::vector<byte>& serial, const KeyRing& keys) {
-    if (serial.size() < minSize()) {
+    if (serial.size() < MinSize()) {
       LOG_WARNING << "Invalid serialized T2 transaction, too small!";
       return;
     }
     xfer_count_ = BinToUint64(serial, 0);
-    size_t tx_size = minSize() + (Transfer::Size() * xfer_count_);
+    size_t tx_size = MinSize() + (Transfer::Size() * xfer_count_);
     LOG_INFO << "TX size: " + std::to_string(tx_size);
     if (serial.size() < tx_size) {
       LOG_WARNING << "Invalid serialized T2 transaction, wrong size!";
@@ -69,12 +69,12 @@ class Tier2Transaction : public Transaction {
     int trace_int = 124;
     MTR_START("Transaction", "Transaction", &trace_int);
     MTR_STEP("Transaction", "Transaction", &trace_int, "step1");
-    if (serial.size() < offset + minSize()) {
+    if (serial.size() < offset + MinSize()) {
       LOG_WARNING << "Invalid serialized T2 transaction, too small!";
       return;
     }
     xfer_count_ = BinToUint64(serial, offset);
-    size_t tx_size = minSize() + (Transfer::Size() * xfer_count_);
+    size_t tx_size = MinSize() + (Transfer::Size() * xfer_count_);
     if (serial.size() < offset + tx_size) {
       std::vector<byte> prefix(serial.begin() + offset, serial.begin() + offset + 8);
       LOG_WARNING << "Invalid serialized T2 transaction, wrong size (" + std::to_string(tx_size) + ")!";
@@ -115,7 +115,7 @@ class Tier2Transaction : public Transaction {
                    Signature sig,
                    const KeyRing& keys)
       : Transaction(xfer_count, false) {
-    canonical_.reserve(minSize() + (Transfer::Size() * xfer_count_));
+    canonical_.reserve(MinSize() + (Transfer::Size() * xfer_count_));
 
     Uint64ToBin(xfer_count_, canonical_);
     canonical_.push_back(operation);
@@ -145,7 +145,7 @@ class Tier2Transaction : public Transaction {
                    EC_KEY* eckey,
                    const KeyRing& keys)
       : Transaction(xfers.size(), false) {
-    canonical_.reserve(minSize() + (Transfer::Size() * xfer_count_));
+    canonical_.reserve(MinSize() + (Transfer::Size() * xfer_count_));
 
     Uint64ToBin(xfer_count_, canonical_);
     canonical_.push_back(oper);
@@ -179,7 +179,7 @@ class Tier2Transaction : public Transaction {
    */
   std::vector<byte> do_getMessageDigest() const override {
     /// @todo(mckenney) can this be a reference?
-    std::vector<byte> md(canonical_.begin(), canonical_.begin() + (envelopeSize() + Transfer::Size() * xfer_count_));
+    std::vector<byte> md(canonical_.begin(), canonical_.begin() + (EnvelopeSize() + Transfer::Size() * xfer_count_));
     return md;
   }
 

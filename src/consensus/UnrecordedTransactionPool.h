@@ -55,14 +55,14 @@ class UnrecordedTransactionPool {
           //note that Transaction constructor advances counter by reference
           if (mode_ == eAppMode::T2) {
             TransactionPtr one_tx = std::make_unique<Tier2Transaction>(serial, counter, keys);
-            if (one_tx->getByteSize() < Transaction::minSize()) {
+            if (one_tx->getByteSize() < Transaction::MinSize()) {
               LOG_WARNING << "Invalid transaction, dropping the remainder of input.";
               break;
             }
             temp.push_back(std::move(one_tx));
 		  } else if (mode_ == eAppMode::T1) {
             TransactionPtr one_tx = std::make_unique<Tier1Transaction>(serial, counter, keys);
-            if (one_tx->getByteSize() < Transaction::minSize()) {
+            if (one_tx->getByteSize() < Transaction::MinSize()) {
               LOG_WARNING << "Invalid transaction, dropping the remainder of input.";
               break;
             }

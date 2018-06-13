@@ -92,7 +92,7 @@ class FinalBlock {
     tcm.CreateTransactions(serial, transaction_vector_, offset, minSize(), tx_size_);
 
     /*
-    while (offset < minSize()+tx_size_) {
+    while (offset < MinSize()+tx_size_) {
       //Transaction constructor increments offset by ref
       Transaction one_tx(serial, offset, keys);
       transaction_vector_.push_back(one_tx);
@@ -183,7 +183,7 @@ class FinalBlock {
    * Static method which returns the minimum size for a FinalBlock
    * @return minimum size (101)
    */
-  static size_t minSize() {
+  static size_t MinSize() {
     /// @todo (mckenney) define hard-coded value
     return 101;
   }
