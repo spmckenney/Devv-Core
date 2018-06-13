@@ -120,6 +120,7 @@ std::string WriteChainStateMap(std::map<Address, std::map<uint64_t, uint64_t>> m
     }
     out += "]";
   }
+  out += "}";
   return out;
 }
 
@@ -189,7 +190,12 @@ int main(int argc, char* argv[])
         if (!isBlock && !isTransaction) LOG_WARNING << files.at(i) << " contains unknown data.";
         while (offset < static_cast<size_t>(file_size)) {
           if (isBlock) {
-            FinalBlock one_block(raw, posteri, offset);
+            size_t span = offset;
+            FinalBlock one_block(raw, posteri, offset, keys, options->mode);
+            if (offset == span) {
+              LOG_WARNING << files.at(i) << " has invalid block!";
+              break;
+		    }
             Summary block_summary;
             std::vector<TransactionPtr> txs = one_block.getTransactions();
             for (TransactionPtr& item : txs) {

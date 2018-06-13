@@ -86,7 +86,12 @@ int main(int argc, char* argv[])
           file_tfer += tx.getTransfers().size();
           out += tx.getJSON();
         } else {
+          size_t span = offset;
           FinalBlock one_block(raw, priori, offset, keys, options->mode);
+          if (offset == span) {
+            LOG_WARNING << files.at(i) << " has invalid block!";
+            break;
+		  }
           size_t txs = one_block.getNumTransactions();
           size_t tfers = one_block.getNumTransfers();
           priori = one_block.getChainState();
