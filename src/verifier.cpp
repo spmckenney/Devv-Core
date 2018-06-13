@@ -202,6 +202,10 @@ int main(int argc, char* argv[])
                 != one_block.getSummary().getCanonical()) {
               LOG_WARNING << "A final block summary is invalid. Summary datails: ";
               LOG_WARNING << one_block.getSummary().getJSON();
+              LOG_WARNING << "Transaction details: "
+              for (TransactionPtr& item : txs) {
+                LOG_WARNING << item->getJSON();
+              }
 		    }
           } else if (isTransaction) {
             Tier2Transaction tx(raw, offset, keys, true);
@@ -219,6 +223,10 @@ int main(int argc, char* argv[])
       LOG_WARNING << "Post state: "+WriteChainStateMap(posteri.stateMap_);
     } else {
       LOG_INFO << "End states match.";
+    }
+
+    if (posteri.stateMap_.empty()) {
+      LOG_INFO << "End state is empty.";
     }
 
     return(true);
