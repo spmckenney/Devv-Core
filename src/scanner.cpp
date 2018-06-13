@@ -89,7 +89,7 @@ int main(int argc, char* argv[])
           size_t span = offset;
           FinalBlock one_block(raw, priori, offset, keys, options->mode);
           if (offset == span) {
-            LOG_WARNING << files.at(i) << " has invalid block!";
+            LOG_WARNING << entry << " has invalid block!";
             break;
 		  }
           size_t txs = one_block.getNumTransactions();
