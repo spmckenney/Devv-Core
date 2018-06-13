@@ -161,6 +161,18 @@ class Transfer {
   std::vector<byte> canonical_;
 };
 
+/**
+ * Converts the vector of bytes to an array of bytes (Devcash::Address)
+ * @param[in] vec input address as vector of bytes
+ * @return The resulting Devcash::Address created from the input vector
+ */
+static Devcash::Address ConvertToAddress(const std::vector<byte>& vec) {
+  CheckSizeEqual(vec, Devcash::kADDR_SIZE);
+  Devcash::Address addr;
+  std::copy_n(vec.begin(), Devcash::kADDR_SIZE, addr.begin());
+  return(addr);
+}
+
 }  // end namespace Devcash
 
 #endif /* PRIMITIVES_TRANSFER_H_ */
