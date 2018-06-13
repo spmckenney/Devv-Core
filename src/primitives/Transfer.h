@@ -14,6 +14,7 @@
 #include <string>
 
 #include "SmartCoin.h"
+#include "common/binary_converters.h"
 #include "consensus/KeyRing.h"
 #include "consensus/chainstate.h"
 

@@ -12,6 +12,7 @@
 #include <vector>
 #include <memory>
 
+#include "common/binary_converters.h"
 #include "common/logger.h"
 #include "common/util.h"
 

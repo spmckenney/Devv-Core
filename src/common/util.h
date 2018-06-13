@@ -35,8 +35,10 @@ namespace Devcash
 
 static const size_t kADDR_SIZE = 33;
 typedef std::array<byte, kADDR_SIZE> Address;
+
 static const size_t kSIG_SIZE = 72;
 typedef std::array<byte, kSIG_SIZE> Signature;
+
 static const size_t kFILE_KEY_SIZE = 379;
 
 // Exit if no transactions in 10 sec
@@ -44,86 +46,13 @@ static const size_t kTRANSACTION_TIMEOUT = 10000;
 
 static const size_t kMAX_T2_BLOCK_SIZE = 10000;
 
-static int32_t BinToInt32(const std::vector<byte>& bytes, size_t start) {
-  //MTR_SCOPE_FUNC();
-  int32_t dest = 0;
-  for (unsigned int i=0; i<4; ++i) {
-    dest |= (bytes.at(start+i) << (i*8));
+template <typename Container>
+void CheckSizeEqual(const Container& c, size_t size) {
+  if (c.size() != size) {
+    std::string err = "Container must be "
+                      + std::to_string(size) + " bytes (" + std::to_string(c.size()) + ")";
+    throw std::runtime_error(err);
   }
-  return dest;
-}
-
-static std::vector<byte> Int32ToBin(const int32_t& source
-    ,std::vector<byte>& dest) {
-  //MTR_SCOPE_FUNC();
-  for (unsigned int i=0; i<4; ++i) {
-    dest.push_back((source >> (i*8)) & 0xFF);
-  }
-  return dest;
-}
-
-static uint32_t BinToUint32(const std::vector<byte>& bytes, size_t start) {
-  //MTR_SCOPE_FUNC();
-  uint32_t dest = 0;
-  for (unsigned int i=0; i<4; ++i) {
-    dest |= (bytes.at(start+i) << (i*8));
-  }
-  return dest;
-}
-
-static std::vector<byte> Uint32ToBin(const uint32_t& source
-    ,std::vector<byte>& dest) {
-  //MTR_SCOPE_FUNC();
-  for (unsigned int i=0; i<4; ++i) {
-    dest.push_back((source >> (i*8)) & 0xFF);
-  }
-  return dest;
-}
-
-/**
- * Deserialize byte array to unsigned 64-bit integer
- * @param[in] bytes Incoming byte array
- * @param[in] start array location of uint64_t
- * @return deserialized 64-bit integer
- */
-static uint64_t BinToUint64(const std::vector<byte>& bytes, size_t start) {
-  //MTR_SCOPE_FUNC();
-  uint32_t lsb = BinToUint32(bytes, start);
-  uint32_t msb = BinToUint32(bytes, start+4);
-  uint64_t dest = (uint64_t(msb) << 32) | uint64_t(lsb);
-  return dest;
-}
-
-/**
- * Convert 64-bit into to binary
- * @param[in] source
- * @param[out] dest
- * @return
- */
-static std::vector<byte> Uint64ToBin(const uint64_t& source, std::vector<byte>& dest) {
-  //MTR_SCOPE_FUNC();
-  uint32_t lsb = source&0xffffffff;
-  uint32_t msb = source >> 32;
-  Uint32ToBin(lsb, dest);
-  Uint32ToBin(msb, dest);
-  return dest;
-}
-
-static int64_t BinToInt64(const std::vector<byte>& bytes, size_t start) {
-  //MTR_SCOPE_FUNC();
-  int32_t lsb = BinToInt32(bytes, start);
-  int32_t msb = BinToInt32(bytes, start+4);
-  int64_t dest = (int64_t(msb) << 32) | int64_t(lsb);
-  return dest;
-}
-
-static std::vector<byte> Int64ToBin(const int64_t &source, std::vector<byte> &dest) {
-  //MTR_SCOPE_FUNC();
-  int32_t lsb = source & 0xffffffff;
-  int32_t msb = source >> 32;
-  Int32ToBin(lsb, dest);
-  Int32ToBin(msb, dest);
-  return dest;
 }
 
 /**
@@ -135,59 +64,6 @@ static uint64_t GetMillisecondsSinceEpoch() {
   std::chrono::milliseconds ms = std::chrono::duration_cast<std::chrono::milliseconds>
     (std::chrono::system_clock::now().time_since_epoch());
   return ms.count();
-}
-
-/** Maps a hex digit to an int value.
- *  @param hex digit to get the int value for
- *  @return int value of this hex digit
-*/
-static int Char2Int(char in) {
-  //MTR_SCOPE_FUNC();
-  if (in >= '0' && in <= '9') {
-    return(in - '0');
-  }
-  if (in >= 'A' && in <= 'F') {
-    return(in - 'A' + 10);
-  }
-  if (in >= 'a' && in <= 'f') {
-  return(in - 'a' + 10);
-  }
-  return(-1);
-}
-
-/** Maps a hex string into a byte vector for CBOR parsing.
- *  @param hex a string of hex digits encoding a CBOR message.
- *  @return a byte vector of the same data in binary form.
-*/
-static std::vector<byte> Hex2Bin(std::string hex) {
-  MTR_SCOPE_FUNC();
-  int len = hex.length();
-  std::vector<uint8_t> buf(len/2+1);
-  for (int i=0;i<len/2;i++) {
-    buf.at(i) = (byte) Char2Int(hex.at(i*2))*16+Char2Int(hex.at(1+i*2));
-  }
-  buf.pop_back(); //remove null terminator
-  return(buf);
-}
-
-/** chars for hex conversions */
-static const char alpha[] = "0123456789ABCDEF";
-/** Change binary data into a hex string.
- *  @pre input must be allocated to a length of len
- *  @param input pointer to the binary data
- *  @param len length of the binary data
- *  @return string containing these data as hex numbers
- */
-template <typename Array>
-static std::string ToHex(const Array &input) {
-  MTR_SCOPE_FUNC();
-  std::stringstream ss;
-  for (size_t j=0; j<input.size(); j++) {
-    int c = (int) input[j];
-    ss.put(alpha[(c>>4)&0xF]);
-    ss.put(alpha[c&0xF]);
-  }
-  return(ss.str());
 }
 
 /** Setup the runtime environment. */
