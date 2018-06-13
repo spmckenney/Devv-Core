@@ -202,7 +202,7 @@ int main(int argc, char* argv[])
                 != one_block.getSummary().getCanonical()) {
               LOG_WARNING << "A final block summary is invalid. Summary datails: ";
               LOG_WARNING << one_block.getSummary().getJSON();
-              LOG_WARNING << "Transaction details: "
+              LOG_WARNING << "Transaction details: ";
               for (TransactionPtr& item : txs) {
                 LOG_WARNING << item->getJSON();
               }
