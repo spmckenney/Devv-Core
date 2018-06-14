@@ -36,7 +36,8 @@ target_link_libraries(primitives
         gtest_main
         io
         common
-        ${ZMQ}
+        consensus
+       ${ZMQ}
         ${OPENSSL_LIBRARIES}
         ${CMAKE_THREAD_LIBS_INIT}
         ${Boost_LIBRARIES})
