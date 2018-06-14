@@ -160,7 +160,7 @@ class Tier1Transaction : public Transaction {
   std::vector<Transfer> do_getTransfers() const {
     /// @todo Address hard-coded value
     size_t offset = 16;
-    Summary summary(canonical_, offset);
+    Summary summary(Summary::Create(canonical_, offset));
     return summary.getTransfers();
   }
 

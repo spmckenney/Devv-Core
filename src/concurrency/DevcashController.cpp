@@ -398,7 +398,7 @@ std::vector<std::vector<byte>> DevcashController::loadTransactions() {
       while (offset < static_cast<size_t>(file_size)) {
         //constructor increments offset by reference
         FinalBlock one_block(raw, priori, offset);
-        Summary sum(one_block.getSummary());
+        Summary sum = Summary::Copy(one_block.getSummary());
         Validation val(one_block.getValidation());
         std::pair<Address, Signature> pair(val.getFirstValidation());
         int index = keys_.getNodeIndex(pair.first);

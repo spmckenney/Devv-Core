@@ -203,7 +203,7 @@ bool HandleBlocksSinceRequest(DevcashMessageUniquePtr ptr,
                 << offset << "/" << raw.size() << ")";
         //constructor increments offset by reference
       FinalBlock one_block(raw, temp, offset);
-      Summary sum(one_block.getSummary());
+      Summary sum = Summary::Copy(one_block.getSummary());
       Validation val(one_block.getValidation());
       std::pair<Address, Signature> pair(val.getFirstValidation());
       int index = keys.getNodeIndex(pair.first);
@@ -255,7 +255,7 @@ bool HandleBlocksSince(DevcashMessageUniquePtr ptr,
       //constructor increments offset by reference
       FinalBlock one_block(ptr->data, state, offset);
       uint64_t elapsed = GetMillisecondsSinceEpoch() - one_block.getBlockTime();
-      Summary sum(one_block.getSummary());
+      Summary sum = Summary::Copy(one_block.getSummary());
       for (auto const& addr : wallets) {
         std::vector<SmartCoin> coins = sum.getCoinsByAddr(addr, elapsed);
         for (auto const& coin : coins) {

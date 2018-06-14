@@ -52,7 +52,7 @@ TEST_F(SummaryTest, checkMinSize) {
 }
 
 TEST_F(SummaryTest, defaultConstructor) {
-  Summary s;
+  Summary s = Summary::Create();
 
   size_t zero = 0;
   std::vector<Devcash::byte> canon(Summary::MinSize(), '\0');
@@ -68,7 +68,7 @@ TEST_F(SummaryTest, defaultConstructor) {
 
 TEST_F(SummaryTest, addItem_0) {
   TEST_DESCRIPTION("Tests addItem() with no delay and checks size");
-  Summary s;
+  Summary s = Summary::Create();
 
   /// @todo (mckenney) maybe this should be calculated instead of being
   /// a magic number
@@ -79,7 +79,7 @@ TEST_F(SummaryTest, addItem_0) {
 
 TEST_F(SummaryTest, addItem_1) {
   TEST_DESCRIPTION("Tests addItem() with delay and checks size");
-  Summary s;
+  Summary s = Summary::Create();
 
   /// @todo (mckenney) maybe this should be calculated instead of being
   /// a magic number
@@ -90,7 +90,7 @@ TEST_F(SummaryTest, addItem_1) {
 
 TEST_F(SummaryTest, addItem_2) {
   TEST_DESCRIPTION("Tests addItem(DelayedItem(delay=10)) and checks size");
-  Summary s;
+  Summary s = Summary::Create();
 
   /// @todo (mckenney) maybe this should be calculated instead of being
   /// a magic number
@@ -105,7 +105,7 @@ TEST_F(SummaryTest, addItem_2) {
 
 TEST_F(SummaryTest, addItem_3) {
   TEST_DESCRIPTION("Tests addItem(DelayedItem(delay=0)) and checks size");
-  Summary s;
+  Summary s = Summary::Create();
 
   /// @todo (mckenney) maybe this should be calculated instead of being
   /// a magic number
@@ -120,7 +120,7 @@ TEST_F(SummaryTest, addItem_3) {
 
 TEST_F(SummaryTest, addItem_4) {
   TEST_DESCRIPTION("Tests adding two items with same address and checks size");
-  Summary s;
+  Summary s = Summary::Create();
 
   /// @todo (mckenney) maybe this should be calculated instead of being
   /// a magic number
@@ -145,7 +145,7 @@ TEST_F(SummaryTest, addItem_4) {
 
 TEST_F(SummaryTest, addItem_5) {
   TEST_DESCRIPTION("Tests adding two items with same coin and checks size");
-  Summary s;
+  Summary s = Summary::Create();
 
   /// @todo (mckenney) maybe this should be calculated instead of being
   /// a magic number
@@ -170,7 +170,7 @@ TEST_F(SummaryTest, addItem_5) {
 
 TEST_F(SummaryTest, addItem_6) {
   TEST_DESCRIPTION("Tests adding two items with same address and checks size");
-  Summary s;
+  Summary s = Summary::Create();
 
   /// @todo (mckenney) maybe this should be calculated instead of being
   /// a magic number
@@ -395,16 +395,16 @@ class Tier2TransactionTest : public ::testing::Test {
   // rungs
   Devcash::KeyRing rings_;
 };
-
+/*
 TEST_F(Tier2TransactionTest, constructor_0) {
   size_t zero = 0;
   Devcash::Signature sig;
-  Devcash::Tier2Transaction transaction(10, 10, transfers_, 10, sig, rings_);
+  Devcash::Tier2Transaction transaction(10, transfers_, 10, sig, rings_);
 
   // @todo (mckenney) should be Devcash::Tier1Transaction::MinSize()?
   EXPECT_EQ(transaction.getByteSize(), zero);
 }
-
+*/
 /*
 TEST_F(Tier1TransactionTest, getJSONIdentity) {
   size_t offset = 0;

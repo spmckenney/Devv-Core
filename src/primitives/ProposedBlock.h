@@ -60,7 +60,7 @@ class ProposedBlock {
       , sum_size_(0)
       , val_count_(0)
       , transaction_vector_()
-      , summary_()
+      , summary_(Summary::Create())
       , vals_()
       , block_state_(prior) {}
 
@@ -81,7 +81,7 @@ class ProposedBlock {
       , sum_size_(0)
       , val_count_(0)
       , transaction_vector_()
-      , summary_()
+      , summary_(Summary::Create())
       , vals_()
       , block_state_(prior) {
     MTR_SCOPE_FUNC();
@@ -122,8 +122,8 @@ class ProposedBlock {
     tcm.CreateTransactions(serial, transaction_vector_, offset, minSize(), tx_size_);
 
     MTR_STEP("proposed_block", "construct", &proposed_block_int, "step3");
-    Summary temp(serial, offset);
-    summary_ = temp;
+    summary_ = Summary::Create(serial, offset);
+
     MTR_STEP("proposed_block", "construct", &proposed_block_int, "step4");
     Validation val_temp(serial, offset);
     vals_ = val_temp;
@@ -142,7 +142,7 @@ class ProposedBlock {
       , sum_size_(other.sum_size_)
       , val_count_(other.val_count_)
       , transaction_vector_(std::move(other.transaction_vector_))
-      , summary_(other.summary_)
+      , summary_(Summary::Copy(other.summary_))
       , vals_(other.vals_)
       , block_state_(other.block_state_) {}
 
@@ -165,7 +165,7 @@ class ProposedBlock {
       , sum_size_(summary.getByteSize())
       , val_count_(validations.getValidationCount())
       , transaction_vector_(std::move(txs))
-      , summary_(summary)
+      , summary_(Summary::Copy(summary))
       , vals_(validations)
       , block_state_(prior_state) {
     MTR_SCOPE_FUNC();
@@ -373,7 +373,7 @@ class ProposedBlock {
    */
   size_t getNumTransactions() const { return transaction_vector_.size(); }
 
-  Summary getSummary() const { return summary_; }
+  const Summary& getSummary() const { return summary_; }
 
   /**
    *
@@ -414,7 +414,7 @@ class ProposedBlock {
     sum_size_ = other.sum_size_;
     val_count_ = other.val_count_;
     transaction_vector_ = std::move(other.transaction_vector_);
-    summary_ = other.summary_;
+    summary_ = std::move(other.summary_);
     vals_ = other.vals_;
     block_state_ = other.block_state_;
     return *this;

@@ -29,7 +29,7 @@ class FinalBlock {
         sum_size_(proposed.getSummarySize()),
         val_count_(proposed.getNumValidations()),
         transaction_vector_(Copy(proposed.getTransactions())),
-        summary_(proposed.getSummary()),
+        summary_(Summary::Copy(proposed.getSummary())),
         vals_(proposed.getValidation()),
         block_state_(proposed.getBlockState()) {
     merkle_root_ = DevcashHash(getBlockDigest());
@@ -56,10 +56,10 @@ class FinalBlock {
         sum_size_(0),
         val_count_(0),
         transaction_vector_(),
-        summary_(),
+        summary_(Summary::Create()),
         vals_(),
         block_state_(prior) {
-    if (serial.size() < minSize()) {
+    if (serial.size() < MinSize()) {
       LOG_WARNING << "Invalid serialized FinalBlock, too small!";
       return;
     }
@@ -89,7 +89,7 @@ class FinalBlock {
     offset += 4;
 
     tcm.set_keys(&keys);
-    tcm.CreateTransactions(serial, transaction_vector_, offset, minSize(), tx_size_);
+    tcm.CreateTransactions(serial, transaction_vector_, offset, MinSize(), tx_size_);
 
     /*
     while (offset < MinSize()+tx_size_) {
@@ -99,8 +99,7 @@ class FinalBlock {
     }
     */
 
-    Summary temp(serial, offset);
-    summary_ = temp;
+    summary_ = Summary::Create(serial, offset);
     Validation val_temp(serial, offset);
     vals_ = val_temp;
   }
@@ -120,10 +119,10 @@ class FinalBlock {
         sum_size_(0),
         val_count_(0),
         transaction_vector_(),
-        summary_(),
+        summary_(Summary::Create()),
         vals_(),
         block_state_(prior) {
-    if (serial.size() < minSize()) {
+    if (serial.size() < MinSize()) {
       LOG_WARNING << "Invalid serialized FinalBlock, too small!";
       return;
     }
@@ -155,8 +154,7 @@ class FinalBlock {
     // this constructor does not load transactions
     offset += tx_size_;
 
-    Summary temp(serial, offset);
-    summary_ = temp;
+    summary_ = Summary::Create(serial, offset);
     Validation val_temp(serial, offset, val_count_);
     vals_ = val_temp;
   }
@@ -175,7 +173,7 @@ class FinalBlock {
       , sum_size_(other.sum_size_)
       , val_count_(other.val_count_)
       , transaction_vector_(Copy(other.transaction_vector_))
-      , summary_(other.summary_)
+      , summary_(Summary::Copy(other.summary_))
       , vals_(other.vals_)
       , block_state_(other.block_state_){}
 
@@ -306,7 +304,7 @@ class FinalBlock {
    *
    * @return
    */
-  Summary getSummary() const { return summary_; }
+  const Summary& getSummary() const { return summary_; }
 
   /**
    *

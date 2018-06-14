@@ -235,7 +235,7 @@ class UnrecordedTransactionPool {
     LOG_DEBUG << "ProposeBlock()";
     MTR_SCOPE_FUNC();
     ChainState new_state(prior_state);
-    Summary summary;
+    Summary summary = Summary::Create();
     Validation validation;
 
     auto validated = CollectValidTransactions(new_state
