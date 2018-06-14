@@ -13,9 +13,10 @@
 
 namespace Devcash {
 
+
 class KeyRing {
  public:
-  KeyRing(DevcashContext& context);
+  KeyRing(const DevcashContext& context);
   virtual ~KeyRing() {};
 
   /**
