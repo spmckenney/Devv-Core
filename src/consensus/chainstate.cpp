@@ -19,8 +19,8 @@ namespace Devcash
 using namespace Devcash;
 
 bool ChainState::addCoin(const SmartCoin& coin) {
-  auto it = stateMap_.find(coin.addr_);
-  if (it != stateMap_.end()) {
+  auto it = state_map_.find(coin.addr_);
+  if (it != state_map_.end()) {
     it->second[coin.coin_] += coin.amount_;
   }
   return(true);
@@ -28,8 +28,8 @@ bool ChainState::addCoin(const SmartCoin& coin) {
 
 bool ChainState::addCoins(const std::map<Address, SmartCoin>& coin_map) {
  for (auto iter = coin_map.begin(); iter != coin_map.end(); ++iter) {
-   auto loc = stateMap_.find(iter->first);
-   if (loc != stateMap_.end()) {
+   auto loc = state_map_.find(iter->first);
+   if (loc != state_map_.end()) {
      loc->second[iter->second.coin_] += iter->second.amount_;
    }
  }
@@ -37,35 +37,12 @@ bool ChainState::addCoins(const std::map<Address, SmartCoin>& coin_map) {
 }
 
 long ChainState::getAmount(uint64_t type, const Address& addr) const {
-  auto it = stateMap_.find(addr);
-  if (it != stateMap_.end()) {
+  auto it = state_map_.find(addr);
+  if (it != state_map_.end()) {
     int64_t amount = it->second.at(type);
     return amount;
   }
   return(0);
-}
-
-bool ChainState::moveCoin(const SmartCoin& start, const SmartCoin& end) {
-  if (start.coin_ != end.coin_) return(false);
-  if (start.amount_ != end.amount_) return(false);
-
-  uint64_t start_balance = stateMap_[start.addr_][start.coin_];
-  if (start_balance >= start.amount_) {
-    stateMap_[start.addr_][start.coin_] = start_balance-start.amount_;
-    uint64_t end_balance = stateMap_[end.addr_][start.coin_];
-    stateMap_[end.addr_][start.coin_] = end_balance+start.amount_;
-    return true;
-  }
-  return false;
-}
-
-bool ChainState::delCoin(SmartCoin& coin) {
-  auto it = stateMap_.find(coin.addr_);
-  if (it != stateMap_.end()) {
-    it->second[coin.coin_] -= coin.amount_;
-    return true;
-  }
-  return(false);
 }
 
 } //end namespace Devcash

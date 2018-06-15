@@ -17,7 +17,7 @@
 #include "common/argument_parser.h"
 #include "common/devcash_context.h"
 #include "concurrency/DevcashController.h"
-#include "devcashnode.h"
+#include "node/DevcashNode.h"
 #include "io/message_service.h"
 
 using namespace Devcash;
