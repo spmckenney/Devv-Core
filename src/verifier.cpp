@@ -19,19 +19,19 @@
  *  Author: Nick Williams
  */
 
-#include <stdlib.h>
 #include <stdio.h>
-#include <string>
-#include <iostream>
+#include <stdlib.h>
+#include <boost/filesystem.hpp>
 #include <fstream>
 #include <functional>
+#include <iostream>
+#include <string>
 #include <thread>
-#include <boost/filesystem.hpp>
 
 #include "common/argument_parser.h"
 #include "common/devcash_context.h"
-#include "node/DevcashNode.h"
 #include "io/message_service.h"
+#include "node/DevcashNode.h"
 
 using namespace Devcash;
 
@@ -44,16 +44,16 @@ namespace fs = boost::filesystem;
  * @return true if this data encodes a block
  * @return false otherwise
  */
-bool isBlockData(std::vector<byte> raw) {
-  //check if big enough
-  if (raw.size() < FinalBlock::minSize()) return false;
-  //check version
+bool IsBlockData(const std::vector<byte>& raw) {
+  // check if big enough
+  if (raw.size() < FinalBlock::MinSize()) return false;
+  // check version
   if (raw[0] != 0x00) return false;
   size_t offset = 9;
   uint64_t block_time = BinToUint64(raw, offset);
-  //check blocktime is from 2018 or newer.
+  // check blocktime is from 2018 or newer.
   if (block_time < 1514764800) return false;
-  //check blocktime is in past
+  // check blocktime is in past
   if (block_time > GetMillisecondsSinceEpoch()) return false;
   return true;
 }
@@ -63,14 +63,14 @@ bool isBlockData(std::vector<byte> raw) {
  * @return true if this data encodes Transactions
  * @return false otherwise
  */
-bool isTxData(std::vector<byte> raw) {
-  //check if big enough
-  if (raw.size() < Transaction::minSize()) return false;
-  //check transfer count
+bool IsTxData(const std::vector<byte>& raw) {
+  // check if big enough
+  if (raw.size() < Transaction::MinSize()) return false;
+  // check transfer count
   uint64_t xfer_count = BinToUint64(raw, 0);
-  size_t tx_size = Transaction::minSize()+(Transfer::Size()*xfer_count);
+  size_t tx_size = Transaction::MinSize() + (Transfer::Size() * xfer_count);
   if (raw.size() < tx_size) return false;
-  //check operation
+  // check operation
   if (raw[8] >= 4) return false;
   return true;
 }
@@ -79,15 +79,13 @@ bool isTxData(std::vector<byte> raw) {
  * @return true if the maps have the same state
  * @return false otherwise
  */
-bool CompareChainStateMaps(
-    std::map<Address, std::map<uint64_t, uint64_t>> first
-    , std::map<Address, std::map<uint64_t, uint64_t>> second) {
+bool CompareChainStateMaps(const std::map<Address, std::map<uint64_t, uint64_t>>& first,
+                           const std::map<Address, std::map<uint64_t, uint64_t>>& second) {
   if (first.size() != second.size()) return false;
-  for (auto i=first.begin(), j = second.begin(); i != first.end(); ++i, ++j) {
+  for (auto i = first.begin(), j = second.begin(); i != first.end(); ++i, ++j) {
     if (i->first != j->first) return false;
     if (i->second.size() != j->second.size()) return false;
-    for (auto x=i->second.begin(), y=j->second.begin(); x != i->second.end();
-        ++x, ++y) {
+    for (auto x = i->second.begin(), y = j->second.begin(); x != i->second.end(); ++x, ++y) {
       if (x->first != y->first) return false;
       if (x->second != y->second) return false;
     }
@@ -98,7 +96,7 @@ bool CompareChainStateMaps(
 /** Dumps the map inside a chainstate object into a human-readable JSON format.
  * @return a string containing a description of the chain state.
  */
-std::string WriteChainStateMap(std::map<Address, std::map<uint64_t, uint64_t>> map) {
+std::string WriteChainStateMap(const std::map<Address, std::map<uint64_t, uint64_t>>& map) {
   std::string out("{");
   bool first_addr = true;
   for (auto e : map) {
@@ -108,7 +106,7 @@ std::string WriteChainStateMap(std::map<Address, std::map<uint64_t, uint64_t>> m
       out += ",";
     }
     Address a = e.first;
-    out += "\""+ToHex(std::vector<byte>(std::begin(a), std::end(a)))+"\":[";
+    out += "\"" + ToHex(std::vector<byte>(std::begin(a), std::end(a))) + "\":[";
     bool is_first;
     for (auto f : e.second) {
       if (is_first) {
@@ -116,7 +114,7 @@ std::string WriteChainStateMap(std::map<Address, std::map<uint64_t, uint64_t>> m
       } else {
         out += ",";
       }
-      out += std::to_string(f.first)+":"+std::to_string(f.second);
+      out += std::to_string(f.first) + ":" + std::to_string(f.second);
     }
     out += "]";
   }
@@ -124,9 +122,7 @@ std::string WriteChainStateMap(std::map<Address, std::map<uint64_t, uint64_t>> m
   return out;
 }
 
-int main(int argc, char* argv[])
-{
-
+int main(int argc, char* argv[]) {
   init_log();
 
   CASH_TRY {
@@ -138,14 +134,8 @@ int main(int argc, char* argv[])
 
     zmq::context_t context(1);
 
-    DevcashContext this_context(options->node_index
-                                , options->shard_index
-                                , options->mode
-                                , options->inn_keys
-                                , options->node_keys
-                                , options->wallet_keys
-                                , options->sync_port
-                                , options->sync_host);
+    DevcashContext this_context(options->node_index, options->shard_index, options->mode, options->inn_keys,
+                                options->node_keys, options->wallet_keys, options->sync_port, options->sync_host);
     KeyRing keys(this_context);
 
     LOG_DEBUG << "Scanning " << options->scan_dir;
@@ -153,7 +143,7 @@ int main(int argc, char* argv[])
 
     ChainState priori;
     ChainState posteri;
-    Summary summary;
+    Summary summary = Summary::Create();
 
     fs::path p(options->scan_dir);
 
@@ -164,84 +154,83 @@ int main(int argc, char* argv[])
 
     std::vector<std::string> files;
 
-    for(auto& entry : boost::make_iterator_range(fs::directory_iterator(p), {})) {
+    for (auto& entry : boost::make_iterator_range(fs::directory_iterator(p), {})) {
       files.push_back(entry.path().string());
     }
 
-    for (size_t i = 0; i < files.size(); ++i) {
-        LOG_INFO << "Reading " << files.at(i);
-        std::ifstream file(files.at(i), std::ios::binary);
-        file.unsetf(std::ios::skipws);
-        std::streampos file_size;
-        file.seekg(0, std::ios::end);
-        file_size = file.tellg();
-        file.seekg(0, std::ios::beg);
+    for (auto const& file_name : files) {
+      LOG_INFO << "Reading " << file_name;
+      std::ifstream file(file_name, std::ios::binary);
+      file.unsetf(std::ios::skipws);
+      std::streampos file_size;
+      file.seekg(0, std::ios::end);
+      file_size = file.tellg();
+      file.seekg(0, std::ios::beg);
 
-        std::vector<byte> raw;
-        raw.reserve(file_size);
-        raw.insert(raw.begin(), std::istream_iterator<byte>(file)
-                   , std::istream_iterator<byte>());
-        size_t offset = 0;
-        assert(file_size > 0);
-        bool isBlock = isBlockData(raw);
-        bool isTransaction = isTxData(raw);
-        if (isBlock) LOG_INFO << files.at(i) << " has blocks.";
-        if (isTransaction) LOG_INFO << files.at(i) << " has transactions.";
-        if (!isBlock && !isTransaction) LOG_WARNING << files.at(i) << " contains unknown data.";
-        while (offset < static_cast<size_t>(file_size)) {
-          if (isBlock) {
-            size_t span = offset;
-            FinalBlock one_block(raw, posteri, offset, keys, options->mode);
-            if (offset == span) {
-              LOG_WARNING << files.at(i) << " has invalid block!";
-              break;
-		    }
-            Summary block_summary;
-            std::vector<TransactionPtr> txs = one_block.getTransactions();
-            for (TransactionPtr& item : txs) {
-              if (!item->isValid(posteri, keys, block_summary)) {
-                LOG_WARNING << "A transaction is invalid. TX details: ";
-                LOG_WARNING << item->getJSON();
-              }
-            }
-            if (block_summary.getCanonical()
-                != one_block.getSummary().getCanonical()) {
-              LOG_WARNING << "A final block summary is invalid. Summary datails: ";
-              LOG_WARNING << one_block.getSummary().getJSON();
-              LOG_WARNING << "Transaction details: ";
-              for (TransactionPtr& item : txs) {
-                LOG_WARNING << item->getJSON();
-              }
-		    }
-          } else if (isTransaction) {
-            Tier2Transaction tx(raw, offset, keys, true);
-            if (!tx.isValid(priori, keys, summary)) {
+      std::vector<byte> raw;
+      raw.reserve(file_size);
+      raw.insert(raw.begin(), std::istream_iterator<byte>(file), std::istream_iterator<byte>());
+      size_t offset = 0;
+      assert(file_size > 0);
+      bool is_block = IsBlockData(raw);
+      bool is_transaction = IsTxData(raw);
+      if (is_block) LOG_INFO << file_name << " has blocks.";
+      if (is_transaction) LOG_INFO << file_name << " has transactions.";
+      if (!is_block && !is_transaction) LOG_WARNING << file_name << " contains unknown data.";
+      while (offset < static_cast<size_t>(file_size)) {
+        if (is_block) {
+          size_t span = offset;
+          FinalBlock one_block(raw, posteri, offset, keys, options->mode);
+          if (offset == span) {
+            LOG_WARNING << file_name << " has invalid block!";
+            break;
+          }
+          Summary block_summary(Summary::Create());
+          std::vector<TransactionPtr> txs = one_block.CopyTransactions();
+          for (TransactionPtr& item : txs) {
+            if (!item->isValid(posteri, keys, block_summary)) {
               LOG_WARNING << "A transaction is invalid. TX details: ";
-              LOG_WARNING << tx.getJSON();
+              LOG_WARNING << item->getJSON();
             }
+          }
+          if (block_summary.getCanonical() != one_block.getSummary().getCanonical()) {
+            LOG_WARNING << "A final block summary is invalid. Summary datails: ";
+            LOG_WARNING << one_block.getSummary().getJSON();
+            LOG_WARNING << "Transaction details: ";
+            for (TransactionPtr& item : txs) {
+              LOG_WARNING << item->getJSON();
+            }
+          }
+        } else if (is_transaction) {
+          Tier2Transaction tx(raw, offset, keys, true);
+          if (!tx.isValid(priori, keys, summary)) {
+            LOG_WARNING << "A transaction is invalid. TX details: ";
+            LOG_WARNING << tx.getJSON();
           }
         }
       }
+    }
 
-    if (!CompareChainStateMaps(priori.stateMap_, posteri.stateMap_)) {
+    if (!CompareChainStateMaps(priori.getStateMap(), posteri.getStateMap())) {
       LOG_WARNING << "End states do not match!";
-      LOG_WARNING << "Prior state: "+WriteChainStateMap(priori.stateMap_);
-      LOG_WARNING << "Post state: "+WriteChainStateMap(posteri.stateMap_);
+      LOG_WARNING << "Prior state: " + WriteChainStateMap(priori.getStateMap());
+      LOG_WARNING << "Post state: " + WriteChainStateMap(posteri.getStateMap());
     } else {
       LOG_INFO << "End states match.";
     }
 
-    if (posteri.stateMap_.empty()) {
+    if (posteri.getStateMap().empty()) {
       LOG_INFO << "End state is empty.";
     }
 
-    return(true);
-  } CASH_CATCH (...) {
+    return (true);
+  }
+  CASH_CATCH(...) {
     std::exception_ptr p = std::current_exception();
     std::string err("");
     err += (p ? p.__cxa_exception_type()->name() : "null");
-    LOG_FATAL << "Error: "+err <<  std::endl;
+    LOG_FATAL << "Error: " + err << std::endl;
     std::cerr << err << std::endl;
-    return(false);
+    return (false);
   }
 }

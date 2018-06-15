@@ -180,10 +180,10 @@ class FinalBlock {
         sum_size_(0),
         val_count_(0),
         transaction_vector_(),
-        summary_(),
+        summary_(Summary::Create()),
         vals_(),
         block_state_(prior) {
-    if (serial.size() < minSize()) {
+    if (serial.size() < MinSize()) {
       LOG_WARNING << "Invalid serialized FinalBlock, too small!";
       return;
     }
@@ -225,8 +225,7 @@ class FinalBlock {
       }
     }
 
-    Summary temp(serial, offset);
-    summary_ = temp;
+    summary_ = Summary::Create(serial, offset);
     Validation val_temp(serial, offset);
     vals_ = val_temp;
   }
@@ -268,7 +267,7 @@ class FinalBlock {
    * Returns copies of the transactions recorded in this block.
    * @return a vector of pointers to transactions
    */
-  std::vector<TransactionPtr> getTransactions() const {
+  std::vector<TransactionPtr> CopyTransactions() const {
     std::vector<TransactionPtr> out;
     for (const auto& e : transaction_vector_) {
       out.push_back(e->clone());

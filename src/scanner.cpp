@@ -104,27 +104,27 @@ int main(int argc, char* argv[])
         }
       }
 
-      bool firstAddr = true;
+      bool first_addr = true;
       std::stringstream state_stream;
-      if (priori.stateMap_.empty()) LOG_INFO << entry << "END with no state";
-      for (auto it = priori.stateMap_.begin(); it != priori.stateMap_.end(); ++it) {
+      if (priori.getStateMap().empty()) LOG_INFO << entry << "END with no state";
+      for (auto const& item : priori.getStateMap()) {
         LOG_INFO << entry << " END STATE BEGIN: ";
         state_stream << "{\"Addr\":\"";
-        state_stream << ToHex(std::vector<byte>(std::begin(it->first)
-          , std::end(it->first)));
+        state_stream << ToHex(std::vector<byte>(std::begin(item.first)
+          , std::end(item.first)));
         state_stream << "\",\"state\":[";
-        bool firstCoin = true;
-        for (auto coin = it->second.begin(); coin != it->second.end(); ++coin) {
+        bool first_coin = true;
+        for (auto coin = item.second.begin(); coin != item.second.end(); ++coin) {
           state_stream << "\""+std::to_string(coin->first)+":"+std::to_string(coin->second);
-          if (firstCoin) {
-            firstCoin = false;
+          if (first_coin) {
+            first_coin = false;
           } else {
             state_stream << ",";
           }
         }
         state_stream << "]";
-        if (firstAddr) {
-          firstAddr = false;
+        if (first_addr) {
+          first_addr = false;
         } else {
           state_stream << ",";
         }
@@ -140,10 +140,10 @@ int main(int argc, char* argv[])
     LOG_INFO << "Dir has "+std::to_string(tx_counter)+" txs, "+std::to_string(tfer_count)+" tfers in "+std::to_string(block_counter)+" blocks.";
 
     if (!options->write_file.empty()) {
-      std::ofstream outFile(options->write_file, std::ios::out);
-      if (outFile.is_open()) {
-        outFile << out;
-        outFile.close();
+      std::ofstream out_file(options->write_file, std::ios::out);
+      if (out_file.is_open()) {
+        out_file << out;
+        out_file.close();
       } else {
         LOG_FATAL << "Failed to open output file '" << options->write_file << "'.";
         return(false);
