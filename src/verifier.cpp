@@ -44,7 +44,7 @@ namespace fs = boost::filesystem;
  * @return true if this data encodes a block
  * @return false otherwise
  */
-bool isBlockData(std::vector<byte> raw) {
+bool IsBlockData(const std::vector<byte>& raw) {
   //check if big enough
   if (raw.size() < FinalBlock::minSize()) return false;
   //check version
@@ -63,7 +63,7 @@ bool isBlockData(std::vector<byte> raw) {
  * @return true if this data encodes Transactions
  * @return false otherwise
  */
-bool isTxData(std::vector<byte> raw) {
+bool IsTxData(const std::vector<byte>& raw) {
   //check if big enough
   if (raw.size() < Transaction::minSize()) return false;
   //check transfer count
@@ -80,8 +80,8 @@ bool isTxData(std::vector<byte> raw) {
  * @return false otherwise
  */
 bool CompareChainStateMaps(
-    std::map<Address, std::map<uint64_t, uint64_t>> first
-    , std::map<Address, std::map<uint64_t, uint64_t>> second) {
+    const std::map<Address, std::map<uint64_t, uint64_t>>& first
+    , const std::map<Address, std::map<uint64_t, uint64_t>>& second) {
   if (first.size() != second.size()) return false;
   for (auto i=first.begin(), j = second.begin(); i != first.end(); ++i, ++j) {
     if (i->first != j->first) return false;
@@ -98,7 +98,8 @@ bool CompareChainStateMaps(
 /** Dumps the map inside a chainstate object into a human-readable JSON format.
  * @return a string containing a description of the chain state.
  */
-std::string WriteChainStateMap(std::map<Address, std::map<uint64_t, uint64_t>> map) {
+std::string WriteChainStateMap(
+    const std::map<Address, std::map<uint64_t, uint64_t>>& map) {
   std::string out("{");
   bool first_addr = true;
   for (auto e : map) {
@@ -168,9 +169,9 @@ int main(int argc, char* argv[])
       files.push_back(entry.path().string());
     }
 
-    for (size_t i = 0; i < files.size(); ++i) {
-        LOG_INFO << "Reading " << files.at(i);
-        std::ifstream file(files.at(i), std::ios::binary);
+    for (auto const& file_name : files) {
+        LOG_INFO << "Reading " << file_name;
+        std::ifstream file(file_name, std::ios::binary);
         file.unsetf(std::ios::skipws);
         std::streampos file_size;
         file.seekg(0, std::ios::end);
@@ -183,21 +184,21 @@ int main(int argc, char* argv[])
                    , std::istream_iterator<byte>());
         size_t offset = 0;
         assert(file_size > 0);
-        bool isBlock = isBlockData(raw);
-        bool isTransaction = isTxData(raw);
-        if (isBlock) LOG_INFO << files.at(i) << " has blocks.";
-        if (isTransaction) LOG_INFO << files.at(i) << " has transactions.";
-        if (!isBlock && !isTransaction) LOG_WARNING << files.at(i) << " contains unknown data.";
+        bool is_block = IsBlockData(raw);
+        bool is_transaction = IsTxData(raw);
+        if (is_block) LOG_INFO << file_name << " has blocks.";
+        if (is_transaction) LOG_INFO << file_name << " has transactions.";
+        if (!is_block && !is_transaction) LOG_WARNING << file_name << " contains unknown data.";
         while (offset < static_cast<size_t>(file_size)) {
-          if (isBlock) {
+          if (is_block) {
             size_t span = offset;
             FinalBlock one_block(raw, posteri, offset, keys, options->mode);
             if (offset == span) {
-              LOG_WARNING << files.at(i) << " has invalid block!";
+              LOG_WARNING << file_name << " has invalid block!";
               break;
 		    }
             Summary block_summary;
-            std::vector<TransactionPtr> txs = one_block.getTransactions();
+            std::vector<TransactionPtr> txs = one_block.CopyTransactions();
             for (TransactionPtr& item : txs) {
               if (!item->isValid(posteri, keys, block_summary)) {
                 LOG_WARNING << "A transaction is invalid. TX details: ";
@@ -213,7 +214,7 @@ int main(int argc, char* argv[])
                 LOG_WARNING << item->getJSON();
               }
 		    }
-          } else if (isTransaction) {
+          } else if (is_transaction) {
             Tier2Transaction tx(raw, offset, keys, true);
             if (!tx.isValid(priori, keys, summary)) {
               LOG_WARNING << "A transaction is invalid. TX details: ";
@@ -223,15 +224,15 @@ int main(int argc, char* argv[])
         }
       }
 
-    if (!CompareChainStateMaps(priori.stateMap_, posteri.stateMap_)) {
+    if (!CompareChainStateMaps(priori.getStateMap(), posteri.getStateMap())) {
       LOG_WARNING << "End states do not match!";
-      LOG_WARNING << "Prior state: "+WriteChainStateMap(priori.stateMap_);
-      LOG_WARNING << "Post state: "+WriteChainStateMap(posteri.stateMap_);
+      LOG_WARNING << "Prior state: "+WriteChainStateMap(priori.getStateMap());
+      LOG_WARNING << "Post state: "+WriteChainStateMap(posteri.getStateMap());
     } else {
       LOG_INFO << "End states match.";
     }
 
-    if (posteri.stateMap_.empty()) {
+    if (posteri.getStateMap().empty()) {
       LOG_INFO << "End state is empty.";
     }
 

@@ -122,17 +122,13 @@ target_link_libraries (scanner
   ${ZMQ}
   )
 
-find_package (OpenSSL REQUIRED)
 if (OPENSSL_FOUND)
   include_directories(${OPENSSL_INCLUDE_DIR})
   target_link_libraries (scanner ${OPENSSL_LIBRARIES})
 endif (OPENSSL_FOUND)
 
-find_package(Threads)
 target_link_libraries(scanner ${CMAKE_THREAD_LIBS_INIT})
 
-find_package(Boost COMPONENTS date_time filesystem thread
-  system program_options log REQUIRED)
 if(Boost_FOUND)
   include_directories(${Boost_INCLUDE_DIRS})
   target_link_libraries(scanner ${Boost_LIBRARIES})
@@ -155,17 +151,13 @@ target_link_libraries (announcer
   ${ZMQ}
   )
 
-find_package (OpenSSL REQUIRED)
 if (OPENSSL_FOUND)
   include_directories(${OPENSSL_INCLUDE_DIR})
   target_link_libraries (announcer ${OPENSSL_LIBRARIES})
 endif (OPENSSL_FOUND)
 
-find_package(Threads)
 target_link_libraries(announcer ${CMAKE_THREAD_LIBS_INIT})
 
-find_package(Boost COMPONENTS date_time filesystem thread
-  system program_options log REQUIRED)
 if(Boost_FOUND)
   include_directories(${Boost_INCLUDE_DIRS})
   target_link_libraries(announcer ${Boost_LIBRARIES})
@@ -187,17 +179,13 @@ target_link_libraries (circuit
   ${ZMQ}
   )
 
-find_package (OpenSSL REQUIRED)
 if (OPENSSL_FOUND)
   include_directories(${OPENSSL_INCLUDE_DIR})
   target_link_libraries (circuit ${OPENSSL_LIBRARIES})
 endif (OPENSSL_FOUND)
 
-find_package(Threads)
 target_link_libraries(circuit ${CMAKE_THREAD_LIBS_INIT})
 
-find_package(Boost COMPONENTS date_time filesystem thread
-  system program_options log REQUIRED)
 if(Boost_FOUND)
   include_directories(${Boost_INCLUDE_DIRS})
   target_link_libraries(circuit ${Boost_LIBRARIES})
@@ -215,17 +203,13 @@ target_link_libraries (laminar
   ${ZMQ}
   )
 
-find_package (OpenSSL REQUIRED)
 if (OPENSSL_FOUND)
   include_directories(${OPENSSL_INCLUDE_DIR})
   target_link_libraries (laminar ${OPENSSL_LIBRARIES})
 endif (OPENSSL_FOUND)
 
-find_package(Threads)
 target_link_libraries(laminar ${CMAKE_THREAD_LIBS_INIT})
 
-find_package(Boost COMPONENTS date_time filesystem thread
-  system program_options log REQUIRED)
 if(Boost_FOUND)
   include_directories(${Boost_INCLUDE_DIRS})
   target_link_libraries(laminar ${Boost_LIBRARIES})
@@ -243,17 +227,13 @@ target_link_libraries (turbulent
   ${ZMQ}
   )
 
-find_package (OpenSSL REQUIRED)
 if (OPENSSL_FOUND)
   include_directories(${OPENSSL_INCLUDE_DIR})
   target_link_libraries (turbulent ${OPENSSL_LIBRARIES})
 endif (OPENSSL_FOUND)
 
-find_package(Threads)
 target_link_libraries(turbulent ${CMAKE_THREAD_LIBS_INIT})
 
-find_package(Boost COMPONENTS date_time filesystem thread
-  system program_options log REQUIRED)
 if(Boost_FOUND)
   include_directories(${Boost_INCLUDE_DIRS})
   target_link_libraries(turbulent ${Boost_LIBRARIES})
@@ -271,17 +251,13 @@ target_link_libraries (verifier
   ${ZMQ}
   )
 
-find_package (OpenSSL REQUIRED)
 if (OPENSSL_FOUND)
   include_directories(${OPENSSL_INCLUDE_DIR})
   target_link_libraries (verifier ${OPENSSL_LIBRARIES})
 endif (OPENSSL_FOUND)
 
-find_package(Threads)
 target_link_libraries(verifier ${CMAKE_THREAD_LIBS_INIT})
 
-find_package(Boost COMPONENTS date_time filesystem thread
-  system program_options log REQUIRED)
 if(Boost_FOUND)
   include_directories(${Boost_INCLUDE_DIRS})
   target_link_libraries(verifier ${Boost_LIBRARIES})

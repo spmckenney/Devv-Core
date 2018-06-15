@@ -135,11 +135,11 @@ int main(int argc, char* argv[])
     LOG_INFO << "Generated " << counter << " transactions.";
 
     if (!options->write_file.empty()) {
-      std::ofstream outFile(options->write_file
+      std::ofstream out_file(options->write_file
           , std::ios::out | std::ios::binary);
-      if (outFile.is_open()) {
-        outFile.write((const char*) out.data(), out.size());
-        outFile.close();
+      if (out_file.is_open()) {
+        out_file.write((const char*) out.data(), out.size());
+        out_file.close();
       } else {
         LOG_FATAL << "Failed to open output file '" << options->write_file << "'.";
         return(false);

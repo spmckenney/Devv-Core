@@ -23,14 +23,14 @@ public:
   ChainState() {}
 
   ChainState(const ChainState& other)
-  : stateMap_(other.stateMap_)
+  : stateMap_(other.state_map_)
   {
   }
 
   ChainState& operator=(ChainState&& other)
   {
     if (this != &other) {
-      this->stateMap_ = other.stateMap_;
+      this->state_map_ = other.state_map_;
     }
     return *this;
   }
@@ -38,7 +38,7 @@ public:
   ChainState& operator=(const ChainState& other)
   {
     if (this != &other) {
-      this->stateMap_ = other.stateMap_;
+      this->state_map_ = other.state_map_;
     }
     return *this;
   }
@@ -58,28 +58,21 @@ public:
 */
   long getAmount(uint64_t type, const Address& addr) const;
 
-/** Moves a coin from one address to another
- *  @param start references where the coins will be removed
- *  @param end references where the coins will be added
- *  @return true if the coins were moved successfully
- *  @return false otherwise
-*/
-  bool moveCoin(const SmartCoin& start, const SmartCoin& end);
-
-/** Deletes a coin from the state.
- *  @param reference to the coin to delete
- *  @return true if the coin was deleted successfully
- *  @return false otherwise
-*/
-  bool delCoin(SmartCoin& coin);
-
 /** Clears this chain state.
  *  @return true if the state cleared successfully
  *  @return false otherwise
 */
   bool clear();
 
-  std::map<Address, std::map<uint64_t, uint64_t>> stateMap_;
+/** Get the map describing this chain state
+ *  @return tre map describing this chain state
+*/
+  std::map<Address, std::map<uint64_t, uint64_t>> getStateMap() {
+    return state_map_;
+  }
+
+private:
+ std::map<Address, std::map<uint64_t, uint64_t>> state_map_;
 };
 
 } //namespace Devcash
