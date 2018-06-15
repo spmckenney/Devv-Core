@@ -23,7 +23,7 @@ public:
   ChainState() {}
 
   ChainState(const ChainState& other)
-  : stateMap_(other.state_map_)
+  : state_map_(other.state_map_)
   {
   }
 
