@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 2.8.2 FATAL_ERROR)
 set(CMAKE_LEGACY_CYGWIN_WIN32 0)
 
-project("Devcash")
+project("Devcash" C CXX)
 
 set (CMAKE_CXX_STANDARD 14)
 set (CMAKE_CXX_STANDARD_REQUIRED ON)
