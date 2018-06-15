@@ -161,6 +161,78 @@ class FinalBlock {
 
   /**
    * Constructor
+   * @param serial
+   * @param prior
+   * @param offset
+   * @param keys
+   * @param mode
+   */
+  FinalBlock(const std::vector<byte>& serial,
+             const ChainState& prior,
+             size_t& offset,
+             const KeyRing& keys,
+             eAppMode mode)
+      : num_bytes_(0),
+        block_time_(0),
+        prev_hash_(),
+        merkle_root_(),
+        tx_size_(0),
+        sum_size_(0),
+        val_count_(0),
+        transaction_vector_(),
+        summary_(),
+        vals_(),
+        block_state_(prior) {
+    if (serial.size() < minSize()) {
+      LOG_WARNING << "Invalid serialized FinalBlock, too small!";
+      return;
+    }
+    version_ |= serial.at(offset);
+    if (version_ != 0) {
+      LOG_WARNING << "Invalid FinalBlock.version: " + std::to_string(version_);
+      return;
+    }
+    offset++;
+    num_bytes_ = BinToUint64(serial, offset);
+    offset += 8;
+    if (serial.size() != num_bytes_) {
+      LOG_WARNING << "Invalid serialized FinalBlock, wrong size!";
+      return;
+    }
+    block_time_ = BinToUint64(serial, offset);
+    offset += 8;
+    std::copy_n(serial.begin() + offset, SHA256_DIGEST_LENGTH, prev_hash_.begin());
+    offset += 32;
+    std::copy_n(serial.begin() + offset, SHA256_DIGEST_LENGTH, merkle_root_.begin());
+    offset += 32;
+    tx_size_ = BinToUint64(serial, offset);
+    offset += 8;
+    sum_size_ = BinToUint64(serial, offset);
+    offset += 8;
+    val_count_ = BinToUint32(serial, offset);
+    offset += 4;
+
+    size_t tx_start = offset;
+    while (offset < tx_start+tx_size_) {
+      if (mode == eAppMode::T1) {
+        Tier1TransactionPtr one_tx = std::make_unique<Tier1Transaction>(serial
+            , offset, keys);
+        transaction_vector_.push_back(std::move(one_tx));
+      } else if (mode == eAppMode::T2) {
+        Tier2TransactionPtr one_tx = std::make_unique<Tier2Transaction>(serial
+            , offset, keys);
+        transaction_vector_.push_back(std::move(one_tx));
+      }
+    }
+
+    Summary temp(serial, offset);
+    summary_ = temp;
+    Validation val_temp(serial, offset);
+    vals_ = val_temp;
+  }
+
+  /**
+   * Constructor
    * @param other
    */
   FinalBlock(const FinalBlock& other)
@@ -191,6 +263,30 @@ class FinalBlock {
    * @return number of transactions
    */
   size_t getNumTransactions() const { return transaction_vector_.size(); }
+
+  /**
+   * Returns copies of the transactions recorded in this block.
+   * @return a vector of pointers to transactions
+   */
+  std::vector<TransactionPtr> getTransactions() const {
+    std::vector<TransactionPtr> out;
+    for (const auto& e : transaction_vector_) {
+      out.push_back(e->clone());
+    }
+    return out;
+  }
+
+  /**
+   * Returns the number of coin transfers in this block.
+   * @return number of transfers
+   */
+  size_t getNumTransfers() const {
+    size_t tfers = 0;
+    for (auto const& item : transaction_vector_) {
+      tfers += item->getTransfers().size();
+    }
+    return tfers;
+  }
 
   /**
    * Returns a JSON representation of this block as a string.

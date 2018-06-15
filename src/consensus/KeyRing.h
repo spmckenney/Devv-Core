@@ -45,17 +45,17 @@ class KeyRing {
   /**
    * @return the number of node keys and addresses in this directory.
    */
-  int CountNodes() const;
+  unsigned int CountNodes() const;
   /**
    * @return the number of wallet keys and addresses in this directory.
    */
-  int CountWallets() const;
+  unsigned int CountWallets() const;
   /**
    * @param addr - the Address to check
    * @return the index of the provided node address
    * @return -1 if this Address is not a known node in this directory
    */
-  int getNodeIndex(const Address& addr) const;
+  unsigned int getNodeIndex(const Address& addr) const;
   /**
    * @param index - the index of the node to retrieve
    * @return the Address of the node at the provided index

@@ -68,8 +68,8 @@ add_library(io
   ${io_SRC}
   )
 
-# Add devcashnode.cpp
-add_library(devcashnode devcashnode.cpp)
+# Add DevcashNode.cpp
+add_library(DevcashNode node/DevcashNode.cpp)
 
 option(WITH_THREAD_TESTING "Enable thread testing" OFF)
 
@@ -79,7 +79,7 @@ endif()
 
 add_executable(devcash devcash.cpp ${dcInclude})
 target_link_libraries (devcash
-  devcashnode
+  DevcashNode
   common
   io
   concurrency
@@ -109,6 +109,187 @@ set(CONFIGURED_ONCE TRUE CACHE INTERNAL
     "A flag showing that CMake has configured at least once.")
 
 install (TARGETS devcash DESTINATION bin)
+
+#
+# Scanner
+#
+
+add_executable(scanner scanner.cpp ${dcInclude})
+target_link_libraries (scanner
+  common
+  concurrency
+  consensus
+  ${ZMQ}
+  )
+
+find_package (OpenSSL REQUIRED)
+if (OPENSSL_FOUND)
+  include_directories(${OPENSSL_INCLUDE_DIR})
+  target_link_libraries (scanner ${OPENSSL_LIBRARIES})
+endif (OPENSSL_FOUND)
+
+find_package(Threads)
+target_link_libraries(scanner ${CMAKE_THREAD_LIBS_INIT})
+
+find_package(Boost COMPONENTS date_time filesystem thread
+  system program_options log REQUIRED)
+if(Boost_FOUND)
+  include_directories(${Boost_INCLUDE_DIRS})
+  target_link_libraries(scanner ${Boost_LIBRARIES})
+endif(Boost_FOUND)
+
+target_include_directories(scanner PRIVATE ${dcInclude})
+
+install (TARGETS scanner DESTINATION bin)
+
+#
+# Annnouncer
+#
+
+add_executable(announcer announcer.cpp ${dcInclude})
+target_link_libraries (announcer
+  common
+  concurrency
+  consensus
+  io
+  ${ZMQ}
+  )
+
+find_package (OpenSSL REQUIRED)
+if (OPENSSL_FOUND)
+  include_directories(${OPENSSL_INCLUDE_DIR})
+  target_link_libraries (announcer ${OPENSSL_LIBRARIES})
+endif (OPENSSL_FOUND)
+
+find_package(Threads)
+target_link_libraries(announcer ${CMAKE_THREAD_LIBS_INIT})
+
+find_package(Boost COMPONENTS date_time filesystem thread
+  system program_options log REQUIRED)
+if(Boost_FOUND)
+  include_directories(${Boost_INCLUDE_DIRS})
+  target_link_libraries(announcer ${Boost_LIBRARIES})
+endif(Boost_FOUND)
+
+target_include_directories(announcer PRIVATE ${dcInclude})
+
+install (TARGETS announcer DESTINATION bin)
+
+#
+# Chain state Tests
+#
+
+add_executable(circuit circuit.cpp ${dcInclude})
+target_link_libraries (circuit
+  common
+  concurrency
+  consensus
+  ${ZMQ}
+  )
+
+find_package (OpenSSL REQUIRED)
+if (OPENSSL_FOUND)
+  include_directories(${OPENSSL_INCLUDE_DIR})
+  target_link_libraries (circuit ${OPENSSL_LIBRARIES})
+endif (OPENSSL_FOUND)
+
+find_package(Threads)
+target_link_libraries(circuit ${CMAKE_THREAD_LIBS_INIT})
+
+find_package(Boost COMPONENTS date_time filesystem thread
+  system program_options log REQUIRED)
+if(Boost_FOUND)
+  include_directories(${Boost_INCLUDE_DIRS})
+  target_link_libraries(circuit ${Boost_LIBRARIES})
+endif(Boost_FOUND)
+
+target_include_directories(circuit PRIVATE ${dcInclude})
+
+install (TARGETS circuit DESTINATION bin)
+
+add_executable(laminar laminar.cpp ${dcInclude})
+target_link_libraries (laminar
+  common
+  concurrency
+  consensus
+  ${ZMQ}
+  )
+
+find_package (OpenSSL REQUIRED)
+if (OPENSSL_FOUND)
+  include_directories(${OPENSSL_INCLUDE_DIR})
+  target_link_libraries (laminar ${OPENSSL_LIBRARIES})
+endif (OPENSSL_FOUND)
+
+find_package(Threads)
+target_link_libraries(laminar ${CMAKE_THREAD_LIBS_INIT})
+
+find_package(Boost COMPONENTS date_time filesystem thread
+  system program_options log REQUIRED)
+if(Boost_FOUND)
+  include_directories(${Boost_INCLUDE_DIRS})
+  target_link_libraries(laminar ${Boost_LIBRARIES})
+endif(Boost_FOUND)
+
+target_include_directories(laminar PRIVATE ${dcInclude})
+
+install (TARGETS laminar DESTINATION bin)
+
+add_executable(turbulent turbulent.cpp ${dcInclude})
+target_link_libraries (turbulent
+  common
+  concurrency
+  consensus
+  ${ZMQ}
+  )
+
+find_package (OpenSSL REQUIRED)
+if (OPENSSL_FOUND)
+  include_directories(${OPENSSL_INCLUDE_DIR})
+  target_link_libraries (turbulent ${OPENSSL_LIBRARIES})
+endif (OPENSSL_FOUND)
+
+find_package(Threads)
+target_link_libraries(turbulent ${CMAKE_THREAD_LIBS_INIT})
+
+find_package(Boost COMPONENTS date_time filesystem thread
+  system program_options log REQUIRED)
+if(Boost_FOUND)
+  include_directories(${Boost_INCLUDE_DIRS})
+  target_link_libraries(turbulent ${Boost_LIBRARIES})
+endif(Boost_FOUND)
+
+target_include_directories(turbulent PRIVATE ${dcInclude})
+
+install (TARGETS turbulent DESTINATION bin)
+
+add_executable(verifier verifier.cpp ${dcInclude})
+target_link_libraries (verifier
+  common
+  concurrency
+  consensus
+  ${ZMQ}
+  )
+
+find_package (OpenSSL REQUIRED)
+if (OPENSSL_FOUND)
+  include_directories(${OPENSSL_INCLUDE_DIR})
+  target_link_libraries (verifier ${OPENSSL_LIBRARIES})
+endif (OPENSSL_FOUND)
+
+find_package(Threads)
+target_link_libraries(verifier ${CMAKE_THREAD_LIBS_INIT})
+
+find_package(Boost COMPONENTS date_time filesystem thread
+  system program_options log REQUIRED)
+if(Boost_FOUND)
+  include_directories(${Boost_INCLUDE_DIRS})
+  target_link_libraries(verifier ${Boost_LIBRARIES})
+endif(Boost_FOUND)
+
+target_include_directories(verifier PRIVATE ${dcInclude})
+
+install (TARGETS verifier DESTINATION bin)
 
 #
 # i/o Tests
