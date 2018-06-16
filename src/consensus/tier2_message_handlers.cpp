@@ -146,11 +146,10 @@ bool HandleValidationBlock(DevcashMessageUniquePtr ptr,
                            std::function<void(DevcashMessageUniquePtr)> callback) {
   MTR_SCOPE_FUNC();
   bool sent_message = false;
-  DevcashMessage msg(*ptr.get());
-
+  InputBuffer buffer(ptr->data);
   LogDevcashMessageSummary(*ptr, "HandleValidationBlock() -> Incoming");
 
-  if (utx_pool.CheckValidation(msg.data, context)) {
+  if (utx_pool.CheckValidation(buffer, context)) {
     //block can be finalized, so finalize
     LOG_DEBUG << "Ready to finalize block.";
     FinalPtr top_block = std::make_shared<FinalBlock>(utx_pool.FinalizeLocalBlock());

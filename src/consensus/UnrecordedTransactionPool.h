@@ -308,12 +308,11 @@ class UnrecordedTransactionPool {
    *                 the Validation is for a different ProposedBlock,
    *                 or the Validation signature did not verify
    */
-  bool CheckValidation(std::vector<byte> remote
-      , const DevcashContext& context) {
+  bool CheckValidation(InputBuffer& buffer, const DevcashContext& context) {
     LOG_DEBUG << "CheckValidation()";
     std::lock_guard<std::mutex> proposal_guard(pending_proposal_mutex_);
     if (pending_proposal_.isNull()) return false;
-    return pending_proposal_.checkValidationData(remote, context);
+    return pending_proposal_.checkValidationData(buffer, context);
   }
 
   /**

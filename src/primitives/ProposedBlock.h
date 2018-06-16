@@ -121,7 +121,7 @@ class ProposedBlock {
     summary_ = Summary::Create(buffer);
 
     MTR_STEP("proposed_block", "construct", &proposed_block_int, "step4");
-    Validation val_temp(buffer.getBuffer(), buffer.getOffsetRef());
+    Validation val_temp(buffer);
     vals_ = val_temp;
     MTR_FINISH("proposed_block", "construct", &proposed_block_int);
   }
@@ -275,18 +275,17 @@ class ProposedBlock {
    * @return true iff this block has enough validations to finalize
    * @return false otherwise
    */
-  bool checkValidationData(const std::vector<byte>& remote, const DevcashContext& context) {
+  bool checkValidationData(InputBuffer& buffer, const DevcashContext& context) {
     MTR_SCOPE_FUNC();
-    if (remote.size() < MinValidationSize()) {
+    if (buffer.size() < MinValidationSize()) {
       LOG_WARNING << "Invalid validation data, too small!";
       return false;
     }
     LOG_DEBUG << "ProposedBlock checking validation data.";
     Hash incoming_hash;
-    std::copy_n(remote.begin(), SHA256_DIGEST_LENGTH, incoming_hash.begin());
+    buffer.copy(incoming_hash);
     if (incoming_hash == prev_hash_) {  // validations are for this proposal
-      size_t offset = SHA256_DIGEST_LENGTH;
-      Validation val_temp(remote, offset);
+      Validation val_temp(buffer);
       vals_.addValidation(val_temp);
       val_count_ = vals_.getValidationCount();
       num_bytes_ = MinSize() + tx_size_ + sum_size_ + val_count_ * vals_.pairSize();

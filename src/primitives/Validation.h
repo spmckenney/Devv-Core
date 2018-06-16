@@ -47,16 +47,14 @@ class Validation {
    * @param[in] serial
    * @param[in, out] offset
    */
-  Validation(const std::vector<byte>& serial, size_t& offset) : sigs_() {
+  Validation(InputBuffer& buffer) : sigs_() {
     MTR_SCOPE_FUNC();
-    size_t remainder = serial.size() - offset;
+    size_t remainder = buffer.size() - buffer.getOffset();
     while (remainder >= pairSize()) {
       Address one_addr;
       Signature one_sig;
-      std::copy_n(serial.begin() + offset, kADDR_SIZE, one_addr.begin());
-      offset += kADDR_SIZE;
-      std::copy_n(serial.begin() + offset, kSIG_SIZE, one_sig.begin());
-      offset += kSIG_SIZE;
+      buffer.copy(one_addr);
+      buffer.copy(one_sig);
       std::pair<Address, Signature> one_pair(one_addr, one_sig);
       sigs_.insert(one_pair);
       remainder -= pairSize();
@@ -69,19 +67,17 @@ class Validation {
    * @param[in, out] offset
    * @param[in] count
    */
-  Validation(const std::vector<byte>& serial, size_t& offset, uint32_t count) : sigs_() {
+  Validation(InputBuffer& buffer, uint32_t count) : sigs_() {
     MTR_SCOPE_FUNC();
-    if (serial.size() < offset + (count * pairSize())) {
+    if (buffer.size() < buffer.getOffset() + (count * pairSize())) {
       LOG_WARNING << "Invalid Validation, too small";
     }
     size_t remainder = count;
     while (remainder > 0) {
       Address one_addr;
+      buffer.copy(one_addr);
       Signature one_sig;
-      std::copy_n(serial.begin() + offset, kADDR_SIZE, one_addr.begin());
-      offset += kADDR_SIZE;
-      std::copy_n(serial.begin() + offset, kSIG_SIZE, one_sig.begin());
-      offset += kSIG_SIZE;
+      buffer.copy(one_sig);
       std::pair<Address, Signature> one_pair(one_addr, one_sig);
       sigs_.insert(one_pair);
       remainder--;

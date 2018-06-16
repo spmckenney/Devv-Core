@@ -84,7 +84,7 @@ class FinalBlock {
     tcm.CreateTransactions(buffer, transaction_vector_, MinSize(), tx_size_);
 
     summary_ = Summary::Create(buffer);
-    Validation val_temp(buffer.getBuffer(), buffer.getOffsetRef());
+    Validation val_temp(buffer);
     vals_ = val_temp;
   }
 
@@ -133,7 +133,7 @@ class FinalBlock {
     buffer.increment(tx_size_);
 
     summary_ = Summary::Create(buffer);
-    Validation val_temp(buffer.getBuffer(), buffer.getOffsetRef(), val_count_);
+    Validation val_temp(buffer, val_count_);
     vals_ = val_temp;
   }
 
@@ -195,7 +195,7 @@ class FinalBlock {
     }
 
     summary_ = Summary::Create(buffer);
-    Validation val_temp(buffer.getBuffer(), buffer.getOffsetRef());
+    Validation val_temp(buffer);
     vals_ = val_temp;
   }
 
