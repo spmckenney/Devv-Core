@@ -44,7 +44,7 @@ class FinalBlock {
    * @param keys
    * @param tcm
    */
-  FinalBlock(const std::vector<byte>& serial,
+  FinalBlock(InputBuffer& buffer,
              const ChainState& prior,
              const KeyRing& keys,
              TransactionCreationManager& tcm)
@@ -59,48 +59,32 @@ class FinalBlock {
         summary_(Summary::Create()),
         vals_(),
         block_state_(prior) {
-    if (serial.size() < MinSize()) {
+    if (buffer.size() < MinSize()) {
       LOG_WARNING << "Invalid serialized FinalBlock, too small!";
       return;
     }
-    version_ |= serial.at(0);
+    version_ |= buffer.getNextByte();
     if (version_ != 0) {
       LOG_WARNING << "Invalid FinalBlock.version: " + std::to_string(version_);
       return;
     }
-    size_t offset = 1;
-    num_bytes_ = BinToUint64(serial, offset);
-    offset += 8;
-    if (serial.size() != num_bytes_) {
+    num_bytes_ = buffer.getNextUint64();
+    if (buffer.size() != num_bytes_) {
       LOG_WARNING << "Invalid serialized FinalBlock, wrong size!";
       return;
     }
-    block_time_ = BinToUint64(serial, offset);
-    offset += 8;
-    std::copy_n(serial.begin() + offset, SHA256_DIGEST_LENGTH, prev_hash_.begin());
-    offset += 32;
-    std::copy_n(serial.begin() + offset, SHA256_DIGEST_LENGTH, merkle_root_.begin());
-    offset += 32;
-    tx_size_ = BinToUint64(serial, offset);
-    offset += 8;
-    sum_size_ = BinToUint64(serial, offset);
-    offset += 8;
-    val_count_ = BinToUint32(serial, offset);
-    offset += 4;
+    block_time_ = buffer.getNextUint64();
+    buffer.copy(prev_hash_);
+    buffer.copy(merkle_root_);
+    tx_size_ = buffer.getNextUint64();
+    sum_size_ = buffer.getNextUint64();
+    val_count_ = buffer.getNextUint32();
 
     tcm.set_keys(&keys);
-    tcm.CreateTransactions(serial, transaction_vector_, offset, MinSize(), tx_size_);
+    tcm.CreateTransactions(buffer, transaction_vector_, MinSize(), tx_size_);
 
-    /*
-    while (offset < MinSize()+tx_size_) {
-      //Transaction constructor increments offset by ref
-      Transaction one_tx(serial, offset, keys);
-      transaction_vector_.push_back(one_tx);
-    }
-    */
-
-    summary_ = Summary::Create(serial, offset);
-    Validation val_temp(serial, offset);
+    summary_ = Summary::Create(buffer);
+    Validation val_temp(buffer.getBuffer(), buffer.getOffsetRef());
     vals_ = val_temp;
   }
 
@@ -110,7 +94,7 @@ class FinalBlock {
    * @param prior
    * @param offset
    */
-  FinalBlock(const std::vector<byte>& serial, const ChainState& prior, size_t& offset)
+  FinalBlock(InputBuffer& buffer, const ChainState& prior)
       : num_bytes_(0),
         block_time_(0),
         prev_hash_(),
@@ -122,40 +106,34 @@ class FinalBlock {
         summary_(Summary::Create()),
         vals_(),
         block_state_(prior) {
-    if (serial.size() < MinSize()) {
+    if (buffer.size() < MinSize()) {
       LOG_WARNING << "Invalid serialized FinalBlock, too small!";
       return;
     }
-    version_ |= serial.at(offset);
+    version_ |= buffer.getNextByte();
     if (version_ != 0) {
       LOG_WARNING << "Invalid FinalBlock.version: " + std::to_string(version_);
       return;
     }
-    offset++;
-    num_bytes_ = BinToUint64(serial, offset);
-    offset += 8;
-    if (serial.size() < num_bytes_) {
+
+    num_bytes_ = buffer.getNextUint64();
+    if (buffer.size() < num_bytes_) {
       LOG_WARNING << "Invalid serialized FinalBlock, wrong size!";
       return;
     }
-    block_time_ = BinToUint64(serial, offset);
-    offset += 8;
-    std::copy_n(serial.begin() + offset, SHA256_DIGEST_LENGTH, prev_hash_.begin());
-    offset += 32;
-    std::copy_n(serial.begin() + offset, SHA256_DIGEST_LENGTH, merkle_root_.begin());
-    offset += 32;
-    tx_size_ = BinToUint64(serial, offset);
-    offset += 8;
-    sum_size_ = BinToUint64(serial, offset);
-    offset += 8;
-    val_count_ = BinToUint32(serial, offset);
-    offset += 4;
+
+    block_time_ = buffer.getNextUint64();
+    buffer.copy(prev_hash_);
+    buffer.copy(merkle_root_);
+    tx_size_ = buffer.getNextUint64();
+    sum_size_ = buffer.getNextUint64();
+    val_count_ = buffer.getNextUint32();
 
     // this constructor does not load transactions
-    offset += tx_size_;
+    buffer.increment(tx_size_);
 
-    summary_ = Summary::Create(serial, offset);
-    Validation val_temp(serial, offset, val_count_);
+    summary_ = Summary::Create(buffer);
+    Validation val_temp(buffer.getBuffer(), buffer.getOffsetRef(), val_count_);
     vals_ = val_temp;
   }
 
@@ -167,9 +145,8 @@ class FinalBlock {
    * @param keys
    * @param mode
    */
-  FinalBlock(const std::vector<byte>& serial,
+  FinalBlock(InputBuffer& buffer,
              const ChainState& prior,
-             size_t& offset,
              const KeyRing& keys,
              eAppMode mode)
       : num_bytes_(0),
@@ -183,50 +160,42 @@ class FinalBlock {
         summary_(Summary::Create()),
         vals_(),
         block_state_(prior) {
-    if (serial.size() < MinSize()) {
+    if (buffer.size() < MinSize()) {
       LOG_WARNING << "Invalid serialized FinalBlock, too small!";
       return;
     }
-    version_ |= serial.at(offset);
+    version_ |= buffer.getNextByte();
     if (version_ != 0) {
       LOG_WARNING << "Invalid FinalBlock.version: " + std::to_string(version_);
       return;
     }
-    offset++;
-    num_bytes_ = BinToUint64(serial, offset);
-    offset += 8;
-    if (serial.size() != num_bytes_) {
+
+    num_bytes_ = buffer.getNextUint64();
+    if (buffer.size() != num_bytes_) {
       LOG_WARNING << "Invalid serialized FinalBlock, wrong size!";
       return;
     }
-    block_time_ = BinToUint64(serial, offset);
-    offset += 8;
-    std::copy_n(serial.begin() + offset, SHA256_DIGEST_LENGTH, prev_hash_.begin());
-    offset += 32;
-    std::copy_n(serial.begin() + offset, SHA256_DIGEST_LENGTH, merkle_root_.begin());
-    offset += 32;
-    tx_size_ = BinToUint64(serial, offset);
-    offset += 8;
-    sum_size_ = BinToUint64(serial, offset);
-    offset += 8;
-    val_count_ = BinToUint32(serial, offset);
-    offset += 4;
+    block_time_ = buffer.getNextUint64();
+    buffer.copy(prev_hash_);
+    buffer.copy(merkle_root_);
+    tx_size_ = buffer.getNextUint64();
+    sum_size_ = buffer.getNextUint64();
+    val_count_ = buffer.getNextUint32();
 
-    size_t tx_start = offset;
-    while (offset < tx_start+tx_size_) {
+    size_t tx_start = buffer.getOffset();
+    while (buffer.getOffset() < tx_start + tx_size_) {
       if (mode == eAppMode::T1) {
-        Tier1TransactionPtr one_tx = std::make_unique<Tier1Transaction>(serial
-            , offset, keys);
+        Tier1TransactionPtr one_tx = std::make_unique<Tier1Transaction>(buffer, keys);
         transaction_vector_.push_back(std::move(one_tx));
       } else if (mode == eAppMode::T2) {
-        Tier2TransactionPtr one_tx = std::make_unique<Tier2Transaction>(serial
-            , offset, keys);
+        Tier2TransactionPtr one_tx = std::make_unique<Tier2Transaction>(buffer.getBuffer()
+            , buffer.getOffsetRef(), keys);
         transaction_vector_.push_back(std::move(one_tx));
       }
     }
 
-    summary_ = Summary::Create(serial, offset);
-    Validation val_temp(serial, offset);
+    summary_ = Summary::Create(buffer);
+    Validation val_temp(buffer.getBuffer(), buffer.getOffsetRef());
     vals_ = val_temp;
   }
 

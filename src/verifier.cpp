@@ -45,9 +45,9 @@ namespace fs = boost::filesystem;
  * @return false otherwise
  */
 bool IsBlockData(const std::vector<byte>& raw) {
-  // check if big enough
+  //check if big enough
   if (raw.size() < FinalBlock::MinSize()) return false;
-  // check version
+  //check version
   if (raw[0] != 0x00) return false;
   size_t offset = 9;
   uint64_t block_time = BinToUint64(raw, offset);
@@ -170,18 +170,19 @@ int main(int argc, char* argv[]) {
       std::vector<byte> raw;
       raw.reserve(file_size);
       raw.insert(raw.begin(), std::istream_iterator<byte>(file), std::istream_iterator<byte>());
-      size_t offset = 0;
       assert(file_size > 0);
       bool is_block = IsBlockData(raw);
       bool is_transaction = IsTxData(raw);
       if (is_block) LOG_INFO << file_name << " has blocks.";
       if (is_transaction) LOG_INFO << file_name << " has transactions.";
       if (!is_block && !is_transaction) LOG_WARNING << file_name << " contains unknown data.";
-      while (offset < static_cast<size_t>(file_size)) {
+
+      InputBuffer buffer(raw);
+      while (buffer.getOffset() < static_cast<size_t>(file_size)) {
         if (is_block) {
-          size_t span = offset;
-          FinalBlock one_block(raw, posteri, offset, keys, options->mode);
-          if (offset == span) {
+          size_t span = buffer.getOffset();
+          FinalBlock one_block(buffer, posteri, keys, options->mode);
+          if (buffer.getOffset() == span) {
             LOG_WARNING << file_name << " has invalid block!";
             break;
           }
@@ -202,7 +203,7 @@ int main(int argc, char* argv[]) {
             }
           }
         } else if (is_transaction) {
-          Tier2Transaction tx(raw, offset, keys, true);
+          Tier2Transaction tx(buffer.getBuffer(), buffer.getOffsetRef(), keys, true);
           if (!tx.isValid(priori, keys, summary)) {
             LOG_WARNING << "A transaction is invalid. TX details: ";
             LOG_WARNING << tx.getJSON();

@@ -13,6 +13,7 @@
 **/
 
 #include "consensus/tier2_message_handlers.h"
+#include "primitives/buffers.h"
 
 namespace Devcash {
 
@@ -65,13 +66,13 @@ bool HandleFinalBlock(DevcashMessageUniquePtr ptr,
   //Make the incoming block final
   //if pending proposal, makes sure it is still valid
   //if no pending proposal, check if should make one
-  DevcashMessage msg(*ptr.get());
 
+  InputBuffer buffer(ptr->data);
   LogDevcashMessageSummary(*ptr, "HandleFinalBlock()");
 
   ChainState prior = final_chain.getHighestChainState();
   FinalPtr top_block = std::make_shared<FinalBlock>(utx_pool.FinalizeRemoteBlock(
-                                               msg.data, prior, keys));
+                                               buffer, prior, keys));
   final_chain.push_back(top_block);
   LOG_NOTICE << "final_chain.push_back(): Estimated rate: (ntxs/duration): rate -> "
              << "(" << final_chain.getNumTransactions() << "/"
@@ -116,7 +117,8 @@ bool HandleProposalBlock(DevcashMessageUniquePtr ptr,
   LogDevcashMessageSummary(*ptr, "HandleProposalBlock() -> Incoming");
 
   ChainState prior = final_chain.getHighestChainState();
-  ProposedBlock to_validate(msg.data, prior, keys, tcm);
+  InputBuffer buffer(msg.data);
+  ProposedBlock to_validate(buffer, prior, keys, tcm);
   if (!to_validate.validate(keys)) {
     LOG_WARNING << "ProposedBlock is invalid!";
     return false;
@@ -179,6 +181,7 @@ bool HandleBlocksSinceRequest(DevcashMessageUniquePtr ptr,
     LOG_WARNING << "BlockSinceRequest is too small!";
     return false;
   }
+
   uint64_t height = BinToUint32(ptr->data, 0);
   uint64_t node = BinToUint32(ptr->data, 8);
   std::vector<byte> raw = final_chain.PartialBinaryDump(height);
@@ -194,15 +197,16 @@ bool HandleBlocksSinceRequest(DevcashMessageUniquePtr ptr,
     return false;
   }
   */
+
+  InputBuffer buffer(raw);
   if (context.get_app_mode() == eAppMode::T2) {
-    size_t offset = 0;
     std::vector<byte> tier1_data;
     ChainState temp;
-    while (offset < raw.size()) {
+    while (buffer.getOffset() < buffer.size()) {
       LOG_DEBUG << "HandleBlocksSinceRequest(): offset/raw.size() ("
-                << offset << "/" << raw.size() << ")";
+                << buffer.getOffset() << "/" << buffer.size() << ")";
         //constructor increments offset by reference
-      FinalBlock one_block(raw, temp, offset);
+      FinalBlock one_block(buffer, temp);
       Summary sum = Summary::Copy(one_block.getSummary());
       Validation val(one_block.getValidation());
       std::pair<Address, Signature> pair(val.getFirstValidation());
@@ -241,19 +245,19 @@ bool HandleBlocksSince(DevcashMessageUniquePtr ptr,
                               uint64_t& remote_blocks) {
   LogDevcashMessageSummary(*ptr, "HandleBlocksSince() -> Incoming");
 
-  if (ptr->data.size() < 8) {
-      LOG_WARNING << "BlockSince is too small!";
-      return false;
-    }
-    uint64_t height = BinToUint64(ptr->data, 0);
+  InputBuffer buffer(ptr->data);
+  if (buffer.size() < 8) {
+    LOG_WARNING << "BlockSince is too small!";
+    return false;
+  }
+  uint64_t height = buffer.getNextUint64();
 
   if (context.get_app_mode() == eAppMode::T2) {
-    size_t offset = 8;
     std::vector<Address> wallets = keys.getDesignatedWallets(context.get_current_shard());
     ChainState state = final_chain.getHighestChainState();
-    while (offset < ptr->data.size()) {
+    while (buffer.getOffset() < buffer.size()) {
       //constructor increments offset by reference
-      FinalBlock one_block(ptr->data, state, offset);
+      FinalBlock one_block(buffer, state);
       uint64_t elapsed = GetMillisecondsSinceEpoch() - one_block.getBlockTime();
       Summary sum = Summary::Copy(one_block.getSummary());
       for (auto const& addr : wallets) {

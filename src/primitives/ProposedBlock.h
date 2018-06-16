@@ -9,6 +9,7 @@
 #define PRIMITIVES_PROPOSEDBLOCK_H_
 
 #include "primitives/block.h"
+#include "primitives/buffers.h"
 #include "primitives/Summary.h"
 #include "primitives/Transaction.h"
 #include "primitives/Validation.h"
@@ -71,7 +72,7 @@ class ProposedBlock {
    * @param keys
    * @param tcm
    */
-  ProposedBlock(const std::vector<byte>& serial,
+  ProposedBlock(InputBuffer& buffer,
                 const ChainState& prior,
                 const KeyRing& keys,
                 TransactionCreationManager& tcm)
@@ -89,43 +90,38 @@ class ProposedBlock {
     int proposed_block_int = 123;
     MTR_START("proposed_block", "proposed_block", &proposed_block_int);
 
-    if (serial.size() < minSize()) {
+    if (buffer.size() < MinSize()) {
       LOG_WARNING << "Invalid serialized ProposedBlock, too small!";
       MTR_FINISH("proposed_block", "construct", &proposed_block_int);
       return;
     }
-    version_ |= serial.at(0);
+    version_ |= buffer.getNextByte();
     if (version_ != 0) {
       LOG_WARNING << "Invalid ProposedBlock.version: " + std::to_string(version_);
       MTR_FINISH("proposed_block", "construct", &proposed_block_int);
       return;
     }
-    size_t offset = 1;
-    num_bytes_ = BinToUint64(serial, offset);
-    offset += 8;
+    num_bytes_ = buffer.getNextUint64();
     MTR_STEP("proposed_block", "construct", &proposed_block_int, "step1");
-    if (serial.size() != num_bytes_) {
+    if (buffer.size() != num_bytes_) {
       LOG_WARNING << "Invalid serialized ProposedBlock, wrong size!";
       MTR_FINISH("proposed_block", "construct", &proposed_block_int);
       return;
     }
-    std::copy_n(serial.begin() + offset, SHA256_DIGEST_LENGTH, prev_hash_.begin());
-    offset += 32;
-    tx_size_ = BinToUint64(serial, offset);
-    offset += 8;
-    sum_size_ = BinToUint64(serial, offset);
-    offset += 8;
-    val_count_ = BinToUint32(serial, offset);
-    offset += 4;
+
+    buffer.copy(prev_hash_);
+    tx_size_ = buffer.getNextUint64();
+    sum_size_ = buffer.getNextUint64();
+    val_count_ = buffer.getNextUint32();
     MTR_STEP("proposed_block", "construct", &proposed_block_int, "transaction list");
     tcm.set_keys(&keys);
-    tcm.CreateTransactions(serial, transaction_vector_, offset, minSize(), tx_size_);
+    tcm.CreateTransactions(buffer, transaction_vector_, MinSize(), tx_size_);
 
     MTR_STEP("proposed_block", "construct", &proposed_block_int, "step3");
-    summary_ = Summary::Create(serial, offset);
+    summary_ = Summary::Create(buffer);
 
     MTR_STEP("proposed_block", "construct", &proposed_block_int, "step4");
-    Validation val_temp(serial, offset);
+    Validation val_temp(buffer.getBuffer(), buffer.getOffsetRef());
     vals_ = val_temp;
     MTR_FINISH("proposed_block", "construct", &proposed_block_int);
   }
@@ -173,7 +169,7 @@ class ProposedBlock {
       tx_size_ += item->getByteSize();
     }
 
-    num_bytes_ = minSize() + tx_size_ + sum_size_ + val_count_ * vals_.pairSize();
+    num_bytes_ = MinSize() + tx_size_ + sum_size_ + val_count_ * vals_.pairSize();
   }
 
   ProposedBlock& operator=(const ProposedBlock& other) = delete;
@@ -182,7 +178,7 @@ class ProposedBlock {
    *
    * @return
    */
-  bool isNull() const { return (num_bytes_ < minSize()); }
+  bool isNull() const { return (num_bytes_ < MinSize()); }
 
   /**
    *
@@ -205,13 +201,13 @@ class ProposedBlock {
    *
    * @return
    */
-  static size_t minSize() { return 61; }
+  static size_t MinSize() { return 61; }
 
   /**
    *
    * @return
    */
-  static size_t minValidationSize() { return SHA256_DIGEST_LENGTH + (Validation::pairSize() * 2); }
+  static size_t MinValidationSize() { return SHA256_DIGEST_LENGTH + (Validation::pairSize() * 2); }
 
   /**
    * Validates this block.
@@ -268,7 +264,7 @@ class ProposedBlock {
     SignBinary(keys.getNodeKey(node_num), DevcashHash(md), node_sig);
     vals_.addValidation(node_addr, node_sig);
     val_count_++;
-    num_bytes_ = minSize() + tx_size_ + sum_size_ + (val_count_ * Validation::pairSize());
+    num_bytes_ = MinSize() + tx_size_ + sum_size_ + (val_count_ * Validation::pairSize());
     return true;
   }
 
@@ -281,7 +277,7 @@ class ProposedBlock {
    */
   bool checkValidationData(const std::vector<byte>& remote, const DevcashContext& context) {
     MTR_SCOPE_FUNC();
-    if (remote.size() < minValidationSize()) {
+    if (remote.size() < MinValidationSize()) {
       LOG_WARNING << "Invalid validation data, too small!";
       return false;
     }
@@ -293,7 +289,7 @@ class ProposedBlock {
       Validation val_temp(remote, offset);
       vals_.addValidation(val_temp);
       val_count_ = vals_.getValidationCount();
-      num_bytes_ = minSize() + tx_size_ + sum_size_ + val_count_ * vals_.pairSize();
+      num_bytes_ = MinSize() + tx_size_ + sum_size_ + val_count_ * vals_.pairSize();
       if (val_count_ > (context.get_peer_count() / 2)) {
         return true;
       }

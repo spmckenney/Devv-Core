@@ -28,6 +28,8 @@
 #include "Summary.h"
 #include "Transfer.h"
 #include "Validation.h"
+#include "primitives/buffers.h"
+
 #include "consensus/KeyRing.h"
 #include "consensus/chainstate.h"
 

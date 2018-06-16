@@ -392,12 +392,12 @@ std::vector<std::vector<byte>> DevcashController::loadTransactions() {
       raw.reserve(file_size);
       raw.insert(raw.begin(), std::istream_iterator<byte>(file)
                  , std::istream_iterator<byte>());
-      size_t offset = 0;
       std::vector<byte> batch;
       assert(file_size > 0);
-      while (offset < static_cast<size_t>(file_size)) {
+      InputBuffer buffer(raw);
+      while (buffer.getOffset() < static_cast<size_t>(file_size)) {
         //constructor increments offset by reference
-        FinalBlock one_block(raw, priori, offset);
+        FinalBlock one_block(buffer, priori);
         Summary sum = Summary::Copy(one_block.getSummary());
         Validation val(one_block.getValidation());
         std::pair<Address, Signature> pair(val.getFirstValidation());

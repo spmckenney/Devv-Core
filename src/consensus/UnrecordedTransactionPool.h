@@ -45,23 +45,23 @@ class UnrecordedTransactionPool {
    *  @params keys a KeyRing that provides keys for signature verification
    *  @return true iff all Transactions are valid and in the pool
   */
-    bool AddTransactions(std::vector<byte> serial, const KeyRing& keys) {
+    bool AddTransactions(const std::vector<byte>& serial, const KeyRing& keys) {
       LOG_DEBUG << "AddTransactions(std::vector<byte> serial, const KeyRing& keys)";
       MTR_SCOPE_FUNC();
       CASH_TRY {
         std::vector<TransactionPtr> temp;
-        size_t counter = 0;
-        while (counter < serial.size()) {
+        InputBuffer buffer(serial);
+        while (buffer.getOffset() < buffer.size()) {
           //note that Transaction constructor advances counter by reference
           if (mode_ == eAppMode::T2) {
-            TransactionPtr one_tx = std::make_unique<Tier2Transaction>(serial, counter, keys);
+            TransactionPtr one_tx = std::make_unique<Tier2Transaction>(buffer.getBuffer(), buffer.getOffsetRef(), keys);
             if (one_tx->getByteSize() < Transaction::MinSize()) {
               LOG_WARNING << "Invalid transaction, dropping the remainder of input.";
               break;
             }
             temp.push_back(std::move(one_tx));
 		  } else if (mode_ == eAppMode::T1) {
-            TransactionPtr one_tx = std::make_unique<Tier1Transaction>(serial, counter, keys);
+            TransactionPtr one_tx = std::make_unique<Tier1Transaction>(buffer, keys);
             if (one_tx->getByteSize() < Transaction::MinSize()) {
               LOG_WARNING << "Invalid transaction, dropping the remainder of input.";
               break;
@@ -338,11 +338,12 @@ class UnrecordedTransactionPool {
    *  @param keys - the directory of Addresses and EC keys
    *  @return a FinalBlock based on the remote data provided
    */
-  const FinalBlock FinalizeRemoteBlock(const std::vector<byte>& serial
-      , const ChainState prior, const KeyRing& keys) {
+  const FinalBlock FinalizeRemoteBlock(InputBuffer& buffer,
+                                       const ChainState prior,
+                                       const KeyRing& keys) {
     LOG_DEBUG << "FinalizeRemoteBlock()";
     MTR_SCOPE_FUNC();
-    FinalBlock final(serial, prior, keys, tcm_);
+    FinalBlock final(buffer, prior, keys, tcm_);
     return final;
   }
 

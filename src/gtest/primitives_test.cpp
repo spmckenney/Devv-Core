@@ -15,6 +15,162 @@ namespace {
 
 /**
  *
+ * InputBufferTest
+ *
+ */
+ class InputBufferTest : public ::testing::Test {
+ protected:
+  InputBufferTest() : test_buffer_0_()
+  {
+    test_buffer_0_.push_back(10);
+  }
+
+  ~InputBufferTest()  = default;
+
+  void SetUp() override {
+    // Code here will be called immediately after the constructor (right
+    // before each test).
+  }
+
+  void TearDown() override {
+    // Code here will be called immediately after each test (right
+    // before the destructor).
+  }
+
+  std::vector<byte> test_buffer_0_;
+};
+
+TEST_F(InputBufferTest, checkAt) {
+  InputBuffer ibuffer(test_buffer_0_);
+  byte b = 10;
+  EXPECT_EQ(b, ibuffer.at(0));
+}
+
+TEST_F(InputBufferTest, test_copy_0) {
+  std::vector<byte> check_vec;
+  InputBuffer ibuffer(test_buffer_0_);
+  ibuffer.copy(std::back_inserter(check_vec), 1);
+  EXPECT_EQ(test_buffer_0_, check_vec);
+}
+
+TEST_F(InputBufferTest, test_copy_1) {
+  std::vector<byte> b1;
+  b1.push_back(34);
+  b1.push_back(35);
+
+  std::array<byte, 2> ar1, ar2;
+  ar1[0] = b1.at(0);
+  ar1[1] = b1.at(1);
+  InputBuffer ibuffer(b1);
+  ibuffer.copy(ar2);
+  EXPECT_EQ(ar1, ar2);
+}
+
+TEST_F(InputBufferTest, test_copy_2) {
+  std::vector<byte> b1;
+  b1.push_back(34);
+  b1.push_back(35);
+  b1.push_back(36);
+  b1.push_back(37);
+  InputBuffer ibuffer(b1);
+
+  std::array<byte, 2> ar1, ar2;
+
+  ar1[0] = b1.at(0);
+  ar1[1] = b1.at(1);
+  ibuffer.copy(ar2);
+  EXPECT_EQ(ar1, ar2);
+
+  ar1[0] = b1.at(2);
+  ar1[1] = b1.at(3);
+  ibuffer.copy(ar2);
+  EXPECT_EQ(ar1, ar2);
+}
+
+TEST_F(InputBufferTest, test_getOffsetRef) {
+  byte int0 = 1;
+  byte int1 = 8;
+  std::vector<byte> b1;
+  b1.push_back(int0);
+  b1.push_back(int1);
+
+  InputBuffer ibuffer(b1);
+
+  byte check;
+  size_t& offset = ibuffer.getOffsetRef();
+  offset++;
+  check = ibuffer.getNextByte();
+  EXPECT_EQ(int1, check);
+}
+
+TEST_F(InputBufferTest, test_increment) {
+  byte int0 = 1;
+  byte int1 = 8;
+  std::vector<byte> b1;
+  b1.push_back(int0);
+  b1.push_back(int1);
+
+  InputBuffer ibuffer(b1);
+
+  byte check;
+  ibuffer.increment(1);
+  check = ibuffer.getNextByte();
+  EXPECT_EQ(int1, check);
+}
+
+TEST_F(InputBufferTest, test_byte) {
+  byte int0 = 1;
+  byte int1 = 8;
+  std::vector<byte> b1;
+  b1.push_back(int0);
+  b1.push_back(int1);
+
+  InputBuffer ibuffer(b1);
+
+  byte check;
+  check = ibuffer.getNextByte();
+  EXPECT_EQ(int0, check);
+
+  check = ibuffer.getNextByte();
+  EXPECT_EQ(int1, check);
+}
+
+TEST_F(InputBufferTest, test_uint32) {
+  uint32_t int0 = 123456;
+  uint32_t int1 = 987654;
+  std::vector<byte> b1;
+  Uint32ToBin(int0, b1);
+  Uint32ToBin(int1, b1);
+
+  InputBuffer ibuffer(b1);
+
+  uint32_t check;
+  check = ibuffer.getNextUint32();
+  EXPECT_EQ(int0, check);
+
+  check = ibuffer.getNextUint32();
+  EXPECT_EQ(int1, check);
+}
+
+TEST_F(InputBufferTest, test_uint64) {
+  uint64_t int0 = 123456;
+  uint64_t int1 = 987654;
+  std::vector<byte> b1;
+  Uint64ToBin(int0, b1);
+  Uint64ToBin(int1, b1);
+
+  InputBuffer ibuffer(b1);
+
+  uint64_t check;
+  check = ibuffer.getNextUint64();
+  EXPECT_EQ(int0, check);
+
+  check = ibuffer.getNextUint64();
+  EXPECT_EQ(int1, check);
+}
+
+/**
+ *
  * SummaryTest
  *
  */

@@ -19,6 +19,7 @@
 #include <mutex>
 #include <vector>
 
+#include "primitives/buffers.h"
 #include "Transfer.h"
 
 namespace Devcash {
@@ -113,7 +114,7 @@ class Summary {
    * @param offset
    * @return
    */
-  static Summary Create(const std::vector<byte>& serial, size_t& offset);
+  static Summary Create(InputBuffer& buffer);
 
   /**
    * Create an empty Summary
@@ -379,43 +380,34 @@ inline Summary Summary::Create() {
   return new_summary;
 }
 
-inline Summary Summary::Create(const std::vector<byte>& serial, size_t& offset) {
+inline Summary Summary::Create(InputBuffer& buffer) {
   Summary new_summary;
 
-  if (serial.size() < Summary::MinSize() + offset) {
+  if (buffer.size() < Summary::MinSize() + buffer.getOffset()) {
     std::string warning = "Invalid serialized Summary, too small!";
     LOG_WARNING << warning;
     throw std::runtime_error(warning);
   }
-  size_t addr_count = BinToUint32(serial, offset);
-  offset += 4;
+  size_t addr_count = buffer.getNextUint32();
   std::vector<byte> out;
   for (size_t i = 0; i < addr_count; ++i) {
     Address one_addr;
-    std::copy_n(serial.begin() + offset, kADDR_SIZE, one_addr.begin());
-    offset += kADDR_SIZE;
+    buffer.copy(one_addr);
     DelayedMap delayed;
     CoinMap coin_map;
-    size_t delayed_count = BinToUint64(serial, offset);
-    offset += 8;
-    size_t coin_count = BinToUint64(serial, offset);
-    offset += 8;
+    size_t delayed_count = buffer.getNextUint64();
+    size_t coin_count = buffer.getNextUint64();
     for (size_t j = 0; j < delayed_count; ++j) {
-      uint64_t coin = BinToUint64(serial, offset);
-      offset += 8;
-      uint64_t delay = BinToUint64(serial, offset);
-      offset += 8;
-      uint64_t delta = BinToUint64(serial, offset);
-      offset += 8;
+      uint64_t coin = buffer.getNextUint64();
+      uint64_t delay = buffer.getNextUint64();
+      uint64_t delta = buffer.getNextUint64();
       DelayedItem delayed_item(delay, delta);
       std::pair<uint64_t, DelayedItem> new_pair(coin, delayed_item);
       delayed.insert(new_pair);
     }
     for (size_t j = 0; j < coin_count; ++j) {
-      uint64_t coin = BinToUint64(serial, offset);
-      offset += 8;
-      uint64_t delta = BinToUint64(serial, offset);
-      offset += 8;
+      uint64_t coin = buffer.getNextUint64();
+      uint64_t delta = buffer.getNextUint64();
       std::pair<uint64_t, uint64_t> new_pair(coin, delta);
       coin_map.insert(new_pair);
     }
