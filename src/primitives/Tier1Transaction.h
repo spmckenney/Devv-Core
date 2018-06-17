@@ -41,6 +41,7 @@ class Tier1Transaction : public Transaction {
 
     buffer.copy(std::back_inserter(canonical_), 8);
     buffer.copy(std::back_inserter(canonical_), 8, false);
+    sum_size_ = buffer.getNextUint64();
 
     MTR_STEP("Transaction", "Transaction", &trace_int, "step2");
     if (buffer.size() < buffer.getOffset() + sum_size_ + kSIG_SIZE) {
