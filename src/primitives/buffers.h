@@ -104,6 +104,18 @@ class InputBuffer {
     return buffer_;
   }
 
+  /**
+   * Get the iterator at the current offset
+   * @return iterator at current offset
+   */
+  std::vector<byte>::const_iterator getCurrentIterator() {
+    return(buffer_.begin() + offset_);
+  }
+
+  /**
+   * Return the current offset of this buffer
+   * @return
+   */
   size_t getOffset() const {
     return offset_;
   }
@@ -112,10 +124,19 @@ class InputBuffer {
     return offset_;
   }
 
+  /**
+   * Increment the offset by amount.
+   *
+   * @param amount
+   */
   void increment(size_t amount) {
     offset_ += amount;
   }
 
+  /**
+   * Return the size of the buffer.
+   * @return
+   */
   size_t size() const {
     return buffer_.size();
   }

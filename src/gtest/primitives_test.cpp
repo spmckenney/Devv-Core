@@ -387,14 +387,16 @@ class TransferTest : public ::testing::Test {
 
 TEST_F(TransferTest, getJSONIdentity) {
   Devcash::Transfer test_transfer(addr_0_, 0, 1, 0);
-  Devcash::Transfer identity(test_transfer.getCanonical());
+  InputBuffer buffer(test_transfer.getCanonical());
+  Devcash::Transfer identity(buffer);
 
   EXPECT_EQ(test_transfer.getJSON(), identity.getJSON());
 }
 
 TEST_F(TransferTest, getCanonicalIdentity) {
   Devcash::Transfer test_transfer(addr_0_, 0, 1, 0);
-  Devcash::Transfer identity(test_transfer.getCanonical());
+  InputBuffer buffer(test_transfer.getCanonical());
+  Devcash::Transfer identity(buffer);
 
   EXPECT_EQ(test_transfer.getCanonical(), identity.getCanonical());
 }

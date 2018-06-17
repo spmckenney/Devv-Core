@@ -14,6 +14,7 @@
 #include <string>
 
 #include "SmartCoin.h"
+#include "primitives/buffers.h"
 #include "common/binary_converters.h"
 #include "consensus/KeyRing.h"
 #include "consensus/chainstate.h"
@@ -49,28 +50,17 @@ class Transfer {
   }
 
   /**
-   * Constructor
-   * @param serial
-   */
-  explicit Transfer(const std::vector<byte>& serial) : canonical_(serial) {
-    if (serial.size() != Size()) {
-      LOG_ERROR << "Invalid serialized transfer!";
-      return;
-    }
-  }
-
-  /**
    * Create a transfer from the buffer serial and update the offset
    * @param[in] serial
    * @param[in, out] offset
    */
-  Transfer(const std::vector<byte>& serial, size_t& offset)
-      : canonical_(serial.begin() + offset, serial.begin() + offset + Size()) {
-    if (serial.size() < Size() + offset) {
+  Transfer(InputBuffer& buffer)
+      : canonical_(buffer.getCurrentIterator(), buffer.getCurrentIterator() + Size()) {
+    if (buffer.size() < Size() + buffer.getOffset()) {
       LOG_WARNING << "Invalid serialized transfer!";
       return;
     }
-    offset += Size();
+    buffer.increment(Size());
   }
 
   /**

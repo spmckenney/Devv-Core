@@ -362,7 +362,7 @@ class FinalBlock {
    *
    * @return
    */
-  ChainState getChainState() const { return block_state_; }
+  const ChainState& getChainState() const { return block_state_; }
 
   /**
    *

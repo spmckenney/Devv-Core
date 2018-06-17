@@ -195,11 +195,11 @@ class Tier2Transaction : public Transaction {
    */
   std::vector<Transfer> do_getTransfers() const {
     std::vector<Transfer> out;
+    /// @todo - Hardcoded value
+    InputBuffer buffer(canonical_, 9);
     for (size_t i = 0; i < xfer_count_; ++i) {
-      /// @todo - Hardcoded value
-      size_t offset = 9 + (Transfer::Size() * i);
       /// @todo memory leak!!
-      Transfer* t = new Transfer(canonical_, offset);
+      Transfer* t = new Transfer(buffer);
       out.push_back(*t);
     }
     return out;
