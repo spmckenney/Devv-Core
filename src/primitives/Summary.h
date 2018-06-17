@@ -224,52 +224,9 @@ class Summary {
    */
   size_t getByteSize() const { return getCanonical().size(); }
 
-  /**
-   * Get a JSON string representing this summary
-   * @return JSON string
-   */
-  std::string getJSON() const {
-    std::string json("{\"" + kADDR_SIZE_TAG + "\":");
-    uint64_t addr_size = summary_.size();
-    json += std::to_string(addr_size) + ",summary:[";
-    for (auto summary : summary_) {
-      json += "\"" + ToHex(std::vector<byte>(std::begin(summary.first), std::end(summary.first))) + "\":[";
-      SummaryPair top_pair(summary.second);
-      DelayedMap delayed(top_pair.first);
-      CoinMap coin_map(top_pair.second);
-      uint64_t delayed_size = delayed.size();
-      uint64_t coin_size = coin_map.size();
-      json += "\"" + kDELAY_SIZE_TAG + "\":" + std::to_string(delayed_size) + ",";
-      json += "\"" + kCOIN_SIZE_TAG + "\":" + std::to_string(coin_size) + ",";
-      bool is_first = true;
-      json += "\"delayed\":[";
-      for (auto delayed_item : delayed) {
-        if (is_first) {
-          is_first = false;
-        } else {
-          json += ",";
-        }
-        json += "\"" + kTYPE_TAG + "\":" + std::to_string(delayed_item.first) + ",";
-        json += "\"" + kDELAY_TAG + "\":" + std::to_string(delayed_item.second.delay) + ",";
-        json += "\"" + kAMOUNT_TAG + "\":" + std::to_string(delayed_item.second.delta);
-      }
-      json += "],\"coin_map\":[";
-      is_first = true;
-      for (auto coin : coin_map) {
-        if (is_first) {
-          is_first = false;
-        } else {
-          json += ",";
-        }
-        json += "\"" + kTYPE_TAG + "\":" + std::to_string(coin.first) + ",";
-        json += "\"" + kAMOUNT_TAG + "\":" + std::to_string(coin.second);
-      }
-      json += "]";
-    }
-    json += "]}";
-    return json;
+  const SummaryMap& getSummaryMap() const {
+    return summary_;
   }
-
   /**
    * Get the transfers
    * @return a vector of Transfers
@@ -338,26 +295,7 @@ class Summary {
    * Perform sanity check and ensure summary sums to zero
    * @return true iff, the summary passes sanity checks
    */
-  bool isSane() const {
-    if (summary_.empty()) return false;
-    uint64_t coin_total = 0;
-    for (auto summary : summary_) {
-      auto summary_pair = summary.second;
-      auto delayed_map = summary_pair.first;
-      auto coin_map = summary_pair.second;
-      for (auto delayed_coin : delayed_map) {
-        coin_total += delayed_coin.second.delta;
-      }
-      for (auto coin : coin_map) {
-        coin_total += coin.second;
-      }
-    }
-    if (coin_total != 0) {
-      LOG_WARNING << "Summary state invalid: " + getJSON();
-      return false;
-    }
-    return true;
-  }
+  bool isSane() const;
 
  private:
   /**
@@ -375,11 +313,21 @@ class Summary {
   SummaryMap summary_;
 };
 
+/**
+ * Create a new empty Summary
+ * @return
+ */
 inline Summary Summary::Create() {
   Summary new_summary;
   return new_summary;
 }
 
+/**
+ * Deserialize a Summary from an InputBuffer
+ *
+ * @param buffer input buffer to deserialize
+ * @return
+ */
 inline Summary Summary::Create(InputBuffer& buffer) {
   Summary new_summary;
 
@@ -417,6 +365,12 @@ inline Summary Summary::Create(InputBuffer& buffer) {
   return new_summary;
 }
 
+/**
+ * Copy the Summary
+ *
+ * @param summary Summary to copy
+ * @return
+ */
 inline Summary Summary::Copy(const Summary& summary) {
   Summary new_summary(summary);
   return new_summary;

@@ -13,9 +13,8 @@
 #include "primitives/Summary.h"
 #include "primitives/Transaction.h"
 #include "primitives/Validation.h"
-#include "concurrency/TransactionCreationManager.h"
 
-using namespace Devcash;
+#include "concurrency/TransactionCreationManager.h"
 
 namespace Devcash {
 
@@ -190,6 +189,8 @@ class ProposedBlock {
    */
   void setNull() { num_bytes_ = 0; }
 
+  uint8_t getVersion() const { return version_; }
+
   /**
    * Return a const ref to previous hash
    * @return
@@ -223,33 +224,7 @@ class ProposedBlock {
    * @return true iff at least once transaction in this block validated.
    * @return false if this block has no valid transactions
    */
-  bool validate(const KeyRing& keys) const {
-    LOG_DEBUG << "validate()";
-    MTR_SCOPE_FUNC();
-    if (transaction_vector_.size() < 1) {
-      LOG_WARNING << "Trying to validate empty block.";
-      return false;
-    }
-
-    if (!summary_.isSane()) {
-      LOG_WARNING << "Summary is invalid in block.validate()!\n";
-      LOG_DEBUG << "Summary state: " + summary_.getJSON();
-      return false;
-    }
-
-    std::vector<byte> md = summary_.getCanonical();
-    for (auto& sig : vals_.getValidationMap()) {
-      if (!VerifyByteSig(keys.getKey(sig.first), DevcashHash(md), sig.second)) {
-        LOG_WARNING << "Invalid block signature";
-        LOG_DEBUG << "Block state: " + getJSON();
-        LOG_DEBUG << "Block Node Addr: " + ToHex(std::vector<byte>(std::begin(sig.first), std::end(sig.first)));
-        LOG_DEBUG << "Block Node Sig: " + ToHex(std::vector<byte>(std::begin(sig.second), std::end(sig.second)));
-        return false;
-      }
-    }
-
-    return true;
-  }
+  bool validate(const KeyRing& keys) const;
 
   /**
    * Signs this block.
@@ -301,35 +276,6 @@ class ProposedBlock {
       LOG_WARNING << "Invalid validation data, hash does not match this proposal!";
     }
     return false;
-  }
-
-  /**
-   * Returns a JSON representation of this block as a string.
-   * @return a JSON representation of this block as a string.
-   */
-  std::string getJSON() const {
-    MTR_SCOPE_FUNC();
-    std::string json("{\"" + kVERSION_TAG + "\":");
-    json += std::to_string(version_) + ",";
-    json += "\"" + kBYTES_TAG + "\":" + std::to_string(num_bytes_) + ",";
-    std::vector<byte> prev_hash(std::begin(prev_hash_), std::end(prev_hash_));
-    json += "\"" + kPREV_HASH_TAG + "\":" + ToHex(prev_hash) + ",";
-    json += "\"" + kTX_SIZE_TAG + "\":" + std::to_string(tx_size_) + ",";
-    json += "\"" + kSUM_SIZE_TAG + "\":" + std::to_string(sum_size_) + ",";
-    json += "\"" + kVAL_COUNT_TAG + "\":" + std::to_string(val_count_) + ",";
-    json += "\"" + kTXS_TAG + "\":[";
-    bool isFirst = true;
-    for (auto const& item : transaction_vector_) {
-      if (isFirst) {
-        isFirst = false;
-      } else {
-        json += ",";
-      }
-      json += item->getJSON();
-    }
-    json += "],\"" + kSUM_TAG + "\":" + summary_.getJSON() + ",";
-    json += "\"" + kVAL_TAG + "\":" + vals_.getJSON() + "}";
-    return json;
   }
 
   /**
@@ -392,7 +338,7 @@ class ProposedBlock {
    *
    * @return
    */
-  Validation getValidation() const { return vals_; }
+  const Validation& getValidation() const { return vals_; }
 
   /**
    *

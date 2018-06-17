@@ -20,6 +20,7 @@
 #include "common/argument_parser.h"
 #include "common/devcash_context.h"
 #include "node/DevcashNode.h"
+#include "primitives/json_interface.h"
 
 using namespace Devcash;
 namespace fs = boost::filesystem;
@@ -95,7 +96,7 @@ int main(int argc, char* argv[])
           size_t txs = one_block.getNumTransactions();
           size_t tfers = one_block.getNumTransfers();
           priori = one_block.getChainState();
-          out += one_block.getJSON();
+          out += GetJSON(one_block);
 
           LOG_INFO << std::to_string(txs)+" txs, transfers: "+std::to_string(tfers);
           file_blocks++;

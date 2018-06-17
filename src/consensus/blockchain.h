@@ -148,22 +148,10 @@ public:
   }
 
   /**
-   * @return a JSON representation of this chain.
+   * Return a const ref to the underlying vector of BlockSharedPtrs
+   * @return const ref to std::vector<BlockSharedPtr>
    */
-  std::string JsonDump() const {
-    std::string out("[");
-    bool first = true;
-    for (auto const& item : chain_) {
-      if (first) {
-        first = false;
-      } else {
-        out += ",";
-      }
-      out += item->getJSON();
-    }
-    out += "]";
-    return out;
-  }
+  const std::vector<BlockSharedPtr>& getBlockVector() const { return chain_; }
 
 private:
   std::vector<BlockSharedPtr> chain_;

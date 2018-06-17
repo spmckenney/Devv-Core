@@ -114,6 +114,7 @@ class Validation {
   }
 
   /**
+   * Add other to the ValidationMap
    *
    * @param other
    * @return
@@ -131,27 +132,6 @@ class Validation {
     auto x = sigs_.begin();
     std::pair<Address, Signature> pair(x->first, x->second);
     return pair;
-  }
-
-  /**
-   * Returns a JSON string representing this validation block.
-   * @return a JSON string representing this validation block.
-   */
-  std::string getJSON() const {
-    MTR_SCOPE_FUNC();
-    std::string out("[");
-    bool isFirst = true;
-    for (auto const& item : sigs_) {
-      if (isFirst) {
-        isFirst = false;
-      } else {
-        out += ",";
-      }
-      out += "\"" + ToHex(std::vector<byte>(std::begin(item.first), std::end(item.first))) + "\":";
-      out += "\"" + ToHex(std::vector<byte>(std::begin(item.second), std::end(item.second))) + "\"";
-    }
-    out += "]";
-    return out;
   }
 
   /**

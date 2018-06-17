@@ -31,15 +31,13 @@ if (CMAKE_VERSION VERSION_LESS 2.8.11)
 endif()
 
 # Now simply link against gtest or gtest_main as needed. Eg
-add_executable(primitives gtest/primitives_test.cpp)
-target_link_libraries(primitives
+add_executable(primitives_test gtest/primitives_test.cpp)
+target_link_libraries(primitives_test
         gtest_main
-        io
-        common
-        consensus
+        ${devcash_core_libs}
        ${ZMQ}
         ${OPENSSL_LIBRARIES}
         ${CMAKE_THREAD_LIBS_INIT}
         ${Boost_LIBRARIES})
 
-add_test(NAME primitives_test COMMAND primitives)
+add_test(NAME primitives_test COMMAND primitives_test)

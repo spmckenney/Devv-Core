@@ -226,10 +226,22 @@ class FinalBlock {
   }
 
   /**
+   *
+   * @return
+   */
+  const std::vector<TransactionPtr>& getTransactions() const { return transaction_vector_; }
+
+  /**
    * Returns the number of transactions in this block
    * @return number of transactions
    */
   size_t getNumTransactions() const { return transaction_vector_.size(); }
+
+  /**
+   * Returns the number of validations
+   * @return the number of validations
+   */
+  uint32_t getNumValidations() const { return val_count_; }
 
   /**
    * Returns copies of the transactions recorded in this block.
@@ -256,35 +268,10 @@ class FinalBlock {
   }
 
   /**
-   * Returns a JSON representation of this block as a string.
-   * @return a JSON representation of this block as a string.
+   * Return the block version
+   * @return block version
    */
-  std::string getJSON() const {
-    std::string json("{\"" + kVERSION_TAG + "\":");
-    json += std::to_string(version_) + ",";
-    json += "\"" + kBYTES_TAG + "\":" + std::to_string(num_bytes_) + ",";
-    json += "\"" + kTIME_TAG + "\":" + std::to_string(block_time_) + ",";
-    std::vector<byte> prev_hash(std::begin(prev_hash_), std::end(prev_hash_));
-    json += "\"" + kPREV_HASH_TAG + "\":" + ToHex(prev_hash) + ",";
-    std::vector<byte> merkle(std::begin(merkle_root_), std::end(merkle_root_));
-    json += "\"" + kMERKLE_TAG + "\":" + ToHex(merkle) + ",";
-    json += "\"" + kTX_SIZE_TAG + "\":" + std::to_string(tx_size_) + ",";
-    json += "\"" + kSUM_SIZE_TAG + "\":" + std::to_string(sum_size_) + ",";
-    json += "\"" + kVAL_COUNT_TAG + "\":" + std::to_string(val_count_) + ",";
-    json += "\"" + kTXS_TAG + "\":[";
-    bool isFirst = true;
-    for (auto const& item : transaction_vector_) {
-      if (isFirst) {
-        isFirst = false;
-      } else {
-        json += ",";
-      }
-      json += item->getJSON();
-    }
-    json += "],\"" + kSUM_TAG + "\":" + summary_.getJSON() + ",";
-    json += "\"" + kVAL_TAG + "\":" + vals_.getJSON() + "}";
-    return json;
-  }
+  uint8_t getVersion() const { return version_; }
 
   /**
    * Returns block digest as a byte vector
@@ -346,34 +333,58 @@ class FinalBlock {
   }
 
   /**
+   * Return the number of bytes
+   * @return number of bytes
+   */
+  uint64_t getNumBytes() const { return num_bytes_; }
+
+  /**
+   * Returns the size of the transactions
+   * @return the size of the transactions
+   */
+  uint64_t getSizeofTransactions() const { return tx_size_; }
+
+  /**
    * Return the time of this block
    * @return block time in milliseconds since the Epoch
    */
   uint64_t getBlockTime() const { return block_time_; }
 
   /**
-   *
+   * Return a const ref to the previous hash
    * @return
    */
-  Hash getMerkleRoot() const { return merkle_root_; }
+  const Hash& getPreviousHash() const { return prev_hash_; }
 
   /**
-   *
+   * Return a const ref to the merkle root
+   * @return
+   */
+  const Hash& getMerkleRoot() const { return merkle_root_; }
+
+  /**
+   * Return a const ref to the ChainState
    * @return
    */
   const ChainState& getChainState() const { return block_state_; }
 
   /**
-   *
+   * Return a const ref to the Summary
    * @return
    */
   const Summary& getSummary() const { return summary_; }
 
   /**
-   *
+   * Returns the size of the Summary
+   * @return the size of the Summary
+   */
+  uint64_t getSummarySize() const { return sum_size_; }
+
+  /**
+   * Return a const ref to the validation
    * @return
    */
-  Validation getValidation() const { return vals_; }
+  const Validation& getValidation() const { return vals_; }
 
  private:
   /// Version of the block

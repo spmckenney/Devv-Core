@@ -32,6 +32,7 @@
 #include "common/devcash_context.h"
 #include "io/message_service.h"
 #include "node/DevcashNode.h"
+#include "primitives/json_interface.h"
 
 using namespace Devcash;
 
@@ -196,7 +197,7 @@ int main(int argc, char* argv[]) {
           }
           if (block_summary.getCanonical() != one_block.getSummary().getCanonical()) {
             LOG_WARNING << "A final block summary is invalid. Summary datails: ";
-            LOG_WARNING << one_block.getSummary().getJSON();
+            LOG_WARNING << GetJSON(one_block.getSummary());
             LOG_WARNING << "Transaction details: ";
             for (TransactionPtr& item : txs) {
               LOG_WARNING << item->getJSON();
