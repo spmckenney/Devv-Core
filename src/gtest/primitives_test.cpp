@@ -87,7 +87,7 @@ TEST_F(InputBufferTest, test_copy_2) {
   EXPECT_EQ(ar1, ar2);
 }
 
-TEST_F(InputBufferTest, test_getOffsetRef) {
+TEST_F(InputBufferTest, test_getOffset) {
   byte int0 = 1;
   byte int1 = 8;
   std::vector<byte> b1;
@@ -96,11 +96,11 @@ TEST_F(InputBufferTest, test_getOffsetRef) {
 
   InputBuffer ibuffer(b1);
 
-  byte check;
-  size_t& offset = ibuffer.getOffsetRef();
-  offset++;
-  check = ibuffer.getNextByte();
-  EXPECT_EQ(int1, check);
+  size_t check = 0;
+  EXPECT_EQ(check, ibuffer.getOffset());
+  ibuffer.getNextByte();
+  check++;
+  EXPECT_EQ(check, ibuffer.getOffset());
 }
 
 TEST_F(InputBufferTest, test_increment) {

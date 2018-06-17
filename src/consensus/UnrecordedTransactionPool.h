@@ -46,7 +46,7 @@ class UnrecordedTransactionPool {
    *  @return true iff all Transactions are valid and in the pool
   */
     bool AddTransactions(const std::vector<byte>& serial, const KeyRing& keys) {
-      LOG_DEBUG << "AddTransactions(std::vector<byte> serial, const KeyRing& keys)";
+      LOG_DEBUG << "AddTransactions(const std::vector<byte>& serial, const KeyRing& keys)";
       MTR_SCOPE_FUNC();
       CASH_TRY {
         std::vector<TransactionPtr> temp;
@@ -54,7 +54,7 @@ class UnrecordedTransactionPool {
         while (buffer.getOffset() < buffer.size()) {
           //note that Transaction constructor advances counter by reference
           if (mode_ == eAppMode::T2) {
-            TransactionPtr one_tx = std::make_unique<Tier2Transaction>(buffer.getBuffer(), buffer.getOffsetRef(), keys);
+            TransactionPtr one_tx = std::make_unique<Tier2Transaction>(buffer, keys);
             if (one_tx->getByteSize() < Transaction::MinSize()) {
               LOG_WARNING << "Invalid transaction, dropping the remainder of input.";
               break;

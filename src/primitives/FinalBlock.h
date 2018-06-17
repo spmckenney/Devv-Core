@@ -188,8 +188,7 @@ class FinalBlock {
         Tier1TransactionPtr one_tx = std::make_unique<Tier1Transaction>(buffer, keys);
         transaction_vector_.push_back(std::move(one_tx));
       } else if (mode == eAppMode::T2) {
-        Tier2TransactionPtr one_tx = std::make_unique<Tier2Transaction>(buffer.getBuffer()
-            , buffer.getOffsetRef(), keys);
+        Tier2TransactionPtr one_tx = std::make_unique<Tier2Transaction>(buffer, keys);
         transaction_vector_.push_back(std::move(one_tx));
       }
     }

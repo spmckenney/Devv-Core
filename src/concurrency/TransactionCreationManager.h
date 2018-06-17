@@ -70,8 +70,7 @@ public:
                                                                         , false);
         vtx.push_back(std::move(one_tx));
       } else if (app_mode_ == eAppMode::T2) {
-        Tier2TransactionPtr one_tx = std::make_unique<Tier2Transaction>(buffer.getBuffer()
-                                                                        , buffer.getOffsetRef()
+        Tier2TransactionPtr one_tx = std::make_unique<Tier2Transaction>(buffer
                                                                         , *keys_p_
                                                                         , false);
         vtx.push_back(std::move(one_tx));

@@ -88,14 +88,14 @@ class DCVote : public oracleInterface {
  *
  * @pre if this is an exchange/vote operation, this DCVote object
  * must previously been initialized with the last create/modify operation.
- * @params rawTx the raw transaction to process
+ * @params input_buffer the raw transaction to process
  * @params context the chain state to check against
  * @return a tier 1 transaction to implement this tier 2 logic.
  * @return empty/null transaction if the transaction is invalid
  */
-  Tier2TransactionPtr Tier2Process(const std::vector<byte>& rawTx,
-                                   const ChainState& context,
-                                   const KeyRing& keys) override;
+  Tier2TransactionPtr tier2Process(InputBuffer &input_buffer,
+                                   const ChainState &context,
+                                   const KeyRing &keys) override;
 
 };
 
