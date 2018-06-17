@@ -487,7 +487,7 @@ inline ProposedBlock ProposedBlock::Create(InputBuffer &buffer,
                             const KeyRing &keys,
                             TransactionCreationManager &tcm) {
   MTR_SCOPE_FUNC();
-  ProposedBlock new_block;
+  ProposedBlock new_block(prior);
 
   int proposed_block_int = 123;
   MTR_START("proposed_block", "proposed_block", &proposed_block_int);
