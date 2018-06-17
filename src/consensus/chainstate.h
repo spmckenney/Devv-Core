@@ -20,12 +20,14 @@ class ChainState {
 public:
 
 /** Constructor */
-  ChainState() {}
+  ChainState() = default;
 
-  ChainState(const ChainState& other)
-  : state_map_(other.state_map_)
-  {
-  }
+  /**
+   * Default copy constructor
+   *
+   * @param other
+   */
+  ChainState(const ChainState& other) = default;
 
   ChainState& operator=(ChainState&& other)
   {
