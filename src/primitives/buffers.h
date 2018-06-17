@@ -10,13 +10,44 @@
 
 namespace Devcash {
 
+/**
+ * Class used to help deserialize input buffers.
+ * InputBuffer contains a reference to a vector<byte> and
+ * a size_t offet that indicates the current position. Upon
+ * initialization, the input buffer is a const reference, so
+ * the user must ensure the input vector<byte> remains valid
+ * for the lifetime of the InputBuffer. Since the buffer is
+ * const and the offset gets updated, InputBuffer should always
+ * be passed as a non-const reference.
+ */
 class InputBuffer {
  public:
+  /**
+   * Delete default constructor
+   */
   InputBuffer() = delete;
 
+  /**
+   * Delete copy constructor
+   * @param buffer
+   */
   InputBuffer(const InputBuffer& buffer) = delete;
 
-  InputBuffer(const std::vector<byte>& input_buffer, size_t offset = 0)
+  /**
+   * Delete assignment operator
+   * @return
+   */
+  InputBuffer& operator=(const InputBuffer&) = delete;
+
+  /**
+   * Constructor that initializes this object with the given input buffer and
+   * offset. The input_buffer must remain valid and in scope for the lifetime
+   * of this object.
+   *
+   * @param input_buffer The input buffer reference to deserialize
+   * @param offset The current offset location
+   */
+  explicit InputBuffer(const std::vector<byte>& input_buffer, size_t offset = 0)
       : buffer_(input_buffer)
       , offset_(offset) {}
 
@@ -100,6 +131,10 @@ class InputBuffer {
     return ret;
   }
 
+  /**
+   * Return a const ref to the full buffer
+   * @return
+   */
   const std::vector<byte>& getBuffer() const {
     return buffer_;
   }
@@ -117,10 +152,6 @@ class InputBuffer {
    * @return
    */
   size_t getOffset() const {
-    return offset_;
-  }
-
-  size_t& getOffsetRef() {
     return offset_;
   }
 
@@ -142,7 +173,9 @@ class InputBuffer {
   }
 
  private:
+  /// Serialized buffer
   const std::vector<byte>& buffer_;
+  /// Current offset
   size_t offset_;
 };
 
