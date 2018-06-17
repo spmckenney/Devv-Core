@@ -20,7 +20,7 @@ class ChainState {
 public:
 
 /** Constructor */
-  ChainState() = default;
+  ChainState() noexcept = default;
 
   /**
    * Default copy constructor
@@ -28,6 +28,12 @@ public:
    * @param other
    */
   ChainState(const ChainState& other) = default;
+
+  /**
+   * Move constructor
+   * @param other
+   */
+  ChainState(ChainState&& other) noexcept = default;
 
   ChainState& operator=(ChainState&& other)
   {

@@ -49,6 +49,18 @@ static const std::string kVAL_TAG = "vals";
  */
 class ProposedBlock {
  public:
+  /**
+   * Move constructor
+   * @param other
+   */
+  ProposedBlock(ProposedBlock&& other) = default;
+
+  /**
+   * Default move-assignment operator
+   * @param other
+   * @return
+   */
+  ProposedBlock& operator=(ProposedBlock&& other) = default;
 
   /**
    *
@@ -67,65 +79,12 @@ class ProposedBlock {
 
   /**
    *
-   * @param serial
+   * @param buffer
    * @param prior
    * @param keys
    * @param tcm
+   * @return
    */
-  ProposedBlock(InputBuffer& buffer,
-                const ChainState& prior,
-                const KeyRing& keys,
-                TransactionCreationManager& tcm)
-      : num_bytes_(0)
-      , prev_hash_()
-      , tx_size_(0)
-      , sum_size_(0)
-      , val_count_(0)
-      , transaction_vector_()
-      , summary_(Summary::Create())
-      , vals_()
-      , block_state_(prior) {
-    MTR_SCOPE_FUNC();
-
-    int proposed_block_int = 123;
-    MTR_START("proposed_block", "proposed_block", &proposed_block_int);
-
-    if (buffer.size() < MinSize()) {
-      LOG_WARNING << "Invalid serialized ProposedBlock, too small!";
-      MTR_FINISH("proposed_block", "construct", &proposed_block_int);
-      return;
-    }
-    version_ |= buffer.getNextByte();
-    if (version_ != 0) {
-      LOG_WARNING << "Invalid ProposedBlock.version: " + std::to_string(version_);
-      MTR_FINISH("proposed_block", "construct", &proposed_block_int);
-      return;
-    }
-    num_bytes_ = buffer.getNextUint64();
-    MTR_STEP("proposed_block", "construct", &proposed_block_int, "step1");
-    if (buffer.size() != num_bytes_) {
-      LOG_WARNING << "Invalid serialized ProposedBlock, wrong size!";
-      MTR_FINISH("proposed_block", "construct", &proposed_block_int);
-      return;
-    }
-
-    buffer.copy(prev_hash_);
-    tx_size_ = buffer.getNextUint64();
-    sum_size_ = buffer.getNextUint64();
-    val_count_ = buffer.getNextUint32();
-    MTR_STEP("proposed_block", "construct", &proposed_block_int, "transaction list");
-    tcm.set_keys(&keys);
-    tcm.CreateTransactions(buffer, transaction_vector_, MinSize(), tx_size_);
-
-    MTR_STEP("proposed_block", "construct", &proposed_block_int, "step3");
-    summary_ = Summary::Create(buffer);
-
-    MTR_STEP("proposed_block", "construct", &proposed_block_int, "step4");
-    Validation val_temp(buffer);
-    vals_ = val_temp;
-    MTR_FINISH("proposed_block", "construct", &proposed_block_int);
-  }
-
   static ProposedBlock Create(InputBuffer& buffer,
                 const ChainState& prior,
                 const KeyRing& keys,
@@ -391,11 +350,10 @@ class ProposedBlock {
   uint32_t getNumValidations() const { return val_count_; }
 
  private:
-
   /**
    * Private default constructor.
    */
-  ProposedBlock() = default;
+  ProposedBlock() noexcept = default;
 
   /// Version of the block
   uint8_t version_ = 0;

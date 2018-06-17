@@ -118,7 +118,7 @@ bool HandleProposalBlock(DevcashMessageUniquePtr ptr,
 
   ChainState prior = final_chain.getHighestChainState();
   InputBuffer buffer(msg.data);
-  ProposedBlock to_validate(buffer, prior, keys, tcm);
+  ProposedBlock to_validate(ProposedBlock::Create(buffer, prior, keys, tcm));
   if (!to_validate.validate(keys)) {
     LOG_WARNING << "ProposedBlock is invalid!";
     return false;
