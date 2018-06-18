@@ -62,22 +62,10 @@ class ProposedBlock {
    */
   ProposedBlock& operator=(ProposedBlock&& other) = default;
 
-  /**
-   *
-   * @param prior
-   */
-  explicit ProposedBlock(const ChainState& prior)
-      : num_bytes_(0)
-      , prev_hash_()
-      , tx_size_(0)
-      , sum_size_(0)
-      , val_count_(0)
-      , transaction_vector_()
-      , summary_(Summary::Create())
-      , vals_()
-      , block_state_(prior) {}
+  static ProposedBlock Create(const ChainState& prior);
 
   /**
+   * Create a new ProposedBlock from an InputBuffer
    *
    * @param buffer
    * @param prior
@@ -355,6 +343,22 @@ class ProposedBlock {
    */
   ProposedBlock() noexcept = default;
 
+  /**
+   * Create a new ProposedBlock from an existing ChainState
+   *
+   * @param prior
+   */
+  explicit ProposedBlock(const ChainState& prior)
+      : num_bytes_(0)
+      , prev_hash_()
+      , tx_size_(0)
+      , sum_size_(0)
+      , val_count_(0)
+      , transaction_vector_()
+      , summary_(Summary::Create())
+      , vals_()
+      , block_state_(prior) {}
+
   /// Version of the block
   uint8_t version_ = 0;
   /// Number of bytes in the block
@@ -377,15 +381,12 @@ class ProposedBlock {
   ChainState block_state_;
 };
 
-/**
- * Create a new Proposed block from the InputBuffer
- *
- * @param buffer
- * @param prior
- * @param keys
- * @param tcm
- * @return
- */
+
+inline ProposedBlock ProposedBlock::Create(const ChainState& prior) {
+  ProposedBlock new_block(prior);
+  return new_block;
+}
+
 inline ProposedBlock ProposedBlock::Create(InputBuffer &buffer,
                             const ChainState &prior,
                             const KeyRing &keys,

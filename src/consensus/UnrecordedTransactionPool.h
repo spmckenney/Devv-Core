@@ -26,7 +26,7 @@ class UnrecordedTransactionPool {
   UnrecordedTransactionPool(const ChainState& prior, eAppMode mode
      , size_t max_tx_per_block)
      : txs_()
-    , pending_proposal_(prior)
+    , pending_proposal_(ProposedBlock::Create(prior))
     , max_tx_per_block_(max_tx_per_block)
     , tcm_(mode)
     , mode_(mode)
