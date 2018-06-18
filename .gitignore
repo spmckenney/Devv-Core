@@ -4,3 +4,8 @@ Debug
 build
 build-*/
 dox
+src/.scannerwork
+src/GPATH
+src/GRTAGS
+src/GTAGS
+archive
