@@ -142,10 +142,10 @@ static const char alpha[] = "0123456789ABCDEF";
  * @return string containing these data as hex numbers
  */
 template <typename Array>
-static std::string ToHex(const Array& input) {
+static std::string ToHex(const Array& input, size_t num_bytes = UINT32_MAX) {
   MTR_SCOPE_FUNC();
   std::stringstream ss;
-  for (size_t j = 0; j < input.size(); j++) {
+  for (size_t j = 0; j < std::min(num_bytes, input.size()); j++) {
     int c = (int)input[j];
     ss.put(alpha[(c >> 4) & 0xF]);
     ss.put(alpha[c & 0xF]);

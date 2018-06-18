@@ -180,17 +180,17 @@ void DevcashController::shardCommsCallback(DevcashMessageUniquePtr ptr) {
   MTR_SCOPE_FUNC();
   //CASH_TRY {
     if (shutdown_) {
-      LOG_DEBUG << "DevcashController()::shardCommsCallback(): shutdown_ == true";
+      LOG_INFO << "DevcashController()::shardCommsCallback(): shutdown_ == true";
       return;
     }
     switch(ptr->message_type) {
     case eMessageType::FINAL_BLOCK:
-      LOG_DEBUG << "Unexpected message @ shard comms, to consensus.\n";
+      LOG_WARNING << "Unexpected message @ shard comms, to consensus.\n";
             pushConsensus(std::move(ptr));
       break;
 
     case eMessageType::PROPOSAL_BLOCK:
-      LOG_DEBUG << "Unexpected message @ shard comms, to consensus.\n";
+      LOG_WARNING << "Unexpected message @ shard comms, to consensus.\n";
             pushConsensus(std::move(ptr));
       break;
 
@@ -200,7 +200,7 @@ void DevcashController::shardCommsCallback(DevcashMessageUniquePtr ptr) {
       break;
 
     case eMessageType::VALID:
-      LOG_DEBUG << "Unexpected message @ shard comms, to consensus.\n";
+      LOG_WARNING << "Unexpected message @ shard comms, to consensus.\n";
             pushConsensus(std::move(ptr));
       break;
 
@@ -299,7 +299,7 @@ std::vector<std::vector<byte>> DevcashController::generateTransactions() {
   EVP_MD_CTX* ctx;
   if(!(ctx = EVP_MD_CTX_create())) {
     LOG_FATAL << "Could not create signature context!";
-    CASH_THROW("Could not create signature context!");
+    throw std::runtime_error("Could not create signature context!");
   }
 
   Address inn_addr = keys_.getInnAddr();
@@ -507,7 +507,6 @@ std::vector<byte> DevcashController::Start() {
           server_.queueMessage(std::move(request_msg));
         remote_blocks_ = final_chain_.size();
       }
-
       if (shutdown_) break;
     }
 

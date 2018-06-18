@@ -60,8 +60,10 @@ public:
     chain_size_++;
     num_transactions_ += block->getNumTransactions();
 
-    LOG_NOTICE << name_ << "Updating Final Blockchain - (size/ntxs)"
-                << " (" << chain_size_ << "/" << num_transactions_ << ")";
+    LOG_NOTICE << name_ << "- Updating Final Blockchain - (size/ntxs)" <<
+               " (" << chain_size_ << "/" << num_transactions_ << ")" <<
+          " this (" << ToHex(DevcashHash(block->getCanonical()), 8) << ")" <<
+          " prev (" << ToHex(block->getPreviousHash(), 8) << ")";
   }
 
   /**
