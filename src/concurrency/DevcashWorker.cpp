@@ -148,7 +148,7 @@ namespace Devcash {
     CASH_TRY {
       while (continue_) {
         if (!toy_mode_) {
-          controller_->shardCommsCallback(std::move(consensus_.pop()));
+          controller_->shardCommsCallback(std::move(shardcomm_.pop()));
         }
       }
     } CASH_CATCH (const std::exception& e) {
