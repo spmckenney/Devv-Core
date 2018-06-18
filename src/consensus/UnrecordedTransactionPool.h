@@ -230,16 +230,17 @@ class UnrecordedTransactionPool {
    *  @return true, iff this pool created a new ProposedBlock
    *  @return false, if anything went wrong
    */
-  bool ProposeBlock(const Hash& prev_hash, const ChainState& prior_state
-      , const KeyRing& keys, const DevcashContext& context) {
+  bool ProposeBlock(const Hash& prev_hash,
+                    const ChainState& prior_state,
+                    const KeyRing& keys,
+                    const DevcashContext& context) {
     LOG_DEBUG << "ProposeBlock()";
     MTR_SCOPE_FUNC();
     ChainState new_state(prior_state);
     Summary summary = Summary::Create();
-    Validation validation;
+    Validation validation = Validation::Create();
 
-    auto validated = CollectValidTransactions(new_state
-        ,keys, summary);
+    auto validated = CollectValidTransactions(new_state, keys, summary);
 
     ProposedBlock new_proposal(prev_hash, validated, summary, validation
         , new_state);

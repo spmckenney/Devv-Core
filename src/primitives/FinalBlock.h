@@ -47,18 +47,7 @@ class FinalBlock {
   FinalBlock(InputBuffer& buffer,
              const ChainState& prior,
              const KeyRing& keys,
-             TransactionCreationManager& tcm)
-      : num_bytes_(0),
-        block_time_(0),
-        prev_hash_(),
-        merkle_root_(),
-        tx_size_(0),
-        sum_size_(0),
-        val_count_(0),
-        transaction_vector_(),
-        summary_(Summary::Create()),
-        vals_(),
-        block_state_(prior) {
+             TransactionCreationManager& tcm) : block_state_(prior) {
     if (buffer.size() < MinSize()) {
       LOG_WARNING << "Invalid serialized FinalBlock, too small!";
       return;
@@ -84,8 +73,7 @@ class FinalBlock {
     tcm.CreateTransactions(buffer, transaction_vector_, MinSize(), tx_size_);
 
     summary_ = Summary::Create(buffer);
-    Validation val_temp(buffer);
-    vals_ = val_temp;
+    vals_ = Validation::Create(buffer);
   }
 
   /**
@@ -94,18 +82,7 @@ class FinalBlock {
    * @param prior
    * @param offset
    */
-  FinalBlock(InputBuffer& buffer, const ChainState& prior)
-      : num_bytes_(0),
-        block_time_(0),
-        prev_hash_(),
-        merkle_root_(),
-        tx_size_(0),
-        sum_size_(0),
-        val_count_(0),
-        transaction_vector_(),
-        summary_(Summary::Create()),
-        vals_(),
-        block_state_(prior) {
+  FinalBlock(InputBuffer& buffer, const ChainState& prior) : block_state_(prior) {
     if (buffer.size() < MinSize()) {
       LOG_WARNING << "Invalid serialized FinalBlock, too small!";
       return;
@@ -133,8 +110,7 @@ class FinalBlock {
     buffer.increment(tx_size_);
 
     summary_ = Summary::Create(buffer);
-    Validation val_temp(buffer, val_count_);
-    vals_ = val_temp;
+    vals_ = Validation::Create(buffer, val_count_);
   }
 
   /**
@@ -149,17 +125,7 @@ class FinalBlock {
              const ChainState& prior,
              const KeyRing& keys,
              eAppMode mode)
-      : num_bytes_(0),
-        block_time_(0),
-        prev_hash_(),
-        merkle_root_(),
-        tx_size_(0),
-        sum_size_(0),
-        val_count_(0),
-        transaction_vector_(),
-        summary_(Summary::Create()),
-        vals_(),
-        block_state_(prior) {
+      : block_state_(prior) {
     if (buffer.size() < MinSize()) {
       LOG_WARNING << "Invalid serialized FinalBlock, too small!";
       return;
@@ -194,8 +160,7 @@ class FinalBlock {
     }
 
     summary_ = Summary::Create(buffer);
-    Validation val_temp(buffer);
-    vals_ = val_temp;
+    vals_ = Validation::Create(buffer);
   }
 
   /**
@@ -394,9 +359,9 @@ class FinalBlock {
   /// Number of milliseconds since the Epoch
   uint64_t block_time_ = 0;
   /// The has of the previous block
-  Hash prev_hash_;
+  Hash prev_hash_ = {};
   /// The merkle root
-  Hash merkle_root_;
+  Hash merkle_root_ = {};
   /// Size of Transactions in this block
   uint64_t tx_size_ = 0;
   /// Size of the Summary
@@ -406,9 +371,9 @@ class FinalBlock {
   /// vector of TransactionPtrs
   std::vector<TransactionPtr> transaction_vector_;
   /// Summary
-  Summary summary_;
+  Summary summary_ = Summary::Create();
   /// Validation
-  Validation vals_;
+  Validation vals_ = Validation::Create();
   /// ChainState
   ChainState block_state_;
 };

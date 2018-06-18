@@ -21,7 +21,7 @@
 #ifndef SRC_PRIMITIVES_VALIDATION_H_
 #define SRC_PRIMITIVES_VALIDATION_H_
 
-#include <stdint.h>
+#include <cstdint>
 #include <map>
 #include <vector>
 
@@ -38,70 +38,38 @@ typedef std::map<Address, Signature> ValidationMap;
 class Validation {
  public:
   /**
-   * Default constructor
-   */
-  Validation() = default;
-
-  /**
-   * Constructor. Deserializes from serial and updates the offset
-   * @param[in] serial
-   * @param[in, out] offset
-   */
-  Validation(InputBuffer& buffer) : sigs_() {
-    MTR_SCOPE_FUNC();
-    size_t remainder = buffer.size() - buffer.getOffset();
-    while (remainder >= pairSize()) {
-      Address one_addr;
-      Signature one_sig;
-      buffer.copy(one_addr);
-      buffer.copy(one_sig);
-      std::pair<Address, Signature> one_pair(one_addr, one_sig);
-      sigs_.insert(one_pair);
-      remainder -= pairSize();
-    }
-  }
-
-  /**
-   * Constructor
-   * @param[in] serial
-   * @param[in, out] offset
-   * @param[in] count
-   */
-  Validation(InputBuffer& buffer, uint32_t count) : sigs_() {
-    MTR_SCOPE_FUNC();
-    if (buffer.size() < buffer.getOffset() + (count * pairSize())) {
-      LOG_WARNING << "Invalid Validation, too small";
-    }
-    size_t remainder = count;
-    while (remainder > 0) {
-      Address one_addr;
-      buffer.copy(one_addr);
-      Signature one_sig;
-      buffer.copy(one_sig);
-      std::pair<Address, Signature> one_pair(one_addr, one_sig);
-      sigs_.insert(one_pair);
-      remainder--;
-    }
-  }
-
-  /**
    * Constructor
    * @param other
    */
-  Validation(const Validation& other) = default; //: sigs_(other.sigs_) {}
-
-  /**
-   * Constructor
-   * @param[in] node
-   * @param[in] sig
-   */
-  Validation(const Address& node, const Signature& sig) : sigs_() { sigs_.insert(std::pair<Address, Signature>(node, sig)); }
+  Validation(const Validation& other) = default;
 
   /**
    * Constructor
    * @param validation_map
    */
   explicit Validation(const ValidationMap& validation_map) : sigs_(validation_map) {}
+
+  /**
+   * Create an empty Validation
+   * @return
+   */
+  static Validation Create();
+
+  /**
+   * Create a Validation and populate from InputBuffer
+   * @param buffer input buffer to create Validation
+   * @return validation object
+   */
+  static Validation Create(InputBuffer& input_buffer);
+
+  /**
+   * Create a Validation from the input buffer. Include count Address/Signature
+   * pairs
+   * @param buffer InputBuffer to deserialize Validation from
+   * @param count Number of Address/Signatures to deserialize
+   * @return Validation object
+   */
+  static Validation Create(InputBuffer& input_buffer, uint32_t count);
 
   /** Adds a validation record to this block.
    *  @param node the address of node that produced this validation
@@ -179,9 +147,53 @@ class Validation {
   const ValidationMap& getValidationMap() const { return sigs_; }
 
  private:
+  /**
+   * Default constructor
+   */
+  Validation() = default;
+
   /// Map of signatures
   ValidationMap sigs_;
 };
+
+inline Validation Validation::Create() {
+  return(Validation());
+}
+
+inline Validation Validation::Create(InputBuffer& buffer) {
+  MTR_SCOPE_FUNC();
+  Validation validation;
+  size_t remainder = buffer.size() - buffer.getOffset();
+  while (remainder >= pairSize()) {
+    Address one_addr;
+    Signature one_sig;
+    buffer.copy(one_addr);
+    buffer.copy(one_sig);
+    std::pair<Address, Signature> one_pair(one_addr, one_sig);
+    validation.sigs_.insert(one_pair);
+    remainder -= pairSize();
+  }
+  return validation;
+}
+
+inline Validation Validation::Create(InputBuffer& buffer, uint32_t count) {
+  MTR_SCOPE_FUNC();
+  Validation validation;
+  if (buffer.size() < buffer.getOffset() + (count * pairSize())) {
+    LOG_WARNING << "Invalid Validation, too small";
+  }
+  size_t remainder = count;
+  while (remainder > 0) {
+    Address one_addr;
+    buffer.copy(one_addr);
+    Signature one_sig;
+    buffer.copy(one_sig);
+    std::pair<Address, Signature> one_pair(one_addr, one_sig);
+    validation.sigs_.insert(one_pair);
+    remainder--;
+  }
+  return validation;
+}
 
 }  // end namespace Devcash
 

@@ -78,7 +78,7 @@ class ProposedBlock {
                 const KeyRing& keys,
                 TransactionCreationManager& tcm);
   /**
-   *
+   * Copy constructor
    * @param other
    */
   ProposedBlock(ProposedBlock& other)
@@ -123,6 +123,11 @@ class ProposedBlock {
     num_bytes_ = MinSize() + tx_size_ + sum_size_ + val_count_ * vals_.pairSize();
   }
 
+  /**
+   * Deleted assignment operator
+   * @param other
+   * @return
+   */
   ProposedBlock& operator=(const ProposedBlock& other) = delete;
 
   /**
@@ -136,6 +141,10 @@ class ProposedBlock {
    */
   void setNull() { num_bytes_ = 0; }
 
+  /**
+   * Returns the version
+   * @return version
+   */
   uint8_t getVersion() const { return version_; }
 
   /**
@@ -208,11 +217,10 @@ class ProposedBlock {
       LOG_WARNING << "Invalid validation data, too small!";
       return false;
     }
-    LOG_DEBUG << "ProposedBlock checking validation data.";
     Hash incoming_hash;
     buffer.copy(incoming_hash);
     if (incoming_hash == prev_hash_) {  // validations are for this proposal
-      Validation val_temp(buffer);
+      Validation val_temp(Validation::Create(buffer));
       vals_.addValidation(val_temp);
       val_count_ = vals_.getValidationCount();
       num_bytes_ = MinSize() + tx_size_ + sum_size_ + val_count_ * vals_.pairSize();
@@ -220,8 +228,15 @@ class ProposedBlock {
         return true;
       }
     } else {
-      LOG_WARNING << "Invalid validation data, hash does not match this proposal!";
+      std::stringstream out;
+      out << "Invalid validation data, hash does not match this proposal - "
+             << "incoming: " << ToHex(incoming_hash, 8) << " prev: " << ToHex(prev_hash_, 8);
+      LOG_INFO << out.str();
+      /// @todo(mckenney) Up the stack, we need to check that this incoming_hash has already
+      /// been added to the chain, or this is a bigger problem
+      //throw std::runtime_error(out.str());
     }
+    LOG_DEBUG << "checkValidationData: validated incoming(" + ToHex(incoming_hash) + ")";
     return false;
   }
 
@@ -266,6 +281,10 @@ class ProposedBlock {
    */
   size_t getNumTransactions() const { return transaction_vector_.size(); }
 
+  /**
+   * Return a const ref to the Summary
+   * @return const ref to summary
+   */
   const Summary& getSummary() const { return summary_; }
 
   /**
@@ -348,23 +367,14 @@ class ProposedBlock {
    *
    * @param prior
    */
-  explicit ProposedBlock(const ChainState& prior)
-      : num_bytes_(0)
-      , prev_hash_()
-      , tx_size_(0)
-      , sum_size_(0)
-      , val_count_(0)
-      , transaction_vector_()
-      , summary_(Summary::Create())
-      , vals_()
-      , block_state_(prior) {}
+  explicit ProposedBlock(const ChainState& prior) : block_state_(prior) {};
 
   /// Version of the block
   uint8_t version_ = 0;
   /// Number of bytes in the block
   uint64_t num_bytes_ = 0;
   /// Hash of previous block
-  Hash prev_hash_;
+  Hash prev_hash_ = {};
   /// Size of Transactions in this block
   uint64_t tx_size_ = 0;
   /// Size of the Summary
@@ -376,7 +386,7 @@ class ProposedBlock {
   /// Summary
   Summary summary_ = Summary::Create();
   /// Validation
-  Validation vals_;
+  Validation vals_ = Validation::Create();
   /// ChainState
   ChainState block_state_;
 };
@@ -431,7 +441,7 @@ inline ProposedBlock ProposedBlock::Create(InputBuffer &buffer,
   new_block.summary_ = Summary::Create(buffer);
 
   MTR_STEP("proposed_block", "construct", &proposed_block_int, "step4");
-  Validation val_temp(buffer);
+  Validation val_temp(Validation::Create(buffer));
   new_block.vals_ = val_temp;
   MTR_FINISH("proposed_block", "construct", &proposed_block_int);
 
