@@ -42,14 +42,12 @@ class Blockchain {
 public:
   typedef std::shared_ptr<FinalBlock> BlockSharedPtr;
 
-  Blockchain(const std::string& name)
+  explicit Blockchain(const std::string& name)
     : name_(name), chain_size_(0), num_transactions_(0)
   {
   }
 
-  ~Blockchain()
-  {
-  }
+  ~Blockchain() = default;
 
   /**
    * Add a block to this chain.

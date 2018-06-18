@@ -224,9 +224,14 @@ class Summary {
    */
   size_t getByteSize() const { return getCanonical().size(); }
 
+  /**
+   * Return a const reference to the SummaryMap
+   * @return
+   */
   const SummaryMap& getSummaryMap() const {
     return summary_;
   }
+
   /**
    * Get the transfers
    * @return a vector of Transfers
@@ -313,21 +318,11 @@ class Summary {
   SummaryMap summary_;
 };
 
-/**
- * Create a new empty Summary
- * @return
- */
 inline Summary Summary::Create() {
   Summary new_summary;
   return new_summary;
 }
 
-/**
- * Deserialize a Summary from an InputBuffer
- *
- * @param buffer input buffer to deserialize
- * @return
- */
 inline Summary Summary::Create(InputBuffer& buffer) {
   Summary new_summary;
 
@@ -365,12 +360,6 @@ inline Summary Summary::Create(InputBuffer& buffer) {
   return new_summary;
 }
 
-/**
- * Copy the Summary
- *
- * @param summary Summary to copy
- * @return
- */
 inline Summary Summary::Copy(const Summary& summary) {
   Summary new_summary(summary);
   return new_summary;
