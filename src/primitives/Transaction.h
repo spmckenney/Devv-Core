@@ -28,12 +28,15 @@
 #include "Summary.h"
 #include "Transfer.h"
 #include "Validation.h"
+#include "primitives/buffers.h"
+
 #include "consensus/KeyRing.h"
 #include "consensus/chainstate.h"
 
 using namespace Devcash;
 
 namespace Devcash {
+
 static const std::string kXFER_COUNT_TAG = "xfer_count";
 static const std::string kOPER_TAG = "oper";
 static const std::string kXFER_TAG = "xfer";
@@ -69,18 +72,17 @@ class Transaction {
    * @param canonical
    * @param is_sound
    */
-  Transaction(uint64_t xfer_count, std::vector<byte> canonical, bool is_sound)
+  Transaction(uint64_t xfer_count, const std::vector<byte>& canonical, bool is_sound)
       : xfer_count_(xfer_count), canonical_(canonical), is_sound_(is_sound) {}
 
   /**
    * Copy constructor
    * @param other
    */
-  Transaction(const Transaction& other)
-      : xfer_count_(other.xfer_count_), canonical_(other.canonical_), is_sound_(other.is_sound_) {}
+  Transaction(const Transaction& other) = default;
 
   /** Destructor */
-  virtual ~Transaction() {}
+  virtual ~Transaction() = default;
 
   /**
    * Comparison operator
@@ -102,13 +104,13 @@ class Transaction {
    * Returns minimum size (hard-coded to 89)
    * @return minimum size (hard-coded to 89)
    */
-  static size_t minSize() { return 89; }
+  static size_t MinSize() { return 89; }
 
   /**
    * Returns envelope size (hard-coded to 17)
    * @return envelope size (hard-coded to 17)
    */
-  static size_t envelopeSize() { return 17; }
+  static size_t EnvelopeSize() { return 17; }
 
   /**
    * Make a deep copy of the TierXTransaction subclass

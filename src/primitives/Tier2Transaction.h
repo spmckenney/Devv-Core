@@ -17,37 +17,15 @@ using namespace Devcash;
 
 namespace Devcash {
 
+/**
+ * The Tier2 representation of a Transaction
+ */
 class Tier2Transaction : public Transaction {
  public:
   /**
-   * Constructor
-   * @param serial byte representation of this transaction
-   * @param keys KeyRing
+   * Delete default constructor
    */
-  Tier2Transaction(const std::vector<byte>& serial, const KeyRing& keys) {
-    if (serial.size() < minSize()) {
-      LOG_WARNING << "Invalid serialized T2 transaction, too small!";
-      return;
-    }
-    xfer_count_ = BinToUint64(serial, 0);
-    size_t tx_size = minSize() + (Transfer::Size() * xfer_count_);
-    LOG_INFO << "TX size: " + std::to_string(tx_size);
-    if (serial.size() < tx_size) {
-      LOG_WARNING << "Invalid serialized T2 transaction, wrong size!";
-      LOG_WARNING << "Transaction prefix: " + ToHex(serial);
-      return;
-    }
-    LOG_INFO << "TX canonical: " + ToHex(serial);
-    canonical_.insert(canonical_.end(), serial.begin(), serial.begin() + tx_size);
-    if (getOperation() > 3) {
-      LOG_WARNING << "Invalid serialized T2 transaction, invalid operation!";
-      return;
-    }
-    is_sound_ = isSound(keys);
-    if (!is_sound_) {
-      LOG_WARNING << "Invalid serialized T2 transaction, not sound!";
-    }
-  }
+   Tier2Transaction() = delete;
 
   /**
    * Constructor
@@ -58,30 +36,29 @@ class Tier2Transaction : public Transaction {
    * @param[in] keys a KeyRing that provides keys for signature verification
    * @param[in] calculate_soundness if true will perform soundness check on this transaction
    */
-  explicit Tier2Transaction(const std::vector<byte>& serial,
-                            size_t& offset,
+  explicit Tier2Transaction(InputBuffer& buffer,
                             const KeyRing& keys,
                             bool calculate_soundness = true) {
     MTR_SCOPE_FUNC();
     int trace_int = 124;
     MTR_START("Transaction", "Transaction", &trace_int);
     MTR_STEP("Transaction", "Transaction", &trace_int, "step1");
-    if (serial.size() < offset + minSize()) {
+    if (buffer.size() < buffer.getOffset() + MinSize()) {
       LOG_WARNING << "Invalid serialized T2 transaction, too small!";
       return;
     }
-    xfer_count_ = BinToUint64(serial, offset);
-    size_t tx_size = minSize() + (Transfer::Size() * xfer_count_);
-    if (serial.size() < offset + tx_size) {
-      std::vector<byte> prefix(serial.begin() + offset, serial.begin() + offset + 8);
+    /// Don't increment the buffer, we want to copy it all to canonical_
+    xfer_count_ = buffer.getNextUint64(false);
+    size_t tx_size = MinSize() + (Transfer::Size() * xfer_count_);
+    if (buffer.size() < buffer.getOffset() + tx_size) {
+      std::vector<byte> prefix(buffer.getCurrentIterator(), buffer.getCurrentIterator() + 8);
       LOG_WARNING << "Invalid serialized T2 transaction, wrong size (" + std::to_string(tx_size) + ")!";
       LOG_WARNING << "Transaction prefix: " + ToHex(prefix);
-      LOG_WARNING << "Bytes offset: " + std::to_string(offset);
+      LOG_WARNING << "Bytes offset: " + std::to_string(buffer.getOffset());
       return;
     }
     MTR_STEP("Transaction", "Transaction", &trace_int, "step2");
-    canonical_.insert(canonical_.end(), serial.begin() + offset, serial.begin() + (offset + tx_size));
-    offset += tx_size;
+    buffer.copy(std::back_inserter(canonical_), tx_size);
     if (getOperation() > 3) {
       LOG_WARNING << "Invalid serialized T2 transaction, invalid operation! (" << getOperation() << ")";
       return;
@@ -105,14 +82,15 @@ class Tier2Transaction : public Transaction {
    * @param sig
    * @param keys
    */
-  Tier2Transaction(uint64_t xfer_count,
+  /*
+   Tier2Transaction(uint64_t xfer_count,
                    byte operation,
                    const std::vector<Transfer>& xfers,
                    uint64_t nonce,
                    Signature sig,
                    const KeyRing& keys)
       : Transaction(xfer_count, false) {
-    canonical_.reserve(minSize() + (Transfer::Size() * xfer_count_));
+    canonical_.reserve(MinSize() + (Transfer::Size() * xfer_count_));
 
     Uint64ToBin(xfer_count_, canonical_);
     canonical_.push_back(operation);
@@ -127,7 +105,7 @@ class Tier2Transaction : public Transaction {
       LOG_WARNING << "Invalid serialized T2 transaction, not sound!";
     }
   }
-
+*/
   /**
    * Constructor
    * @param oper Operation of this transaction
@@ -142,7 +120,7 @@ class Tier2Transaction : public Transaction {
                    EC_KEY* eckey,
                    const KeyRing& keys)
       : Transaction(xfers.size(), false) {
-    canonical_.reserve(minSize() + (Transfer::Size() * xfer_count_));
+    canonical_.reserve(MinSize() + (Transfer::Size() * xfer_count_));
 
     Uint64ToBin(xfer_count_, canonical_);
     canonical_.push_back(oper);
@@ -171,12 +149,18 @@ class Tier2Transaction : public Transaction {
 
  private:
   /**
+   * Default private copy constructor. We keep this private so the programmer has to
+   * explicity call clone() to avoid accidental copies
+   */
+   Tier2Transaction(const Tier2Transaction& other) = default;
+
+  /**
    * Return a copy of the message digest
    * @return message digest
    */
-  std::vector<byte> do_getMessageDigest() const {
+  std::vector<byte> do_getMessageDigest() const override {
     /// @todo(mckenney) can this be a reference?
-    std::vector<byte> md(canonical_.begin(), canonical_.begin() + (envelopeSize() + Transfer::Size() * xfer_count_));
+    std::vector<byte> md(canonical_.begin(), canonical_.begin() + (EnvelopeSize() + Transfer::Size() * xfer_count_));
     return md;
   }
 
@@ -184,7 +168,7 @@ class Tier2Transaction : public Transaction {
    * Returns the operation type of this transaction
    * @return byte representation of this operation
    */
-  byte do_getOperation() const { return canonical_[8]; }
+  byte do_getOperation() const override { return canonical_[8]; }
 
   /**
    * Create and return a vector of Transfers in this transaction
@@ -192,11 +176,11 @@ class Tier2Transaction : public Transaction {
    */
   std::vector<Transfer> do_getTransfers() const {
     std::vector<Transfer> out;
+    /// @todo - Hardcoded value
+    InputBuffer buffer(canonical_, 9);
     for (size_t i = 0; i < xfer_count_; ++i) {
-      /// @todo - Hardcoded value
-      size_t offset = 9 + (Transfer::Size() * i);
       /// @todo memory leak!!
-      Transfer* t = new Transfer(canonical_, offset);
+      Transfer* t = new Transfer(buffer);
       out.push_back(*t);
     }
     return out;
@@ -242,7 +226,7 @@ class Tier2Transaction : public Transaction {
    */
   bool do_isSound(const KeyRing& keys) const {
     MTR_SCOPE_FUNC();
-    CASH_TRY {
+    //CASH_TRY {
       if (is_sound_) return (is_sound_);
       long total = 0;
       byte oper = getOperation();
@@ -293,8 +277,8 @@ class Tier2Transaction : public Transaction {
         return false;
       }
       return true;
-    }
-    CASH_CATCH(const std::exception& e) { LOG_WARNING << FormatException(&e, "transaction"); }
+    //}
+    //CASH_CATCH(const std::exception& e) { LOG_WARNING << FormatException(&e, "transaction"); }
     return false;
   }
 

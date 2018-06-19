@@ -19,18 +19,18 @@ namespace Devcash
 using namespace Devcash;
 
 bool ChainState::addCoin(const SmartCoin& coin) {
-  auto it = state_map_.find(coin.addr_);
+  auto it = state_map_.find(coin.getAddress());
   if (it != state_map_.end()) {
-    it->second[coin.coin_] += coin.amount_;
+    it->second[coin.getCoin()] += coin.getAmount();
   }
   return(true);
 }
 
 bool ChainState::addCoins(const std::map<Address, SmartCoin>& coin_map) {
- for (auto iter = coin_map.begin(); iter != coin_map.end(); ++iter) {
-   auto loc = state_map_.find(iter->first);
+ for (auto& coin : coin_map) {
+   auto loc = state_map_.find(coin.first);
    if (loc != state_map_.end()) {
-     loc->second[iter->second.coin_] += iter->second.amount_;
+     loc->second[coin.second.getCoin()] += coin.second.getAmount();
    }
  }
  return(true);

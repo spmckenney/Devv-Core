@@ -29,7 +29,7 @@ class FinalBlock {
         sum_size_(proposed.getSummarySize()),
         val_count_(proposed.getNumValidations()),
         transaction_vector_(Copy(proposed.getTransactions())),
-        summary_(proposed.getSummary()),
+        summary_(Summary::Copy(proposed.getSummary())),
         vals_(proposed.getValidation()),
         block_state_(proposed.getBlockState()) {
     merkle_root_ = DevcashHash(getBlockDigest());
@@ -44,65 +44,36 @@ class FinalBlock {
    * @param keys
    * @param tcm
    */
-  FinalBlock(const std::vector<byte>& serial,
+  FinalBlock(InputBuffer& buffer,
              const ChainState& prior,
              const KeyRing& keys,
-             TransactionCreationManager& tcm)
-      : num_bytes_(0),
-        block_time_(0),
-        prev_hash_(),
-        merkle_root_(),
-        tx_size_(0),
-        sum_size_(0),
-        val_count_(0),
-        transaction_vector_(),
-        summary_(),
-        vals_(),
-        block_state_(prior) {
-    if (serial.size() < minSize()) {
+             TransactionCreationManager& tcm) : block_state_(prior) {
+    if (buffer.size() < MinSize()) {
       LOG_WARNING << "Invalid serialized FinalBlock, too small!";
       return;
     }
-    version_ |= serial.at(0);
+    version_ |= buffer.getNextByte();
     if (version_ != 0) {
       LOG_WARNING << "Invalid FinalBlock.version: " + std::to_string(version_);
       return;
     }
-    size_t offset = 1;
-    num_bytes_ = BinToUint64(serial, offset);
-    offset += 8;
-    if (serial.size() != num_bytes_) {
+    num_bytes_ = buffer.getNextUint64();
+    if (buffer.size() != num_bytes_) {
       LOG_WARNING << "Invalid serialized FinalBlock, wrong size!";
       return;
     }
-    block_time_ = BinToUint64(serial, offset);
-    offset += 8;
-    std::copy_n(serial.begin() + offset, SHA256_DIGEST_LENGTH, prev_hash_.begin());
-    offset += 32;
-    std::copy_n(serial.begin() + offset, SHA256_DIGEST_LENGTH, merkle_root_.begin());
-    offset += 32;
-    tx_size_ = BinToUint64(serial, offset);
-    offset += 8;
-    sum_size_ = BinToUint64(serial, offset);
-    offset += 8;
-    val_count_ = BinToUint32(serial, offset);
-    offset += 4;
+    block_time_ = buffer.getNextUint64();
+    buffer.copy(prev_hash_);
+    buffer.copy(merkle_root_);
+    tx_size_ = buffer.getNextUint64();
+    sum_size_ = buffer.getNextUint64();
+    val_count_ = buffer.getNextUint32();
 
     tcm.set_keys(&keys);
-    tcm.CreateTransactions(serial, transaction_vector_, offset, minSize(), tx_size_);
+    tcm.CreateTransactions(buffer, transaction_vector_, MinSize(), tx_size_);
 
-    /*
-    while (offset < minSize()+tx_size_) {
-      //Transaction constructor increments offset by ref
-      Transaction one_tx(serial, offset, keys);
-      transaction_vector_.push_back(one_tx);
-    }
-    */
-
-    Summary temp(serial, offset);
-    summary_ = temp;
-    Validation val_temp(serial, offset);
-    vals_ = val_temp;
+    summary_ = Summary::Create(buffer);
+    vals_ = Validation::Create(buffer);
   }
 
   /**
@@ -111,54 +82,35 @@ class FinalBlock {
    * @param prior
    * @param offset
    */
-  FinalBlock(const std::vector<byte>& serial, const ChainState& prior, size_t& offset)
-      : num_bytes_(0),
-        block_time_(0),
-        prev_hash_(),
-        merkle_root_(),
-        tx_size_(0),
-        sum_size_(0),
-        val_count_(0),
-        transaction_vector_(),
-        summary_(),
-        vals_(),
-        block_state_(prior) {
-    if (serial.size() < minSize()) {
+  FinalBlock(InputBuffer& buffer, const ChainState& prior) : block_state_(prior) {
+    if (buffer.size() < MinSize()) {
       LOG_WARNING << "Invalid serialized FinalBlock, too small!";
       return;
     }
-    version_ |= serial.at(offset);
+    version_ |= buffer.getNextByte();
     if (version_ != 0) {
       LOG_WARNING << "Invalid FinalBlock.version: " + std::to_string(version_);
       return;
     }
-    offset++;
-    num_bytes_ = BinToUint64(serial, offset);
-    offset += 8;
-    if (serial.size() < num_bytes_) {
+
+    num_bytes_ = buffer.getNextUint64();
+    if (buffer.size() < num_bytes_) {
       LOG_WARNING << "Invalid serialized FinalBlock, wrong size!";
       return;
     }
-    block_time_ = BinToUint64(serial, offset);
-    offset += 8;
-    std::copy_n(serial.begin() + offset, SHA256_DIGEST_LENGTH, prev_hash_.begin());
-    offset += 32;
-    std::copy_n(serial.begin() + offset, SHA256_DIGEST_LENGTH, merkle_root_.begin());
-    offset += 32;
-    tx_size_ = BinToUint64(serial, offset);
-    offset += 8;
-    sum_size_ = BinToUint64(serial, offset);
-    offset += 8;
-    val_count_ = BinToUint32(serial, offset);
-    offset += 4;
+
+    block_time_ = buffer.getNextUint64();
+    buffer.copy(prev_hash_);
+    buffer.copy(merkle_root_);
+    tx_size_ = buffer.getNextUint64();
+    sum_size_ = buffer.getNextUint64();
+    val_count_ = buffer.getNextUint32();
 
     // this constructor does not load transactions
-    offset += tx_size_;
+    buffer.increment(tx_size_);
 
-    Summary temp(serial, offset);
-    summary_ = temp;
-    Validation val_temp(serial, offset, val_count_);
-    vals_ = val_temp;
+    summary_ = Summary::Create(buffer);
+    vals_ = Validation::Create(buffer, val_count_);
   }
 
   /**
@@ -169,68 +121,46 @@ class FinalBlock {
    * @param keys
    * @param mode
    */
-  FinalBlock(const std::vector<byte>& serial,
+  FinalBlock(InputBuffer& buffer,
              const ChainState& prior,
-             size_t& offset,
              const KeyRing& keys,
              eAppMode mode)
-      : num_bytes_(0),
-        block_time_(0),
-        prev_hash_(),
-        merkle_root_(),
-        tx_size_(0),
-        sum_size_(0),
-        val_count_(0),
-        transaction_vector_(),
-        summary_(),
-        vals_(),
-        block_state_(prior) {
-    if (serial.size() < minSize()) {
+      : block_state_(prior) {
+    if (buffer.size() < MinSize()) {
       LOG_WARNING << "Invalid serialized FinalBlock, too small!";
       return;
     }
-    version_ |= serial.at(offset);
+    version_ |= buffer.getNextByte();
     if (version_ != 0) {
       LOG_WARNING << "Invalid FinalBlock.version: " + std::to_string(version_);
       return;
     }
-    offset++;
-    num_bytes_ = BinToUint64(serial, offset);
-    offset += 8;
-    if (serial.size() != num_bytes_) {
+
+    num_bytes_ = buffer.getNextUint64();
+    if (buffer.size() != num_bytes_) {
       LOG_WARNING << "Invalid serialized FinalBlock, wrong size!";
       return;
     }
-    block_time_ = BinToUint64(serial, offset);
-    offset += 8;
-    std::copy_n(serial.begin() + offset, SHA256_DIGEST_LENGTH, prev_hash_.begin());
-    offset += 32;
-    std::copy_n(serial.begin() + offset, SHA256_DIGEST_LENGTH, merkle_root_.begin());
-    offset += 32;
-    tx_size_ = BinToUint64(serial, offset);
-    offset += 8;
-    sum_size_ = BinToUint64(serial, offset);
-    offset += 8;
-    val_count_ = BinToUint32(serial, offset);
-    offset += 4;
+    block_time_ = buffer.getNextUint64();
+    buffer.copy(prev_hash_);
+    buffer.copy(merkle_root_);
+    tx_size_ = buffer.getNextUint64();
+    sum_size_ = buffer.getNextUint64();
+    val_count_ = buffer.getNextUint32();
 
-    size_t tx_start = offset;
-    while (offset < tx_start+tx_size_) {
+    size_t tx_start = buffer.getOffset();
+    while (buffer.getOffset() < tx_start + tx_size_) {
       if (mode == eAppMode::T1) {
-        Tier1TransactionPtr one_tx = std::make_unique<Tier1Transaction>(serial
-            , offset, keys);
+        Tier1TransactionPtr one_tx = std::make_unique<Tier1Transaction>(buffer, keys);
         transaction_vector_.push_back(std::move(one_tx));
       } else if (mode == eAppMode::T2) {
-        Tier2TransactionPtr one_tx = std::make_unique<Tier2Transaction>(serial
-            , offset, keys);
+        Tier2TransactionPtr one_tx = std::make_unique<Tier2Transaction>(buffer, keys);
         transaction_vector_.push_back(std::move(one_tx));
       }
     }
 
-    Summary temp(serial, offset);
-    summary_ = temp;
-    Validation val_temp(serial, offset);
-    vals_ = val_temp;
+    summary_ = Summary::Create(buffer);
+    vals_ = Validation::Create(buffer);
   }
 
   /**
@@ -247,7 +177,7 @@ class FinalBlock {
       , sum_size_(other.sum_size_)
       , val_count_(other.val_count_)
       , transaction_vector_(Copy(other.transaction_vector_))
-      , summary_(other.summary_)
+      , summary_(Summary::Copy(other.summary_))
       , vals_(other.vals_)
       , block_state_(other.block_state_){}
 
@@ -255,16 +185,28 @@ class FinalBlock {
    * Static method which returns the minimum size for a FinalBlock
    * @return minimum size (101)
    */
-  static size_t minSize() {
+  static size_t MinSize() {
     /// @todo (mckenney) define hard-coded value
     return 101;
   }
+
+  /**
+   *
+   * @return
+   */
+  const std::vector<TransactionPtr>& getTransactions() const { return transaction_vector_; }
 
   /**
    * Returns the number of transactions in this block
    * @return number of transactions
    */
   size_t getNumTransactions() const { return transaction_vector_.size(); }
+
+  /**
+   * Returns the number of validations
+   * @return the number of validations
+   */
+  uint32_t getNumValidations() const { return val_count_; }
 
   /**
    * Returns copies of the transactions recorded in this block.
@@ -291,35 +233,10 @@ class FinalBlock {
   }
 
   /**
-   * Returns a JSON representation of this block as a string.
-   * @return a JSON representation of this block as a string.
+   * Return the block version
+   * @return block version
    */
-  std::string getJSON() const {
-    std::string json("{\"" + kVERSION_TAG + "\":");
-    json += std::to_string(version_) + ",";
-    json += "\"" + kBYTES_TAG + "\":" + std::to_string(num_bytes_) + ",";
-    json += "\"" + kTIME_TAG + "\":" + std::to_string(block_time_) + ",";
-    std::vector<byte> prev_hash(std::begin(prev_hash_), std::end(prev_hash_));
-    json += "\"" + kPREV_HASH_TAG + "\":" + ToHex(prev_hash) + ",";
-    std::vector<byte> merkle(std::begin(merkle_root_), std::end(merkle_root_));
-    json += "\"" + kMERKLE_TAG + "\":" + ToHex(merkle) + ",";
-    json += "\"" + kTX_SIZE_TAG + "\":" + std::to_string(tx_size_) + ",";
-    json += "\"" + kSUM_SIZE_TAG + "\":" + std::to_string(sum_size_) + ",";
-    json += "\"" + kVAL_COUNT_TAG + "\":" + std::to_string(val_count_) + ",";
-    json += "\"" + kTXS_TAG + "\":[";
-    bool isFirst = true;
-    for (auto const& item : transaction_vector_) {
-      if (isFirst) {
-        isFirst = false;
-      } else {
-        json += ",";
-      }
-      json += item->getJSON();
-    }
-    json += "],\"" + kSUM_TAG + "\":" + summary_.getJSON() + ",";
-    json += "\"" + kVAL_TAG + "\":" + vals_.getJSON() + "}";
-    return json;
-  }
+  uint8_t getVersion() const { return version_; }
 
   /**
    * Returns block digest as a byte vector
@@ -381,34 +298,58 @@ class FinalBlock {
   }
 
   /**
+   * Return the number of bytes
+   * @return number of bytes
+   */
+  uint64_t getNumBytes() const { return num_bytes_; }
+
+  /**
+   * Returns the size of the transactions
+   * @return the size of the transactions
+   */
+  uint64_t getSizeofTransactions() const { return tx_size_; }
+
+  /**
    * Return the time of this block
    * @return block time in milliseconds since the Epoch
    */
   uint64_t getBlockTime() const { return block_time_; }
 
   /**
-   *
+   * Return a const ref to the previous hash
    * @return
    */
-  Hash getMerkleRoot() const { return merkle_root_; }
+  const Hash& getPreviousHash() const { return prev_hash_; }
 
   /**
-   *
+   * Return a const ref to the merkle root
    * @return
    */
-  ChainState getChainState() const { return block_state_; }
+  const Hash& getMerkleRoot() const { return merkle_root_; }
 
   /**
-   *
+   * Return a const ref to the ChainState
    * @return
    */
-  Summary getSummary() const { return summary_; }
+  const ChainState& getChainState() const { return block_state_; }
 
   /**
-   *
+   * Return a const ref to the Summary
    * @return
    */
-  Validation getValidation() const { return vals_; }
+  const Summary& getSummary() const { return summary_; }
+
+  /**
+   * Returns the size of the Summary
+   * @return the size of the Summary
+   */
+  uint64_t getSummarySize() const { return sum_size_; }
+
+  /**
+   * Return a const ref to the validation
+   * @return
+   */
+  const Validation& getValidation() const { return vals_; }
 
  private:
   /// Version of the block
@@ -418,9 +359,9 @@ class FinalBlock {
   /// Number of milliseconds since the Epoch
   uint64_t block_time_ = 0;
   /// The has of the previous block
-  Hash prev_hash_;
+  Hash prev_hash_ = {};
   /// The merkle root
-  Hash merkle_root_;
+  Hash merkle_root_ = {};
   /// Size of Transactions in this block
   uint64_t tx_size_ = 0;
   /// Size of the Summary
@@ -430,9 +371,9 @@ class FinalBlock {
   /// vector of TransactionPtrs
   std::vector<TransactionPtr> transaction_vector_;
   /// Summary
-  Summary summary_;
+  Summary summary_ = Summary::Create();
   /// Validation
-  Validation vals_;
+  Validation vals_ = Validation::Create();
   /// ChainState
   ChainState block_state_;
 };

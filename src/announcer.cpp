@@ -71,38 +71,37 @@ int main(int argc, char* argv[]) {
       files.push_back(entry.path().string());
     }
 
-    ThreadPool::ParallelFor(0, (int)files.size(),
-                            [&](int i) {
-                              LOG_INFO << "Reading " << files.at(i);
-                              std::ifstream file(files.at(i), std::ios::binary);
-                              file.unsetf(std::ios::skipws);
-                              std::streampos file_size;
-                              file.seekg(0, std::ios::end);
-                              file_size = file.tellg();
-                              file.seekg(0, std::ios::beg);
+    ThreadPool::ParallelFor(0, (int)files.size(), [&] (int i) {
+        LOG_INFO << "Reading " << files.at(i);
+        std::ifstream file(files.at(i), std::ios::binary);
+        file.unsetf(std::ios::skipws);
+        std::streampos file_size;
+        file.seekg(0, std::ios::end);
+        file_size = file.tellg();
+        file.seekg(0, std::ios::beg);
 
-                              std::vector<byte> raw;
-                              raw.reserve(file_size);
-                              raw.insert(raw.begin(), std::istream_iterator<byte>(file), std::istream_iterator<byte>());
-                              size_t offset = 0;
-                              std::vector<byte> batch;
-                              assert(file_size > 0);
-                              while (offset < static_cast<size_t>(file_size)) {
-                                // constructor increments offset by reference
-                                FinalBlock one_block(raw, priori, offset);
-                                Summary sum(one_block.getSummary());
-                                Validation val(one_block.getValidation());
-                                std::pair<Address, Signature> pair(val.getFirstValidation());
-                                int index = keys.getNodeIndex(pair.first);
-                                Tier1Transaction tx(sum, pair.second, (uint64_t)index, keys);
-                                std::vector<byte> tx_canon(tx.getCanonical());
-                                batch.insert(batch.end(), tx_canon.begin(), tx_canon.end());
-                                input_blocks_++;
-                              }
+        std::vector<byte> raw;
+        raw.reserve(file_size);
+        raw.insert(raw.begin(), std::istream_iterator<byte>(file)
+                   , std::istream_iterator<byte>());
+        std::vector<byte> batch;
+        assert(file_size > 0);
+        InputBuffer buffer(raw);
+        while (buffer.getOffset() < static_cast<size_t>(file_size)) {
+          //constructor increments offset by reference
+          FinalBlock one_block(buffer, priori);
+          const Summary& sum = one_block.getSummary();
+          Validation val(one_block.getValidation());
+          std::pair<Address, Signature> pair(val.getFirstValidation());
+          int index = keys.getNodeIndex(pair.first);
+          Tier1Transaction tx(sum, pair.second, (uint64_t) index, keys);
+          std::vector<byte> tx_canon(tx.getCanonical());
+          batch.insert(batch.end(), tx_canon.begin(), tx_canon.end());
+          input_blocks_++;
+        }
 
-                              transactions.push_back(batch);
-                            },
-                            3);
+        transactions.push_back(batch);
+    }, 3);
 
     LOG_INFO << "Loaded " << std::to_string(input_blocks_) << " transactions in " << transactions.size() << " batches.";
 

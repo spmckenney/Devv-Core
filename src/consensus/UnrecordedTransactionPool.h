@@ -26,7 +26,7 @@ class UnrecordedTransactionPool {
   UnrecordedTransactionPool(const ChainState& prior, eAppMode mode
      , size_t max_tx_per_block)
      : txs_()
-    , pending_proposal_(prior)
+    , pending_proposal_(ProposedBlock::Create(prior))
     , max_tx_per_block_(max_tx_per_block)
     , tcm_(mode)
     , mode_(mode)
@@ -45,24 +45,24 @@ class UnrecordedTransactionPool {
    *  @params keys a KeyRing that provides keys for signature verification
    *  @return true iff all Transactions are valid and in the pool
   */
-    bool AddTransactions(std::vector<byte> serial, const KeyRing& keys) {
-      LOG_DEBUG << "AddTransactions(std::vector<byte> serial, const KeyRing& keys)";
+    bool AddTransactions(const std::vector<byte>& serial, const KeyRing& keys) {
+      LOG_DEBUG << "AddTransactions(const std::vector<byte>& serial, const KeyRing& keys)";
       MTR_SCOPE_FUNC();
       CASH_TRY {
         std::vector<TransactionPtr> temp;
-        size_t counter = 0;
-        while (counter < serial.size()) {
+        InputBuffer buffer(serial);
+        while (buffer.getOffset() < buffer.size()) {
           //note that Transaction constructor advances counter by reference
           if (mode_ == eAppMode::T2) {
-            TransactionPtr one_tx = std::make_unique<Tier2Transaction>(serial, counter, keys);
-            if (one_tx->getByteSize() < Transaction::minSize()) {
+            TransactionPtr one_tx = std::make_unique<Tier2Transaction>(buffer, keys);
+            if (one_tx->getByteSize() < Transaction::MinSize()) {
               LOG_WARNING << "Invalid transaction, dropping the remainder of input.";
               break;
             }
             temp.push_back(std::move(one_tx));
 		  } else if (mode_ == eAppMode::T1) {
-            TransactionPtr one_tx = std::make_unique<Tier1Transaction>(serial, counter, keys);
-            if (one_tx->getByteSize() < Transaction::minSize()) {
+            TransactionPtr one_tx = std::make_unique<Tier1Transaction>(buffer, keys);
+            if (one_tx->getByteSize() < Transaction::MinSize()) {
               LOG_WARNING << "Invalid transaction, dropping the remainder of input.";
               break;
             }
@@ -230,16 +230,17 @@ class UnrecordedTransactionPool {
    *  @return true, iff this pool created a new ProposedBlock
    *  @return false, if anything went wrong
    */
-  bool ProposeBlock(const Hash& prev_hash, const ChainState& prior_state
-      , const KeyRing& keys, const DevcashContext& context) {
+  bool ProposeBlock(const Hash& prev_hash,
+                    const ChainState& prior_state,
+                    const KeyRing& keys,
+                    const DevcashContext& context) {
     LOG_DEBUG << "ProposeBlock()";
     MTR_SCOPE_FUNC();
     ChainState new_state(prior_state);
-    Summary summary;
-    Validation validation;
+    Summary summary = Summary::Create();
+    Validation validation = Validation::Create();
 
-    auto validated = CollectValidTransactions(new_state
-        ,keys, summary);
+    auto validated = CollectValidTransactions(new_state, keys, summary);
 
     ProposedBlock new_proposal(prev_hash, validated, summary, validation
         , new_state);
@@ -308,12 +309,11 @@ class UnrecordedTransactionPool {
    *                 the Validation is for a different ProposedBlock,
    *                 or the Validation signature did not verify
    */
-  bool CheckValidation(std::vector<byte> remote
-      , const DevcashContext& context) {
+  bool CheckValidation(InputBuffer& buffer, const DevcashContext& context) {
     LOG_DEBUG << "CheckValidation()";
     std::lock_guard<std::mutex> proposal_guard(pending_proposal_mutex_);
     if (pending_proposal_.isNull()) return false;
-    return pending_proposal_.checkValidationData(remote, context);
+    return pending_proposal_.checkValidationData(buffer, context);
   }
 
   /**
@@ -338,11 +338,12 @@ class UnrecordedTransactionPool {
    *  @param keys - the directory of Addresses and EC keys
    *  @return a FinalBlock based on the remote data provided
    */
-  const FinalBlock FinalizeRemoteBlock(const std::vector<byte>& serial
-      , const ChainState prior, const KeyRing& keys) {
+  const FinalBlock FinalizeRemoteBlock(InputBuffer& buffer,
+                                       const ChainState prior,
+                                       const KeyRing& keys) {
     LOG_DEBUG << "FinalizeRemoteBlock()";
     MTR_SCOPE_FUNC();
-    FinalBlock final(serial, prior, keys, tcm_);
+    FinalBlock final(buffer, prior, keys, tcm_);
     return final;
   }
 
@@ -401,7 +402,8 @@ class UnrecordedTransactionPool {
         std::pair<Address, SmartCoin> pair(item.first, item.second);
         first.insert(pair);
       } else {
-        loc->second.amount_ += item.second.amount_;
+        //loc->second.amount_ += item.second.amount_;
+        loc->second.setAmount(loc->second.getAmount() + item.second.getAmount());
       }
     }
     return first;

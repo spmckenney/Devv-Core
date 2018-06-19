@@ -11,6 +11,7 @@
 #define PRIMITIVES_TIER1TRANSACTION_H_
 
 #include "Transaction.h"
+#include "primitives/buffers.h"
 
 using namespace Devcash;
 
@@ -18,44 +19,8 @@ namespace Devcash {
 
 class Tier1Transaction : public Transaction {
  public:
-  // TODO(spm)
   // This is to support the unimplemented oracleInterface::getT1Syntax() methods
   Tier1Transaction() = default;
-
-  /**
-   * Constructor
-   * @param serial byte representation of this transaction
-   * @param keys KeyRing
-   */
-  explicit Tier1Transaction(const std::vector<byte>& serial, const KeyRing& keys) : sum_size_(0) {
-    MTR_SCOPE_FUNC();
-    int trace_int = 124;
-    MTR_START("Transaction", "Transaction", &trace_int);
-    MTR_STEP("Transaction", "Transaction", &trace_int, "step1");
-
-    canonical_.insert(canonical_.end(), serial.begin(), serial.begin());
-    size_t offset = 8;
-
-    canonical_.insert(canonical_.end(), serial.begin() + offset, serial.begin() + 8);
-    sum_size_ = BinToUint64(serial, offset);
-    offset += 8;
-
-    MTR_STEP("Transaction", "Transaction", &trace_int, "step2");
-    if (serial.size() < offset + sum_size_ + kSIG_SIZE) {
-      LOG_WARNING << "Invalid serialized T1 transaction, too small!";
-      return;
-    }
-
-    canonical_.insert(canonical_.end(), serial.begin() + offset, serial.begin() + sum_size_ + kSIG_SIZE);
-    offset += sum_size_ + kSIG_SIZE;
-
-    MTR_STEP("Transaction", "Transaction", &trace_int, "sound");
-    is_sound_ = isSound(keys);
-    if (!is_sound_) {
-      LOG_WARNING << "Invalid serialized T1 transaction, not sound!";
-    }
-    MTR_FINISH("Transaction", "Transaction", &trace_int);
-  }
 
   /**
    * Constructor
@@ -65,8 +30,7 @@ class Tier1Transaction : public Transaction {
    * @param[in] keys a KeyRing that provides keys for signature verification
    * @param[in] calculate_soundness if true will perform soundness check on this transaction
    */
-  explicit Tier1Transaction(const std::vector<byte>& serial,
-                            size_t& offset,
+  explicit Tier1Transaction(InputBuffer& buffer,
                             const KeyRing& keys,
                             bool calculate_soundness = true)
       : sum_size_(0) {
@@ -75,21 +39,17 @@ class Tier1Transaction : public Transaction {
     MTR_START("Transaction", "Transaction", &trace_int);
     MTR_STEP("Transaction", "Transaction", &trace_int, "step1");
 
-    canonical_.insert(canonical_.end(), serial.begin() + offset, serial.begin() + offset + 8);
-    offset += 8;
-
-    canonical_.insert(canonical_.end(), serial.begin() + offset, serial.begin() + offset + 8);
-    sum_size_ = BinToUint64(serial, offset);
-    offset += 8;
+    buffer.copy(std::back_inserter(canonical_), 8);
+    buffer.copy(std::back_inserter(canonical_), 8, false);
+    sum_size_ = buffer.getNextUint64();
 
     MTR_STEP("Transaction", "Transaction", &trace_int, "step2");
-    if (serial.size() < offset + sum_size_ + kSIG_SIZE) {
+    if (buffer.size() < buffer.getOffset() + sum_size_ + kSIG_SIZE) {
       LOG_WARNING << "Invalid serialized T1 transaction, too small!";
       return;
     }
 
-    canonical_.insert(canonical_.end(), serial.begin() + offset, serial.begin() + offset + sum_size_ + kSIG_SIZE);
-    offset += sum_size_ + kSIG_SIZE;
+    buffer.copy(std::back_inserter(canonical_), sum_size_ + kSIG_SIZE);
 
     MTR_STEP("Transaction", "Transaction", &trace_int, "sound");
     if (calculate_soundness) {
@@ -161,7 +121,8 @@ class Tier1Transaction : public Transaction {
   std::vector<Transfer> do_getTransfers() const {
     /// @todo Address hard-coded value
     size_t offset = 16;
-    Summary summary(canonical_, offset);
+    InputBuffer buffer(canonical_, offset);
+    Summary summary(Summary::Create(buffer));
     return summary.getTransfers();
   }
 
@@ -202,7 +163,7 @@ class Tier1Transaction : public Transaction {
    * @return true iff the transaction is sound
    * @return false otherwise
    */
-  bool do_isSound(const KeyRing& keys) const {
+  bool do_isSound(const KeyRing& keys) const override {
     MTR_SCOPE_FUNC();
     CASH_TRY {
       if (is_sound_) return (is_sound_);
@@ -253,32 +214,6 @@ class Tier1Transaction : public Transaction {
     CASH_CATCH(const std::exception& e) { LOG_WARNING << FormatException(&e, "transaction"); }
     return false;
   }
-
-  /*
-   std::map<Address, SmartCoin> do_aggregateState(std::map<Address, SmartCoin>& aggregator, const ChainState&,
-                                                 const KeyRing& keys, const Summary&) const override {
-    CASH_TRY {
-      if (!isSound(keys)) return aggregator;
-
-      std::vector<Transfer> xfers = getTransfers();
-      for (auto it = xfers.begin(); it != xfers.end(); ++it) {
-        int64_t amount = it->getAmount();
-        uint64_t coin = it->getCoin();
-        Address addr = it->getAddress();
-        SmartCoin next_flow(addr, coin, amount);
-        auto loc = aggregator.find(addr);
-        if (loc == aggregator.end()) {
-          std::pair<Address, SmartCoin> pair(addr, next_flow);
-          aggregator.insert(pair);
-        } else {
-          loc->second.amount_ += amount;
-        }
-      }
-    }
-    CASH_CATCH(const std::exception& e) { LOG_WARNING << FormatException(&e, "transaction"); }
-    return aggregator;
-  }
-  */
 
   /**
    * Returns a JSON string representing this transaction.

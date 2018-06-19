@@ -21,7 +21,7 @@ Address KeyRing::InsertAddress(std::string hex, EC_KEY* key) {
   return to_insert;
 }
 
-KeyRing::KeyRing(DevcashContext& context)
+KeyRing::KeyRing(const DevcashContext& context)
   : context_(context), key_map_(), node_list_(), inn_addr_()
 {
   CASH_TRY {
@@ -199,7 +199,7 @@ unsigned int KeyRing::getNodeIndex(const Address& addr) const {
   return pos;
 }
 
-Address KeyRing::getNodeAddr(int index) const {
+Address KeyRing::getNodeAddr(size_t index) const {
   return node_list_.at(index);
 }
 

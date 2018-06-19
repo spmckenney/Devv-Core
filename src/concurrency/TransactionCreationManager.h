@@ -6,6 +6,7 @@
 #include <boost/thread/thread_pool.hpp>
 #include <boost/thread.hpp>
 
+#include "primitives/buffers.h"
 #include "primitives/Tier1Transaction.h"
 #include "primitives/Tier2Transaction.h"
 
@@ -55,24 +56,21 @@ public:
    * @param min_size - the minimum number of bytes in a Transaction
    * @param tx_size - the total byte size of this block of serial Transactions
    */
-  void CreateTransactions(const std::vector<byte>& serial
+  void CreateTransactions(InputBuffer& buffer
                           , std::vector<TransactionPtr>& vtx
-                          , size_t& offset
                           , size_t min_size
                           , size_t& tx_size) {
 
-    while (offset < (min_size + tx_size)) {
+    while (buffer.getOffset() < (min_size + tx_size)) {
       //Transaction constructor increments offset by ref
-      LOG_TRACE << "while, offset = " << offset;
+      LOG_TRACE << "while, offset = " << buffer.getOffset();
       if (app_mode_ == eAppMode::T1) {
-        Tier1TransactionPtr one_tx = std::make_unique<Tier1Transaction>(serial
-                                                                        , offset
+        Tier1TransactionPtr one_tx = std::make_unique<Tier1Transaction>(buffer
                                                                         , *keys_p_
                                                                         , false);
         vtx.push_back(std::move(one_tx));
       } else if (app_mode_ == eAppMode::T2) {
-        Tier2TransactionPtr one_tx = std::make_unique<Tier2Transaction>(serial
-                                                                        , offset
+        Tier2TransactionPtr one_tx = std::make_unique<Tier2Transaction>(buffer
                                                                         , *keys_p_
                                                                         , false);
         vtx.push_back(std::move(one_tx));

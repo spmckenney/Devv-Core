@@ -32,6 +32,7 @@
 #include "common/devcash_context.h"
 #include "io/message_service.h"
 #include "node/DevcashNode.h"
+#include "primitives/json_interface.h"
 
 using namespace Devcash;
 
@@ -45,9 +46,9 @@ namespace fs = boost::filesystem;
  * @return false otherwise
  */
 bool IsBlockData(const std::vector<byte>& raw) {
-  // check if big enough
-  if (raw.size() < FinalBlock::minSize()) return false;
-  // check version
+  //check if big enough
+  if (raw.size() < FinalBlock::MinSize()) return false;
+  //check version
   if (raw[0] != 0x00) return false;
   size_t offset = 9;
   uint64_t block_time = BinToUint64(raw, offset);
@@ -65,10 +66,10 @@ bool IsBlockData(const std::vector<byte>& raw) {
  */
 bool IsTxData(const std::vector<byte>& raw) {
   // check if big enough
-  if (raw.size() < Transaction::minSize()) return false;
+  if (raw.size() < Transaction::MinSize()) return false;
   // check transfer count
   uint64_t xfer_count = BinToUint64(raw, 0);
-  size_t tx_size = Transaction::minSize() + (Transfer::Size() * xfer_count);
+  size_t tx_size = Transaction::MinSize() + (Transfer::Size() * xfer_count);
   if (raw.size() < tx_size) return false;
   // check operation
   if (raw[8] >= 4) return false;
@@ -143,7 +144,7 @@ int main(int argc, char* argv[]) {
 
     ChainState priori;
     ChainState posteri;
-    Summary summary;
+    Summary summary = Summary::Create();
 
     fs::path p(options->scan_dir);
 
@@ -170,22 +171,23 @@ int main(int argc, char* argv[]) {
       std::vector<byte> raw;
       raw.reserve(file_size);
       raw.insert(raw.begin(), std::istream_iterator<byte>(file), std::istream_iterator<byte>());
-      size_t offset = 0;
       assert(file_size > 0);
       bool is_block = IsBlockData(raw);
       bool is_transaction = IsTxData(raw);
       if (is_block) LOG_INFO << file_name << " has blocks.";
       if (is_transaction) LOG_INFO << file_name << " has transactions.";
       if (!is_block && !is_transaction) LOG_WARNING << file_name << " contains unknown data.";
-      while (offset < static_cast<size_t>(file_size)) {
+
+      InputBuffer buffer(raw);
+      while (buffer.getOffset() < static_cast<size_t>(file_size)) {
         if (is_block) {
-          size_t span = offset;
-          FinalBlock one_block(raw, posteri, offset, keys, options->mode);
-          if (offset == span) {
+          size_t span = buffer.getOffset();
+          FinalBlock one_block(buffer, posteri, keys, options->mode);
+          if (buffer.getOffset() == span) {
             LOG_WARNING << file_name << " has invalid block!";
             break;
           }
-          Summary block_summary;
+          Summary block_summary(Summary::Create());
           std::vector<TransactionPtr> txs = one_block.CopyTransactions();
           for (TransactionPtr& item : txs) {
             if (!item->isValid(posteri, keys, block_summary)) {
@@ -195,14 +197,14 @@ int main(int argc, char* argv[]) {
           }
           if (block_summary.getCanonical() != one_block.getSummary().getCanonical()) {
             LOG_WARNING << "A final block summary is invalid. Summary datails: ";
-            LOG_WARNING << one_block.getSummary().getJSON();
+            LOG_WARNING << GetJSON(one_block.getSummary());
             LOG_WARNING << "Transaction details: ";
             for (TransactionPtr& item : txs) {
               LOG_WARNING << item->getJSON();
             }
           }
         } else if (is_transaction) {
-          Tier2Transaction tx(raw, offset, keys, true);
+          Tier2Transaction tx(buffer, keys, true);
           if (!tx.isValid(priori, keys, summary)) {
             LOG_WARNING << "A transaction is invalid. TX details: ";
             LOG_WARNING << tx.getJSON();

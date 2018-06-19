@@ -20,12 +20,20 @@ class ChainState {
 public:
 
 /** Constructor */
-  ChainState() {}
+  ChainState() noexcept = default;
 
-  ChainState(const ChainState& other)
-  : state_map_(other.state_map_)
-  {
-  }
+  /**
+   * Default copy constructor
+   *
+   * @param other
+   */
+  ChainState(const ChainState& other) = default;
+
+  /**
+   * Move constructor
+   * @param other
+   */
+  ChainState(ChainState&& other) noexcept = default;
 
   ChainState& operator=(ChainState&& other)
   {

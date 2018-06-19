@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 2.8.2 FATAL_ERROR)
 set(CMAKE_LEGACY_CYGWIN_WIN32 0)
 
-project("Devcash")
+project("Devcash" C CXX)
 
 set (CMAKE_CXX_STANDARD 14)
 set (CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -68,8 +68,18 @@ add_library(io
   ${io_SRC}
   )
 
+# Build the primitives module objects
+file(GLOB primitives_SRC
+    "primitives/*.cpp"
+)
+add_library(primitives
+  ${primitives_SRC}
+  )
+
+set(devcash_core_libs devcash_node common concurrency consensus io primitives)
+
 # Add DevcashNode.cpp
-add_library(DevcashNode node/DevcashNode.cpp)
+add_library(devcash_node node/DevcashNode.cpp)
 
 option(WITH_THREAD_TESTING "Enable thread testing" OFF)
 
@@ -79,11 +89,7 @@ endif()
 
 add_executable(devcash devcash.cpp ${dcInclude})
 target_link_libraries (devcash
-  DevcashNode
-  common
-  io
-  concurrency
-  consensus
+  ${devcash_core_libs}
   ${ZMQ}
   )
 
@@ -116,9 +122,7 @@ install (TARGETS devcash DESTINATION bin)
 
 add_executable(scanner scanner.cpp ${dcInclude})
 target_link_libraries (scanner
-  common
-  concurrency
-  consensus
+  ${devcash_core_libs}
   ${ZMQ}
   )
 
@@ -144,10 +148,7 @@ install (TARGETS scanner DESTINATION bin)
 
 add_executable(announcer announcer.cpp ${dcInclude})
 target_link_libraries (announcer
-  common
-  concurrency
-  consensus
-  io
+  ${devcash_core_libs}
   ${ZMQ}
   )
 
@@ -173,9 +174,7 @@ install (TARGETS announcer DESTINATION bin)
 
 add_executable(circuit circuit.cpp ${dcInclude})
 target_link_libraries (circuit
-  common
-  concurrency
-  consensus
+  ${devcash_core_libs}
   ${ZMQ}
   )
 
@@ -197,9 +196,7 @@ install (TARGETS circuit DESTINATION bin)
 
 add_executable(laminar laminar.cpp ${dcInclude})
 target_link_libraries (laminar
-  common
-  concurrency
-  consensus
+  ${devcash_core_libs}
   ${ZMQ}
   )
 
@@ -221,9 +218,7 @@ install (TARGETS laminar DESTINATION bin)
 
 add_executable(turbulent turbulent.cpp ${dcInclude})
 target_link_libraries (turbulent
-  common
-  concurrency
-  consensus
+  ${devcash_core_libs}
   ${ZMQ}
   )
 
@@ -245,9 +240,7 @@ install (TARGETS turbulent DESTINATION bin)
 
 add_executable(verifier verifier.cpp ${dcInclude})
 target_link_libraries (verifier
-  common
-  concurrency
-  consensus
+  ${devcash_core_libs}
   ${ZMQ}
   )
 
@@ -275,8 +268,7 @@ add_executable(ring_queue_test
   )
 
 target_link_libraries(ring_queue_test
-  common
-  consensus
+  ${devcash_core_libs}
   ${OPENSSL_LIBRARIES}
   ${CMAKE_THREAD_LIBS_INIT}
   ${Boost_LIBRARIES}
@@ -290,8 +282,7 @@ add_executable(devcash_spsc_queue_test
   )
 
 target_link_libraries(devcash_spsc_queue_test
-  common
-  consensus
+  ${devcash_core_libs}
   ${OPENSSL_LIBRARIES}
   ${CMAKE_THREAD_LIBS_INIT}
   ${Boost_LIBRARIES}
@@ -305,7 +296,7 @@ add_executable(boost_spsc_test
   )
 
 target_link_libraries(boost_spsc_test
-  common
+  ${devcash_core_libs}
   ${CMAKE_THREAD_LIBS_INIT}
   ${Boost_LIBRARIES}
   )
@@ -318,8 +309,7 @@ add_executable(io_server_test
   )
 
 target_link_libraries(io_server_test
-  io
-  common
+  ${devcash_core_libs}
   ${ZMQ}
   ${OPENSSL_LIBRARIES}
   ${CMAKE_THREAD_LIBS_INIT}
@@ -332,8 +322,7 @@ add_executable(io_client_test
   )
 
 target_link_libraries(io_client_test
-  io
-  common
+  ${devcash_core_libs}
   ${ZMQ}
   ${OPENSSL_LIBRARIES}
   ${CMAKE_THREAD_LIBS_INIT}
@@ -358,33 +347,5 @@ target_link_libraries(zmq_envelope_subscriber
   ${ZMQ}
   )
 
-
 ######### gtest ##########
-
-# Download and unpack googletest at configure time
-#configure_file(CMakeLists.txt.gtest googletest-download/CMakeLists.txt)
-#execute_process(COMMAND "${CMAKE_COMMAND}" -G "${CMAKE_GENERATOR}" .
-#    WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/googletest-download" )
-#execute_process(COMMAND "${CMAKE_COMMAND}" --build .
-#    WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/googletest-download" )
-
-# Prevent GoogleTest from overriding our compiler/linker options
-# when building with Visual Studio
-#set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
-
-# Add googletest directly to our build. This adds
-# the following targets: gtest, gtest_main, gmock
-# and gmock_main
-#add_subdirectory("${CMAKE_BINARY_DIR}/googletest-src"
-#                 "${CMAKE_BINARY_DIR}/googletest-build")
-
-# The gtest/gmock targets carry header search path
-# dependencies automatically when using CMake 2.8.11 or
-# later. Otherwise we have to add them here ourselves.
-#if(CMAKE_VERSION VERSION_LESS 2.8.11)
-#    include_directories("${gtest_SOURCE_DIR}/include"
-#                        "${gmock_SOURCE_DIR}/include")
-#endif()
-
-# Now simply link your own targets against gtest, gmock,
-# etc. as appropriate
+# include(${CMAKE_CURRENT_SOURCE_DIR}/gtest/CMakeLists.txt)

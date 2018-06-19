@@ -42,14 +42,12 @@ class Blockchain {
 public:
   typedef std::shared_ptr<FinalBlock> BlockSharedPtr;
 
-  Blockchain(const std::string& name)
+  explicit Blockchain(const std::string& name)
     : name_(name), chain_size_(0), num_transactions_(0)
   {
   }
 
-  ~Blockchain()
-  {
-  }
+  ~Blockchain() = default;
 
   /**
    * Add a block to this chain.
@@ -60,8 +58,10 @@ public:
     chain_size_++;
     num_transactions_ += block->getNumTransactions();
 
-    LOG_NOTICE << name_ << "Updating Final Blockchain - (size/ntxs)"
-                << " (" << chain_size_ << "/" << num_transactions_ << ")";
+    LOG_NOTICE << name_ << "- Updating Final Blockchain - (size/ntxs)" <<
+               " (" << chain_size_ << "/" << num_transactions_ << ")" <<
+          " this (" << ToHex(DevcashHash(block->getCanonical()), 8) << ")" <<
+          " prev (" << ToHex(block->getPreviousHash(), 8) << ")";
   }
 
   /**
@@ -148,22 +148,10 @@ public:
   }
 
   /**
-   * @return a JSON representation of this chain.
+   * Return a const ref to the underlying vector of BlockSharedPtrs
+   * @return const ref to std::vector<BlockSharedPtr>
    */
-  std::string JsonDump() const {
-    std::string out("[");
-    bool first = true;
-    for (auto const& item : chain_) {
-      if (first) {
-        first = false;
-      } else {
-        out += ",";
-      }
-      out += item->getJSON();
-    }
-    out += "]";
-    return out;
-  }
+  const std::vector<BlockSharedPtr>& getBlockVector() const { return chain_; }
 
 private:
   std::vector<BlockSharedPtr> chain_;

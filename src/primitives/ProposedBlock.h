@@ -9,12 +9,12 @@
 #define PRIMITIVES_PROPOSEDBLOCK_H_
 
 #include "primitives/block.h"
+#include "primitives/buffers.h"
 #include "primitives/Summary.h"
 #include "primitives/Transaction.h"
 #include "primitives/Validation.h"
-#include "concurrency/TransactionCreationManager.h"
 
-using namespace Devcash;
+#include "concurrency/TransactionCreationManager.h"
 
 namespace Devcash {
 
@@ -31,6 +31,7 @@ static std::vector<TransactionPtr> Copy(const std::vector<TransactionPtr> &txs) 
   return (std::move(tx_out));
 }
 
+/// @todo (mckenney) move to constants file
 static const std::string kVERSION_TAG = "v";
 static const std::string kPREV_HASH_TAG = "prev";
 static const std::string kMERKLE_TAG = "merkle";
@@ -49,88 +50,35 @@ static const std::string kVAL_TAG = "vals";
 class ProposedBlock {
  public:
   /**
-   *
-   * @param prior
+   * Move constructor
+   * @param other
    */
-  explicit ProposedBlock(const ChainState& prior)
-      : num_bytes_(0)
-      , prev_hash_()
-      , tx_size_(0)
-      , sum_size_(0)
-      , val_count_(0)
-      , transaction_vector_()
-      , summary_()
-      , vals_()
-      , block_state_(prior) {}
+  ProposedBlock(ProposedBlock&& other) = default;
 
   /**
+   * Default move-assignment operator
+   * @param other
+   * @return
+   */
+  ProposedBlock& operator=(ProposedBlock&& other) = default;
+
+  static ProposedBlock Create(const ChainState& prior);
+
+  /**
+   * Create a new ProposedBlock from an InputBuffer
    *
-   * @param serial
+   * @param buffer
    * @param prior
    * @param keys
    * @param tcm
+   * @return
    */
-  ProposedBlock(const std::vector<byte>& serial,
+  static ProposedBlock Create(InputBuffer& buffer,
                 const ChainState& prior,
                 const KeyRing& keys,
-                TransactionCreationManager& tcm)
-      : num_bytes_(0)
-      , prev_hash_()
-      , tx_size_(0)
-      , sum_size_(0)
-      , val_count_(0)
-      , transaction_vector_()
-      , summary_()
-      , vals_()
-      , block_state_(prior) {
-    MTR_SCOPE_FUNC();
-
-    int proposed_block_int = 123;
-    MTR_START("proposed_block", "proposed_block", &proposed_block_int);
-
-    if (serial.size() < minSize()) {
-      LOG_WARNING << "Invalid serialized ProposedBlock, too small!";
-      MTR_FINISH("proposed_block", "construct", &proposed_block_int);
-      return;
-    }
-    version_ |= serial.at(0);
-    if (version_ != 0) {
-      LOG_WARNING << "Invalid ProposedBlock.version: " + std::to_string(version_);
-      MTR_FINISH("proposed_block", "construct", &proposed_block_int);
-      return;
-    }
-    size_t offset = 1;
-    num_bytes_ = BinToUint64(serial, offset);
-    offset += 8;
-    MTR_STEP("proposed_block", "construct", &proposed_block_int, "step1");
-    if (serial.size() != num_bytes_) {
-      LOG_WARNING << "Invalid serialized ProposedBlock, wrong size!";
-      MTR_FINISH("proposed_block", "construct", &proposed_block_int);
-      return;
-    }
-    std::copy_n(serial.begin() + offset, SHA256_DIGEST_LENGTH, prev_hash_.begin());
-    offset += 32;
-    tx_size_ = BinToUint64(serial, offset);
-    offset += 8;
-    sum_size_ = BinToUint64(serial, offset);
-    offset += 8;
-    val_count_ = BinToUint32(serial, offset);
-    offset += 4;
-    MTR_STEP("proposed_block", "construct", &proposed_block_int, "transaction list");
-    tcm.set_keys(&keys);
-    tcm.CreateTransactions(serial, transaction_vector_, offset, minSize(), tx_size_);
-
-    MTR_STEP("proposed_block", "construct", &proposed_block_int, "step3");
-    Summary temp(serial, offset);
-    summary_ = temp;
-    MTR_STEP("proposed_block", "construct", &proposed_block_int, "step4");
-    Validation val_temp(serial, offset);
-    vals_ = val_temp;
-    MTR_FINISH("proposed_block", "construct", &proposed_block_int);
-  }
-
+                TransactionCreationManager& tcm);
   /**
-   *
+   * Copy constructor
    * @param other
    */
   ProposedBlock(ProposedBlock& other)
@@ -141,7 +89,7 @@ class ProposedBlock {
       , sum_size_(other.sum_size_)
       , val_count_(other.val_count_)
       , transaction_vector_(std::move(other.transaction_vector_))
-      , summary_(other.summary_)
+      , summary_(Summary::Copy(other.summary_))
       , vals_(other.vals_)
       , block_state_(other.block_state_) {}
 
@@ -164,7 +112,7 @@ class ProposedBlock {
       , sum_size_(summary.getByteSize())
       , val_count_(validations.getValidationCount())
       , transaction_vector_(std::move(txs))
-      , summary_(summary)
+      , summary_(Summary::Copy(summary))
       , vals_(validations)
       , block_state_(prior_state) {
     MTR_SCOPE_FUNC();
@@ -172,16 +120,21 @@ class ProposedBlock {
       tx_size_ += item->getByteSize();
     }
 
-    num_bytes_ = minSize() + tx_size_ + sum_size_ + val_count_ * vals_.pairSize();
+    num_bytes_ = MinSize() + tx_size_ + sum_size_ + val_count_ * vals_.pairSize();
   }
 
+  /**
+   * Deleted assignment operator
+   * @param other
+   * @return
+   */
   ProposedBlock& operator=(const ProposedBlock& other) = delete;
 
   /**
    *
    * @return
    */
-  bool isNull() const { return (num_bytes_ < minSize()); }
+  bool isNull() const { return (num_bytes_ < MinSize()); }
 
   /**
    *
@@ -189,10 +142,16 @@ class ProposedBlock {
   void setNull() { num_bytes_ = 0; }
 
   /**
-   *
+   * Returns the version
+   * @return version
+   */
+  uint8_t getVersion() const { return version_; }
+
+  /**
+   * Return a const ref to previous hash
    * @return
    */
-  Hash getPrevHash() const { return prev_hash_; }
+  const Hash& getPrevHash() const { return prev_hash_; }
 
   /**
    *
@@ -204,13 +163,13 @@ class ProposedBlock {
    *
    * @return
    */
-  static size_t minSize() { return 61; }
+  static size_t MinSize() { return 61; }
 
   /**
    *
    * @return
    */
-  static size_t minValidationSize() { return SHA256_DIGEST_LENGTH + (Validation::pairSize() * 2); }
+  static size_t MinValidationSize() { return SHA256_DIGEST_LENGTH + (Validation::pairSize() * 2); }
 
   /**
    * Validates this block.
@@ -221,33 +180,7 @@ class ProposedBlock {
    * @return true iff at least once transaction in this block validated.
    * @return false if this block has no valid transactions
    */
-  bool validate(const KeyRing& keys) const {
-    LOG_DEBUG << "validate()";
-    MTR_SCOPE_FUNC();
-    if (transaction_vector_.size() < 1) {
-      LOG_WARNING << "Trying to validate empty block.";
-      return false;
-    }
-
-    if (!summary_.isSane()) {
-      LOG_WARNING << "Summary is invalid in block.validate()!\n";
-      LOG_DEBUG << "Summary state: " + summary_.getJSON();
-      return false;
-    }
-
-    std::vector<byte> md = summary_.getCanonical();
-    for (auto& sig : vals_.getValidationMap()) {
-      if (!VerifyByteSig(keys.getKey(sig.first), DevcashHash(md), sig.second)) {
-        LOG_WARNING << "Invalid block signature";
-        LOG_DEBUG << "Block state: " + getJSON();
-        LOG_DEBUG << "Block Node Addr: " + ToHex(std::vector<byte>(std::begin(sig.first), std::end(sig.first)));
-        LOG_DEBUG << "Block Node Sig: " + ToHex(std::vector<byte>(std::begin(sig.second), std::end(sig.second)));
-        return false;
-      }
-    }
-
-    return true;
-  }
+  bool validate(const KeyRing& keys) const;
 
   /**
    * Signs this block.
@@ -267,7 +200,7 @@ class ProposedBlock {
     SignBinary(keys.getNodeKey(node_num), DevcashHash(md), node_sig);
     vals_.addValidation(node_addr, node_sig);
     val_count_++;
-    num_bytes_ = minSize() + tx_size_ + sum_size_ + (val_count_ * Validation::pairSize());
+    num_bytes_ = MinSize() + tx_size_ + sum_size_ + (val_count_ * Validation::pairSize());
     return true;
   }
 
@@ -278,57 +211,33 @@ class ProposedBlock {
    * @return true iff this block has enough validations to finalize
    * @return false otherwise
    */
-  bool checkValidationData(const std::vector<byte>& remote, const DevcashContext& context) {
+  bool checkValidationData(InputBuffer& buffer, const DevcashContext& context) {
     MTR_SCOPE_FUNC();
-    if (remote.size() < minValidationSize()) {
+    if (buffer.size() < MinValidationSize()) {
       LOG_WARNING << "Invalid validation data, too small!";
       return false;
     }
-    LOG_DEBUG << "ProposedBlock checking validation data.";
     Hash incoming_hash;
-    std::copy_n(remote.begin(), SHA256_DIGEST_LENGTH, incoming_hash.begin());
+    buffer.copy(incoming_hash);
     if (incoming_hash == prev_hash_) {  // validations are for this proposal
-      size_t offset = SHA256_DIGEST_LENGTH;
-      Validation val_temp(remote, offset);
+      Validation val_temp(Validation::Create(buffer));
       vals_.addValidation(val_temp);
       val_count_ = vals_.getValidationCount();
-      num_bytes_ = minSize() + tx_size_ + sum_size_ + val_count_ * vals_.pairSize();
+      num_bytes_ = MinSize() + tx_size_ + sum_size_ + val_count_ * vals_.pairSize();
       if (val_count_ > (context.get_peer_count() / 2)) {
         return true;
       }
     } else {
-      LOG_WARNING << "Invalid validation data, hash does not match this proposal!";
+      std::stringstream out;
+      out << "Invalid validation data, hash does not match this proposal - "
+             << "incoming: " << ToHex(incoming_hash, 8) << " prev: " << ToHex(prev_hash_, 8);
+      LOG_INFO << out.str();
+      /// @todo(mckenney) Up the stack, we need to check that this incoming_hash has already
+      /// been added to the chain, or this is a bigger problem
+      //throw std::runtime_error(out.str());
     }
+    LOG_DEBUG << "checkValidationData: validated incoming(" + ToHex(incoming_hash) + ")";
     return false;
-  }
-
-  /**
-   * Returns a JSON representation of this block as a string.
-   * @return a JSON representation of this block as a string.
-   */
-  std::string getJSON() const {
-    MTR_SCOPE_FUNC();
-    std::string json("{\"" + kVERSION_TAG + "\":");
-    json += std::to_string(version_) + ",";
-    json += "\"" + kBYTES_TAG + "\":" + std::to_string(num_bytes_) + ",";
-    std::vector<byte> prev_hash(std::begin(prev_hash_), std::end(prev_hash_));
-    json += "\"" + kPREV_HASH_TAG + "\":" + ToHex(prev_hash) + ",";
-    json += "\"" + kTX_SIZE_TAG + "\":" + std::to_string(tx_size_) + ",";
-    json += "\"" + kSUM_SIZE_TAG + "\":" + std::to_string(sum_size_) + ",";
-    json += "\"" + kVAL_COUNT_TAG + "\":" + std::to_string(val_count_) + ",";
-    json += "\"" + kTXS_TAG + "\":[";
-    bool isFirst = true;
-    for (auto const& item : transaction_vector_) {
-      if (isFirst) {
-        isFirst = false;
-      } else {
-        json += ",";
-      }
-      json += item->getJSON();
-    }
-    json += "],\"" + kSUM_TAG + "\":" + summary_.getJSON() + ",";
-    json += "\"" + kVAL_TAG + "\":" + vals_.getJSON() + "}";
-    return json;
   }
 
   /**
@@ -372,7 +281,11 @@ class ProposedBlock {
    */
   size_t getNumTransactions() const { return transaction_vector_.size(); }
 
-  Summary getSummary() const { return summary_; }
+  /**
+   * Return a const ref to the Summary
+   * @return const ref to summary
+   */
+  const Summary& getSummary() const { return summary_; }
 
   /**
    *
@@ -391,13 +304,13 @@ class ProposedBlock {
    *
    * @return
    */
-  Validation getValidation() const { return vals_; }
+  const Validation& getValidation() const { return vals_; }
 
   /**
    *
    * @return
    */
-  ChainState getBlockState() const { return block_state_; }
+  const ChainState& getBlockState() const { return block_state_; }
 
   /**
    * Performs a shallow copy. Moves the transactions from the other ProposedBlock
@@ -413,7 +326,7 @@ class ProposedBlock {
     sum_size_ = other.sum_size_;
     val_count_ = other.val_count_;
     transaction_vector_ = std::move(other.transaction_vector_);
-    summary_ = other.summary_;
+    summary_ = std::move(other.summary_);
     vals_ = other.vals_;
     block_state_ = other.block_state_;
     return *this;
@@ -444,12 +357,24 @@ class ProposedBlock {
   uint32_t getNumValidations() const { return val_count_; }
 
  private:
+  /**
+   * Private default constructor.
+   */
+  ProposedBlock() noexcept = default;
+
+  /**
+   * Create a new ProposedBlock from an existing ChainState
+   *
+   * @param prior
+   */
+  explicit ProposedBlock(const ChainState& prior) : block_state_(prior) {};
+
   /// Version of the block
   uint8_t version_ = 0;
   /// Number of bytes in the block
   uint64_t num_bytes_ = 0;
   /// Hash of previous block
-  Hash prev_hash_;
+  Hash prev_hash_ = {};
   /// Size of Transactions in this block
   uint64_t tx_size_ = 0;
   /// Size of the Summary
@@ -459,12 +384,69 @@ class ProposedBlock {
   /// vector of TransactionPtrs
   std::vector<TransactionPtr> transaction_vector_;
   /// Summary
-  Summary summary_;
+  Summary summary_ = Summary::Create();
   /// Validation
-  Validation vals_;
+  Validation vals_ = Validation::Create();
   /// ChainState
   ChainState block_state_;
 };
+
+
+inline ProposedBlock ProposedBlock::Create(const ChainState& prior) {
+  ProposedBlock new_block(prior);
+  return new_block;
+}
+
+inline ProposedBlock ProposedBlock::Create(InputBuffer &buffer,
+                            const ChainState &prior,
+                            const KeyRing &keys,
+                            TransactionCreationManager &tcm) {
+  MTR_SCOPE_FUNC();
+  ProposedBlock new_block(prior);
+
+  int proposed_block_int = 123;
+  MTR_START("proposed_block", "proposed_block", &proposed_block_int);
+
+  if (buffer.size() < MinSize()) {
+    MTR_FINISH("proposed_block", "construct", &proposed_block_int);
+    std::string warning = "Invalid serialized ProposedBlock, too small!";
+    LOG_WARNING << warning;
+    throw std::runtime_error(warning);
+  }
+  new_block.version_ |= buffer.getNextByte();
+  if (new_block.version_ != 0) {
+    MTR_FINISH("proposed_block", "construct", &proposed_block_int);
+    std::string warning = "Invalid ProposedBlock.version: " + std::to_string(new_block.version_);
+    LOG_WARNING << warning;
+    throw std::runtime_error(warning);
+  }
+  new_block.num_bytes_ = buffer.getNextUint64();
+  MTR_STEP("proposed_block", "construct", &proposed_block_int, "step1");
+  if (buffer.size() != new_block.num_bytes_) {
+    MTR_FINISH("proposed_block", "construct", &proposed_block_int);
+    std::string warning = "Invalid serialized ProposedBlock, wrong size!";
+    LOG_WARNING << warning;
+    throw std::runtime_error(warning);
+  }
+
+  buffer.copy(new_block.prev_hash_);
+  new_block.tx_size_ = buffer.getNextUint64();
+  new_block.sum_size_ = buffer.getNextUint64();
+  new_block.val_count_ = buffer.getNextUint32();
+  MTR_STEP("proposed_block", "construct", &proposed_block_int, "transaction list");
+  tcm.set_keys(&keys);
+  tcm.CreateTransactions(buffer, new_block.transaction_vector_, MinSize(), new_block.tx_size_);
+
+  MTR_STEP("proposed_block", "construct", &proposed_block_int, "step3");
+  new_block.summary_ = Summary::Create(buffer);
+
+  MTR_STEP("proposed_block", "construct", &proposed_block_int, "step4");
+  Validation val_temp(Validation::Create(buffer));
+  new_block.vals_ = val_temp;
+  MTR_FINISH("proposed_block", "construct", &proposed_block_int);
+
+  return new_block;
+}
 
 }  // end namespace Devcash
 

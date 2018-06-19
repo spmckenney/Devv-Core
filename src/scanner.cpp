@@ -20,6 +20,7 @@
 #include "common/argument_parser.h"
 #include "common/devcash_context.h"
 #include "node/DevcashNode.h"
+#include "primitives/json_interface.h"
 
 using namespace Devcash;
 namespace fs = boost::filesystem;
@@ -72,30 +73,30 @@ int main(int argc, char* argv[])
       std::vector<byte> raw;
       raw.reserve(file_size);
       raw.insert(raw.begin(), std::istream_iterator<byte>(file), std::istream_iterator<byte>());
-      size_t offset = 0;
       size_t file_blocks = 0;
       size_t file_txs = 0;
       size_t file_tfer = 0;
 
       ChainState priori;
 
-      while (offset < file_size) {
+      InputBuffer buffer(raw);
+      while (buffer.getOffset() < file_size) {
         if (options->mode == eAppMode::scan) {
-          Tier2Transaction tx(raw, offset, keys, true);
+          Tier2Transaction tx(buffer, keys, true);
           file_txs++;
           file_tfer += tx.getTransfers().size();
           out += tx.getJSON();
         } else {
-          size_t span = offset;
-          FinalBlock one_block(raw, priori, offset, keys, options->mode);
-          if (offset == span) {
+          size_t span = buffer.getOffset();
+          FinalBlock one_block(buffer, priori, keys, options->mode);
+          if (buffer.getOffset() == span) {
             LOG_WARNING << entry << " has invalid block!";
             break;
 		  }
           size_t txs = one_block.getNumTransactions();
           size_t tfers = one_block.getNumTransfers();
           priori = one_block.getChainState();
-          out += one_block.getJSON();
+          out += GetJSON(one_block);
 
           LOG_INFO << std::to_string(txs)+" txs, transfers: "+std::to_string(tfers);
           file_blocks++;
