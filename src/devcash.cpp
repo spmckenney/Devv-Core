@@ -84,7 +84,6 @@ int main(int argc, char* argv[])
                                  *loopback_client,
                                  options->num_validator_threads,
                                  options->num_consensus_threads,
-                                 options->generate_count,
                                  options->tx_batch_size,
                                  keys,
                                  this_context,
