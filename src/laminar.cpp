@@ -65,10 +65,12 @@ int main(int argc, char* argv[]) {
     size_t counter = 0;
 
     std::vector<Transfer> xfers;
-    Transfer inn_transfer(inn_addr, 0, -1 * addr_count * options->tx_limit, 0);
+    Transfer inn_transfer(inn_addr, 0
+      , -1*addr_count*(addr_count-1)*options->tx_limit, 0);
     xfers.push_back(inn_transfer);
     for (size_t i = 0; i < addr_count; ++i) {
-      Transfer transfer(keys.getWalletAddr(i), 0, options->tx_limit, 0);
+      Transfer transfer(keys.getWalletAddr(i), 0
+        , (addr_count-1)*options->tx_limit, 0);
       xfers.push_back(transfer);
     }
     Tier2Transaction inn_tx(eOpType::Create, xfers, GetMillisecondsSinceEpoch() +

@@ -108,9 +108,10 @@ int main(int argc, char* argv[]) {
         if (counter >= options->generate_count) break;
         for (size_t i = 0; i < addr_count; ++i) {
           std::vector<Transfer> peer_xfers;
-          Transfer sender(keys.getWalletAddr(i), 0, -1 * addr_count, 0);
+          Transfer sender(keys.getWalletAddr(i), 0
+            , -1 * (addr_count-1)*options->tx_limit, 0);
           peer_xfers.push_back(sender);
-          Transfer receiver(inn_addr, 0, addr_count, 0);
+          Transfer receiver(inn_addr, 0, (addr_count-1)*options->tx_limit, 0);
           peer_xfers.push_back(receiver);
           Tier2Transaction peer_tx(
               eOpType::Exchange, peer_xfers,
