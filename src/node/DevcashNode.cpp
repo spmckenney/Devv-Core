@@ -43,8 +43,8 @@ namespace Devcash
 std::atomic<bool> request_shutdown(false); /** has a shutdown been requested? */
 bool isCryptoInit = false;
 
-static void DevcashNode::SignalHandler(int sig_num) {
-   LOG_INFO << "Signal (" << signum << ") received.";
+void DevcashNode::SignalHandler(int sig_num) {
+   LOG_INFO << "Signal (" << sig_num << ") received.";
    myself_->Shutdown();
 }
 
@@ -63,7 +63,7 @@ void DevcashNode::Shutdown()
   request_shutdown = true;
   /// @todo (mckenney): how to stop zmq?
   LOG_INFO << "Shutting down DevCash";
-  control_.stopAll();
+  control_.StopAll();
 }
 
 DevcashNode::DevcashNode(DevcashController& control, DevcashContext& context)
@@ -72,9 +72,9 @@ DevcashNode::DevcashNode(DevcashController& control, DevcashContext& context)
   LOG_INFO << "Hello from node: " << app_context_.get_uri() << "!!";
 
   myself_ = this;
-  std::signal(std::SIGINT, DevcashNode::SignalHandler);
-  std::signal(std::SIGABRT, DevcashNode::SignalHandler);
-  std::signal(std::SIGTERM, DevcashNode::SignalHandler);
+  std::signal(SIGINT, DevcashNode::SignalHandler);
+  std::signal(SIGABRT, DevcashNode::SignalHandler);
+  std::signal(SIGTERM, DevcashNode::SignalHandler);
 
   DevcashMessageCallbacks callbacks;
   callbacks.blocks_since_cb = HandleBlocksSince;

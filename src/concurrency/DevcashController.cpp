@@ -35,6 +35,7 @@ DevcashController::DevcashController(
     io::TransactionClient& loopback_client,
     size_t validator_count,
     size_t consensus_count,
+    size_t batch_size,
     const KeyRing& keys,
     DevcashContext& context,
     const ChainState& prior,
@@ -96,7 +97,7 @@ void DevcashController::ValidatorCallback(DevcashMessageUniquePtr ptr) {
     }
   } catch (const std::exception& e) {
     LOG_FATAL << FormatException(&e, "DevcashController.ValidatorCallback()");
-    stopAll();
+    StopAll();
   }
 }
 
@@ -167,7 +168,7 @@ void DevcashController::ConsensusCallback(DevcashMessageUniquePtr ptr) {
     }
   } catch (const std::exception& e) {
     LOG_FATAL << FormatException(&e, "DevcashController.ConsensusCallback()");
-    stopAll();
+    StopAll();
     throw e;
   }
 }
@@ -264,7 +265,7 @@ void DevcashController::ShardCommsCallback(DevcashMessageUniquePtr ptr) {
   } catch (const std::exception& e) {
     LOG_FATAL << FormatException(&e, "DevcashController.ShardCommsCallback()");
     throw e;
-    stopAll();
+    StopAll();
   }
 }
 
@@ -381,7 +382,7 @@ void DevcashController::Start() {
     //setup directory for FinalBlocks
     fs::path p(working_dir_);
     if (is_directory(p)) {
-      std::string shard_path(working_dir_+"/"+context.get_shard_uri());
+      std::string shard_path(working_dir_+"/"+context_.get_shard_uri());
       fs::path shard_dir(shard_path);
       if (!is_directory(shard_dir)) fs::create_directory(shard_dir);
       if (mode_ == eAppMode::T1 && !working_dir_.empty()) {
@@ -443,7 +444,7 @@ void DevcashController::Start() {
 
   } catch (const std::exception& e) {
     LOG_FATAL << FormatException(&e, "DevcashController.Start()");
-    stopAll();
+    StopAll();
   }
 }
 

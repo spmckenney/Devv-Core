@@ -86,7 +86,6 @@ int main(int argc, char* argv[])
                                  options->num_consensus_threads,
                                  options->generate_count,
                                  options->tx_batch_size,
-                                 options->tx_limit,
                                  keys,
                                  this_context,
                                  prior,

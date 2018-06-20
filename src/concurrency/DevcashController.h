@@ -80,6 +80,7 @@ class DevcashController {
                     io::TransactionClient& loopback_client,
                     size_t validator_count,
                     size_t consensus_count,
+                    size_t batch_size,
                     const KeyRing& keys,
                     DevcashContext& context,
                     const ChainState& prior,

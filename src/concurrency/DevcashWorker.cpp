@@ -118,9 +118,9 @@ namespace Devcash {
     try {
       while (continue_) {
         if (!toy_mode_) {
-            controller_->validatorCallback(std::move(validators_.pop()));
+            controller_->ValidatorCallback(std::move(validators_.pop()));
         } else {
-          controller_->validatorToyCallback(std::move(validators_.pop()));
+          controller_->ValidatorToyCallback(std::move(validators_.pop()));
         }
       }
     } catch (const std::exception& e) {
@@ -133,9 +133,9 @@ namespace Devcash {
     try {
       while (continue_) {
         if (!toy_mode_) {
-          controller_->consensusCallback(std::move(consensus_.pop()));
+          controller_->ConsensusCallback(std::move(consensus_.pop()));
         } else {
-          controller_->consensusToyCallback(std::move(consensus_.pop()));
+          controller_->ConsensusToyCallback(std::move(consensus_.pop()));
         }
       }
     } catch (const std::exception& e) {
@@ -148,7 +148,7 @@ namespace Devcash {
     try {
       while (continue_) {
         if (!toy_mode_) {
-          controller_->shardCommsCallback(std::move(shardcomm_.pop()));
+          controller_->ShardCommsCallback(std::move(shardcomm_.pop()));
         }
       }
     } catch (const std::exception& e) {
