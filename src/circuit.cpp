@@ -72,22 +72,24 @@ int main(int argc, char* argv[]) {
 
     size_t counter = 0;
     size_t batch_counter = 0;
+
+    std::vector<Transfer> xfers;
+    Transfer inn_transfer(inn_addr, 0, -1 * addr_count * options->tx_limit, 0);
+    xfers.push_back(inn_transfer);
+    for (size_t i = 0; i < addr_count; ++i) {
+      Transfer transfer(keys.getWalletAddr(i), 0, options->tx_limit, 0);
+      xfers.push_back(transfer);
+    }
+    Tier2Transaction inn_tx(eOpType::Create, xfers, GetMillisecondsSinceEpoch() +
+                            (1000000 * (options->node_index + 1) * (batch_counter + 1)),
+                            keys.getKey(inn_addr), keys);
+    std::vector<byte> inn_canon(inn_tx.getCanonical());
+    out.insert(out.end(), inn_canon.begin(), inn_canon.end());
+    LOG_DEBUG << "Circuit test generated inn_tx with sig: " << ToHex(inn_tx.getSignature());
+    counter++;
+
     while (counter < options->generate_count) {
       while (batch_counter < options->tx_batch_size) {
-        std::vector<Transfer> xfers;
-        Transfer inn_transfer(inn_addr, 0, -1 * addr_count * options->tx_limit, 0);
-        xfers.push_back(inn_transfer);
-        for (size_t i = 0; i < addr_count; ++i) {
-          Transfer transfer(keys.getWalletAddr(i), 0, options->tx_limit, 0);
-          xfers.push_back(transfer);
-        }
-        Tier2Transaction inn_tx(eOpType::Create, xfers, GetMillisecondsSinceEpoch() +
-                                                            (1000000 * (options->node_index + 1) * (batch_counter + 1)),
-                                keys.getKey(inn_addr), keys);
-        std::vector<byte> inn_canon(inn_tx.getCanonical());
-        out.insert(out.end(), inn_canon.begin(), inn_canon.end());
-        LOG_DEBUG << "Circuit test generated inn_tx with sig: " << ToHex(inn_tx.getSignature());
-        batch_counter++;
         for (size_t i = 0; i < addr_count; ++i) {
           for (size_t j = 0; j < addr_count; ++j) {
             if (i == j) continue;
