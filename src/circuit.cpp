@@ -5,6 +5,9 @@
  * 2.  Each peer address sends 1 coin to every other address
  * 3.  Each peer address returns addr_count coins to the INN
  *
+ *  For perfect circuits,
+ *    make sure that generate_count is one more than a perfect square.
+ *
  *  Created on: May 24, 2018
  *      Author: Nick Williams
  */
@@ -53,7 +56,7 @@ int main(int argc, char* argv[]) {
       LOG_FATAL << "Must generate at least 2 transactions for a complete circuit.";
       CASH_THROW("Invalid number of transactions to generate.");
     }
-    // Need sqrt(N-1) addresses (x) to create N circuits: 1+x(x-1)+x=N
+    // Need sqrt(N-1) addresses (x) to create N circuits: 1+x(x-1)+2x=N
     double need_addrs = std::sqrt(options->generate_count - 1);
     // if sqrt(N-1) is not an int, circuits will be incomplete
     if (std::floor(need_addrs) != need_addrs) {
@@ -63,30 +66,32 @@ int main(int argc, char* argv[]) {
     size_t addr_count = std::min(keys.CountWallets(), static_cast<unsigned int>(need_addrs));
 
     size_t counter = 0;
-    size_t batch_counter = 0;
+
+    std::vector<Transfer> xfers;
+    Transfer inn_transfer(inn_addr, 0
+      , -1*addr_count*(addr_count-1)*options->tx_limit, 0);
+    xfers.push_back(inn_transfer);
+    for (size_t i = 0; i < addr_count; ++i) {
+      Transfer transfer(keys.getWalletAddr(i), 0
+        , options->tx_limit*(addr_count-1), 0);
+      xfers.push_back(transfer);
+    }
+    Tier2Transaction inn_tx(eOpType::Create, xfers, GetMillisecondsSinceEpoch() +
+                            (1000000 * (options->node_index + 1) * (options->tx_limit + 1)),
+                            keys.getKey(inn_addr), keys);
+    std::vector<byte> inn_canon(inn_tx.getCanonical());
+    out.insert(out.end(), inn_canon.begin(), inn_canon.end());
+    LOG_DEBUG << "Circuit test generated inn_tx with sig: " << ToHex(inn_tx.getSignature());
+    counter++;
+
     while (counter < options->generate_count) {
-      while (batch_counter < options->tx_batch_size) {
-        std::vector<Transfer> xfers;
-        Transfer inn_transfer(inn_addr, 0, -1 * addr_count, 0);
-        xfers.push_back(inn_transfer);
-        for (size_t i = 0; i < addr_count; ++i) {
-          Transfer transfer(keys.getWalletAddr(i), 0, 1, 0);
-          xfers.push_back(transfer);
-        }
-        Tier2Transaction inn_tx(eOpType::Create, xfers, GetMillisecondsSinceEpoch() +
-                                                            (1000000 * (options->node_index + 1) * (batch_counter + 1)),
-                                keys.getKey(inn_addr), keys);
-        std::vector<byte> inn_canon(inn_tx.getCanonical());
-        out.insert(out.end(), inn_canon.begin(), inn_canon.end());
-        LOG_DEBUG << "Circuit test generated inn_tx with sig: " << ToHex(inn_tx.getSignature());
-        batch_counter++;
         for (size_t i = 0; i < addr_count; ++i) {
           for (size_t j = 0; j < addr_count; ++j) {
             if (i == j) continue;
             std::vector<Transfer> peer_xfers;
-            Transfer sender(keys.getWalletAddr(i), 0, -1, 0);
+            Transfer sender(keys.getWalletAddr(i), 0, -1*options->tx_limit, 0);
             peer_xfers.push_back(sender);
-            Transfer receiver(keys.getWalletAddr(j), 0, 1, 0);
+            Transfer receiver(keys.getWalletAddr(j), 0, options->tx_limit, 0);
             peer_xfers.push_back(receiver);
             Tier2Transaction peer_tx(
                 eOpType::Exchange, peer_xfers,
@@ -95,16 +100,18 @@ int main(int argc, char* argv[]) {
             std::vector<byte> peer_canon(peer_tx.getCanonical());
             out.insert(out.end(), peer_canon.begin(), peer_canon.end());
             LOG_TRACE << "Circuit test generated tx with sig: " << ToHex(peer_tx.getSignature());
-            batch_counter++;
-            if (batch_counter >= options->tx_batch_size) break;
+            counter++;
+            if (counter >= options->generate_count) break;
           }  // end inner for
-          if (batch_counter >= options->tx_batch_size) break;
+          if (counter >= options->generate_count) break;
         }  // end outer for
+        if (counter >= options->generate_count) break;
         for (size_t i = 0; i < addr_count; ++i) {
           std::vector<Transfer> peer_xfers;
-          Transfer sender(keys.getWalletAddr(i), 0, -1 * addr_count, 0);
+          Transfer sender(keys.getWalletAddr(i), 0
+            , -1 * (addr_count-1)*options->tx_limit, 0);
           peer_xfers.push_back(sender);
-          Transfer receiver(inn_addr, 0, addr_count, 0);
+          Transfer receiver(inn_addr, 0, (addr_count-1)*options->tx_limit, 0);
           peer_xfers.push_back(receiver);
           Tier2Transaction peer_tx(
               eOpType::Exchange, peer_xfers,
@@ -113,16 +120,14 @@ int main(int argc, char* argv[]) {
           std::vector<byte> peer_canon(peer_tx.getCanonical());
           out.insert(out.end(), peer_canon.begin(), peer_canon.end());
           LOG_TRACE << "GenerateTransactions(): generated tx with sig: " << ToHex(peer_tx.getSignature());
-          batch_counter++;
-          if (batch_counter >= options->tx_batch_size) break;
+          counter++;
+          if (counter >= options->generate_count) break;
         }  // end outer for
-        if (batch_counter >= options->tx_batch_size) break;
-      }  // end batch while
-      counter += batch_counter;
-      batch_counter = 0;
+        if (counter >= options->generate_count) break;
     }  // end counter while
 
     LOG_INFO << "Generated " << counter << " transactions.";
+
 
     if (!options->write_file.empty()) {
       std::ofstream out_file(options->write_file, std::ios::out | std::ios::binary);
