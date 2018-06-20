@@ -67,10 +67,10 @@ int main(int argc, char* argv[]) {
     while (counter < options->generate_count) {
       while (batch_counter < options->tx_batch_size) {
         std::vector<Transfer> xfers;
-        Transfer inn_transfer(inn_addr, 0, -1 * addr_count, 0);
+        Transfer inn_transfer(inn_addr, 0, -1 * addr_count * options->tx_limit, 0);
         xfers.push_back(inn_transfer);
         for (size_t i = 0; i < addr_count; ++i) {
-          Transfer transfer(keys.getWalletAddr(i), 0, 1, 0);
+          Transfer transfer(keys.getWalletAddr(i), 0, options->tx_limit, 0);
           xfers.push_back(transfer);
         }
         Tier2Transaction inn_tx(eOpType::Create, xfers, GetMillisecondsSinceEpoch() +
