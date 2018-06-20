@@ -1,7 +1,7 @@
 /*
  * laminar.cpp
- * Creates up to generate_count transactions as follows:
- * 1.  INN transactions create addr_count coins for every address
+ * Creates generate_count transactions as follows:
+ * 1.  INN transactions create coins for every address
  * 2.  Each peer address attempts to send tx_limit coins to every higher address
  * 3.  If invalid transactions are dropped and the generate_count is high enough
  *     , all coins end at the highest address

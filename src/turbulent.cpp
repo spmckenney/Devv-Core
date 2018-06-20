@@ -1,7 +1,7 @@
 /*
  * turbulent.cpp
- * Creates up to generate_count transactions as follows:
- * 1.  INN transactions create tx_limit coins for every address
+ * Creates generate_count transactions as follows:
+ * 1.  INN transactions create coins for every address
  * 2.  Each peer address attempts to send a random number of coins up to tx_limit
  *     to a random address other than itself
  * 3.  Many transactions will be invalid, but valid transactions should also appear indefinitely
