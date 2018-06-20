@@ -111,8 +111,7 @@ int main(int argc, char* argv[])
     MTR_BEGIN("main", "outer");
 
     if (options->mode == eAppMode::scan) {
-      LOG_INFO << "Scanner ignores node index.";
-      this_node.RunScanner();
+      LOG_INFO << "Internal scanner is deprecated.";
     } else {
       if (!this_node.Init()) {
         LOG_FATAL << "Basic setup failed";

@@ -23,7 +23,7 @@ namespace Devcash
 class DevcashNode {
  public:
   /** Signal handling. */
-  void SignalHandler(int sig_num);
+  static void SignalHandler(int sig_num);
 
   /** Begin stopping threads and shutting down. */
   void StartShutdown();

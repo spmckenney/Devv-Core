@@ -124,9 +124,9 @@ int main(int argc, char* argv[]) {
         assert(file_size > 0);
         bool is_block = IsBlockData(raw);
         bool is_transaction = IsTxData(raw);
-        if (is_block) LOG_INFO << file_name << " has blocks.";
-        if (is_transaction) LOG_INFO << file_name << " has transactions.";
-        if (!is_block && !is_transaction) LOG_WARNING << file_name << " contains unknown data.";
+        if (is_block) LOG_INFO << files.at(i) << " has blocks.";
+        if (is_transaction) LOG_INFO << files.at(i) << " has transactions.";
+        if (!is_block && !is_transaction) LOG_WARNING << files.at(i) << " contains unknown data.";
 
         InputBuffer buffer(raw);
         while (buffer.getOffset() < static_cast<size_t>(file_size)) {
