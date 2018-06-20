@@ -28,12 +28,13 @@ struct devcash_options {
   unsigned int num_validator_threads;
   unsigned int sync_port;
   std::string sync_host;
-  std::string scan_dir;
+  std::string working_dir;
   std::string write_file;
   std::string trace_file;
   std::string inn_keys;
   std::string node_keys;
   std::string wallet_keys;
+  std::string stop_file;
   unsigned int generate_count;
   unsigned int tx_batch_size;
   unsigned int tx_limit;
@@ -68,8 +69,8 @@ network could be build and tested.\n\nAllowed options");
       ("bind-endpoint", po::value<std::string>(), "Endpoint for server (i.e. tcp://*:5556)")
       ("sync-host", po::value<std::string>(), "Enable node startup synchronization with sync-host")
       ("sync-port", po::value<unsigned int>(), "Port number for sync-host")
-      ("scan-dir", po::value<std::string>(), "Directory to check for transaction or blockchain input files")
-      ("output", po::value<std::string>(), "Blockchain output path in binary JSON or CBOR")
+      ("working-dir", po::value<std::string>(), "Directory where inputs are read and outputs are written")
+      ("output", po::value<std::string>(), "Output path in binary JSON or CBOR")
       ("trace-output", po::value<std::string>(), "Output path to JSON trace file (Chrome)")
       ("inn-keys", po::value<std::string>(), "Path to INN key file")
       ("node-keys", po::value<std::string>(), "Path to Node key file")
@@ -77,6 +78,7 @@ network could be build and tested.\n\nAllowed options");
       ("generate-tx", po::value<unsigned int>(), "Generate at least this many Transactions")
       ("tx-batch-size", po::value<unsigned int>(), "Target size of transaction batches")
       ("tx-limit", po::value<unsigned int>(), "Number of transaction to process before shutting down.")
+      ("stop-file", po::value<unsigned int>(), "A file in working-dir indicating that this node should stop.")
       ;
 
     po::variables_map vm;
@@ -176,11 +178,11 @@ network could be build and tested.\n\nAllowed options");
       }
     }
 
-    if (vm.count("scan-dir")) {
-      options->scan_dir = vm["scan-dir"].as<std::string>();
-      LOG_INFO << "Scan dir: " << options->scan_dir;
+    if (vm.count("working-dir")) {
+      options->working_dir = vm["working-dir"].as<std::string>();
+      LOG_INFO << "Working dir: " << options->working_dir;
     } else {
-      LOG_INFO << "Scan dir was not set.";
+      LOG_INFO << "Working dir was not set.";
     }
 
     if (vm.count("output")) {
@@ -240,6 +242,13 @@ network could be build and tested.\n\nAllowed options");
     } else {
       LOG_INFO << "Transaction limit was not set, defaulting to 0 (unlimited)";
       options->tx_limit = 100;
+    }
+
+    if (vm.count("stop-file")) {
+      options->stop_file = vm["stop-file"].as<std::string>();
+      LOG_INFO << "Stop file: " << options->stop_file;
+    } else {
+      LOG_INFO << "Stop file was not set. Use a signal to stop the node.";
     }
 
   }

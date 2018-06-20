@@ -56,6 +56,7 @@ typedef std::function<bool(DevcashMessageUniquePtr ptr,
                            const DevcashContext &context,
                            Blockchain &final_chain,
                            UnrecordedTransactionPool &utx_pool,
+                           std::string working_dir,
                            std::function<void(DevcashMessageUniquePtr)> callback)> ValidationBlockCallback;
 
 
@@ -79,29 +80,27 @@ class DevcashController {
                     io::TransactionClient& loopback_client,
                     size_t validator_count,
                     size_t consensus_count,
-                    size_t generate_count,
                     size_t batch_size,
-                    size_t transaction_limit,
                     const KeyRing& keys,
                     DevcashContext& context,
                     const ChainState& prior,
                     eAppMode mode,
-                    const std::string& scan_dir);
+                    const std::string& working_dir,
+                    const std::string& stop_file);
 
   ~DevcashController();
 
-  std::vector<std::vector<byte>> generateTransactions();
   std::vector<std::vector<byte>> loadTransactions();
 
   /**
    * Start the workers and comm threads
    */
-  std::vector<byte> Start();
+  void Start();
 
   /** Stops all threads used by this controller.
    * @note This function may block.
    */
-  void stopAll();
+  void StopAll();
 
   /**
    * Push a message to the consensus workers.
@@ -121,12 +120,12 @@ class DevcashController {
   /**
    * Process a consensus worker message.
    */
-  void consensusCallback(std::unique_ptr<DevcashMessage> ptr);
+  void ConsensusCallback(std::unique_ptr<DevcashMessage> ptr);
 
   /**
    * Process a validator worker message.
    */
-  void validatorCallback(std::unique_ptr<DevcashMessage> ptr);
+  void ValidatorCallback(std::unique_ptr<DevcashMessage> ptr);
 
   /**
    * Initializes message callback functions
@@ -139,17 +138,17 @@ class DevcashController {
   /**
    * Process a inter-shard communciation worker message.
    */
-  void shardCommsCallback(std::unique_ptr<DevcashMessage> ptr);
+  void ShardCommsCallback(std::unique_ptr<DevcashMessage> ptr);
 
   /**
    * Process a consensus toy worker message.
    */
-  void consensusToyCallback(std::unique_ptr<DevcashMessage> ptr);
+  void ConsensusToyCallback(std::unique_ptr<DevcashMessage> ptr);
 
   /**
    * Process a validator toy worker message.
    */
-  void validatorToyCallback(std::unique_ptr<DevcashMessage> ptr);
+  void ValidatorToyCallback(std::unique_ptr<DevcashMessage> ptr);
 
  private:
   io::TransactionServer& server_;
@@ -157,16 +156,14 @@ class DevcashController {
   io::TransactionClient& loopback_client_;
   const int validator_count_;
   const int consensus_count_;
-  const size_t generate_count_;
-  const size_t batch_size_;
-  const size_t transaction_limit_;
   size_t shutdown_counter_ = 0;
   const KeyRing& keys_;
   DevcashContext& context_;
   Blockchain final_chain_;
   UnrecordedTransactionPool utx_pool_;
   eAppMode mode_;
-  std::string scan_dir_;
+  std::string working_dir_;
+  std::string stop_file_;
 
   // Pointer because incomplete type
   DevcashControllerWorker* workers_ = nullptr;

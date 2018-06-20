@@ -54,9 +54,9 @@ int main(int argc, char* argv[])
 
     KeyRing keys(this_context);
 
-    fs::path p(options->scan_dir);
+    fs::path p(options->working_dir);
     if (p.empty()) {
-      LOG_WARNING << "Invalid path: "+options->scan_dir;
+      LOG_WARNING << "Invalid path: "+options->working_dir;
       return(false);
     }
 

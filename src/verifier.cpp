@@ -139,17 +139,17 @@ int main(int argc, char* argv[]) {
                                 options->node_keys, options->wallet_keys, options->sync_port, options->sync_host);
     KeyRing keys(this_context);
 
-    LOG_DEBUG << "Scanning " << options->scan_dir;
+    LOG_DEBUG << "Verifying " << options->working_dir;
     MTR_SCOPE_FUNC();
 
     ChainState priori;
     ChainState posteri;
     Summary summary = Summary::Create();
 
-    fs::path p(options->scan_dir);
+    fs::path p(options->working_dir);
 
     if (!is_directory(p)) {
-      LOG_ERROR << "Error opening dir: " << options->scan_dir << " is not a directory";
+      LOG_ERROR << "Error opening dir: " << options->working_dir << " is not a directory";
       return false;
     }
 

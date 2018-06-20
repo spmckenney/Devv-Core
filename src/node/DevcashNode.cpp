@@ -23,10 +23,6 @@
 #include <openssl/crypto.h>
 #include <boost/thread/thread.hpp>
 
-#ifndef WIN32
-#include <signal.h>
-#endif
-
 #include "consensus/chainstate.h"
 #include "consensus/tier2_message_handlers.h"
 #include "io/zhelpers.hpp"
@@ -44,8 +40,11 @@
 namespace Devcash
 {
 
-std::atomic<bool> fRequestShutdown(false); /** has a shutdown been requested? */
+std::atomic<bool> request_shutdown(false); /** has a shutdown been requested? */
 bool isCryptoInit = false;
+
+std::function<void(int)> shutdown_handler;
+void signal_handler(int signal) { shutdown_handler(signal); }
 
 void DevcashNode::StartShutdown()
 {
@@ -54,21 +53,29 @@ void DevcashNode::StartShutdown()
 
 bool DevcashNode::ShutdownRequested()
 {
-  return fRequestShutdown;
+  return request_shutdown;
 }
 
 void DevcashNode::Shutdown()
 {
-  fRequestShutdown = true;
+  request_shutdown = true;
   /// @todo (mckenney): how to stop zmq?
   LOG_INFO << "Shutting down DevCash";
-  //control_.stopAll();
+  control_.StopAll();
 }
 
 DevcashNode::DevcashNode(DevcashController& control, DevcashContext& context)
     : control_(control), app_context_(context)
 {
   LOG_INFO << "Hello from node: " << app_context_.get_uri() << "!!";
+
+  std::signal(SIGINT, signal_handler);
+  std::signal(SIGABRT, signal_handler);
+  std::signal(SIGTERM, signal_handler);
+  shutdown_handler = [&](int signal) {
+      LOG_INFO << "Received signal ("+std::to_string(signal)+").";
+      Shutdown();
+  };
 
   DevcashMessageCallbacks callbacks;
   callbacks.blocks_since_cb = HandleBlocksSince;
@@ -136,36 +143,18 @@ bool DevcashNode::SanityChecks()
   return false;
 }
 
-std::string DevcashNode::RunScanner() {
-  LOG_INFO << "Scanner Mode";
-  std::string out("");
-  CASH_TRY {
-    /*std::vector<uint8_t> buffer = Hex2Bin(inStr);
-    json j = json::from_cbor(buffer);
-    out = j.dump();*/
-    //remove escape chars
-    out.erase(remove(out.begin(), out.end(), '\\'), out.end());
-  } CASH_CATCH (const std::exception& e) {
-    LOG_ERROR << FormatException(&e, "DevcashNode.RunScanner");
-  }
-  return out;
-}
-
-std::vector<byte> DevcashNode::RunNode()
+void DevcashNode::RunNode()
 {
-  std::vector<byte> out;
-  CASH_TRY {
+  try {
     LOG_INFO << "Start controller.";
-    return control_.Start();
-
-  } CASH_CATCH (const std::exception& e) {
+    control_.Start();
+    LOG_INFO << "Controller stopped.";
+  } catch (const std::exception& e) {
     LOG_FATAL << FormatException(&e, "DevcashNode.RunScanner");
   }
-
-  return out;
 }
 
-std::string DevcashNode::RunNetworkTest(unsigned int)
+void DevcashNode::RunNetworkTest(unsigned int)
 {
   std::string out("");
   CASH_TRY {
@@ -182,8 +171,6 @@ std::string DevcashNode::RunNetworkTest(unsigned int)
   } CASH_CATCH (const std::exception& e) {
     LOG_FATAL << FormatException(&e, "DevcashNode.RunScanner");
   }
-
-  return out;
 }
 
 }
