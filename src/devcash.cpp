@@ -45,7 +45,7 @@ int main(int argc, char* argv[])
 
   init_log();
 
-  CASH_TRY {
+  try {
     std::unique_ptr<devcash_options> options = parse_options(argc, argv);
 
     if (!options) {
@@ -91,7 +91,8 @@ int main(int argc, char* argv[])
                                  this_context,
                                  prior,
                                  options->mode,
-                                 options->scan_dir);
+                                 options->working_dir,
+                                 options->stop_file);
 
     DevcashNode this_node(controller, this_context);
 
@@ -110,7 +111,6 @@ int main(int argc, char* argv[])
 
     MTR_BEGIN("main", "outer");
 
-    std::vector<byte> out;
     if (options->mode == eAppMode::scan) {
       LOG_INFO << "Scanner ignores node index.";
       this_node.RunScanner();
@@ -128,29 +128,17 @@ int main(int argc, char* argv[])
       if (options->debug_mode == eDebugMode::toy) {
         this_node.RunNetworkTest(options->node_index);
       }
-      out = this_node.RunNode();
+      this_node.RunNode();
     }
 
     MTR_END("main", "outer");
     mtr_flush();
     mtr_shutdown();
 
-    if (!options->write_file.empty()) {
-      std::ofstream outFile(options->write_file
-          , std::ios::out | std::ios::binary);
-      if (outFile.is_open()) {
-        outFile.write((const char*) out.data(), out.size());
-        outFile.close();
-      } else {
-        LOG_FATAL << "Failed to open output file '" << options->write_file << "'.";
-        return(false);
-      }
-    }
-
     LOG_INFO << "DevCash Shutting Down";
 
     return(true);
-  } CASH_CATCH (...) {
+  } catch (...) {
     std::exception_ptr p = std::current_exception();
     std::string err("");
     err += (p ? p.__cxa_exception_type()->name() : "null");

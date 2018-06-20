@@ -22,6 +22,9 @@ namespace Devcash
 
 class DevcashNode {
  public:
+  /** Signal handling. */
+  void SignalHandler(int sig_num);
+
   /** Begin stopping threads and shutting down. */
   void StartShutdown();
 
@@ -50,22 +53,17 @@ class DevcashNode {
   bool SanityChecks();
 
   /**
-   * Runs the scanner over the input.
-   * @pre Parameters should be parsed and config file should be read.
-   */
-  std::string RunScanner();
-
-  /**
    * Devcash core main initialization.
    * @note Call Shutdown() if this function fails.
    */
-  std::vector<byte> RunNode();
+  void RunNode();
 
-  std::string RunNetworkTest(unsigned int);
+  void RunNetworkTest(unsigned int);
 
 private:
   DevcashController& control_;
   DevcashContext& app_context_;
+  static DevcashNode* myself_;
 };
 
 } //end namespace Devcash

@@ -29,6 +29,42 @@ namespace fs = boost::filesystem;
 #define DEBUG_TRANSACTION_INDEX (processed + 11000000)
 typedef std::chrono::milliseconds millisecs;
 
+/** Checks if binary is encoding a block
+ * @note this function is pretty heuristic, do not use in critical cases
+ * @return true if this data encodes a block
+ * @return false otherwise
+ */
+bool IsBlockData(const std::vector<byte>& raw) {
+  //check if big enough
+  if (raw.size() < FinalBlock::MinSize()) return false;
+  //check version
+  if (raw[0] != 0x00) return false;
+  size_t offset = 9;
+  uint64_t block_time = BinToUint64(raw, offset);
+  // check blocktime is from 2018 or newer.
+  if (block_time < 1514764800) return false;
+  // check blocktime is in past
+  if (block_time > GetMillisecondsSinceEpoch()) return false;
+  return true;
+}
+
+/** Checks if binary is encoding Transactions
+ * @note this function is pretty heuristic, do not use in critical cases
+ * @return true if this data encodes Transactions
+ * @return false otherwise
+ */
+bool IsTxData(const std::vector<byte>& raw) {
+  // check if big enough
+  if (raw.size() < Transaction::MinSize()) return false;
+  // check transfer count
+  uint64_t xfer_count = BinToUint64(raw, 0);
+  size_t tx_size = Transaction::MinSize() + (Transfer::Size() * xfer_count);
+  if (raw.size() < tx_size) return false;
+  // check operation
+  if (raw[8] >= 4) return false;
+  return true;
+}
+
 std::unique_ptr<io::TransactionServer> create_transaction_server(const devcash_options& options,
                                                                  zmq::context_t& context) {
   std::unique_ptr<io::TransactionServer> server(new io::TransactionServer(context, options.bind_endpoint));
@@ -51,16 +87,16 @@ int main(int argc, char* argv[]) {
                                 options->node_keys, options->wallet_keys, options->sync_port, options->sync_host);
     KeyRing keys(this_context);
 
-    LOG_DEBUG << "Loading transactions from " << options->scan_dir;
+    LOG_DEBUG << "Loading transactions from " << options->working_dir;
     MTR_SCOPE_FUNC();
     std::vector<std::vector<byte>> transactions;
 
     ChainState priori;
 
-    fs::path p(options->scan_dir);
+    fs::path p(options->working_dir);
 
     if (!is_directory(p)) {
-      LOG_ERROR << "Error opening dir: " << options->scan_dir << " is not a directory";
+      LOG_ERROR << "Error opening dir: " << options->working_dir << " is not a directory";
       return false;
     }
 
@@ -86,18 +122,31 @@ int main(int argc, char* argv[]) {
                    , std::istream_iterator<byte>());
         std::vector<byte> batch;
         assert(file_size > 0);
+        bool is_block = IsBlockData(raw);
+        bool is_transaction = IsTxData(raw);
+        if (is_block) LOG_INFO << file_name << " has blocks.";
+        if (is_transaction) LOG_INFO << file_name << " has transactions.";
+        if (!is_block && !is_transaction) LOG_WARNING << file_name << " contains unknown data.";
+
         InputBuffer buffer(raw);
         while (buffer.getOffset() < static_cast<size_t>(file_size)) {
           //constructor increments offset by reference
-          FinalBlock one_block(buffer, priori);
-          const Summary& sum = one_block.getSummary();
-          Validation val(one_block.getValidation());
-          std::pair<Address, Signature> pair(val.getFirstValidation());
-          int index = keys.getNodeIndex(pair.first);
-          Tier1Transaction tx(sum, pair.second, (uint64_t) index, keys);
-          std::vector<byte> tx_canon(tx.getCanonical());
-          batch.insert(batch.end(), tx_canon.begin(), tx_canon.end());
-          input_blocks_++;
+          if (is_block && options->mode == eAppMode::T1) {
+            FinalBlock one_block(buffer, priori);
+            const Summary& sum = one_block.getSummary();
+            Validation val(one_block.getValidation());
+            std::pair<Address, Signature> pair(val.getFirstValidation());
+            int index = keys.getNodeIndex(pair.first);
+            Tier1Transaction tx(sum, pair.second, (uint64_t) index, keys);
+            std::vector<byte> tx_canon(tx.getCanonical());
+            batch.insert(batch.end(), tx_canon.begin(), tx_canon.end());
+            input_blocks_++;
+          } else if (is_transaction && options->mode == eAppMode::T2) {
+            Tier2Transaction tx(buffer, keys, true);
+            std::vector<byte> tx_canon(tx.getCanonical());
+            batch.insert(batch.end(), tx_canon.begin(), tx_canon.end());
+            input_blocks_++;
+          }
         }
 
         transactions.push_back(batch);

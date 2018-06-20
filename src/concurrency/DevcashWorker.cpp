@@ -34,7 +34,7 @@ namespace Devcash {
   }
 
   void DevcashControllerWorker::Start() {
-    CASH_TRY {
+    try {
       for (int w = 0; w < validator_num_; w++) {
         validator_pool_.create_thread(
             boost::bind(&DevcashControllerWorker::ValidatorLoop, this));
@@ -47,16 +47,16 @@ namespace Devcash {
         shardcomm_pool_.create_thread(
             boost::bind(&DevcashControllerWorker::ShardCommsLoop, this));
       }
-    } CASH_CATCH (const std::exception& e) {
+    } catch (const std::exception& e) {
       LOG_WARNING << FormatException(&e, "Worker.start");
     }
   }
 
   void DevcashControllerWorker::StartToy() {
-    CASH_TRY {
+    try {
       toy_mode_ = true;
       Start();
-    } CASH_CATCH (const std::exception& e) {
+    } catch (const std::exception& e) {
       LOG_WARNING << FormatException(&e, "Worker.startToy");
     }
   }
@@ -69,7 +69,7 @@ namespace Devcash {
   bool DevcashControllerWorker::StopAll() {
     LOG_DEBUG << "DevcashControllerWorker::stopAll()";
     if (!continue_) return false;
-    CASH_TRY {
+    try {
       continue_ = false;
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
       validators_.ClearBlockers();
@@ -80,7 +80,7 @@ namespace Devcash {
       shardcomm_pool_.join_all();
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
       return true;
-    } CASH_CATCH (const std::exception& e) {
+    } catch (const std::exception& e) {
       LOG_WARNING << FormatException(&e, "Worker.stopAll");
       return false;
     }
@@ -88,34 +88,34 @@ namespace Devcash {
 
   void DevcashControllerWorker::pushValidator(std::unique_ptr<DevcashMessage> message) {
     LOG_DEBUG << "DevcashControllerWorker::pushValidator()";
-    CASH_TRY {
+    try {
       validators_.push(std::move(message));
-    } CASH_CATCH (const std::exception& e) {
+    } catch (const std::exception& e) {
       LOG_WARNING << FormatException(&e, "Worker.push");
     }
   }
 
   void DevcashControllerWorker::pushConsensus(std::unique_ptr<DevcashMessage> message) {
     LOG_DEBUG << "DevcashControllerWorker::pushConsensus()";
-    CASH_TRY {
+    try {
       consensus_.push(std::move(message));
-    } CASH_CATCH (const std::exception& e) {
+    } catch (const std::exception& e) {
       LOG_WARNING << FormatException(&e, "Worker.push");
     }
   }
 
   void DevcashControllerWorker::pushShardComms(std::unique_ptr<DevcashMessage> message) {
     LOG_DEBUG << "DevcashControllerWorker::pushShardComms()";
-    CASH_TRY {
+    try {
       shardcomm_.push(std::move(message));
-    } CASH_CATCH (const std::exception& e) {
-      LOG_WARNING << FormatException(&e, "Worker.push");
+    } catch (const std::exception& e) {
+      LOG_WARNING << FormatException(&e, "DevcashControllerWorker::pushShardComms()");
     }
   }
 
   void DevcashControllerWorker::ValidatorLoop() {
     LOG_DEBUG << "DevcashControllerWorker::ValidatorLoop(): Validator Ready";
-    CASH_TRY {
+    try {
       while (continue_) {
         if (!toy_mode_) {
             controller_->validatorCallback(std::move(validators_.pop()));
@@ -123,14 +123,14 @@ namespace Devcash {
           controller_->validatorToyCallback(std::move(validators_.pop()));
         }
       }
-    } CASH_CATCH (const std::exception& e) {
+    } catch (const std::exception& e) {
       LOG_WARNING << FormatException(&e, "ControllerWorker.ValidatorLoop");
     }
   }
 
   void DevcashControllerWorker::ConsensusLoop() {
     LOG_DEBUG << "DevcashControllerWorker::ConsensusLoop(): Consensus Worker Ready";
-    CASH_TRY {
+    try {
       while (continue_) {
         if (!toy_mode_) {
           controller_->consensusCallback(std::move(consensus_.pop()));
@@ -138,20 +138,20 @@ namespace Devcash {
           controller_->consensusToyCallback(std::move(consensus_.pop()));
         }
       }
-    } CASH_CATCH (const std::exception& e) {
+    } catch (const std::exception& e) {
       LOG_WARNING << FormatException(&e, "ControllerWorker.ConsensusLoop");
     }
   }
 
   void DevcashControllerWorker::ShardCommsLoop() {
     LOG_DEBUG << "DevcashControllerWorker::ShardCommsLoop(): Shard Comms Worker Ready";
-    CASH_TRY {
+    try {
       while (continue_) {
         if (!toy_mode_) {
           controller_->shardCommsCallback(std::move(shardcomm_.pop()));
         }
       }
-    } CASH_CATCH (const std::exception& e) {
+    } catch (const std::exception& e) {
       LOG_WARNING << FormatException(&e, "ControllerWorker.ShardCommsLoop");
     }
   }
