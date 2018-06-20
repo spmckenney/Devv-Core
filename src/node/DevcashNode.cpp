@@ -73,7 +73,7 @@ DevcashNode::DevcashNode(DevcashController& control, DevcashContext& context)
   std::signal(SIGABRT, signal_handler);
   std::signal(SIGTERM, signal_handler);
   shutdown_handler = [&](int signal) {
-      LOG_INFO << "Received signal ("+signal+").";
+      LOG_INFO << "Received signal ("+std::to_string(signal)+").";
       Shutdown();
   };
 
