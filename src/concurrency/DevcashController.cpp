@@ -392,10 +392,6 @@ void DevcashController::Start() {
       LOG_ERROR << "Error opening dir: " << working_dir_ << " is not a directory";
     }
     fs::path stop_file(working_dir_+"/"+stop_file_);
-    if (fs::exists(stop_file)) {
-      LOG_INFO << "Shutdown file exists at startup, removing it.";
-      fs::remove(stop_file);
-    }
 
     workers_->Start();
 

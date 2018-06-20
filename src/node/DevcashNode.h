@@ -22,9 +22,6 @@ namespace Devcash
 
 class DevcashNode {
  public:
-  /** Signal handling. */
-  static void SignalHandler(int sig_num);
-
   /** Begin stopping threads and shutting down. */
   void StartShutdown();
 
@@ -63,7 +60,6 @@ class DevcashNode {
 private:
   DevcashController& control_;
   DevcashContext& app_context_;
-  static DevcashNode* myself_;
 };
 
 } //end namespace Devcash

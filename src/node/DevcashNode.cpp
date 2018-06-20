@@ -43,10 +43,8 @@ namespace Devcash
 std::atomic<bool> request_shutdown(false); /** has a shutdown been requested? */
 bool isCryptoInit = false;
 
-void DevcashNode::SignalHandler(int sig_num) {
-   LOG_INFO << "Signal (" << sig_num << ") received.";
-   myself_->Shutdown();
-}
+std::function<void(int)> shutdown_handler;
+void signal_handler(int signal) { shutdown_handler(signal); }
 
 void DevcashNode::StartShutdown()
 {
@@ -71,10 +69,13 @@ DevcashNode::DevcashNode(DevcashController& control, DevcashContext& context)
 {
   LOG_INFO << "Hello from node: " << app_context_.get_uri() << "!!";
 
-  myself_ = this;
-  std::signal(SIGINT, DevcashNode::SignalHandler);
-  std::signal(SIGABRT, DevcashNode::SignalHandler);
-  std::signal(SIGTERM, DevcashNode::SignalHandler);
+  std::signal(SIGINT, signal_handler);
+  std::signal(SIGABRT, signal_handler);
+  std::signal(SIGTERM, signal_handler);
+  shutdown_handler = [&](int signal) {
+      LOG_INFO << "Received signal ("+signal+").";
+      Shutdown();
+  };
 
   DevcashMessageCallbacks callbacks;
   callbacks.blocks_since_cb = HandleBlocksSince;
