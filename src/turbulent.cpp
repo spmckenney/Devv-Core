@@ -88,9 +88,11 @@ int main(int argc, char* argv[]) {
           out.insert(out.end(), peer_canon.begin(), peer_canon.end());
           LOG_TRACE << "GenerateTransactions(): generated tx with sig: " << ToHex(peer_tx.getSignature());
           batch_counter++;
-          if (batch_counter >= options->tx_batch_size) break;
+          if (batch_counter >= options->tx_batch_size
+              || (counter+batch_counter) >= options->generate_count) break;
         }  // end outer for
-        if (batch_counter >= options->tx_batch_size) break;
+        if (batch_counter >= options->tx_batch_size
+            || (counter+batch_counter) >= options->generate_count) break;
       }  // end batch while
       counter += batch_counter;
       batch_counter = 0;

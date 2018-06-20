@@ -5,6 +5,14 @@
  * 2.  Each peer address sends 1 coin to every other address
  * 3.  Each peer address returns addr_count coins to the INN
  *
+ *  For perfect circuits,
+ *  -make sure that generate_count is one more than a perfect square
+ *  -make sure that batch_size is a factor of generate_count
+ *
+ *  Examples: batch_size = 2, generate_count = 122 (11^2+1)
+ *            batch_size = 89, generate_count = 20737 (144^2+1)
+ *            batch_size = 101 (or 9901), generate_count = 1000001 (1000^2+1)
+ *
  *  Created on: May 24, 2018
  *      Author: Nick Williams
  */
@@ -53,7 +61,7 @@ int main(int argc, char* argv[]) {
       LOG_FATAL << "Must generate at least 2 transactions for a complete circuit.";
       CASH_THROW("Invalid number of transactions to generate.");
     }
-    // Need sqrt(N-1) addresses (x) to create N circuits: 1+x(x-1)+x=N
+    // Need sqrt(N-1) addresses (x) to create N circuits: 1+x(x-1)+2x=N
     double need_addrs = std::sqrt(options->generate_count - 1);
     // if sqrt(N-1) is not an int, circuits will be incomplete
     if (std::floor(need_addrs) != need_addrs) {
@@ -96,9 +104,11 @@ int main(int argc, char* argv[]) {
             out.insert(out.end(), peer_canon.begin(), peer_canon.end());
             LOG_TRACE << "Circuit test generated tx with sig: " << ToHex(peer_tx.getSignature());
             batch_counter++;
-            if (batch_counter >= options->tx_batch_size) break;
+            if (batch_counter >= options->tx_batch_size
+              || (counter+batch_counter) >= options->generate_count) break;
           }  // end inner for
-          if (batch_counter >= options->tx_batch_size) break;
+          if (batch_counter >= options->tx_batch_size
+            || (counter+batch_counter) >= options->generate_count) break;
         }  // end outer for
         for (size_t i = 0; i < addr_count; ++i) {
           std::vector<Transfer> peer_xfers;
@@ -114,15 +124,18 @@ int main(int argc, char* argv[]) {
           out.insert(out.end(), peer_canon.begin(), peer_canon.end());
           LOG_TRACE << "GenerateTransactions(): generated tx with sig: " << ToHex(peer_tx.getSignature());
           batch_counter++;
-          if (batch_counter >= options->tx_batch_size) break;
+          if (batch_counter >= options->tx_batch_size
+              || (counter+batch_counter) >= options->generate_count) break;
         }  // end outer for
-        if (batch_counter >= options->tx_batch_size) break;
+          if (batch_counter >= options->tx_batch_size
+              || (counter+batch_counter) >= options->generate_count) break;
       }  // end batch while
       counter += batch_counter;
       batch_counter = 0;
     }  // end counter while
 
     LOG_INFO << "Generated " << counter << " transactions.";
+
 
     if (!options->write_file.empty()) {
       std::ofstream out_file(options->write_file, std::ios::out | std::ios::binary);
