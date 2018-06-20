@@ -245,8 +245,8 @@ network could be build and tested.\n\nAllowed options");
     }
 
     if (vm.count("stop-file")) {
-      options->working_dir = vm["stop-file"].as<std::string>();
-      LOG_INFO << "Stop file: " << options->working_dir;
+      options->stop_file = vm["stop-file"].as<std::string>();
+      LOG_INFO << "Stop file: " << options->stop_file;
     } else {
       LOG_INFO << "Stop file was not set. Use a signal to stop the node.";
     }
