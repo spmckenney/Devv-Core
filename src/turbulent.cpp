@@ -1,7 +1,7 @@
 /*
  * turbulent.cpp
- * Creates up to generate_count transactions as follows:
- * 1.  INN transactions create tx_limit coins for every address
+ * Creates generate_count transactions as follows:
+ * 1.  INN transactions create coins for every address
  * 2.  Each peer address attempts to send a random number of coins up to tx_limit
  *     to a random address other than itself
  * 3.  Many transactions will be invalid, but valid transactions should also appear indefinitely
@@ -54,23 +54,25 @@ int main(int argc, char* argv[]) {
 
     std::srand((unsigned)time(0));
     size_t counter = 0;
-    size_t batch_counter = 0;
+
+    std::vector<Transfer> xfers;
+    Transfer inn_transfer(inn_addr, 0
+      , -1*addr_count*(addr_count-1)*options->tx_limit, 0);
+    xfers.push_back(inn_transfer);
+    for (size_t i = 0; i < addr_count; ++i) {
+      Transfer transfer(keys.getWalletAddr(i), 0
+        , (addr_count-1)*options->tx_limit, 0);
+      xfers.push_back(transfer);
+    }
+    Tier2Transaction inn_tx(eOpType::Create, xfers, GetMillisecondsSinceEpoch() +
+                            (1000000 * (options->node_index + 1) * (options->tx_limit + 1)),
+                            keys.getKey(inn_addr), keys);
+    std::vector<byte> inn_canon(inn_tx.getCanonical());
+    out.insert(out.end(), inn_canon.begin(), inn_canon.end());
+    LOG_DEBUG << "GenerateTransactions(): generated inn_tx with sig: " << ToHex(inn_tx.getSignature());
+    counter++;
+
     while (counter < options->generate_count) {
-      while (batch_counter < options->tx_batch_size) {
-        std::vector<Transfer> xfers;
-        Transfer inn_transfer(inn_addr, 0, -1 * addr_count * options->tx_limit, 0);
-        xfers.push_back(inn_transfer);
-        for (size_t i = 0; i < addr_count; ++i) {
-          Transfer transfer(keys.getWalletAddr(i), 0, options->tx_limit, 0);
-          xfers.push_back(transfer);
-        }
-        Tier2Transaction inn_tx(eOpType::Create, xfers, GetMillisecondsSinceEpoch() +
-                                                            (1000000 * (options->node_index + 1) * (batch_counter + 1)),
-                                keys.getKey(inn_addr), keys);
-        std::vector<byte> inn_canon(inn_tx.getCanonical());
-        out.insert(out.end(), inn_canon.begin(), inn_canon.end());
-        LOG_DEBUG << "GenerateTransactions(): generated inn_tx with sig: " << ToHex(inn_tx.getSignature());
-        batch_counter++;
         for (size_t i = 0; i < addr_count; ++i) {
           size_t j = std::rand() % addr_count;
           size_t amount = std::rand() % options->tx_limit;
@@ -87,13 +89,10 @@ int main(int argc, char* argv[]) {
           std::vector<byte> peer_canon(peer_tx.getCanonical());
           out.insert(out.end(), peer_canon.begin(), peer_canon.end());
           LOG_TRACE << "GenerateTransactions(): generated tx with sig: " << ToHex(peer_tx.getSignature());
-          batch_counter++;
-          if (batch_counter >= options->tx_batch_size) break;
-        }  // end outer for
-        if (batch_counter >= options->tx_batch_size) break;
-      }  // end batch while
-      counter += batch_counter;
-      batch_counter = 0;
+          counter++;
+          if (counter >= options->generate_count) break;
+        }  // end for loop
+        if (counter >= options->generate_count) break;
     }  // end counter while
 
     LOG_INFO << "Generated " << counter << " transactions.";
