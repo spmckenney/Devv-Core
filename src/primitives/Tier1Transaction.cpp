@@ -28,7 +28,7 @@ void Tier1Transaction::Fill(Tier1Transaction& tx,
     return;
   }
 
-  buffer.copy(std::back_inserter(canonical_), tx.sum_size_ + kSIG_SIZE);
+  buffer.copy(std::back_inserter(tx.canonical_), tx.sum_size_ + kSIG_SIZE);
 
   MTR_STEP("Transaction", "Transaction", &trace_int, "sound");
   if (calculate_soundness) {
