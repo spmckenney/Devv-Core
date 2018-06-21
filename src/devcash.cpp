@@ -88,7 +88,6 @@ int main(int argc, char* argv[])
                                  this_context,
                                  prior,
                                  options->mode,
-                                 options->working_dir,
                                  options->stop_file);
 
     DevcashNode this_node(controller, this_context);
@@ -108,24 +107,19 @@ int main(int argc, char* argv[])
 
     MTR_BEGIN("main", "outer");
 
-    if (options->mode == eAppMode::scan) {
-      LOG_INFO << "Internal scanner is deprecated.";
-    } else {
-      if (!this_node.Init()) {
-        LOG_FATAL << "Basic setup failed";
-        return false;
-      }
-      LOG_INFO << "Basic Setup complete";
-      if (!this_node.SanityChecks()) {
-        LOG_FATAL << "Sanity checks failed";
-        return false;
-      }
-      LOG_INFO << "Sanity checks passed";
-      if (options->debug_mode == eDebugMode::toy) {
-        this_node.RunNetworkTest(options->node_index);
-      }
-      this_node.RunNode();
+    if (!this_node.init()) {
+      LOG_FATAL << "Basic setup failed";
+      return false;
     }
+    LOG_INFO << "Basic Setup complete";
+
+    if (!this_node.SanityChecks()) {
+      LOG_FATAL << "Sanity checks failed";
+      return false;
+    }
+    LOG_INFO << "Sanity checks passed";
+
+    this_node.RunNode();
 
     MTR_END("main", "outer");
     mtr_flush();

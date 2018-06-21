@@ -88,7 +88,7 @@ DevcashNode::DevcashNode(ValidatorController& control, DevcashContext& context)
   control_.setMessageCallbacks(callbacks);
 }
 
-bool initCrypto()
+bool InitCrypto()
 {
   CASH_TRY {
     OpenSSL_add_all_algorithms();
@@ -96,51 +96,40 @@ bool initCrypto()
     isCryptoInit = true;
     return true;
   } CASH_CATCH (const std::exception& e) {
-    LOG_FATAL << FormatException(&e, "DevcashNode.initCrypto");
+    LOG_FATAL << FormatException(&e, "DevcashNode.InitCrypto");
   }
   return(false);
 }
 
-bool DevcashNode::Init()
+bool DevcashNode::init()
 {
-  /*if (app_context_.get_current_node() >= app_context_.kNODE_KEYs.size() ||
-      app_context_.get_current_node() >= app_context_.kNODE_ADDRs.size()) {
-    LOG_FATAL << "Invalid node index: " <<
-      std::to_string(app_context_.get_current_node());
-    return false;
-  }*/
-  return initCrypto();
+  /// Initialize OpenSSL
+  return InitCrypto();
 }
 
 bool DevcashNode::SanityChecks()
 {
-  CASH_TRY {
-    if (!isCryptoInit) initCrypto();
-    EVP_MD_CTX *ctx;
-    if(!(ctx = EVP_MD_CTX_create())) {
-      LOG_FATAL << "Could not create signature context!";
-      return false;
-    }
-
-    std::vector<byte> msg = {'h', 'e', 'l', 'l', 'o'};
-    Hash test_hash(DevcashHash(msg));
-    std::string sDer;
-
-    EC_KEY* loadkey = LoadEcKey(app_context_.kADDRs[1],
-        app_context_.kADDR_KEYs[1]);
-
-    Signature sig;
-    SignBinary(loadkey, test_hash, sig);
-
-    if (!VerifyByteSig(loadkey, test_hash, sig)) {
-      return false;
-    }
-
-    return true;
-  } CASH_CATCH (const std::exception& e) {
-    LOG_FATAL << FormatException(&e, "DevcashNode.sanityChecks");
+  if (!isCryptoInit) InitCrypto();
+  EVP_MD_CTX *ctx;
+  if (!(ctx = EVP_MD_CTX_create())) {
+    LOG_FATAL << "Could not create signature context!";
+    return false;
   }
-  return false;
+
+  std::vector<byte> msg = {'h', 'e', 'l', 'l', 'o'};
+  Hash test_hash(DevcashHash(msg));
+  std::string sDer;
+
+  EC_KEY *loadkey = LoadEcKey(app_context_.kADDRs[1],
+                              app_context_.kADDR_KEYs[1]);
+
+  Signature sig;
+  SignBinary(loadkey, test_hash, sig);
+
+  if (!VerifyByteSig(loadkey, test_hash, sig)) {
+    return false;
+  }
+  return true;
 }
 
 void DevcashNode::RunNode()
@@ -150,25 +139,6 @@ void DevcashNode::RunNode()
     control_.Start();
     LOG_INFO << "Controller stopped.";
   } catch (const std::exception& e) {
-    LOG_FATAL << FormatException(&e, "DevcashNode.RunScanner");
-  }
-}
-
-void DevcashNode::RunNetworkTest(unsigned int)
-{
-  std::string out("");
-  CASH_TRY {
-    //control_.StartToy(node_index);
-
-    //TODO: add messages for each node in concurrency/ValidatorController.cpp
-
-	//let the test run before shutting down (<10 sec)
-    auto ms = 10000;
-    LOG_INFO << "Sleeping for " << ms;
-    boost::this_thread::sleep_for(boost::chrono::milliseconds(ms));
-    LOG_INFO << "Starting shutdown";
-    StartShutdown();
-  } CASH_CATCH (const std::exception& e) {
     LOG_FATAL << FormatException(&e, "DevcashNode.RunScanner");
   }
 }

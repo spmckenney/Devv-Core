@@ -52,38 +52,19 @@ namespace Devcash {
     }
   }
 
-  void DevcashControllerWorker::StartToy() {
-    try {
-      toy_mode_ = true;
-      Start();
-    } catch (const std::exception& e) {
-      LOG_WARNING << FormatException(&e, "Worker.startToy");
-    }
-  }
-
-  /** Stops all threads in this pool.
-   * @note This function may block.
-   * @return true iff all threads in this pool joined.
-   * @return false if some error occurred.
-   */
   bool DevcashControllerWorker::StopAll() {
     LOG_DEBUG << "DevcashControllerWorker::stopAll()";
     if (!continue_) return false;
-    try {
-      continue_ = false;
-      std::this_thread::sleep_for(std::chrono::milliseconds(100));
-      validators_.ClearBlockers();
-      consensus_.ClearBlockers();
-      shardcomm_.ClearBlockers();
-      validator_pool_.join_all();
-      consensus_pool_.join_all();
-      shardcomm_pool_.join_all();
-      std::this_thread::sleep_for(std::chrono::milliseconds(100));
-      return true;
-    } catch (const std::exception& e) {
-      LOG_WARNING << FormatException(&e, "Worker.stopAll");
-      return false;
-    }
+    continue_ = false;
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    validators_.ClearBlockers();
+    consensus_.ClearBlockers();
+    shardcomm_.ClearBlockers();
+    validator_pool_.join_all();
+    consensus_pool_.join_all();
+    shardcomm_pool_.join_all();
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    return true;
   }
 
   void DevcashControllerWorker::pushValidator(std::unique_ptr<DevcashMessage> message) {
@@ -117,14 +98,11 @@ namespace Devcash {
     LOG_DEBUG << "DevcashControllerWorker::ValidatorLoop(): Validator Ready";
     try {
       while (continue_) {
-        if (!toy_mode_) {
-            controller_->ValidatorCallback(std::move(validators_.pop()));
-        } else {
-          controller_->ValidatorToyCallback(std::move(validators_.pop()));
-        }
+        controller_->ValidatorCallback(std::move(validators_.pop()));
       }
     } catch (const std::exception& e) {
       LOG_WARNING << FormatException(&e, "ControllerWorker.ValidatorLoop");
+      throw;
     }
   }
 
@@ -132,14 +110,11 @@ namespace Devcash {
     LOG_DEBUG << "DevcashControllerWorker::ConsensusLoop(): Consensus Worker Ready";
     try {
       while (continue_) {
-        if (!toy_mode_) {
-          controller_->ConsensusCallback(std::move(consensus_.pop()));
-        } else {
-          controller_->ConsensusToyCallback(std::move(consensus_.pop()));
-        }
+        controller_->ConsensusCallback(std::move(consensus_.pop()));
       }
     } catch (const std::exception& e) {
       LOG_WARNING << FormatException(&e, "ControllerWorker.ConsensusLoop");
+      throw;
     }
   }
 

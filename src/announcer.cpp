@@ -25,7 +25,6 @@ using namespace Devcash;
 
 namespace fs = boost::filesystem;
 
-#define UNUSED(x) ((void)x)
 #define DEBUG_TRANSACTION_INDEX (processed + 11000000)
 typedef std::chrono::milliseconds millisecs;
 
@@ -103,53 +102,52 @@ int main(int argc, char* argv[]) {
     std::vector<std::string> files;
 
     unsigned int input_blocks_ = 0;
-    for (auto& entry : boost::make_iterator_range(fs::directory_iterator(p), {})) {
+    for (auto &entry : boost::make_iterator_range(fs::directory_iterator(p), {})) {
       files.push_back(entry.path().string());
     }
 
-    ThreadPool::ParallelFor(0, (int)files.size(), [&] (int i) {
-        LOG_INFO << "Reading " << files.at(i);
-        std::ifstream file(files.at(i), std::ios::binary);
-        file.unsetf(std::ios::skipws);
-        std::streampos file_size;
-        file.seekg(0, std::ios::end);
-        file_size = file.tellg();
-        file.seekg(0, std::ios::beg);
+    ThreadPool::ParallelFor(0, (int) files.size(), [&](int i) {
+      LOG_INFO << "Reading " << files.at(i);
+      std::ifstream file(files.at(i), std::ios::binary);
+      file.unsetf(std::ios::skipws);
+      std::streampos file_size;
+      file.seekg(0, std::ios::end);
+      file_size = file.tellg();
+      file.seekg(0, std::ios::beg);
 
-        std::vector<byte> raw;
-        raw.reserve(file_size);
-        raw.insert(raw.begin(), std::istream_iterator<byte>(file)
-                   , std::istream_iterator<byte>());
-        std::vector<byte> batch;
-        assert(file_size > 0);
-        bool is_block = IsBlockData(raw);
-        bool is_transaction = IsTxData(raw);
-        if (is_block) LOG_INFO << files.at(i) << " has blocks.";
-        if (is_transaction) LOG_INFO << files.at(i) << " has transactions.";
-        if (!is_block && !is_transaction) LOG_WARNING << files.at(i) << " contains unknown data.";
+      std::vector<byte> raw;
+      raw.reserve(file_size);
+      raw.insert(raw.begin(), std::istream_iterator<byte>(file), std::istream_iterator<byte>());
+      std::vector<byte> batch;
+      assert(file_size > 0);
+      bool is_block = IsBlockData(raw);
+      bool is_transaction = IsTxData(raw);
+      if (is_block) LOG_INFO << files.at(i) << " has blocks.";
+      if (is_transaction) LOG_INFO << files.at(i) << " has transactions.";
+      if (!is_block && !is_transaction) LOG_WARNING << files.at(i) << " contains unknown data.";
 
-        InputBuffer buffer(raw);
-        while (buffer.getOffset() < static_cast<size_t>(file_size)) {
-          //constructor increments offset by reference
-          if (is_block && options->mode == eAppMode::T1) {
-            FinalBlock one_block(FinalBlock::Create(buffer, priori));
-            const Summary& sum = one_block.getSummary();
-            Validation val(one_block.getValidation());
-            std::pair<Address, Signature> pair(val.getFirstValidation());
-            int index = keys.getNodeIndex(pair.first);
-            Tier1Transaction tx(sum, pair.second, (uint64_t) index, keys);
-            std::vector<byte> tx_canon(tx.getCanonical());
-            batch.insert(batch.end(), tx_canon.begin(), tx_canon.end());
-            input_blocks_++;
-          } else if (is_transaction && options->mode == eAppMode::T2) {
-            Tier2Transaction tx(Tier2Transaction::Create(buffer, keys, true));
-            std::vector<byte> tx_canon(tx.getCanonical());
-            batch.insert(batch.end(), tx_canon.begin(), tx_canon.end());
-            input_blocks_++;
-          }
+      InputBuffer buffer(raw);
+      while (buffer.getOffset() < static_cast<size_t>(file_size)) {
+        //constructor increments offset by reference
+        if (is_block && options->mode == eAppMode::T1) {
+          FinalBlock one_block(FinalBlock::Create(buffer, priori));
+          const Summary &sum = one_block.getSummary();
+          Validation val(one_block.getValidation());
+          std::pair<Address, Signature> pair(val.getFirstValidation());
+          int index = keys.getNodeIndex(pair.first);
+          Tier1Transaction tx(sum, pair.second, (uint64_t) index, keys);
+          std::vector<byte> tx_canon(tx.getCanonical());
+          batch.insert(batch.end(), tx_canon.begin(), tx_canon.end());
+          input_blocks_++;
+        } else if (is_transaction && options->mode == eAppMode::T2) {
+          Tier2Transaction tx(Tier2Transaction::Create(buffer, keys, true));
+          std::vector<byte> tx_canon(tx.getCanonical());
+          batch.insert(batch.end(), tx_canon.begin(), tx_canon.end());
+          input_blocks_++;
         }
+      }
 
-        transactions.push_back(batch);
+      transactions.push_back(batch);
     }, 3);
 
     LOG_INFO << "Loaded " << std::to_string(input_blocks_) << " transactions in " << transactions.size() << " batches.";

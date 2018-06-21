@@ -4,7 +4,6 @@
  *  Created on: Apr 20, 2018
  *      Author: Nick Williams
  */
-
 #ifndef PRIMITIVES_PROPOSEDBLOCK_H_
 #define PRIMITIVES_PROPOSEDBLOCK_H_
 

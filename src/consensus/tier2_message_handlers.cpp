@@ -147,7 +147,6 @@ bool HandleValidationBlock(DevcashMessageUniquePtr ptr,
                            const DevcashContext& context,
                            Blockchain& final_chain,
                            UnrecordedTransactionPool& utx_pool,
-                           std::string working_dir,
                            std::function<void(DevcashMessageUniquePtr)> callback) {
   MTR_SCOPE_FUNC();
   bool sent_message = false;
@@ -166,6 +165,7 @@ bool HandleValidationBlock(DevcashMessageUniquePtr ptr,
 
     std::vector<byte> final_msg = top_block->getCanonical();
 
+    /*
     //write final chain to file
     std::string shard_dir(working_dir+"/"+context.get_shard_uri());
     fs::path p(shard_dir);
@@ -182,6 +182,7 @@ bool HandleValidationBlock(DevcashMessageUniquePtr ptr,
     } else {
       LOG_ERROR << "Error opening dir: " << shard_dir << " is not a directory";
     }
+    */
 
     auto final_block = std::make_unique<DevcashMessage>(context.get_shard_uri(), FINAL_BLOCK, final_msg, ptr->index);
     LogDevcashMessageSummary(*final_block, "HandleValidationBlock() -> Final block");

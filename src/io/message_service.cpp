@@ -136,11 +136,13 @@ void TransactionClient::startClient() {
 }
 
 void TransactionClient::stopClient() {
-  LOG_DEBUG << "Stopping TransactionClient";
   if (keep_running_) {
+    LOG_DEBUG << "Stopping TransactionClient";
     keep_running_ = false;
-    client_thread_->join();
-    client_thread_ = nullptr;
+    if (client_thread_) {
+      client_thread_->join();
+      client_thread_ = nullptr;
+    }
     LOG_INFO << "Stopped TransactionClient";
   } else {
     LOG_WARNING << "Attempted to stop a stopped TransactionClient!";

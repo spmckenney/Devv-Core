@@ -4,12 +4,7 @@
  *  Created on: Mar 20, 2018
  *      Author: Nick Williams
  */
-
-#ifndef NODE_DEVCASHNODE_H_
-#define NODE_DEVCASHNODE_H_
-
-#ifndef DEVCASH_INIT_H
-#define DEVCASH_INIT_H
+#pragma once
 
 #include <string>
 #include <vector>
@@ -40,7 +35,7 @@ class DevcashNode {
    *  @note Do not call Shutdown() if this function fails.
    *  @pre Parameters should be parsed and config file should be read.
    */
-  bool Init();
+  bool init();
 
   /**
    * Initialization sanity checks: ecc init, sanity checks, dir lock.
@@ -55,16 +50,9 @@ class DevcashNode {
    */
   void RunNode();
 
-  void RunNetworkTest(unsigned int);
-
 private:
   ValidatorController& control_;
   DevcashContext& app_context_;
 };
 
 } //end namespace Devcash
-
-#endif // DEVCASH_INIT_H
-
-
-#endif /* NODE_DEVCASHNODE_H_ */

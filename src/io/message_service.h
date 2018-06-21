@@ -94,6 +94,11 @@ class TransactionClient final {
  public:
   TransactionClient(zmq::context_t& context);
 
+  ~TransactionClient() {
+    /// Stop the thread if it is running
+    stopClient();
+  }
+
   /**
    * Attach a callback to be called when a DevcashMessage arrives on the wire.
    * @param callback to call when a message arrives

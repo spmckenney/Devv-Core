@@ -15,6 +15,8 @@
 #include <boost/filesystem.hpp>
 
 #include "DevcashWorker.h"
+#include "common/devcash_exceptions.h"
+#include "common/logger.h"
 #include "io/message_service.h"
 #include "consensus/KeyRing.h"
 #include "primitives/Tier1Transaction.h"
@@ -39,7 +41,6 @@ ValidatorController::ValidatorController(
     DevcashContext& context,
     const ChainState& prior,
     eAppMode mode,
-    const std::string& working_dir,
     const std::string& stop_file)
   : server_(server)
   , peer_client_(peer_client)
@@ -50,7 +51,6 @@ ValidatorController::ValidatorController(
   , final_chain_("final_chain_")
   , utx_pool_(prior, mode, batch_size)
   , mode_(mode)
-  , working_dir_(working_dir)
   , stop_file_(stop_file)
   , workers_(new DevcashControllerWorker(this, validator_count_, consensus_count_, consensus_count_))
 {}
@@ -129,7 +129,6 @@ void ValidatorController::ConsensusCallback(DevcashMessageUniquePtr ptr) {
                                              final_chain_,
                                              utx_pool_.get_transaction_creation_manager(),
                                              [this](DevcashMessageUniquePtr p) { this->server_.queueMessage(std::move(p)); });
-        waiting_ = 0;
         break;
 
       case eMessageType::TRANSACTION_ANNOUNCEMENT:
@@ -144,7 +143,6 @@ void ValidatorController::ConsensusCallback(DevcashMessageUniquePtr ptr) {
                               context_,
                               final_chain_,
                               utx_pool_,
-                              working_dir_,
                               [this](DevcashMessageUniquePtr p) { this->server_.queueMessage(std::move(p)); });
         break;
 
@@ -153,15 +151,19 @@ void ValidatorController::ConsensusCallback(DevcashMessageUniquePtr ptr) {
         pushShardComms(std::move(ptr));
         break;
 
-      case eMessageType::GET_BLOCKS_SINCE:LOG_DEBUG << "Unexpected message @ consensus, to shard comms.\n";
+      case eMessageType::GET_BLOCKS_SINCE:
+        LOG_DEBUG << "Unexpected message @ consensus, to shard comms.\n";
         pushShardComms(std::move(ptr));
         break;
 
-      case eMessageType::BLOCKS_SINCE:LOG_DEBUG << "Unexpected message @ consensus, to shard comms.\n";
+      case eMessageType::BLOCKS_SINCE:
+        LOG_DEBUG << "Unexpected message @ consensus, to shard comms.\n";
         pushShardComms(std::move(ptr));
         break;
 
-      default:LOG_ERROR << "ValidatorController()::ConsensusCallback(): Unexpected message, ignore.\n";
+      default:
+        throw DevcashMessageError("ConsensusCallback(): Unexpected message type:"
+                                  + std::to_string(ptr->message_type));
         break;
     }
   } catch (const std::exception& e) {
@@ -267,87 +269,6 @@ void ValidatorController::ShardCommsCallback(DevcashMessageUniquePtr ptr) {
   }
 }
 
-void ValidatorController::ValidatorToyCallback(DevcashMessageUniquePtr ptr) {
-  MTR_SCOPE_FUNC();
-  LOG_DEBUG << "ValidatorController::ValidatorToyCallback()";
-  assert(ptr);
-  if (validator_flipper_) {
-    pushConsensus(std::move(ptr));
-  }
-  validator_flipper_ = !validator_flipper_;
-}
-
-void ValidatorController::ConsensusToyCallback(DevcashMessageUniquePtr ptr) {
-  MTR_SCOPE_FUNC();
-  LOG_DEBUG << "ValidatorController()::ConsensusToyCallback()";
-  assert(ptr);
-  if (consensus_flipper_) {
-      server_.queueMessage(std::move(ptr));
-  }
-  consensus_flipper_ = !consensus_flipper_;
-}
-
-std::vector<std::vector<byte>> ValidatorController::loadTransactions() {
-  LOG_DEBUG << "Loading transactions from " << working_dir_;
-  MTR_SCOPE_FUNC();
-  std::vector<std::vector<byte>> out;
-
-  ChainState priori;
-
-  fs::path p(working_dir_);
-
-  if (!is_directory(p)) {
-    LOG_ERROR << "Error opening dir: " << working_dir_ << " is not a directory";
-    return out;
-  }
-
-  std::mutex critical;
-
-  std::vector<std::string> files;
-
-  input_blocks_ = 0;
-  for(auto& entry : boost::make_iterator_range(fs::directory_iterator(p), {})) {
-    files.push_back(entry.path().string());
-  }
-
-  ThreadPool::ParallelFor(0, (int)files.size(), [&] (int i) {
-      LOG_INFO << "Reading " << files.at(i);
-      std::ifstream file(files.at(i), std::ios::binary);
-      file.unsetf(std::ios::skipws);
-      std::streampos file_size;
-      file.seekg(0, std::ios::end);
-      file_size = file.tellg();
-      file.seekg(0, std::ios::beg);
-
-      std::vector<byte> raw;
-      raw.reserve(file_size);
-      raw.insert(raw.begin(), std::istream_iterator<byte>(file)
-                 , std::istream_iterator<byte>());
-      std::vector<byte> batch;
-      assert(file_size > 0);
-      InputBuffer buffer(raw);
-      while (buffer.getOffset() < static_cast<size_t>(file_size)) {
-        //constructor increments offset by reference
-        FinalBlock one_block(FinalBlock::Create(buffer, priori));
-        Summary sum = Summary::Copy(one_block.getSummary());
-        Validation val(one_block.getValidation());
-        std::pair<Address, Signature> pair(val.getFirstValidation());
-        int index = keys_.getNodeIndex(pair.first);
-        assert(index >= 0);
-        Tier1Transaction tx(sum, pair.second, (uint64_t) index, keys_);
-        std::vector<byte> tx_canon(tx.getCanonical());
-        batch.insert(batch.end(), tx_canon.begin(), tx_canon.end());
-        input_blocks_++;
-      }
-      std::lock_guard<std::mutex> lock(critical);
-
-      out.push_back(batch);
-    }, 3);
-
-  LOG_INFO << "Loaded " << std::to_string(input_blocks_) << " transactions in " << out.size() << " batches.";
-  return out;
-}
-
 void ValidatorController::Start() {
   MTR_SCOPE_FUNC();
   try {
@@ -372,20 +293,6 @@ void ValidatorController::Start() {
 
     std::vector<std::vector<byte>> transactions;
     size_t processed = 0;
-
-    //setup directory for FinalBlocks
-    fs::path p(working_dir_);
-    if (is_directory(p)) {
-      std::string shard_path(working_dir_+"/"+context_.get_shard_uri());
-      fs::path shard_dir(shard_path);
-      if (!is_directory(shard_dir)) fs::create_directory(shard_dir);
-      if (mode_ == eAppMode::T1 && !working_dir_.empty()) {
-        transactions = loadTransactions();
-      }
-    } else {
-      LOG_ERROR << "Error opening dir: " << working_dir_ << " is not a directory";
-    }
-    fs::path stop_file(working_dir_+"/"+stop_file_);
 
     workers_->Start();
 
@@ -430,8 +337,8 @@ void ValidatorController::Start() {
       }
 
       /* Should we shutdown? */
-      if (fs::exists(stop_file)) {
-        LOG_INFO << "Shutdown file created. Stopping DevCash...";
+      if (fs::exists(stop_file_)) {
+        LOG_INFO << "Shutdown file detected. Stopping DevCash...";
         StopAll();
       }
     }
