@@ -7,7 +7,7 @@
 #pragma once
 
 #include <stdexcept>
-#include <bits/exception.h>
+#include <exception>
 
 namespace Devcash {
 
