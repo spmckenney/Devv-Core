@@ -12,6 +12,8 @@
 #include <vector>
 #include <sys/stat.h>
 
+#include "common/devcash_types.h"
+
 namespace Devcash {
 
 static const int kDEFAULT_WORKERS = 128;
@@ -19,7 +21,6 @@ static const int kVALIDATOR_THREADS = 10;
 static const int kCONSENSUS_THREADS = 10;
 //millis of sleep between main shut down checks
 static const int kMAIN_WAIT_INTERVAL = 100;
-enum eAppMode {T1,T2,scan};
 
 //Consensus Params
 static const int kACTIVATION_ROUNDS = 334;

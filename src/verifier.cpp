@@ -204,7 +204,7 @@ int main(int argc, char* argv[]) {
             }
           }
         } else if (is_transaction) {
-          Tier2Transaction tx(buffer, keys, true);
+          Tier2Transaction tx(Tier2Transaction::Create(buffer, keys, true));
           if (!tx.isValid(priori, keys, summary)) {
             LOG_WARNING << "A transaction is invalid. TX details: ";
             LOG_WARNING << tx.getJSON();

@@ -227,7 +227,7 @@ bool HandleBlocksSinceRequest(DevcashMessageUniquePtr ptr,
       LOG_DEBUG << "HandleBlocksSinceRequest(): offset/raw.size() ("
                 << buffer.getOffset() << "/" << buffer.size() << ")";
         //constructor increments offset by reference
-      FinalBlock one_block(buffer, temp);
+      FinalBlock one_block(FinalBlock::Create(buffer, temp));
       Summary sum = Summary::Copy(one_block.getSummary());
       Validation val(one_block.getValidation());
       std::pair<Address, Signature> pair(val.getFirstValidation());
@@ -278,7 +278,7 @@ bool HandleBlocksSince(DevcashMessageUniquePtr ptr,
     ChainState state = final_chain.getHighestChainState();
     while (buffer.getOffset() < buffer.size()) {
       //constructor increments offset by reference
-      FinalBlock one_block(buffer, state);
+      FinalBlock one_block(FinalBlock::Create(buffer, state));
       uint64_t elapsed = GetMillisecondsSinceEpoch() - one_block.getBlockTime();
       Summary sum = Summary::Copy(one_block.getSummary());
       for (auto const& addr : wallets) {

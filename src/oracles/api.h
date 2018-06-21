@@ -90,7 +90,7 @@ class DCapi : public oracleInterface {
  * @return a tier 1 transaction to implement this tier 2 logic.
  */
   Tier1TransactionPtr getT1Syntax(Tier2TransactionPtr) override {
-    // TODO(spm)
+    /// @todo(spm)
     Tier1TransactionPtr t1 = std::make_unique<Tier1Transaction>();
     return(std::move(t1));
   }
@@ -111,7 +111,7 @@ class DCapi : public oracleInterface {
   Tier2TransactionPtr tier2Process(InputBuffer &input_buffer,
                                    const ChainState &context,
                                    const KeyRing &keys) override {
-    Tier2TransactionPtr tx = std::make_unique<Tier2Transaction>(input_buffer, keys);
+    Tier2TransactionPtr tx = Tier2Transaction::CreateUniquePtr(input_buffer, keys);
     if (!isValid(*tx, context)) {
       return std::move(tx);
     }

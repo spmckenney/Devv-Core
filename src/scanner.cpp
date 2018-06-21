@@ -82,7 +82,7 @@ int main(int argc, char* argv[])
       InputBuffer buffer(raw);
       while (buffer.getOffset() < file_size) {
         if (options->mode == eAppMode::scan) {
-          Tier2Transaction tx(buffer, keys, true);
+          Tier2Transaction tx(Tier2Transaction::Create(buffer, keys, true));
           file_txs++;
           file_tfer += tx.getTransfers().size();
           out += tx.getJSON();

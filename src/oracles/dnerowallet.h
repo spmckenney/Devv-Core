@@ -103,7 +103,7 @@ class dnerowallet : public oracleInterface {
   Tier2TransactionPtr tier2Process(InputBuffer &input_buffer,
                                    const ChainState &context,
                                    const KeyRing &keys) override {
-    Tier2TransactionPtr tx = std::make_unique<Tier2Transaction>(input_buffer, keys);
+    Tier2TransactionPtr tx = Tier2Transaction::CreateUniquePtr(input_buffer, keys);
     if (!isValid(*tx, context)) {
       return tx;
     }

@@ -4,16 +4,19 @@
  *  Created on: Apr 21, 2018
  *      Author: Nick Williams
  */
-
 #ifndef PRIMITIVES_FINALBLOCK_H_
 #define PRIMITIVES_FINALBLOCK_H_
 
-#include "ProposedBlock.h"
+#include "common/devcash_exceptions.h"
+#include "primitives/ProposedBlock.h"
 
 using namespace Devcash;
 
 namespace Devcash {
 
+/**
+ * Contains a finalized blockchain block
+ */
 class FinalBlock {
  public:
   /**
@@ -81,43 +84,6 @@ class FinalBlock {
    * @param serial
    * @param prior
    * @param offset
-   */
-  FinalBlock(InputBuffer& buffer, const ChainState& prior) : block_state_(prior) {
-    if (buffer.size() < MinSize()) {
-      LOG_WARNING << "Invalid serialized FinalBlock, too small!";
-      return;
-    }
-    version_ |= buffer.getNextByte();
-    if (version_ != 0) {
-      LOG_WARNING << "Invalid FinalBlock.version: " + std::to_string(version_);
-      return;
-    }
-
-    num_bytes_ = buffer.getNextUint64();
-    if (buffer.size() < num_bytes_) {
-      LOG_WARNING << "Invalid serialized FinalBlock, wrong size!";
-      return;
-    }
-
-    block_time_ = buffer.getNextUint64();
-    buffer.copy(prev_hash_);
-    buffer.copy(merkle_root_);
-    tx_size_ = buffer.getNextUint64();
-    sum_size_ = buffer.getNextUint64();
-    val_count_ = buffer.getNextUint32();
-
-    // this constructor does not load transactions
-    buffer.increment(tx_size_);
-
-    summary_ = Summary::Create(buffer);
-    vals_ = Validation::Create(buffer, val_count_);
-  }
-
-  /**
-   * Constructor
-   * @param serial
-   * @param prior
-   * @param offset
    * @param keys
    * @param mode
    */
@@ -154,7 +120,7 @@ class FinalBlock {
         Tier1TransactionPtr one_tx = std::make_unique<Tier1Transaction>(buffer, keys);
         transaction_vector_.push_back(std::move(one_tx));
       } else if (mode == eAppMode::T2) {
-        Tier2TransactionPtr one_tx = std::make_unique<Tier2Transaction>(buffer, keys);
+        Tier2TransactionPtr one_tx = Tier2Transaction::CreateUniquePtr(buffer, keys);
         transaction_vector_.push_back(std::move(one_tx));
       }
     }
@@ -180,6 +146,14 @@ class FinalBlock {
       , summary_(Summary::Copy(other.summary_))
       , vals_(other.vals_)
       , block_state_(other.block_state_){}
+
+  /**
+   *
+   * @param buffer
+   * @param prior
+   * @return
+   */
+  static FinalBlock Create(InputBuffer& buffer, const ChainState& prior);
 
   /**
    * Static method which returns the minimum size for a FinalBlock
@@ -352,6 +326,12 @@ class FinalBlock {
   const Validation& getValidation() const { return vals_; }
 
  private:
+  /**
+   * Constructor
+   * @param prior
+   */
+  explicit FinalBlock(const ChainState& prior) : block_state_(prior) {}
+
   /// Version of the block
   uint8_t version_ = 0;
   /// Number of bytes of this block

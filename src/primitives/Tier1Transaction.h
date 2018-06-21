@@ -19,9 +19,6 @@ namespace Devcash {
 
 class Tier1Transaction : public Transaction {
  public:
-  // This is to support the unimplemented oracleInterface::getT1Syntax() methods
-  Tier1Transaction() = default;
-
   /**
    * Constructor
    * @param[in] serial The serialized buffer to construction this transaction from
@@ -89,6 +86,19 @@ class Tier1Transaction : public Transaction {
     }
   }
 
+  static Tier1Transaction Create() {
+    Tier1Transaction tx;
+    return(tx);
+  };
+
+  static Tier1Transaction Create(InputBuffer& buffer,
+                                 const KeyRing& keys,
+                                 bool calculate_soundness = true);
+
+  static std::unique_ptr<Tier1Transaction> CreateUniquePtr(InputBuffer& buffer,
+                                                           const KeyRing& keys,
+                                                           bool calculate_soundness = true);
+
   /**
    * Creates a deep copy of this transaction
    * @return
@@ -97,7 +107,20 @@ class Tier1Transaction : public Transaction {
     return std::unique_ptr<Transaction>(new Tier1Transaction(*this));
   }
 
+  /// Declare make_unique<>() as a friend
+  friend std::unique_ptr<Tier1Transaction> std::make_unique<Tier1Transaction>();
+
  private:
+  /**
+   * Private default constructor
+   */
+  Tier1Transaction() = default;
+
+  static void Fill(Tier1Transaction& tx,
+                   InputBuffer &buffer,
+                   const KeyRing &keys,
+                   bool calculate_soundness);
+
   /**
    * Return a copy of the message digest
    * @return vector of bytes
@@ -240,11 +263,10 @@ class Tier1Transaction : public Transaction {
     return json;
   }
 
-  uint64_t sum_size_;
+  uint64_t sum_size_ = 0;
 };
 
 typedef std::unique_ptr<Tier1Transaction> Tier1TransactionPtr;
-
 }  // end namespace Devcash
 
 #endif /* PRIMITIVES_TIER1TRANSACTION_H_ */

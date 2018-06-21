@@ -473,7 +473,7 @@ class Tier1TransactionTest : public ::testing::Test {
 
 TEST_F(Tier1TransactionTest, defaultConstructor) {
   size_t zero = 0;
-  Devcash::Tier1Transaction transaction;
+  Devcash::Tier1Transaction transaction = Tier1Transaction::Create();
 
   // @todo (mckenney) should be Devcash::Tier1Transaction::MinSize()?
   EXPECT_EQ(transaction.getByteSize(), zero);

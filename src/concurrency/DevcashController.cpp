@@ -330,7 +330,7 @@ std::vector<std::vector<byte>> DevcashController::loadTransactions() {
       InputBuffer buffer(raw);
       while (buffer.getOffset() < static_cast<size_t>(file_size)) {
         //constructor increments offset by reference
-        FinalBlock one_block(buffer, priori);
+        FinalBlock one_block(FinalBlock::Create(buffer, priori));
         Summary sum = Summary::Copy(one_block.getSummary());
         Validation val(one_block.getValidation());
         std::pair<Address, Signature> pair(val.getFirstValidation());
