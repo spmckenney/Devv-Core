@@ -16,7 +16,7 @@
 #include "types/DevcashMessage.h"
 #include "common/logger.h"
 #include "common/util.h"
-#include "DevcashController.h"
+#include "ValidatorController.h"
 #include "DevcashRingQueue.h"
 
 using namespace Devcash;
@@ -24,7 +24,7 @@ using namespace Devcash;
 namespace Devcash {
 
   /* Constructors/Destructors */
-  DevcashControllerWorker::DevcashControllerWorker(DevcashController* control,
+  DevcashControllerWorker::DevcashControllerWorker(ValidatorController* control,
                     const int validators=kDEFAULT_WORKERS,
                     const int consensus=kDEFAULT_WORKERS,
                     const int shard_comms=kDEFAULT_WORKERS)

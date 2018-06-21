@@ -64,7 +64,7 @@ void DevcashNode::Shutdown()
   control_.StopAll();
 }
 
-DevcashNode::DevcashNode(DevcashController& control, DevcashContext& context)
+DevcashNode::DevcashNode(ValidatorController& control, DevcashContext& context)
     : control_(control), app_context_(context)
 {
   LOG_INFO << "Hello from node: " << app_context_.get_uri() << "!!";
@@ -160,7 +160,7 @@ void DevcashNode::RunNetworkTest(unsigned int)
   CASH_TRY {
     //control_.StartToy(node_index);
 
-    //TODO: add messages for each node in concurrency/DevcashController.cpp
+    //TODO: add messages for each node in concurrency/ValidatorController.cpp
 
 	//let the test run before shutting down (<10 sec)
     auto ms = 10000;

@@ -16,7 +16,7 @@
 #include "types/DevcashMessage.h"
 #include "common/logger.h"
 #include "common/util.h"
-#include "DevcashController.h"
+#include "ValidatorController.h"
 #include "DevcashMPMCQueue.h"
 
 namespace Devcash {
@@ -25,7 +25,7 @@ class DevcashControllerWorker {
  public:
 
   /* Constructors/Destructors */
-  DevcashControllerWorker(DevcashController* control,
+  DevcashControllerWorker(ValidatorController* control,
                     const int validators, const int consensus, const int shard_comms);
 
   virtual ~DevcashControllerWorker() {
@@ -70,7 +70,7 @@ class DevcashControllerWorker {
   DevcashMPMCQueue consensus_;
   DevcashMPMCQueue shardcomm_;
   std::atomic<bool> continue_;  //signals all threads to stop gracefully
-  DevcashController* controller_;
+  ValidatorController* controller_;
   bool toy_mode_ = false;
 
 };

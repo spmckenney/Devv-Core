@@ -14,7 +14,7 @@
 #include <string>
 #include <vector>
 
-#include "concurrency/DevcashController.h"
+#include "concurrency/ValidatorController.h"
 #include "io/message_service.h"
 
 namespace Devcash
@@ -34,7 +34,7 @@ class DevcashNode {
   /** Shut down immediately. */
   void Shutdown();
 
-  DevcashNode(DevcashController& devcash, DevcashContext& context);
+  DevcashNode(ValidatorController& devcash, DevcashContext& context);
 
   /** Initialize devcoin core: Basic context setup.
    *  @note Do not call Shutdown() if this function fails.
@@ -58,7 +58,7 @@ class DevcashNode {
   void RunNetworkTest(unsigned int);
 
 private:
-  DevcashController& control_;
+  ValidatorController& control_;
   DevcashContext& app_context_;
 };
 

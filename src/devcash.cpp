@@ -16,13 +16,11 @@
 
 #include "common/argument_parser.h"
 #include "common/devcash_context.h"
-#include "concurrency/DevcashController.h"
+#include "concurrency/ValidatorController.h"
 #include "node/DevcashNode.h"
 #include "io/message_service.h"
 
 using namespace Devcash;
-
-#define UNUSED(x) ((void)x)
 
 std::unique_ptr<io::TransactionClient> create_transaction_client(const devcash_options& options,
                                                                  zmq::context_t& context) {
@@ -68,6 +66,7 @@ int main(int argc, char* argv[])
     std::unique_ptr<io::TransactionServer> server = create_transaction_server(*options, context);
     std::unique_ptr<io::TransactionClient> peer_client = create_transaction_client(*options, context);
 
+    /*
     // Create loopback client to subscribe to simulator transactions
     std::unique_ptr<io::TransactionClient> loopback_client(new io::TransactionClient(context));
     auto be = options->bind_endpoint;
@@ -78,10 +77,10 @@ int main(int argc, char* argv[])
       LOG_ERROR << "Extracting bind number failed: " << be;
     }
     loopback_client->addConnection(this_uri);
+*/
 
-    DevcashController controller(*server,
+    ValidatorController controller(*server,
                                  *peer_client,
-                                 *loopback_client,
                                  options->num_validator_threads,
                                  options->num_consensus_threads,
                                  options->tx_batch_size,

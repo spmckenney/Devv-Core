@@ -1,11 +1,11 @@
 /*
- * DevcashController.cpp
+ * ValidatorController.cpp
  *
  *  Created on: Mar 23, 2018
  *      Author: Nick Williams
  */
 
-#include "DevcashController.h"
+#include "ValidatorController.h"
 
 #include <condition_variable>
 #include <mutex>
@@ -29,10 +29,9 @@ namespace Devcash {
 #define DEBUG_TRANSACTION_INDEX \
   (processed + (context_.get_current_node()+1)*11000000)
 
-DevcashController::DevcashController(
+ValidatorController::ValidatorController(
     io::TransactionServer& server,
     io::TransactionClient& peer_client,
-    io::TransactionClient& loopback_client,
     size_t validator_count,
     size_t consensus_count,
     size_t batch_size,
@@ -44,7 +43,6 @@ DevcashController::DevcashController(
     const std::string& stop_file)
   : server_(server)
   , peer_client_(peer_client)
-  , loopback_client_(loopback_client)
   , validator_count_(validator_count)
   , consensus_count_(consensus_count)
   , keys_(keys)
@@ -57,13 +55,13 @@ DevcashController::DevcashController(
   , workers_(new DevcashControllerWorker(this, validator_count_, consensus_count_, consensus_count_))
 {}
 
-DevcashController::~DevcashController() {
+ValidatorController::~ValidatorController() {
   if (workers_) {
     delete workers_;
   }
 }
 
-void DevcashController::ValidatorCallback(DevcashMessageUniquePtr ptr) {
+void ValidatorController::ValidatorCallback(DevcashMessageUniquePtr ptr) {
   std::lock_guard<std::mutex> guard(mutex_);
   if (shutdown_) return;
   if (ptr == nullptr) {
@@ -72,7 +70,7 @@ void DevcashController::ValidatorCallback(DevcashMessageUniquePtr ptr) {
   }
   LogDevcashMessageSummary(*ptr, "ValidatorCallback");
   try {
-    LOG_DEBUG << "DevcashController::ValidatorCallback()";
+    LOG_DEBUG << "ValidatorController::ValidatorCallback()";
     MTR_SCOPE_FUNC();
     if (ptr->message_type == TRANSACTION_ANNOUNCEMENT) {
       DevcashMessage msg(*ptr.get());
@@ -96,22 +94,22 @@ void DevcashController::ValidatorCallback(DevcashMessageUniquePtr ptr) {
       pushConsensus(std::move(ptr));
     }
   } catch (const std::exception& e) {
-    LOG_FATAL << FormatException(&e, "DevcashController.ValidatorCallback()");
+    LOG_FATAL << FormatException(&e, "ValidatorController.ValidatorCallback()");
     StopAll();
   }
 }
 
-void DevcashController::ConsensusCallback(DevcashMessageUniquePtr ptr) {
+void ValidatorController::ConsensusCallback(DevcashMessageUniquePtr ptr) {
   std::lock_guard<std::mutex> guard(mutex_);
   MTR_SCOPE_FUNC();
   try {
     if (shutdown_) {
-      LOG_DEBUG << "DevcashController()::ConsensusCallback(): shutdown_ == true";
+      LOG_DEBUG << "ValidatorController()::ConsensusCallback(): shutdown_ == true";
       return;
     }
     switch(ptr->message_type) {
       case eMessageType::FINAL_BLOCK:
-        LOG_DEBUG << "DevcashController()::ConsensusCallback(): FINAL_BLOCK";
+        LOG_DEBUG << "ValidatorController()::ConsensusCallback(): FINAL_BLOCK";
         message_callbacks_.final_block_cb(std::move(ptr),
                                           context_,
                                           keys_,
@@ -123,7 +121,7 @@ void DevcashController::ConsensusCallback(DevcashMessageUniquePtr ptr) {
         break;
 
       case eMessageType::PROPOSAL_BLOCK:
-        LOG_DEBUG << "DevcashController()::ConsensusCallback(): PROPOSAL_BLOCK";
+        LOG_DEBUG << "ValidatorController()::ConsensusCallback(): PROPOSAL_BLOCK";
         utx_pool_.get_transaction_creation_manager().set_keys(&keys_);
         message_callbacks_.proposal_block_cb(std::move(ptr),
                                              context_,
@@ -135,13 +133,13 @@ void DevcashController::ConsensusCallback(DevcashMessageUniquePtr ptr) {
         break;
 
       case eMessageType::TRANSACTION_ANNOUNCEMENT:
-        LOG_DEBUG << "DevcashController()::ConsensusCallback(): TRANSACTION_ANNOUNCEMENT";
+        LOG_DEBUG << "ValidatorController()::ConsensusCallback(): TRANSACTION_ANNOUNCEMENT";
         LOG_WARNING << "Unexpected message @ consensus, to validator";
         pushValidator(std::move(ptr));
         break;
 
       case eMessageType::VALID:
-        LOG_DEBUG << "DevcashController()::ConsensusCallback(): VALIDATION";
+        LOG_DEBUG << "ValidatorController()::ConsensusCallback(): VALIDATION";
         message_callbacks_.validation_block_cb(std::move(ptr),
                               context_,
                               final_chain_,
@@ -163,22 +161,22 @@ void DevcashController::ConsensusCallback(DevcashMessageUniquePtr ptr) {
         pushShardComms(std::move(ptr));
         break;
 
-      default:LOG_ERROR << "DevcashController()::ConsensusCallback(): Unexpected message, ignore.\n";
+      default:LOG_ERROR << "ValidatorController()::ConsensusCallback(): Unexpected message, ignore.\n";
         break;
     }
   } catch (const std::exception& e) {
-    LOG_FATAL << FormatException(&e, "DevcashController.ConsensusCallback()");
+    LOG_FATAL << FormatException(&e, "ValidatorController.ConsensusCallback()");
     StopAll();
     throw e;
   }
 }
 
-void DevcashController::ShardCommsCallback(DevcashMessageUniquePtr ptr) {
+void ValidatorController::ShardCommsCallback(DevcashMessageUniquePtr ptr) {
   std::lock_guard<std::mutex> guard(mutex_);
   MTR_SCOPE_FUNC();
   try {
     if (shutdown_) {
-      LOG_INFO << "DevcashController()::ShardCommsCallback(): shutdown_ == true";
+      LOG_INFO << "ValidatorController()::ShardCommsCallback(): shutdown_ == true";
       return;
     }
     switch(ptr->message_type) {
@@ -203,7 +201,7 @@ void DevcashController::ShardCommsCallback(DevcashMessageUniquePtr ptr) {
       break;
 
     case eMessageType::REQUEST_BLOCK:
-      LOG_DEBUG << "DevcashController()::ShardCommsCallback(): REQUEST_BLOCK";
+      LOG_DEBUG << "ValidatorController()::ShardCommsCallback(): REQUEST_BLOCK";
       //request updates from remote shards if this chain has grown
       if (remote_blocks_ < final_chain_.size()) {
         std::vector<byte> request;
@@ -239,7 +237,7 @@ void DevcashController::ShardCommsCallback(DevcashMessageUniquePtr ptr) {
       break;
 
     case eMessageType::GET_BLOCKS_SINCE:
-      LOG_DEBUG << "DevcashController()::ShardCommsCallback(): GET_BLOCKS_SINCE";
+      LOG_DEBUG << "ValidatorController()::ShardCommsCallback(): GET_BLOCKS_SINCE";
       //provide blocks since requested height
       message_callbacks_.blocks_since_request_cb(std::move(ptr),
                                final_chain_,
@@ -249,7 +247,7 @@ void DevcashController::ShardCommsCallback(DevcashMessageUniquePtr ptr) {
       break;
 
   case eMessageType::BLOCKS_SINCE:
-      LOG_DEBUG << "DevcashController()::ShardCommsCallback(): BLOCKS_SINCE";
+      LOG_DEBUG << "ValidatorController()::ShardCommsCallback(): BLOCKS_SINCE";
       message_callbacks_.blocks_since_cb(std::move(ptr),
                         final_chain_,
                         context_,
@@ -259,19 +257,19 @@ void DevcashController::ShardCommsCallback(DevcashMessageUniquePtr ptr) {
       break;
 
     default:
-      LOG_ERROR << "DevcashController()::ShardCommsCallback(): Unexpected message, ignore.\n";
+      LOG_ERROR << "ValidatorController()::ShardCommsCallback(): Unexpected message, ignore.\n";
       break;
     }
   } catch (const std::exception& e) {
-    LOG_FATAL << FormatException(&e, "DevcashController.ShardCommsCallback()");
+    LOG_FATAL << FormatException(&e, "ValidatorController.ShardCommsCallback()");
     throw e;
     StopAll();
   }
 }
 
-void DevcashController::ValidatorToyCallback(DevcashMessageUniquePtr ptr) {
+void ValidatorController::ValidatorToyCallback(DevcashMessageUniquePtr ptr) {
   MTR_SCOPE_FUNC();
-  LOG_DEBUG << "DevcashController::ValidatorToyCallback()";
+  LOG_DEBUG << "ValidatorController::ValidatorToyCallback()";
   assert(ptr);
   if (validator_flipper_) {
     pushConsensus(std::move(ptr));
@@ -279,9 +277,9 @@ void DevcashController::ValidatorToyCallback(DevcashMessageUniquePtr ptr) {
   validator_flipper_ = !validator_flipper_;
 }
 
-void DevcashController::ConsensusToyCallback(DevcashMessageUniquePtr ptr) {
+void ValidatorController::ConsensusToyCallback(DevcashMessageUniquePtr ptr) {
   MTR_SCOPE_FUNC();
-  LOG_DEBUG << "DevcashController()::ConsensusToyCallback()";
+  LOG_DEBUG << "ValidatorController()::ConsensusToyCallback()";
   assert(ptr);
   if (consensus_flipper_) {
       server_.queueMessage(std::move(ptr));
@@ -289,7 +287,7 @@ void DevcashController::ConsensusToyCallback(DevcashMessageUniquePtr ptr) {
   consensus_flipper_ = !consensus_flipper_;
 }
 
-std::vector<std::vector<byte>> DevcashController::loadTransactions() {
+std::vector<std::vector<byte>> ValidatorController::loadTransactions() {
   LOG_DEBUG << "Loading transactions from " << working_dir_;
   MTR_SCOPE_FUNC();
   std::vector<std::vector<byte>> out;
@@ -350,7 +348,7 @@ std::vector<std::vector<byte>> DevcashController::loadTransactions() {
   return out;
 }
 
-void DevcashController::Start() {
+void ValidatorController::Start() {
   MTR_SCOPE_FUNC();
   try {
 
@@ -369,12 +367,8 @@ void DevcashController::Start() {
     peer_client_.listenTo(context_.get_shard_uri());
     peer_client_.listenTo(context_.get_uri());
 
-    loopback_client_.attachCallback(lambda_callback);
-    loopback_client_.listenTo(context_.get_uri());
-
     server_.startServer();
     peer_client_.startClient();
-    loopback_client_.startClient();
 
     std::vector<std::vector<byte>> transactions;
     size_t processed = 0;
@@ -398,7 +392,7 @@ void DevcashController::Start() {
     if (context_.get_sync_host().size() > 0) {
       io::synchronize(context_.get_sync_host(), context_.get_current_node());
     } else {
-      LOG_NOTICE << "DevcashController::Start(): Starting devcash - entering forever loop in 10 sec";
+      LOG_NOTICE << "ValidatorController::Start(): Starting devcash - entering forever loop in 10 sec";
       sleep(1);
     }
 
@@ -443,51 +437,50 @@ void DevcashController::Start() {
     }
 
   } catch (const std::exception& e) {
-    LOG_FATAL << FormatException(&e, "DevcashController.Start()");
+    LOG_FATAL << FormatException(&e, "ValidatorController.Start()");
     StopAll();
   }
 }
 
-void DevcashController::StopAll() {
+void ValidatorController::StopAll() {
   CASH_TRY {
-    LOG_DEBUG << "DevcashController::StopAll()";
+    LOG_DEBUG << "ValidatorController::StopAll()";
     shutdown_ = true;
     std::this_thread::sleep_for(std::chrono::milliseconds(5000));
     peer_client_.stopClient();
-    loopback_client_.stopClient();
     server_.stopServer();
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
     workers_->StopAll();
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
   } CASH_CATCH (const std::exception& e) {
-    LOG_FATAL << FormatException(&e, "DevcashController.StopAll()");
+    LOG_FATAL << FormatException(&e, "ValidatorController.StopAll()");
   }
 }
 
-void DevcashController::pushValidator(DevcashMessageUniquePtr ptr) {
+void ValidatorController::pushValidator(DevcashMessageUniquePtr ptr) {
   CASH_TRY {
-    LOG_DEBUG << "DevcashController::pushValidator()";
+    LOG_DEBUG << "ValidatorController::pushValidator()";
     workers_->pushValidator(std::move(ptr));
   } CASH_CATCH (const std::exception& e) {
-    LOG_FATAL << FormatException(&e, "DevcashController.pushValidator()");
+    LOG_FATAL << FormatException(&e, "ValidatorController.pushValidator()");
   }
 }
 
-void DevcashController::pushConsensus(DevcashMessageUniquePtr ptr) {
+void ValidatorController::pushConsensus(DevcashMessageUniquePtr ptr) {
   CASH_TRY {
-    LOG_DEBUG << "DevcashController::pushConsensus()";
+    LOG_DEBUG << "ValidatorController::pushConsensus()";
     workers_->pushConsensus(std::move(ptr));
   } CASH_CATCH (const std::exception& e) {
-    LOG_FATAL << FormatException(&e, "DevcashController.pushConsensus()");
+    LOG_FATAL << FormatException(&e, "ValidatorController.pushConsensus()");
   }
 }
 
-void DevcashController::pushShardComms(DevcashMessageUniquePtr ptr) {
+void ValidatorController::pushShardComms(DevcashMessageUniquePtr ptr) {
   CASH_TRY {
-    LOG_DEBUG << "DevcashController::pushShardComms()";
+    LOG_DEBUG << "ValidatorController::pushShardComms()";
     workers_->pushShardComms(std::move(ptr));
   } CASH_CATCH (const std::exception& e) {
-    LOG_FATAL << FormatException(&e, "DevcashController.pushShardComms()");
+    LOG_FATAL << FormatException(&e, "ValidatorController.pushShardComms()");
   }
 }
 

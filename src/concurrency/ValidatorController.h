@@ -1,5 +1,5 @@
 /*
- * DevcashController.h controls worker threads for the Devcash protocol.
+ * ValidatorController.h controls worker threads for the Devcash protocol.
  *
  *  Created on: Mar 21, 2018
  *      Author: Nick Williams
@@ -73,11 +73,10 @@ struct DevcashMessageCallbacks {
   ValidationBlockCallback validation_block_cb;
 };
 
-class DevcashController {
+class ValidatorController {
  public:
-  DevcashController(io::TransactionServer& server,
+  ValidatorController(io::TransactionServer& server,
                     io::TransactionClient& peer_client,
-                    io::TransactionClient& loopback_client,
                     size_t validator_count,
                     size_t consensus_count,
                     size_t batch_size,
@@ -88,7 +87,7 @@ class DevcashController {
                     const std::string& working_dir,
                     const std::string& stop_file);
 
-  ~DevcashController();
+  ~ValidatorController();
 
   std::vector<std::vector<byte>> loadTransactions();
 
@@ -153,7 +152,6 @@ class DevcashController {
  private:
   io::TransactionServer& server_;
   io::TransactionClient& peer_client_;
-  io::TransactionClient& loopback_client_;
   const int validator_count_;
   const int consensus_count_;
   size_t shutdown_counter_ = 0;
