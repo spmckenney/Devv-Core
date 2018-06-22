@@ -16,6 +16,7 @@
 #include "types/DevcashMessage.h"
 #include "common/logger.h"
 #include "common/util.h"
+#include "common/devcash_constants.h"
 #include "ValidatorController.h"
 #include "DevcashRingQueue.h"
 
@@ -98,7 +99,7 @@ namespace Devcash {
     LOG_DEBUG << "DevcashControllerWorker::ValidatorLoop(): Validator Ready";
     try {
       while (continue_) {
-        controller_->ValidatorCallback(std::move(validators_.pop()));
+        controller_->validatorCallback(std::move(validators_.pop()));
       }
     } catch (const std::exception& e) {
       LOG_WARNING << FormatException(&e, "ControllerWorker.ValidatorLoop");

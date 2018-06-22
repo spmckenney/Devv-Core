@@ -17,7 +17,7 @@
 #include "blockingconcurrentqueue.h"
 
 #include "types/DevcashMessage.h"
-#include "common/devcash_context.h"
+#include "common/devcash_constants.h"
 #include "common/logger.h"
 
 namespace Devcash {

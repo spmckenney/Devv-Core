@@ -61,6 +61,11 @@ class ProposedBlock {
    */
   ProposedBlock& operator=(ProposedBlock&& other) = default;
 
+  /**
+   *
+   * @param prior
+   * @return
+   */
   static ProposedBlock Create(const ChainState& prior);
 
   /**
@@ -446,6 +451,9 @@ inline ProposedBlock ProposedBlock::Create(InputBuffer &buffer,
 
   return new_block;
 }
+
+typedef std::unique_ptr<ProposedBlock> ProposedBlockPtr;
+typedef std::shared_ptr<ProposedBlock> ProposedBlockSharedPtr;
 
 }  // end namespace Devcash
 

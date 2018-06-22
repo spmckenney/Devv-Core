@@ -78,8 +78,8 @@ add_library(primitives
 
 set(devcash_core_libs devcash_node common concurrency consensus io primitives)
 
-# Add DevcashNode.cpp
-add_library(devcash_node node/DevcashNode.cpp)
+# Add BlockchainModule.cpp
+add_library(devcash_node modules/BlockchainModule.cpp)
 
 option(WITH_THREAD_TESTING "Enable thread testing" OFF)
 
@@ -348,4 +348,4 @@ target_link_libraries(zmq_envelope_subscriber
   )
 
 ######### gtest ##########
-# include(${CMAKE_CURRENT_SOURCE_DIR}/gtest/CMakeLists.txt)
+include(${CMAKE_CURRENT_SOURCE_DIR}/gtest/CMakeLists.txt)

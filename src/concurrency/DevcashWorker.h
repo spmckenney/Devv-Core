@@ -38,8 +38,6 @@ class DevcashControllerWorker {
 
   void Start();
 
-  void StartToy();
-
   /** Stops all threads in this pool.
    * @note This function may block.
    * @return true iff all threads in this pool joined.

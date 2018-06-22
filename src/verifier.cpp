@@ -31,7 +31,7 @@
 #include "common/argument_parser.h"
 #include "common/devcash_context.h"
 #include "io/message_service.h"
-#include "node/DevcashNode.h"
+#include "modules/BlockchainModule.h"
 #include "primitives/json_interface.h"
 
 using namespace Devcash;

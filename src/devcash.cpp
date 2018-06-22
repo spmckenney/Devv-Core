@@ -17,8 +17,9 @@
 #include "common/argument_parser.h"
 #include "common/devcash_context.h"
 #include "concurrency/ValidatorController.h"
-#include "node/DevcashNode.h"
+#include "modules/BlockchainModule.h"
 #include "io/message_service.h"
+#include "modules/ThreadedController.h"
 
 using namespace Devcash;
 
@@ -79,6 +80,17 @@ int main(int argc, char* argv[])
     loopback_client->addConnection(this_uri);
 */
 
+    /*
+        std::signal(SIGINT, signal_handler);
+        std::signal(SIGABRT, signal_handler);
+        std::signal(SIGTERM, signal_handler);
+        shutdown_handler = [&](int signal) {
+          LOG_INFO << "Received signal ("+std::to_string(signal)+").";
+          shutdown();
+        };
+     */
+
+    /*
     ValidatorController controller(*server,
                                  *peer_client,
                                  options->num_validator_threads,
@@ -89,8 +101,13 @@ int main(int argc, char* argv[])
                                  prior,
                                  options->mode,
                                  options->stop_file);
+*/
 
-    DevcashNode this_node(controller, this_context);
+    UnrecordedTransactionPool utx_pool(prior, options->mode, 10);
+
+    //auto bcm = BlockchainModule::Create(*server, *peer_client, keys, prior, options->mode
+
+    //ThreadedController<BlockchainModule> devcash_module(validator_module, this_context);
 
     /**
      * Chrome tracing setup
@@ -107,20 +124,21 @@ int main(int argc, char* argv[])
 
     MTR_BEGIN("main", "outer");
 
-    if (!this_node.init()) {
+    /*
+    if (!validator_module.init()) {
       LOG_FATAL << "Basic setup failed";
       return false;
     }
     LOG_INFO << "Basic Setup complete";
 
-    if (!this_node.SanityChecks()) {
+    if (!validator_module.performSanityChecks()) {
       LOG_FATAL << "Sanity checks failed";
       return false;
     }
     LOG_INFO << "Sanity checks passed";
 
-    this_node.RunNode();
-
+    validator_module.RunNode();
+*/
     MTR_END("main", "outer");
     mtr_flush();
     mtr_shutdown();

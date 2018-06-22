@@ -70,6 +70,8 @@ struct DevcashMessage {
 };
 
 typedef std::unique_ptr<DevcashMessage> DevcashMessageUniquePtr;
+/// typedef of the DevcashMessage callback signature
+typedef std::function<void(DevcashMessageUniquePtr)> DevcashMessageCallback;
 
 /**
  * Append to serialized buffer

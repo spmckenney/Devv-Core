@@ -13,9 +13,8 @@
 #include "types/DevcashMessage.h"
 
 namespace Devcash {
-namespace io {
 
-typedef std::function<void(DevcashMessageUniquePtr)> DevcashMessageCallback;
+namespace io {
 
 /**
  * TransactionClient
@@ -140,7 +139,7 @@ class TransactionClient final {
   void processIncomingMessage() noexcept;
 
   /// ZMQ communication urls. The client will connect to each URI and subscribe
-  std::vector<std::string> peer_urls_;
+  std::vector<std::string> peer_urls_ = {};
 
   /// ZMQ context reference
   zmq::context_t& context_;
