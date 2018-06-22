@@ -13,6 +13,7 @@
 
 #include "concurrency/TransactionCreationManager.h"
 #include "primitives/FinalBlock.h"
+#include "primitives/factories.h"
 
 namespace Devcash
 {
@@ -48,39 +49,19 @@ class UnrecordedTransactionPool {
     bool AddTransactions(const std::vector<byte>& serial, const KeyRing& keys) {
       LOG_DEBUG << "AddTransactions(const std::vector<byte>& serial, const KeyRing& keys)";
       MTR_SCOPE_FUNC();
-      CASH_TRY {
-        std::vector<TransactionPtr> temp;
-        InputBuffer buffer(serial);
-        while (buffer.getOffset() < buffer.size()) {
-          //note that Transaction constructor advances counter by reference
-          if (mode_ == eAppMode::T2) {
-            TransactionPtr one_tx = std::make_unique<Tier2Transaction>(buffer, keys);
-            if (one_tx->getByteSize() < Transaction::MinSize()) {
-              LOG_WARNING << "Invalid transaction, dropping the remainder of input.";
-              break;
-            }
-            temp.push_back(std::move(one_tx));
-		  } else if (mode_ == eAppMode::T1) {
-            TransactionPtr one_tx = std::make_unique<Tier1Transaction>(buffer, keys);
-            if (one_tx->getByteSize() < Transaction::MinSize()) {
-              LOG_WARNING << "Invalid transaction, dropping the remainder of input.";
-              break;
-            }
-            temp.push_back(std::move(one_tx));
-          }
-        }
-        return AddTransactions(std::move(temp), keys);
-      } CASH_CATCH (const std::exception& e) {
-        LOG_FATAL << FormatException(&e, "UnrecordedTransactionPool.AddTransactions()");
-        return false;
+      std::vector<TransactionPtr> temp;
+      InputBuffer buffer(serial);
+      while (buffer.getOffset() < buffer.size()) {
+        auto tx = CreateTransaction(buffer, keys, mode_);
+        temp.push_back(std::move(tx));
       }
+      return AddTransactions(std::move(temp), keys);
     }
 
 /** Adds Transactions to this pool.
  *  @note if the Transaction is invalid it will not be added,
  *    but other valid transactions will be added.
  *  @note if the Transaction is valid, but is already in the pool,
- *        its reference count will be incremented.
  *  @param txs a vector of Transactions to add.
  *  @params keys a KeyRing that provides keys for signature verification
  *  @return true iff all Transactions are valid and in the pool

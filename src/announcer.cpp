@@ -132,7 +132,7 @@ int main(int argc, char* argv[]) {
         while (buffer.getOffset() < static_cast<size_t>(file_size)) {
           //constructor increments offset by reference
           if (is_block && options->mode == eAppMode::T1) {
-            FinalBlock one_block(buffer, priori);
+            FinalBlock one_block(FinalBlock::Create(buffer, priori));
             const Summary& sum = one_block.getSummary();
             Validation val(one_block.getValidation());
             std::pair<Address, Signature> pair(val.getFirstValidation());
@@ -142,7 +142,7 @@ int main(int argc, char* argv[]) {
             batch.insert(batch.end(), tx_canon.begin(), tx_canon.end());
             input_blocks_++;
           } else if (is_transaction && options->mode == eAppMode::T2) {
-            Tier2Transaction tx(buffer, keys, true);
+            Tier2Transaction tx(Tier2Transaction::Create(buffer, keys, true));
             std::vector<byte> tx_canon(tx.getCanonical());
             batch.insert(batch.end(), tx_canon.begin(), tx_canon.end());
             input_blocks_++;

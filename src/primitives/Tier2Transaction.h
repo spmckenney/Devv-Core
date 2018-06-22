@@ -23,89 +23,17 @@ namespace Devcash {
 class Tier2Transaction : public Transaction {
  public:
   /**
-   * Delete default constructor
+   * Move constructor
+   * @param other
    */
-   Tier2Transaction() = delete;
+   Tier2Transaction(Tier2Transaction&& other) = default;
 
   /**
-   * Constructor
-   *
-   * @param[in] serial The serialized bytestring to construct this transaction from
-   * @param[in,out] offset The pointer to the serialized buffer location.
-   *                       Will get incremented by the size of this transaction.
-   * @param[in] keys a KeyRing that provides keys for signature verification
-   * @param[in] calculate_soundness if true will perform soundness check on this transaction
+   * Default move assignment constructor
+   * @param other
    */
-  explicit Tier2Transaction(InputBuffer& buffer,
-                            const KeyRing& keys,
-                            bool calculate_soundness = true) {
-    MTR_SCOPE_FUNC();
-    int trace_int = 124;
-    MTR_START("Transaction", "Transaction", &trace_int);
-    MTR_STEP("Transaction", "Transaction", &trace_int, "step1");
-    if (buffer.size() < buffer.getOffset() + MinSize()) {
-      LOG_WARNING << "Invalid serialized T2 transaction, too small!";
-      return;
-    }
-    /// Don't increment the buffer, we want to copy it all to canonical_
-    xfer_count_ = buffer.getNextUint64(false);
-    size_t tx_size = MinSize() + (Transfer::Size() * xfer_count_);
-    if (buffer.size() < buffer.getOffset() + tx_size) {
-      std::vector<byte> prefix(buffer.getCurrentIterator(), buffer.getCurrentIterator() + 8);
-      LOG_WARNING << "Invalid serialized T2 transaction, wrong size (" + std::to_string(tx_size) + ")!";
-      LOG_WARNING << "Transaction prefix: " + ToHex(prefix);
-      LOG_WARNING << "Bytes offset: " + std::to_string(buffer.getOffset());
-      return;
-    }
-    MTR_STEP("Transaction", "Transaction", &trace_int, "step2");
-    buffer.copy(std::back_inserter(canonical_), tx_size);
-    if (getOperation() > 3) {
-      LOG_WARNING << "Invalid serialized T2 transaction, invalid operation! (" << getOperation() << ")";
-      return;
-    }
-    MTR_STEP("Transaction", "Transaction", &trace_int, "sound");
-    if (calculate_soundness) {
-      is_sound_ = isSound(keys);
-      if (!is_sound_) {
-        LOG_WARNING << "Invalid serialized T2 transaction, not sound!";
-      }
-    }
-    MTR_FINISH("Transaction", "Transaction", &trace_int);
-  }
+   Tier2Transaction& operator=(Tier2Transaction&& other) = default;
 
-  /**
-   * Constructor
-   * @param xfer_count
-   * @param operation
-   * @param xfers
-   * @param nonce
-   * @param sig
-   * @param keys
-   */
-  /*
-   Tier2Transaction(uint64_t xfer_count,
-                   byte operation,
-                   const std::vector<Transfer>& xfers,
-                   uint64_t nonce,
-                   Signature sig,
-                   const KeyRing& keys)
-      : Transaction(xfer_count, false) {
-    canonical_.reserve(MinSize() + (Transfer::Size() * xfer_count_));
-
-    Uint64ToBin(xfer_count_, canonical_);
-    canonical_.push_back(operation);
-    for (auto& transfer : xfers) {
-      std::vector<byte> xfer_canon(transfer.getCanonical());
-      canonical_.insert(std::end(canonical_), std::begin(xfer_canon), std::end(xfer_canon));
-    }
-    Uint64ToBin(nonce, canonical_);
-    canonical_.insert(std::end(canonical_), std::begin(sig), std::end(sig));
-    is_sound_ = isSound(keys);
-    if (!is_sound_) {
-      LOG_WARNING << "Invalid serialized T2 transaction, not sound!";
-    }
-  }
-*/
   /**
    * Constructor
    * @param oper Operation of this transaction
@@ -139,6 +67,14 @@ class Tier2Transaction : public Transaction {
     }
   }
 
+  static Tier2Transaction Create(InputBuffer& buffer,
+                                 const KeyRing& keys,
+                                 bool calculate_soundness = true);
+
+  static std::unique_ptr<Tier2Transaction> CreateUniquePtr(InputBuffer& buffer,
+                                                           const KeyRing& keys,
+                                                           bool calculate_soundness = true);
+
   /**
    * Creates a clone (deep copy) of this transaction
    * @return
@@ -147,13 +83,32 @@ class Tier2Transaction : public Transaction {
     return std::unique_ptr<Transaction>(new Tier2Transaction(*this));
   }
 
+  /// Declare make_unique<>() as a friend
+  friend std::unique_ptr<Tier2Transaction> std::make_unique<Tier2Transaction>();
+
  private:
+  /**
+   * Private default constructor
+   */
+  Tier2Transaction() = default;
+
   /**
    * Default private copy constructor. We keep this private so the programmer has to
    * explicity call clone() to avoid accidental copies
    */
    Tier2Transaction(const Tier2Transaction& other) = default;
 
+   /**
+    * Fill the given Tier2Transaction from the InputBuffer
+    * @param tx
+    * @param buffer
+    * @param keys
+    * @param calculate_soundness
+    */
+   static void Fill(Tier2Transaction& tx,
+                    InputBuffer &buffer,
+                    const KeyRing &keys,
+                    bool calculate_soundness);
   /**
    * Return a copy of the message digest
    * @return message digest
@@ -373,7 +328,6 @@ class Tier2Transaction : public Transaction {
 };
 
 typedef std::unique_ptr<Tier2Transaction> Tier2TransactionPtr;
-
 }  // end namespace Devcash
 
 #endif  // DEVCASH_PRIMITIVES_TRANSACTION_H

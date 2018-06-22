@@ -7,8 +7,7 @@
 #include <boost/thread.hpp>
 
 #include "primitives/buffers.h"
-#include "primitives/Tier1Transaction.h"
-#include "primitives/Tier2Transaction.h"
+#include "primitives/factories.h"
 
 using namespace Devcash;
 
@@ -64,17 +63,11 @@ public:
     while (buffer.getOffset() < (min_size + tx_size)) {
       //Transaction constructor increments offset by ref
       LOG_TRACE << "while, offset = " << buffer.getOffset();
-      if (app_mode_ == eAppMode::T1) {
-        Tier1TransactionPtr one_tx = std::make_unique<Tier1Transaction>(buffer
-                                                                        , *keys_p_
-                                                                        , false);
-        vtx.push_back(std::move(one_tx));
-      } else if (app_mode_ == eAppMode::T2) {
-        Tier2TransactionPtr one_tx = std::make_unique<Tier2Transaction>(buffer
-                                                                        , *keys_p_
-                                                                        , false);
-        vtx.push_back(std::move(one_tx));
-      }
+      auto tx = CreateTransaction(buffer,
+                                  *keys_p_,
+                                  app_mode_,
+                                  false);
+      vtx.push_back(std::move(tx));
     }
 
     std::vector<boost::shared_future<bool>> pending_data; // vector of futures

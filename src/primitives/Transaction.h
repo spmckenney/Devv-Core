@@ -55,11 +55,6 @@ enum eOpType : byte { Create = 0, Modify = 1, Exchange = 2, Delete = 3 };
 class Transaction {
  public:
   /**
-   * Default Constructor
-   */
-  Transaction() : xfer_count_(0), canonical_(), is_sound_(false) {}
-
-  /**
    * Constructor
    * @param xfer_count
    * @param is_sound
@@ -205,11 +200,16 @@ class Transaction {
   std::string getJSON() const { return do_getJSON(); }
 
  protected:
+  /**
+   * Default Constructor
+   */
+  Transaction() = default;
+
   /// The number of Transfers in this Transaction
-  uint64_t xfer_count_;
+  uint64_t xfer_count_ = 0;
 
   /// The canonical representation of this Transaction
-  std::vector<byte> canonical_;
+  std::vector<byte> canonical_ = {};
 
   /// True if this Transaction is sound
   bool is_sound_ = false;
