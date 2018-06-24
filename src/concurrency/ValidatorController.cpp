@@ -44,12 +44,15 @@ ValidatorController::ValidatorController(
     , utx_pool_(utx_pool)
     , mode_(mode)
 {
+  LOG_DEBUG << "ValidatorController created - mode " << mode_;
 }
 
 ValidatorController::~ValidatorController() {
+  LOG_DEBUG << "~ValidatorController()";
 }
 
 void ValidatorController::validatorCallback(DevcashMessageUniquePtr ptr) {
+  LOG_DEBUG << "ValidatorController::validatorCallback()";
   std::lock_guard<std::mutex> guard(mutex_);
   if (ptr == nullptr) {
     throw DevcashMessageError("validatorCallback(): ptr == nullptr, ignoring");

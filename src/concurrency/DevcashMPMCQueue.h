@@ -64,7 +64,7 @@ class DevcashMPMCQueue {
       if (!keep_popping_) break;
     }
 
-    //LOG_DEBUG << "popped: " << ptr << " " << ptr->uri;
+    LOG_DEBUG << "DevcashMPMCQueue::pop()ped: " << ptr << " " << ptr->uri;
     std::unique_ptr<DevcashMessage> pointer(ptr);
     return pointer;
   }
