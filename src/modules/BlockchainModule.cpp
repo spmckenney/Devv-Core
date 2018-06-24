@@ -4,6 +4,7 @@
  *
  *  Created on: Mar 20, 2018
  *  Author: Nick Williams
+ *          Shawn McKenney
  */
 
 #include "BlockchainModule.h"
@@ -84,8 +85,6 @@ std::unique_ptr<BlockchainModule> BlockchainModule::Create(io::TransactionServer
                                         const KeyRing &keys,
                                         const ChainState &prior,
                                         eAppMode mode,
-                                        Blockchain final_chain,
-                                        UnrecordedTransactionPool utx_pool,
                                         DevcashContext &context,
                                         size_t max_tx_per_block) {
 
@@ -100,31 +99,31 @@ std::unique_ptr<BlockchainModule> BlockchainModule::Create(io::TransactionServer
 
   /**
    * Initialize ValidatorController
+   *
+   * Create the ValidatorController to handle validation messages
    */
-  // Create the ValidatorController to handle validation messages
   ValidatorController validator_controller(keys,
                                            context,
                                            prior,
-                                           final_chain,
-                                           utx_pool,
+                                           blockchain_module_ptr->getFinalChain(),
+                                           blockchain_module_ptr->getTransactionPool(),
                                            mode);
 
   /// Register the outgoing callback to send over zmq
-  auto outgoing_callback = [&](DevcashMessageUniquePtr p) { blockchain_module_ptr->server_.queueMessage(std::move(p)); };
-  validator_controller.registerOutgoingCallback(outgoing_callback);
-  //validator_controller.registerOutgoingCallback(boost::bind(&io::TransactionServer::queueMessage,
-//                                                            &blockchain_module_ptr->server_));
+  auto outgoing_callback =
+      [&](DevcashMessageUniquePtr p) { blockchain_module_ptr->server_.queueMessage(std::move(p)); };
 
-  /// The controllers contain the the algorithms, the ThreadedController parallelizes them
+  validator_controller.registerOutgoingCallback(outgoing_callback);
+
+  /// The controllers contain the the algorithms, the ParallelExecutor parallelizes them
   blockchain_module_ptr->validator_ =
-      std::make_unique<ThreadedController<ValidatorController>>(validator_controller, context);
+      std::make_unique<ParallelExecutor<ValidatorController>>(validator_controller, context, 1);
 
   /// Attach a callback to be run in the threads
-//  blockchain_module_ptr->validator_->attachCallback(boost::bind(&ValidatorController::validatorCallback,
-  //                                                        &validator_controller));
-  blockchain_module_ptr->validator_->attachCallback([&](DevcashMessageUniquePtr p) {
-    validator_controller.validatorCallback(std::move(p));
+  blockchain_module_ptr->validator_->attachCallback(
+      [&](DevcashMessageUniquePtr p) { validator_controller.validatorCallback(std::move(p));
   });
+
 
   /**
    * Initialize ConsensusController
@@ -133,22 +132,21 @@ std::unique_ptr<BlockchainModule> BlockchainModule::Create(io::TransactionServer
   ConsensusController consensus_controller(keys,
                                            context,
                                            prior,
-                                           final_chain,
-                                           utx_pool,
+                                           blockchain_module_ptr->getFinalChain(),
+                                           blockchain_module_ptr->getTransactionPool(),
                                            mode);
 
   /// Register the outgoing callback to send over zmq
   consensus_controller.registerOutgoingCallback(outgoing_callback);
 
-  /// The controllers contain the the algorithms, the ThreadedController parallelizes them
+  /// The controllers contain the the algorithms, the ParallelExecutor parallelizes them
   blockchain_module_ptr->consensus_ =
-      std::make_unique<ThreadedController<ConsensusController>>(consensus_controller, context);
+      std::make_unique<ParallelExecutor<ConsensusController>>(consensus_controller, context, 1);
 
   /// Attach a callback to be run in the threads
   blockchain_module_ptr->consensus_->attachCallback([&](DevcashMessageUniquePtr p) {
     consensus_controller.consensusCallback(std::move(p));
   });
-
 
   /**
    * Initialize InternetworkController
@@ -157,16 +155,16 @@ std::unique_ptr<BlockchainModule> BlockchainModule::Create(io::TransactionServer
   InternetworkController internetwork_controller(keys,
                                                  context,
                                                  prior,
-                                                 final_chain,
-                                                 utx_pool,
+                                                 blockchain_module_ptr->getFinalChain(),
+                                                 blockchain_module_ptr->getTransactionPool(),
                                                  mode);
 
   /// Register the outgoing callback to send over zmq
   internetwork_controller.registerOutgoingCallback(outgoing_callback);
 
-  /// The controllers contain the the algorithms, the ThreadedController parallelizes them
+  /// The controllers contain the the algorithms, the ParallelExecutor parallelizes them
   blockchain_module_ptr->internetwork_ =
-      std::make_unique<ThreadedController<InternetworkController>>(internetwork_controller, context);
+      std::make_unique<ParallelExecutor<InternetworkController>>(internetwork_controller, context, 1);
 
   /// Attach a callback to be run in the threads
   blockchain_module_ptr->internetwork_->attachCallback([&](DevcashMessageUniquePtr p) {
@@ -252,10 +250,10 @@ void BlockchainModule::start()
 {
   try {
     LOG_INFO << "Start BlockchainModule";
-  //    consensus_.start();
-    //internetwork_.start();
-    //validator_.start();
-    LOG_INFO << "Controller stopped.";
+    consensus_->start();
+    internetwork_->start();
+    validator_->start();
+    LOG_INFO << "Controllers started.";
   } catch (const std::exception& e) {
     LOG_FATAL << FormatException(&e, "BlockchainModule.RunScanner");
     throw;

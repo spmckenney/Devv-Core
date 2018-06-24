@@ -1,4 +1,3 @@
-
 /*
  * devcash.cpp the main class.  Checks args and hands of to init.
  *
@@ -19,7 +18,7 @@
 #include "concurrency/ValidatorController.h"
 #include "modules/BlockchainModule.h"
 #include "io/message_service.h"
-#include "modules/ThreadedController.h"
+#include "modules/ParallelExecutor.h"
 
 using namespace Devcash;
 
@@ -51,9 +50,9 @@ int main(int argc, char* argv[])
       exit(-1);
     }
 
-    zmq::context_t context(1);
+    zmq::context_t zmq_context(1);
 
-    DevcashContext this_context(options->node_index
+    DevcashContext devcash_context(options->node_index
                                 , options->shard_index
                                 , options->mode
                                 , options->inn_keys
@@ -61,15 +60,15 @@ int main(int argc, char* argv[])
                                 , options->wallet_keys
                                 , options->sync_port
                                 , options->sync_host);
-    KeyRing keys(this_context);
+    KeyRing keys(devcash_context);
     ChainState prior;
 
-    std::unique_ptr<io::TransactionServer> server = create_transaction_server(*options, context);
-    std::unique_ptr<io::TransactionClient> peer_client = create_transaction_client(*options, context);
+    std::unique_ptr<io::TransactionServer> server = create_transaction_server(*options, zmq_context);
+    std::unique_ptr<io::TransactionClient> peer_client = create_transaction_client(*options, zmq_context);
 
     /*
     // Create loopback client to subscribe to simulator transactions
-    std::unique_ptr<io::TransactionClient> loopback_client(new io::TransactionClient(context));
+    std::unique_ptr<io::TransactionClient> loopback_client(new io::TransactionClient(zmq_context));
     auto be = options->bind_endpoint;
     std::string this_uri = "";
     try {
@@ -97,17 +96,14 @@ int main(int argc, char* argv[])
                                  options->num_consensus_threads,
                                  options->tx_batch_size,
                                  keys,
-                                 this_context,
+                                 devcash_context,
                                  prior,
                                  options->mode,
                                  options->stop_file);
 */
 
-    UnrecordedTransactionPool utx_pool(prior, options->mode, 10);
+    //UnrecordedTransactionPool utx_pool(prior, options->mode, 10);
 
-    //auto bcm = BlockchainModule::Create(*server, *peer_client, keys, prior, options->mode
-
-    //ThreadedController<BlockchainModule> devcash_module(validator_module, this_context);
 
     /**
      * Chrome tracing setup
@@ -123,6 +119,23 @@ int main(int argc, char* argv[])
     MTR_META_THREAD_NAME("main thread");
 
     MTR_BEGIN("main", "outer");
+
+    {
+      LOG_NOTICE << "Creating the BlockchainModule";
+      auto bcm = BlockchainModule::Create(*server, *peer_client, keys, prior, options->mode, devcash_context, 1000);
+      LOG_NOTICE << "Starting the BlockchainModule";
+
+      bcm->start();
+
+      for (;;) {
+        int i = 10;
+        LOG_DEBUG << "main loop: sleeping " << i;
+        sleep(i);
+      }
+      LOG_NOTICE << "Stopping the BlockchainModule";
+    }
+
+    LOG_NOTICE << "BlockchainModule is halted.";
 
     /*
     if (!validator_module.init()) {

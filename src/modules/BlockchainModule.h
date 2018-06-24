@@ -14,16 +14,19 @@
 #include "concurrency/ValidatorController.h"
 #include "concurrency/ThreadGroup.h"
 #include "io/message_service.h"
-#include "modules/ThreadedController.h"
+#include "modules/ParallelExecutor.h"
 #include "modules/ModuleInterface.h"
 #include "io/message_service.h"
 
 namespace Devcash {
 
+/**
+ * The Blockchain Module implements the blockchain logic
+ */
 class BlockchainModule : public ModuleInterface {
-  typedef std::unique_ptr<ThreadedController<ConsensusController>> ThreadedConsensusPtr;
-  typedef std::unique_ptr<ThreadedController<InternetworkController>> ThreadedInternetworkPtr;
-  typedef std::unique_ptr<ThreadedController<ValidatorController>> ThreadedValidatorPtr;
+  typedef std::unique_ptr<ParallelExecutor<ConsensusController>> ThreadedConsensusPtr;
+  typedef std::unique_ptr<ParallelExecutor<InternetworkController>> ThreadedInternetworkPtr;
+  typedef std::unique_ptr<ParallelExecutor<ValidatorController>> ThreadedValidatorPtr;
 
  public:
   BlockchainModule(io::TransactionServer &server,
@@ -50,15 +53,13 @@ class BlockchainModule : public ModuleInterface {
   virtual ~BlockchainModule() {}
 
   /**
-   *
+   * Create a new Blockchain module
    */
   static std::unique_ptr<BlockchainModule> Create(io::TransactionServer &server,
                                 io::TransactionClient &client,
                                 const KeyRing &keys,
                                 const ChainState &prior,
                                 eAppMode mode,
-                                Blockchain final_chain,
-                                UnrecordedTransactionPool utx_pool,
                                 DevcashContext &context,
                                 size_t max_tx_per_block);
 
@@ -87,6 +88,14 @@ class BlockchainModule : public ModuleInterface {
   void start();
 
   void handleMessage(DevcashMessageUniquePtr message);
+
+  Blockchain& getFinalChain() { return final_chain_; }
+
+  const Blockchain& getFinalChain() const { return final_chain_; }
+
+  UnrecordedTransactionPool& getTransactionPool() { return utx_pool_; }
+
+  const UnrecordedTransactionPool& getTransactionPool() const { return utx_pool_; }
 
  private:
   io::TransactionServer &server_;

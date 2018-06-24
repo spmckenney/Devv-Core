@@ -364,7 +364,7 @@ class ProposedBlock {
   /**
    * Private default constructor.
    */
-  ProposedBlock() noexcept = default;
+  ProposedBlock() = default;
 
   /**
    * Create a new ProposedBlock from an existing ChainState
