@@ -14,8 +14,12 @@ namespace Devcash {
 template <typename Module>
 class ThreadedController {
  public:
-  ThreadedController(Module& module, DevcashContext& context)
-      : module_(module), context_(context)
+  ThreadedController(Module& module,
+                     DevcashContext& context,
+                     size_t num_threads)
+      : module_(module)
+      , context_(context)
+      , thread_group_(num_threads)
   {
   }
 
@@ -35,8 +39,6 @@ class ThreadedController {
   void start() {
     thread_group_.start();
   }
-
-  void startShutdown() {};
 
   void shutdown () {
     thread_group_.stop();
