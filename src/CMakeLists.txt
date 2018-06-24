@@ -348,4 +348,4 @@ target_link_libraries(zmq_envelope_subscriber
   )
 
 ######### gtest ##########
-# include(${CMAKE_CURRENT_SOURCE_DIR}/gtest/CMakeLists.txt)
+include(${CMAKE_CURRENT_SOURCE_DIR}/gtest/CMakeLists.txt)

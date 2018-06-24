@@ -2,31 +2,48 @@ FROM ppc64le/ubuntu:16.04
 
 # System packages
 RUN apt-get update && apt-get install -y \
-    gdb \
-    valgrind \
-    unzip \
-    git \
-    emacs \
-    htop \
-    bash-completion \
+    aptitude \
+    autoconf \
+    autoconf-archive \
     automake \
-    libtool \
-    pkg-config \
-    g++ \
-    wget \
+    bash-completion \
+    binutils-dev \
+    bison \
     clang \
     clang-format \
-    aptitude \
-    libboost-all-dev \
     cmake \
     cmake-curses-gui \
     cmake-extras \
-    extra-cmake-modules
-
-# SSL
-RUN apt-get install -y \
+    emacs \
+    extra-cmake-modules \
+    flex \
+    g++ \
+    gdb \
+    git \
+    htop \
+    libboost-all-dev \
+    libdouble-conversion-dev \
+    libevent-dev \
+    libiberty-dev \
+    libjemalloc-dev \
+    libkrb5-dev \
+    liblz4-dev \
+    liblzma-dev \
+    libnuma-dev \
+    libsasl2-dev \
+    libsnappy-dev \
     libssl-dev \
-    libssl1.0.0-dbg
+    libssl1.0.0-dbg \
+    libtool \
+    make \
+    pkg-config \
+    scons \
+    unzip \
+    valgrind \
+    wget \
+    zip \
+    zlib1g-dev
+
 
 # Python3 and virtualenv
 RUN apt-get install -y \
@@ -76,37 +93,35 @@ RUN apt-get install -y \
     libjpeg-dev \
     libopenblas-dev
 
+# Utilities
+RUN apt-get install -y \
+    iputils-ping \
+    netcat \
+    net-tools \
+    sudo \
+    telnet
+
+RUN groupadd --gid 1002 dcrunner
+RUN useradd -d /home/dcrunner --uid 1002 -m --gid 1002 dcrunner
+COPY bashrc /home/dcrunner/.bashrc
+
 # Python3 virtualenvwrapper
 RUN pip3 install --upgrade pip setuptools
 RUN pip3 install virtualenvwrapper --ignore-installed six
 COPY install_virtualenvwrapper.sh /tmp/
 RUN /bin/bash -c "/tmp/install_virtualenvwrapper.sh"
 
-# Utilities
-RUN apt-get install -y \
-    netcat \
-    net-tools \
-    iputils-ping \
-    telnet
-
-RUN apt-get install -y sudo
-
 # Cleanup
 RUN apt-get clean autoclean
 
-RUN groupadd --gid 1002 dcrunner
-RUN useradd -d /home/dcrunner --uid 1002 -m --gid 1002 dcrunner
-COPY bashrc /home/dcrunner/.bashrc
+COPY install_googletest.sh /tmp/install_googletest.sh
+RUN /tmp/install_googletest.sh
 
 EXPOSE 55556
+
 RUN echo "dcrunner ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
 
-#USER dcrunner
-
-#COPY install_virtualenvwrapper.sh /tmp/
-#RUN /bin/bash -c "/tmp/install_virtualenvwrapper.sh"
-
-#USER root
+WORKDIR /home/dcrunner
 
 # https://denibertovic.com/posts/handling-permissions-with-docker-volumes/
 COPY entrypoint.sh /tmp/entrypoint.sh
