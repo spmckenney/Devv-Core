@@ -12,10 +12,20 @@
 
 namespace Devcash {
 
+/**
+ * The ThreadGroup enables parallel execution of a given function. When start() is called,
+ * thre thread group will create 'num_threads' instances of the attached algorithm.
+ */
 class ThreadGroup {
  public:
-  ThreadGroup() = default;
+  explicit ThreadGroup(size_t num_threads = kDEFAULT_WORKERS);
 
+  /**
+   * Attach a function to be called when an message arrives
+   * on the queue. This function will be run in 'num_thread'
+   * threads.
+   * @param callback
+   */
   void attachCallback(DevcashMessageCallback callback);
 
   /**
@@ -29,7 +39,13 @@ class ThreadGroup {
    */
   bool stop();
 
+  /**
+   * Add a message to the input queue. The input queue is thread-safe, so multiple threads
+   * can safely push messages onto the input queue.
+   * @param message
+   */
   void pushMessage(DevcashMessageUniquePtr message);
+
  private:
   /**
    * The loop function executes in each thread. It blocks on
@@ -39,13 +55,13 @@ class ThreadGroup {
   void loop();
 
   /// Number of threads to run in this pool
-  const int num_threads_ = kDEFAULT_WORKERS;
+  const size_t num_threads_ = kDEFAULT_WORKERS;
   /// Thread pool
   boost::thread_group thread_pool_;
   /// Incoming data queue. Each thread will block on pop()ping from here
   DevcashMPMCQueue thread_queue_;
   /// Function to execute in each thread. Accepts a DevcashMessageUniquePtr
-  DevcashMessageCallback message_callback_;
+  DevcashMessageCallback message_callback_ = nullptr;
   /// True when running - false signals all threads to stop gracefully
   std::atomic<bool> do_run_ = ATOMIC_VAR_INIT(false);
 };
