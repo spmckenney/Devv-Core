@@ -106,22 +106,26 @@ void TransactionClient::processIncomingMessage() noexcept {
 }
 
 void TransactionClient::run() {
-  MTR_META_THREAD_NAME("TransactionClient::run() Thread");
-  sub_socket_ = std::unique_ptr<zmq::socket_t>(new zmq::socket_t(context_, ZMQ_SUB));
-  int timeout_ms = 100;
-  sub_socket_->setsockopt(ZMQ_RCVTIMEO, &timeout_ms, sizeof(timeout_ms));
+  try {
+    MTR_META_THREAD_NAME("TransactionClient::run() Thread");
+    sub_socket_ = std::unique_ptr<zmq::socket_t>(new zmq::socket_t(context_, ZMQ_SUB));
+    int timeout_ms = 100;
+    sub_socket_->setsockopt(ZMQ_RCVTIMEO, &timeout_ms, sizeof(timeout_ms));
 
-  for (auto endpoint : peer_urls_) {
-    sub_socket_->connect(endpoint);
-    for (auto filter : filter_vector_) {
-      LOG_DEBUG << "ZMQ_SUBSCRIBE: '" << endpoint << ":" << filter << "'";
-      sub_socket_->setsockopt(ZMQ_SUBSCRIBE, filter.c_str(), filter.size());
+    for (auto endpoint : peer_urls_) {
+      sub_socket_->connect(endpoint);
+      for (auto filter : filter_vector_) {
+        LOG_DEBUG << "ZMQ_SUBSCRIBE: '" << endpoint << ":" << filter << "'";
+        sub_socket_->setsockopt(ZMQ_SUBSCRIBE, filter.c_str(), filter.size());
+      }
     }
-  }
 
-  for (;;) {
-    processIncomingMessage();
-    if (client_thread_ && !keep_running_) break;
+    for (;;) {
+      processIncomingMessage();
+      if (client_thread_ && !keep_running_) break;
+    }
+  } catch (const std::exception& e) {
+    LOG_FATAL << "EXCEPTION[TransactionClient::run()]:"+std::string(e.what());
   }
 }
 

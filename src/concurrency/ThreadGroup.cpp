@@ -62,16 +62,20 @@ bool ThreadGroup::stop() {
 }
 
 void ThreadGroup::loop() {
-  LOG_INFO << "ThreadGroup::loop()";
-  if (message_callback_ == nullptr) {
-    throw std::runtime_error("ThreadGroup loop cannot execute until "
+  try {
+    LOG_INFO << "ThreadGroup::loop()";
+    if (message_callback_ == nullptr) {
+      throw std::runtime_error("ThreadGroup loop cannot execute until "
                              "a callback function is set. Call attachCallback() first please");
+    }
+    while (do_run_) {
+      message_callback_(std::move(thread_queue_.pop()));
+      LOG_INFO << "ThreadGroup::loop() - popped a message";
+    }
+    LOG_INFO << "ThreadGroup::loop() exit";
+  } catch (const std::exception& e) {
+    LOG_FATAL << FormatException(&e, "ThreadGroup::loop");
   }
-  while (do_run_) {
-    message_callback_(std::move(thread_queue_.pop()));
-    LOG_INFO << "ThreadGroup::loop() - popped a message";
-  }
-  LOG_INFO << "ThreadGroup::loop() exit";
 }
 
 } // namespace Devcash
