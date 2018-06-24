@@ -85,7 +85,9 @@ class UnrecordedTransactionPool {
           if (num_cum_txs_ == 0) {
             LOG_NOTICE << "AddTransactions(): First transaction added to TxMap";
             timer_.reset();
+#ifdef MTR_ENABLED
             trace_ = std::make_unique<MTRScopedTrace>("timer", "lifetime1");
+#endif
           }
           num_cum_txs_++;
           counter++;
@@ -135,7 +137,9 @@ class UnrecordedTransactionPool {
         if (num_cum_txs_ == 0) {
           LOG_NOTICE << "AddTransactions(): First transaction added to TxMap";
           timer_.reset();
+#ifdef MTR_ENABLED
           trace_ = std::make_unique<MTRScopedTrace>("timer", "lifetime2");
+#endif
         }
         num_cum_txs_++;
 
@@ -364,8 +368,9 @@ class UnrecordedTransactionPool {
 
   // Time since starting
   Timer timer_;
+#ifdef MTR_ENABLED
   std::unique_ptr<MTRScopedTrace> trace_;
-
+#endif
   TransactionCreationManager tcm_;
   eAppMode mode_;
 

@@ -104,15 +104,18 @@ class BlockchainModule : public ModuleInterface {
   const KeyRing &keys_;
   const ChainState &prior_;
   eAppMode mode_;
-
-  ThreadedConsensusPtr consensus_ = nullptr;
-  ThreadedInternetworkPtr internetwork_ = nullptr;
-  ThreadedValidatorPtr validator_ = nullptr;
+  DevcashContext &app_context_;
 
   Blockchain final_chain_;
   UnrecordedTransactionPool utx_pool_;
 
-  DevcashContext &app_context_;
+  ConsensusController consensus_controller_;
+  InternetworkController internetwork_controller_;
+  ValidatorController validator_controller_;
+
+  ThreadedConsensusPtr consensus_executor_ = nullptr;
+  ThreadedInternetworkPtr internetwork_executor_ = nullptr;
+  ThreadedValidatorPtr validator_executor_ = nullptr;
 };
 
 } //end namespace Devcash

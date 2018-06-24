@@ -11,12 +11,8 @@
 
 #include <atomic>
 #include <functional>
-#include <stdio.h>
 #include <string>
 #include <iostream>
-#include <inttypes.h>
-#include <stdint.h>
-#include <stdio.h>
 #include <memory>
 #include <csignal>
 #include <openssl/err.h>
@@ -73,9 +69,12 @@ BlockchainModule::BlockchainModule(io::TransactionServer& server,
       keys_(keys),
       prior_(prior),
       mode_(mode),
+      app_context_(context),
       final_chain_("final_chain_"),
       utx_pool_(prior, mode, max_tx_per_block),
-      app_context_(context)
+      consensus_controller_(keys_, app_context_, prior_, final_chain_, utx_pool_, mode_),
+      internetwork_controller_(keys_, app_context_, prior_, final_chain_, utx_pool_, mode_),
+      validator_controller_(keys_, app_context_, prior_, final_chain_, utx_pool_, mode_)
 {
   LOG_INFO << "Hello from node: " << app_context_.get_uri() << "!!";
 }
@@ -97,116 +96,83 @@ std::unique_ptr<BlockchainModule> BlockchainModule::Create(io::TransactionServer
                                      context,
                                      max_tx_per_block);
 
-  /**
-   * Initialize ValidatorController
-   *
-   * Create the ValidatorController to handle validation messages
-   */
-  ValidatorController validator_controller(keys,
-                                           context,
-                                           prior,
-                                           blockchain_module_ptr->getFinalChain(),
-                                           blockchain_module_ptr->getTransactionPool(),
-                                           mode);
-
   /// Register the outgoing callback to send over zmq
   auto outgoing_callback =
       [&](DevcashMessageUniquePtr p) { blockchain_module_ptr->server_.queueMessage(std::move(p)); };
 
-  validator_controller.registerOutgoingCallback(outgoing_callback);
+  /// Shorten the name of the controllers
+  auto& vc = blockchain_module_ptr->validator_controller_;
+  auto& cc = blockchain_module_ptr->consensus_controller_;
+  auto& ic = blockchain_module_ptr->internetwork_controller_;
 
+  vc.registerOutgoingCallback(outgoing_callback);
   /// The controllers contain the the algorithms, the ParallelExecutor parallelizes them
-  blockchain_module_ptr->validator_ =
-      std::make_unique<ParallelExecutor<ValidatorController>>(validator_controller, context, 1);
 
+  blockchain_module_ptr->validator_executor_ =
+      std::make_unique<ParallelExecutor<ValidatorController>>(vc, context, 1);
   /// Attach a callback to be run in the threads
-  blockchain_module_ptr->validator_->attachCallback(
-      [&](DevcashMessageUniquePtr p) { validator_controller.validatorCallback(std::move(p));
+
+  blockchain_module_ptr->validator_executor_->attachCallback(
+      [&](DevcashMessageUniquePtr p) { vc.validatorCallback(std::move(p));
   });
 
 
-  /**
-   * Initialize ConsensusController
-   */
-  // Create the ConsensusController to handle consensus messages
-  ConsensusController consensus_controller(keys,
-                                           context,
-                                           prior,
-                                           blockchain_module_ptr->getFinalChain(),
-                                           blockchain_module_ptr->getTransactionPool(),
-                                           mode);
-
   /// Register the outgoing callback to send over zmq
-  consensus_controller.registerOutgoingCallback(outgoing_callback);
+  cc.registerOutgoingCallback(outgoing_callback);
 
   /// The controllers contain the the algorithms, the ParallelExecutor parallelizes them
-  blockchain_module_ptr->consensus_ =
-      std::make_unique<ParallelExecutor<ConsensusController>>(consensus_controller, context, 1);
+  blockchain_module_ptr->consensus_executor_ =
+      std::make_unique<ParallelExecutor<ConsensusController>>(cc, context, 1);
 
   /// Attach a callback to be run in the threads
-  blockchain_module_ptr->consensus_->attachCallback([&](DevcashMessageUniquePtr p) {
-    consensus_controller.consensusCallback(std::move(p));
+  blockchain_module_ptr->consensus_executor_->attachCallback([&](DevcashMessageUniquePtr p) {
+    cc.consensusCallback(std::move(p));
   });
 
-  /**
-   * Initialize InternetworkController
-   */
-  // Create the InternetworkController to handle Internetwork messages
-  InternetworkController internetwork_controller(keys,
-                                                 context,
-                                                 prior,
-                                                 blockchain_module_ptr->getFinalChain(),
-                                                 blockchain_module_ptr->getTransactionPool(),
-                                                 mode);
 
   /// Register the outgoing callback to send over zmq
-  internetwork_controller.registerOutgoingCallback(outgoing_callback);
+  ic.registerOutgoingCallback(outgoing_callback);
 
   /// The controllers contain the the algorithms, the ParallelExecutor parallelizes them
-  blockchain_module_ptr->internetwork_ =
-      std::make_unique<ParallelExecutor<InternetworkController>>(internetwork_controller, context, 1);
+  blockchain_module_ptr->internetwork_executor_ =
+      std::make_unique<ParallelExecutor<InternetworkController>>(ic, context, 1);
 
   /// Attach a callback to be run in the threads
-  blockchain_module_ptr->internetwork_->attachCallback([&](DevcashMessageUniquePtr p) {
-    internetwork_controller.messageCallback(std::move(p));
+  blockchain_module_ptr->internetwork_executor_->attachCallback([&](DevcashMessageUniquePtr p) {
+    ic.messageCallback(std::move(p));
   });
 
   return (blockchain_module_ptr);
 }
 
 void BlockchainModule::handleMessage(DevcashMessageUniquePtr message) {
+  LogDevcashMessageSummary(*message, "BlockchainModule::handleMessage()", 6);
   switch(message->message_type) {
     case eMessageType::TRANSACTION_ANNOUNCEMENT:
-      validator_->pushMessage(std::move(message));
+      LOG_DEBUG << "BlockchainModule::handleMessage(): push(TX_ANNOUNCEMNT)";
+      validator_executor_->pushMessage(std::move(message));
       break;
     case eMessageType::GET_BLOCKS_SINCE:
     case eMessageType::BLOCKS_SINCE:
     case eMessageType::REQUEST_BLOCK:
-      internetwork_->pushMessage(std::move(message));
+      LOG_DEBUG << "BlockchainModule::handleMessage(): push(BLK_RQST)";
+      internetwork_executor_->pushMessage(std::move(message));
       break;
     case eMessageType::FINAL_BLOCK:
     case eMessageType::PROPOSAL_BLOCK:
     case eMessageType::VALID:
-      consensus_->pushMessage(std::move(message));
+      LOG_DEBUG << "BlockchainModule::handleMessage(): push(BLOCK)";
+      consensus_executor_->pushMessage(std::move(message));
       break;
     default:
       throw DevcashMessageError("Unknown message type:"+std::to_string(message->message_type));
   }
+  LOG_DEBUG << "BlockchainModule::handleMessage(): message handled!!";
 }
 
 void BlockchainModule::init()
 {
-  /*
-  /// Initialize callbacks
-  DevcashMessageCallbacks callbacks;
-  callbacks.blocks_since_cb = HandleBlocksSince;
-  callbacks.blocks_since_request_cb = HandleBlocksSinceRequest;
-  callbacks.final_block_cb = HandleFinalBlock;
-  callbacks.proposal_block_cb = HandleProposalBlock;
-  callbacks.transaction_announcement_cb = CreateNextProposal;
-  callbacks.validation_block_cb = HandleValidationBlock;
-  validator_.setMessageCallbacks(callbacks);
-  */
+  LOG_INFO << "Start BlockchainModule::init()";
 
   client_.attachCallback([&](DevcashMessageUniquePtr p) {
     this->handleMessage(std::move(p));
@@ -216,7 +182,6 @@ void BlockchainModule::init()
 
   server_.startServer();
   client_.startClient();
-
 
   /// Initialize OpenSSL
   InitCrypto();
@@ -243,16 +208,17 @@ void BlockchainModule::performSanityChecks()
   if (!VerifyByteSig(loadkey, test_hash, sig)) {
     throw std::runtime_error("Could not VerifyByteSig!");
   }
-  return;
 }
 
 void BlockchainModule::start()
 {
+  LOG_INFO << "Start BlockchainModule";
+  init();
+
   try {
-    LOG_INFO << "Start BlockchainModule";
-    consensus_->start();
-    internetwork_->start();
-    validator_->start();
+    consensus_executor_->start();
+    internetwork_executor_->start();
+    validator_executor_->start();
     LOG_INFO << "Controllers started.";
   } catch (const std::exception& e) {
     LOG_FATAL << FormatException(&e, "BlockchainModule.RunScanner");
@@ -270,7 +236,7 @@ void BlockchainModule::shutdown()
   server_.stopServer();
 
   LOG_INFO << "Shutting down DevCash";
-  //consensus_.shutdown();
+  //consensus_controller_.shutdown();
   //internetwork_.shutdown();
   //validator_.shutdown();
 

@@ -20,6 +20,7 @@
 #include "common/devcash_context.h"
 #include "io/message_service.h"
 #include "modules/BlockchainModule.h"
+#include "common/logger.h"
 
 using namespace Devcash;
 
@@ -73,7 +74,8 @@ std::unique_ptr<io::TransactionServer> create_transaction_server(const devcash_o
 int main(int argc, char* argv[]) {
   init_log();
 
-  CASH_TRY {
+  //CASH_TRY {
+  {
     std::unique_ptr<devcash_options> options = parse_options(argc, argv);
 
     if (!options) {
@@ -156,27 +158,40 @@ int main(int argc, char* argv[]) {
     server->startServer();
     auto ms = kMAIN_WAIT_INTERVAL;
     unsigned int processed = 0;
+
+    LOG_NOTICE << "Please press a key to ignore";
+    std::cin.ignore(); //why read something if you need to ignore it? :)
     while (true) {
+
       LOG_DEBUG << "Sleeping for " << ms << ": processed/batches (" << std::to_string(processed) << "/"
                 << transactions.size() << ")";
       std::this_thread::sleep_for(millisecs(ms));
 
       /* Should we announce a transaction? */
       if (processed < transactions.size()) {
-        for (auto i : options->host_vector) {
-          auto announce_msg = std::make_unique<DevcashMessage>(i, TRANSACTION_ANNOUNCEMENT, transactions.at(processed),
+        size_t num_messages = 0;
+        /* for (auto i : options->host_vector) { */
+            auto announce_msg = std::make_unique<DevcashMessage>(this_context.get_uri(), TRANSACTION_ANNOUNCEMENT, transactions.at(processed),
                                                                DEBUG_TRANSACTION_INDEX);
           server->queueMessage(std::move(announce_msg));
-        }
-        processed++;
+          //++num_messages;
+        //}
+        ++processed;
+        LOG_DEBUG << "Sent " << num_messages << " transactions in #" << processed << " batches";
+        sleep(1);
       } else {
         LOG_INFO << "Finished announcing transactions.";
         break;
       }
+      LOG_INFO << "Finished 0";
     }
-
-    return (true);
+    LOG_INFO << "Finished 1";
+    server->stopServer();
   }
+  LOG_WARNING << "All done.";
+    return (true);
+/*
+ * }
   CASH_CATCH(...) {
     std::exception_ptr p = std::current_exception();
     std::string err("");
@@ -185,4 +200,5 @@ int main(int argc, char* argv[]) {
     std::cerr << err << std::endl;
     return (false);
   }
+  */
 }

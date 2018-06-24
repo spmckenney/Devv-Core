@@ -79,32 +79,6 @@ int main(int argc, char* argv[])
     loopback_client->addConnection(this_uri);
 */
 
-    /*
-        std::signal(SIGINT, signal_handler);
-        std::signal(SIGABRT, signal_handler);
-        std::signal(SIGTERM, signal_handler);
-        shutdown_handler = [&](int signal) {
-          LOG_INFO << "Received signal ("+std::to_string(signal)+").";
-          shutdown();
-        };
-     */
-
-    /*
-    ValidatorController controller(*server,
-                                 *peer_client,
-                                 options->num_validator_threads,
-                                 options->num_consensus_threads,
-                                 options->tx_batch_size,
-                                 keys,
-                                 devcash_context,
-                                 prior,
-                                 options->mode,
-                                 options->stop_file);
-*/
-
-    //UnrecordedTransactionPool utx_pool(prior, options->mode, 10);
-
-
     /**
      * Chrome tracing setup
      */
@@ -168,3 +142,15 @@ int main(int argc, char* argv[])
     return(false);
   }
 }
+
+
+/*
+    std::signal(SIGINT, signal_handler);
+    std::signal(SIGABRT, signal_handler);
+    std::signal(SIGTERM, signal_handler);
+    shutdown_handler = [&](int signal) {
+      LOG_INFO << "Received signal ("+std::to_string(signal)+").";
+      shutdown();
+    };
+ */
+
