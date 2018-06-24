@@ -78,7 +78,7 @@ network could be build and tested.\n\nAllowed options");
       ("generate-tx", po::value<unsigned int>(), "Generate at least this many Transactions")
       ("tx-batch-size", po::value<unsigned int>(), "Target size of transaction batches")
       ("tx-limit", po::value<unsigned int>(), "Number of transaction to process before shutting down.")
-      ("stop-file", po::value<unsigned int>(), "A file in working-dir indicating that this node should stop.")
+      ("stop-file", po::value<std::string>(), "A file in working-dir indicating that this node should stop.")
       ;
 
     po::variables_map vm;
