@@ -32,11 +32,11 @@ namespace Devcash {
   (processed + (context_.get_current_node()+1)*11000000)
 
 ValidatorController::ValidatorController(
-    const KeyRing &keys,
-    DevcashContext &context,
-    const ChainState &prior,
-    Blockchain &final_chain,
-    UnrecordedTransactionPool &utx_pool,
+    const KeyRing& keys,
+    DevcashContext& context,
+    const ChainState&,
+    Blockchain& final_chain,
+    UnrecordedTransactionPool& utx_pool,
     eAppMode mode)
     : keys_(keys)
     , context_(context)

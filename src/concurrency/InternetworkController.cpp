@@ -14,7 +14,7 @@ namespace Devcash {
 
 InternetworkController::InternetworkController(const KeyRing &keys,
                                          DevcashContext &context,
-                                         const ChainState &prior,
+                                         const ChainState &,
                                          Blockchain &final_chain,
                                          UnrecordedTransactionPool &utx_pool,
                                          eAppMode mode)

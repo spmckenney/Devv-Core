@@ -27,7 +27,7 @@ class ValidatorController {
  public:
   ValidatorController(const KeyRing& keys,
                       DevcashContext& context,
-                      const ChainState& prior,
+                      const ChainState&,
                       Blockchain& final_chain,
                       UnrecordedTransactionPool& utx_pool,
                       eAppMode mode);
@@ -50,7 +50,7 @@ class ValidatorController {
   eAppMode mode_;
 
   mutable std::mutex mutex_;
-  uint64_t remote_blocks_ = 0;
+  //uint64_t remote_blocks_ = 0;
 
   /// A callback to send the analyzed DevcashMessage
   DevcashMessageCallback outgoing_callback_;
