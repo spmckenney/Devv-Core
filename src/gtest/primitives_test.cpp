@@ -176,7 +176,7 @@ TEST_F(InputBufferTest, test_uint64) {
  */
  class SummaryTest : public ::testing::Test {
  protected:
-  SummaryTest() : t1_context_0_(0, 0, Devcash::eAppMode::T1, "", "", "", 0)
+  SummaryTest() : t1_context_0_(0, 0, Devcash::eAppMode::T1, "", "", "")
       , addr_0_()
   {
     std::vector<Devcash::byte> tmp(Devcash::Hex2Bin(t1_context_0_.kADDRs[0]));
@@ -353,7 +353,7 @@ TEST_F(SummaryTest, addItem_6) {
  */
 class TransferTest : public ::testing::Test {
  protected:
-  TransferTest() : t1_context_0_(0, 0, Devcash::eAppMode::T1, "", "", "", 0)
+  TransferTest() : t1_context_0_(0, 0, Devcash::eAppMode::T1, "", "", "")
       , addr_0_()
   {
     std::vector<Devcash::byte> tmp(Devcash::Hex2Bin(t1_context_0_.kADDRs[0]));
@@ -438,7 +438,7 @@ class Tier1TransactionTest : public ::testing::Test {
   // You can remove any or all of the following functions if its body
   // is empty.
 
-  Tier1TransactionTest() : t1_context_0_(0, 0, Devcash::eAppMode::T1, "", "", "", 0)
+  Tier1TransactionTest() : t1_context_0_(0, 0, Devcash::eAppMode::T1, "", "", "")
       , addr_0_()
   {
     std::vector<Devcash::byte> tmp(Devcash::Hex2Bin(t1_context_0_.kADDRs[0]));
@@ -511,7 +511,7 @@ class Tier2TransactionTest : public ::testing::Test {
   // is empty.
 
   Tier2TransactionTest()
-      : t1_context_0_(0, 0, Devcash::eAppMode::T1, "", "", "", 0)
+      : t1_context_0_(0, 0, Devcash::eAppMode::T1, "", "", "")
       , addr_0_()
       , transfers_()
       , rings_(t1_context_0_)

@@ -46,9 +46,7 @@ struct DevcashContext {
     , eAppMode mode
     , const std::string& inn_key_path
     , const std::string& node_key_path
-    , const std::string& wallet_key_path
-    , unsigned int sync_port
-    , const std::string& sync_host = "")
+    , const std::string& wallet_key_path)
     : current_node_(current_node)
     , current_shard_(current_shard)
     , app_mode_(mode)
@@ -56,9 +54,8 @@ struct DevcashContext {
     , inn_keys_(inn_key_path)
     , node_keys_(node_key_path)
     , wallet_keys_(wallet_key_path)
-    , sync_host_(sync_host)
-    , sync_port_(sync_port)
-  {}
+  {
+  }
 
   const std::string kINN_KEY = "-----BEGIN ENCRYPTED PRIVATE KEY-----\nMIHeMEkGCSqGSIb3DQEFDTA8MBsGCSqGSIb3DQEFDDAOBAgBcpJHkg56mAICCAAw\nHQYJYIZIAWUDBAECBBCHa2RxQu9uIGCnJXiJjMF2BIGQcnO7UeEAHFauiaheEQPW\nn5cgO1sAlY7r3kMWgX4d5qu0DnEVzNN6F4RkQDbyvWwS1YHzdVn17oynnqtL9RS6\nqYrt1xhFFwp6Z+R/uqSk+3xZgMSYf2wpUJ9pqhm0JBTqOelZ37yF57+585ez4ujD\nA1gnH1w36y5hnZqRWVvi3eRXxCr5wqF8dNwFuxLpAuse\n-----END ENCRYPTED PRIVATE KEY-----";
 

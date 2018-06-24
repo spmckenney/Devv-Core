@@ -7,8 +7,6 @@
  *  Author: Nick Williams
  */
 
-#include <stdio.h>
-#include <stdlib.h>
 #include <boost/filesystem.hpp>
 #include <fstream>
 #include <functional>
@@ -16,11 +14,11 @@
 #include <string>
 #include <thread>
 
+#include "common/logger.h"
 #include "common/argument_parser.h"
 #include "common/devcash_context.h"
 #include "io/message_service.h"
 #include "modules/BlockchainModule.h"
-#include "common/logger.h"
 
 using namespace Devcash;
 
@@ -85,7 +83,7 @@ int main(int argc, char* argv[]) {
     zmq::context_t context(1);
 
     DevcashContext this_context(options->node_index, options->shard_index, options->mode, options->inn_keys,
-                                options->node_keys, options->wallet_keys, options->sync_port, options->sync_host);
+                                options->node_keys, options->wallet_keys);
     KeyRing keys(this_context);
 
     LOG_DEBUG << "Loading transactions from " << options->working_dir;

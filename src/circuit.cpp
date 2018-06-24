@@ -39,7 +39,7 @@ int main(int argc, char* argv[]) {
     }
 
     DevcashContext this_context(options->node_index, options->shard_index, options->mode, options->inn_keys,
-                                options->node_keys, options->wallet_keys, options->sync_port, options->sync_host);
+                                options->node_keys, options->wallet_keys);
 
     KeyRing keys(this_context);
 

@@ -26,8 +26,6 @@ struct devcash_options {
   unsigned int shard_index;
   unsigned int num_consensus_threads;
   unsigned int num_validator_threads;
-  unsigned int sync_port;
-  std::string sync_host;
   std::string working_dir;
   std::string write_file;
   std::string trace_file;
@@ -67,8 +65,6 @@ network could be build and tested.\n\nAllowed options");
       ("host-list,host", po::value<std::vector<std::string>>(),
        "Client URI (i.e. tcp://192.168.10.1:5005). Option can be repeated to connect to multiple nodes.")
       ("bind-endpoint", po::value<std::string>(), "Endpoint for server (i.e. tcp://*:5556)")
-      ("sync-host", po::value<std::string>(), "Enable node startup synchronization with sync-host")
-      ("sync-port", po::value<unsigned int>(), "Port number for sync-host")
       ("working-dir", po::value<std::string>(), "Directory where inputs are read and outputs are written")
       ("output", po::value<std::string>(), "Output path in binary JSON or CBOR")
       ("trace-output", po::value<std::string>(), "Output path to JSON trace file (Chrome)")
@@ -153,21 +149,6 @@ network could be build and tested.\n\nAllowed options");
       LOG_INFO << "Bind URI: " << options->bind_endpoint;
     } else {
       LOG_INFO << "Bind URI was not set";
-    }
-
-    if (vm.count("sync-host")) {
-      options->sync_host = vm["sync-host"].as<std::string>();
-      LOG_INFO << "Sync host: " << options->sync_host;
-    } else {
-      options->sync_host = "";
-      LOG_INFO << "Sync host not set";
-    }
-
-    if (vm.count("sync-port")) {
-      options->sync_port = vm["sync-port"].as<unsigned int>();
-      LOG_INFO << "Sync port: " << options->sync_port;
-    } else {
-      LOG_INFO << "Sync port was not set.";
     }
 
     if (vm.count("host-list")) {
