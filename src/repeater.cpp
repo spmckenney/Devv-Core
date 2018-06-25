@@ -76,7 +76,7 @@ int main(int argc, char* argv[]) {
           std::ofstream block_file(block_height
             , std::ios::out | std::ios::binary);
           if (block_file.is_open()) {
-            block_file.write((const char*) &p->data[0], p->data().size());
+            block_file.write((const char*) &p->data[0], p->data.size());
             block_file.close();
           } else {
             LOG_ERROR << "Failed to open output file '" << shard_dir+"/"+block_height << "'.";
