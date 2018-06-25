@@ -165,25 +165,6 @@ bool HandleValidationBlock(DevcashMessageUniquePtr ptr,
 
     std::vector<byte> final_msg = top_block->getCanonical();
 
-    /*
-    //write final chain to file
-    std::string shard_dir(working_dir+"/"+context.get_shard_uri());
-    fs::path p(shard_dir);
-    if (is_directory(p)) {
-      std::string block_height(std::to_string(final_chain.size()-1));
-      std::ofstream block_file(block_height
-        , std::ios::out | std::ios::binary);
-      if (block_file.is_open()) {
-        block_file.write((const char*) final_msg.data(), final_msg.size());
-        block_file.close();
-      } else {
-        LOG_ERROR << "Failed to open output file '" << shard_dir+"/"+block_height << "'.";
-      }
-    } else {
-      LOG_ERROR << "Error opening dir: " << shard_dir << " is not a directory";
-    }
-    */
-
     auto final_block = std::make_unique<DevcashMessage>(context.get_shard_uri(), FINAL_BLOCK, final_msg, ptr->index);
     LogDevcashMessageSummary(*final_block, "HandleValidationBlock() -> Final block");
     callback(std::move(final_block));

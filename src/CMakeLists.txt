@@ -169,6 +169,32 @@ target_include_directories(announcer PRIVATE ${dcInclude})
 install (TARGETS announcer DESTINATION bin)
 
 #
+# Repeater
+#
+
+add_executable(repeater repeater.cpp ${dcInclude})
+target_link_libraries (repeater
+  ${devcash_core_libs}
+  ${ZMQ}
+  )
+
+if (OPENSSL_FOUND)
+  include_directories(${OPENSSL_INCLUDE_DIR})
+  target_link_libraries (repeater ${OPENSSL_LIBRARIES})
+endif (OPENSSL_FOUND)
+
+target_link_libraries(repeater ${CMAKE_THREAD_LIBS_INIT})
+
+if(Boost_FOUND)
+  include_directories(${Boost_INCLUDE_DIRS})
+  target_link_libraries(repeater ${Boost_LIBRARIES})
+endif(Boost_FOUND)
+
+target_include_directories(repeater PRIVATE ${dcInclude})
+
+install (TARGET repeater DESTINATION bin)
+
+#
 # Chain state Tests
 #
 
