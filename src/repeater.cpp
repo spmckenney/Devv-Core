@@ -46,7 +46,7 @@ int main(int argc, char* argv[]) {
       exit(-1);
     }
 
-    zmq::context_t context(1);
+    zmq::context_t zmq_context(1);
 
     DevcashContext this_context(options->node_index, options->shard_index, options->mode, options->inn_keys,
                                 options->node_keys, options->wallet_keys);
@@ -66,8 +66,8 @@ int main(int argc, char* argv[]) {
     unsigned int chain_height = 0;
 
     std::unique_ptr<io::TransactionClient> peer_listener = create_transaction_client(*options, zmq_context);
-    peer_listener.attachCallback([&](DevcashMessageUniquePtr p) {
-      if (message->message_type == eMessageType::FINAL_BLOCK) {
+    peer_listener->attachCallback([&](DevcashMessageUniquePtr p) {
+      if (p->message_type == eMessageType::FINAL_BLOCK) {
         //write final chain to file
         std::string shard_dir(options->working_dir+"/"+this_context.get_shard_uri());
         fs::path dir_path(shard_dir);
