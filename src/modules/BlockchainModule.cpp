@@ -98,7 +98,7 @@ std::unique_ptr<BlockchainModule> BlockchainModule::Create(io::TransactionServer
 
   /// Register the outgoing callback to send over zmq
   auto outgoing_callback =
-      [&](DevcashMessageUniquePtr p) { blockchain_module_ptr->server_.queueMessage(std::move(p)); };
+      [&server](DevcashMessageUniquePtr p) { server.queueMessage(std::move(p)); };
 
   /// Shorten the name of the controllers
   auto& vc = blockchain_module_ptr->validator_controller_;
