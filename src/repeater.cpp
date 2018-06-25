@@ -92,7 +92,7 @@ int main(int argc, char* argv[]) {
 
     auto ms = kMAIN_WAIT_INTERVAL;
     while (true) {
-      LOG_DEBUG << "Repeater sleeping for " << ms
+      LOG_DEBUG << "Repeater sleeping for " << ms;
       std::this_thread::sleep_for(millisecs(ms));
       /* Should we shutdown? */
       if (fs::exists(options->stop_file)) {
