@@ -90,7 +90,10 @@ int main(int argc, char* argv[]) {
     peer_listener->startClient();
     LOG_INFO << "Repeater is listening to shard: "+this_context.get_shard_uri();
 
+    auto ms = kMAIN_WAIT_INTERVAL;
     while (true) {
+      LOG_DEBUG << "Repeater sleeping for " << ms
+      std::this_thread::sleep_for(millisecs(ms));
       /* Should we shutdown? */
       if (fs::exists(options->stop_file)) {
         LOG_INFO << "Shutdown file exists. Stopping repeater...";
