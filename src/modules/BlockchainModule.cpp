@@ -154,9 +154,11 @@ void BlockchainModule::handleMessage(DevcashMessageUniquePtr message) {
       break;
     case eMessageType::GET_BLOCKS_SINCE:
       LOG_DEBUG << "BlockchainModule::handleMessage(): push(GET_BLOCKS_SINCE)";
+      internetwork_executor_->pushMessage(std::move(message));
       break;
     case eMessageType::BLOCKS_SINCE:
       LOG_DEBUG << "BlockchainModule::handleMessage(): push(BLOCKS_SINCE)";
+      internetwork_executor_->pushMessage(std::move(message));
       break;
     case eMessageType::REQUEST_BLOCK:
       LOG_DEBUG << "BlockchainModule::handleMessage(): push(REQUEST_BLOCK)";
@@ -164,9 +166,11 @@ void BlockchainModule::handleMessage(DevcashMessageUniquePtr message) {
       break;
     case eMessageType::FINAL_BLOCK:
       LOG_DEBUG << "BlockchainModule::handleMessage(): push(FINAL_BLOCK)";
+      consensus_executor_->pushMessage(std::move(message));
       break;
     case eMessageType::PROPOSAL_BLOCK:
       LOG_DEBUG << "BlockchainModule::handleMessage(): push(PROPOSAL_BLOCK)";
+      consensus_executor_->pushMessage(std::move(message));
       break;
     case eMessageType::VALID:
       LOG_DEBUG << "BlockchainModule::handleMessage(): push(VALID)";
