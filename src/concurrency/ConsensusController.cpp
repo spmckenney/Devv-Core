@@ -5,6 +5,7 @@
  *      Author: mckenney
  */
 #include "ConsensusController.h"
+#include "consensus/tier2_message_handlers.h"
 
 namespace Devcash {
 
@@ -19,6 +20,9 @@ ConsensusController::ConsensusController(const KeyRing &keys,
     , final_chain_(final_chain)
     , utx_pool_(utx_pool)
     , mode_(mode)
+, final_block_cb_(HandleFinalBlock)
+, proposal_block_cb_(HandleProposalBlock)
+, validation_block_cb_(HandleValidationBlock)
 {
 }
 

@@ -21,6 +21,7 @@
 #include "consensus/KeyRing.h"
 #include "primitives/Tier1Transaction.h"
 #include "primitives/Tier2Transaction.h"
+#include "consensus/tier2_message_handlers.h"
 
 typedef std::chrono::milliseconds millisecs;
 
@@ -43,6 +44,7 @@ ValidatorController::ValidatorController(
     , final_chain_(final_chain)
     , utx_pool_(utx_pool)
     , mode_(mode)
+    , tx_announcement_cb_(CreateNextProposal)
 {
   LOG_DEBUG << "ValidatorController created - mode " << mode_;
 }

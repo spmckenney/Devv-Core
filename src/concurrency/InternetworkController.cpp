@@ -9,6 +9,7 @@
 
 #include "common/devcash_exceptions.h"
 #include "common/logger.h"
+#include "consensus/tier2_message_handlers.h"
 
 namespace Devcash {
 
@@ -23,6 +24,8 @@ InternetworkController::InternetworkController(const KeyRing &keys,
     , final_chain_(final_chain)
     , utx_pool_(utx_pool)
     , mode_(mode)
+, blocks_since_cb_(HandleBlocksSince)
+, blocks_since_request_cb_(HandleBlocksSinceRequest)
 {
 }
 
