@@ -85,8 +85,8 @@ class ParallelExecutor {
    * @param message
    */
   void pushMessage(DevcashMessageUniquePtr message) {
-    LOG_DEBUG << "pushMessage()";
-    thread_group_.pushMessage(std::move(message));
+    LOG_DEBUG << "pushMessage(), do not segfault";
+    //thread_group_.pushMessage(std::move(message));
   }
 
  private:

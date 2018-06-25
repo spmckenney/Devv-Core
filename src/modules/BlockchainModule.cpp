@@ -46,12 +46,12 @@ void signal_handler(int signal) { shutdown_handler(signal); }
 
 bool InitCrypto()
 {
-  CASH_TRY {
+  try {
     OpenSSL_add_all_algorithms();
     ERR_load_crypto_strings();
     isCryptoInit = true;
     return true;
-  } CASH_CATCH (const std::exception& e) {
+  } catch (const std::exception& e) {
     LOG_FATAL << FormatException(&e, "BlockchainModule.InitCrypto");
   }
   return(false);
@@ -153,15 +153,23 @@ void BlockchainModule::handleMessage(DevcashMessageUniquePtr message) {
       validator_executor_->pushMessage(std::move(message));
       break;
     case eMessageType::GET_BLOCKS_SINCE:
+      LOG_DEBUG << "BlockchainModule::handleMessage(): push(GET_BLOCKS_SINCE)";
+      break;
     case eMessageType::BLOCKS_SINCE:
+      LOG_DEBUG << "BlockchainModule::handleMessage(): push(BLOCKS_SINCE)";
+      break;
     case eMessageType::REQUEST_BLOCK:
-      LOG_DEBUG << "BlockchainModule::handleMessage(): push(BLK_RQST)";
+      LOG_DEBUG << "BlockchainModule::handleMessage(): push(REQUEST_BLOCK)";
       internetwork_executor_->pushMessage(std::move(message));
       break;
     case eMessageType::FINAL_BLOCK:
+      LOG_DEBUG << "BlockchainModule::handleMessage(): push(FINAL_BLOCK)";
+      break;
     case eMessageType::PROPOSAL_BLOCK:
+      LOG_DEBUG << "BlockchainModule::handleMessage(): push(PROPOSAL_BLOCK)";
+      break;
     case eMessageType::VALID:
-      LOG_DEBUG << "BlockchainModule::handleMessage(): push(BLOCK)";
+      LOG_DEBUG << "BlockchainModule::handleMessage(): push(VALID)";
       consensus_executor_->pushMessage(std::move(message));
       break;
     default:

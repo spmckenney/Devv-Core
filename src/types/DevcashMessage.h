@@ -19,6 +19,7 @@
 namespace Devcash {
 
 const int num_debug_chars = 8;
+uint8_t kMSG_HEADER = 52;
 
 enum eMessageType {
   FINAL_BLOCK = 0,
@@ -110,11 +111,11 @@ inline void append(std::vector<uint8_t>& buf, const std::vector<uint8_t>& obj) {
 }
 
 /**
- * Serialize a messag into a buffer
+ * Serialize a message into a buffer
  */
 static std::vector<uint8_t> serialize(const DevcashMessage& msg) {
   // Arbitrary header
-  uint8_t header_version = 41;
+  uint8_t header_version = kMSG_HEADER;
   // Serialized buffer
   std::vector<uint8_t> bytes;
 
@@ -185,7 +186,7 @@ static DevcashMessageUniquePtr deserialize(const std::vector<uint8_t>& bytes) {
 
   // Get the header_version
   buffer_index = extract(header_version, bytes, buffer_index);
-  assert(header_version == 41);
+  assert(header_version == kMSG_HEADER);
   //LOG_DEBUG << "header_version: " << static_cast<int>(header_version) << " buffer_index " << buffer_index;
   // index
   buffer_index = extract(message->index, bytes, buffer_index);
