@@ -76,7 +76,7 @@ int main(int argc, char* argv[]) {
           std::ofstream block_file(block_height
             , std::ios::out | std::ios::binary);
           if (block_file.is_open()) {
-            block_file.write((const char*) p->data(), p_.data().size());
+            block_file.write((const char*) &p->data[0], p->data().size());
             block_file.close();
           } else {
             LOG_ERROR << "Failed to open output file '" << shard_dir+"/"+block_height << "'.";
@@ -86,18 +86,18 @@ int main(int argc, char* argv[]) {
         }
       }
     });
-    peer_listener.listenTo(this_context.get_shard_uri());
-    peer_listener.startClient();
+    peer_listener->listenTo(this_context.get_shard_uri());
+    peer_listener->startClient();
     LOG_INFO << "Repeater is listening to shard: "+this_context.get_shard_uri();
 
     while (true) {
       /* Should we shutdown? */
-      if (fs::exists(stop_file)) {
+      if (fs::exists(options->stop_file)) {
         LOG_INFO << "Shutdown file exists. Stopping repeater...";
         break;
       }
     }
-    peer_listener.stopClient();
+    peer_listener->stopClient();
     return (true);
   }
   catch (const std::exception& e) {
