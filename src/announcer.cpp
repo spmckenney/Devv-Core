@@ -183,7 +183,7 @@ int main(int argc, char* argv[]) {
     LOG_WARNING << "All done.";
     return (true);
   }
-  CASH_CATCH(...) {
+  catch (const std::exception& e) {
     std::exception_ptr p = std::current_exception();
     std::string err("");
     err += (p ? p.__cxa_exception_type()->name() : "null");
@@ -191,5 +191,4 @@ int main(int argc, char* argv[]) {
     std::cerr << err << std::endl;
     return (false);
   }
-  */
 }

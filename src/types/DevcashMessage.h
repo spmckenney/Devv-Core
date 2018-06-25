@@ -19,7 +19,7 @@
 namespace Devcash {
 
 const int num_debug_chars = 8;
-uint8_t kMSG_HEADER = 52;
+const uint8_t kMSG_HEADER = 52;
 
 enum eMessageType {
   FINAL_BLOCK = 0,
