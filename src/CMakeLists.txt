@@ -192,7 +192,7 @@ endif(Boost_FOUND)
 
 target_include_directories(repeater PRIVATE ${dcInclude})
 
-install (TARGET repeater DESTINATION bin)
+install (TARGETS repeater DESTINATION bin)
 
 #
 # Chain state Tests
