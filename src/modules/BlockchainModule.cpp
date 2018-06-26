@@ -59,6 +59,7 @@ bool InitCrypto()
 
 BlockchainModule::BlockchainModule(io::TransactionServer& server,
                                  io::TransactionClient& client,
+                                 io::TransactionClient& loopback_client,
                                  const KeyRing& keys,
                                  const ChainState &prior,
                                  eAppMode mode,
@@ -66,6 +67,7 @@ BlockchainModule::BlockchainModule(io::TransactionServer& server,
                                  size_t max_tx_per_block)
     : server_(server),
       client_(client),
+      loopback_client_(loopback_client),
       keys_(keys),
       prior_(prior),
       mode_(mode),
@@ -81,6 +83,7 @@ BlockchainModule::BlockchainModule(io::TransactionServer& server,
 
 std::unique_ptr<BlockchainModule> BlockchainModule::Create(io::TransactionServer &server,
                                         io::TransactionClient &client,
+                                        io::TransactionClient &loopback_client,
                                         const KeyRing &keys,
                                         const ChainState &prior,
                                         eAppMode mode,
@@ -90,6 +93,7 @@ std::unique_ptr<BlockchainModule> BlockchainModule::Create(io::TransactionServer
   /// Create the ValidatorModule which holds all of the controllers
   auto blockchain_module_ptr = std::make_unique<BlockchainModule>(server,
                                      client,
+                                     loopback_client,
                                      keys,
                                      prior,
                                      mode,
@@ -192,8 +196,14 @@ void BlockchainModule::init()
   client_.listenTo(app_context_.get_shard_uri());
   client_.listenTo(app_context_.get_uri());
 
+  loopback_client_.attachCallback([&](DevcashMessageUniquePtr p) {
+    this->handleMessage(std::move(p));
+  });
+  loopback_client_.listenTo(app_context_.get_uri());
+
   server_.startServer();
   client_.startClient();
+  loopback_client_.startClient();
 
   /// Initialize OpenSSL
   InitCrypto();
@@ -236,6 +246,18 @@ void BlockchainModule::start()
     LOG_FATAL << FormatException(&e, "BlockchainModule.RunScanner");
     throw;
   }
+
+  while (!shutdown_) {
+    if (remote_blocks_ < final_chain_.size()) {
+      std::vector<byte> request;
+      auto request_msg = std::make_unique<DevcashMessage>(app_context_.get_uri(),
+          REQUEST_BLOCK, request, remote_blocks_);
+      server_.queueMessage(std::move(request_msg));
+      remote_blocks_ = final_chain_.size();
+    }
+    LOG_DEBUG << "main loop: sleeping ";
+    sleep(5);
+  }
 }
 
 void BlockchainModule::shutdown()
@@ -246,6 +268,7 @@ void BlockchainModule::shutdown()
 
   client_.stopClient();
   server_.stopServer();
+  loopback_client_.stopClient();
 
   LOG_INFO << "Shutting down DevCash";
   //consensus_controller_.shutdown();

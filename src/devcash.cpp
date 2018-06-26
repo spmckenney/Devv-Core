@@ -64,7 +64,7 @@ int main(int argc, char* argv[])
     std::unique_ptr<io::TransactionServer> server = create_transaction_server(*options, zmq_context);
     std::unique_ptr<io::TransactionClient> peer_client = create_transaction_client(*options, zmq_context);
 
-    /*
+
     // Create loopback client to subscribe to simulator transactions
     std::unique_ptr<io::TransactionClient> loopback_client(new io::TransactionClient(zmq_context));
     auto be = options->bind_endpoint;
@@ -75,7 +75,7 @@ int main(int argc, char* argv[])
       LOG_ERROR << "Extracting bind number failed: " << be;
     }
     loopback_client->addConnection(this_uri);
-*/
+
 
     /**
      * Chrome tracing setup
@@ -94,7 +94,7 @@ int main(int argc, char* argv[])
 
     {
       LOG_NOTICE << "Creating the BlockchainModule";
-      auto bcm = BlockchainModule::Create(*server, *peer_client, keys, prior, options->mode, devcash_context, 1000);
+      auto bcm = BlockchainModule::Create(*server, *peer_client, *loopback_client, keys, prior, options->mode, devcash_context, 1000);
       LOG_NOTICE << "Starting the BlockchainModule";
 
       bcm->start();

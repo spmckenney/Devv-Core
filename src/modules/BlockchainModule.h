@@ -31,6 +31,7 @@ class BlockchainModule : public ModuleInterface {
  public:
   BlockchainModule(io::TransactionServer &server,
                   io::TransactionClient &client,
+                  io::TransactionClient &loopback_client,
                   const KeyRing &keys,
                   const ChainState &prior,
                   eAppMode mode,
@@ -57,6 +58,7 @@ class BlockchainModule : public ModuleInterface {
    */
   static std::unique_ptr<BlockchainModule> Create(io::TransactionServer &server,
                                 io::TransactionClient &client,
+                                io::TransactionClient &loopback_client,
                                 const KeyRing &keys,
                                 const ChainState &prior,
                                 eAppMode mode,
@@ -101,6 +103,8 @@ class BlockchainModule : public ModuleInterface {
   io::TransactionServer &server_;
   io::TransactionClient &client_;
 
+  io::TransactionClient &loopback_client_;
+
   const KeyRing &keys_;
   const ChainState &prior_;
   eAppMode mode_;
@@ -116,6 +120,9 @@ class BlockchainModule : public ModuleInterface {
   ThreadedConsensusPtr consensus_executor_ = nullptr;
   ThreadedInternetworkPtr internetwork_executor_ = nullptr;
   ThreadedValidatorPtr validator_executor_ = nullptr;
+
+  bool shutdown_ = false;
+  uint64_t remote_blocks_ = 0;
 };
 
 } //end namespace Devcash
