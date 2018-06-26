@@ -38,8 +38,7 @@ DevcashMessageUniquePtr CreateNextProposal(const KeyRing& keys,
       ChainState prior = final_chain.getHighestChainState();
       utx_pool.ProposeBlock(prev_hash, prior, keys, context);
     } else {
-      /// @todo (mckenney) misspelled?
-      Hash prev_hash = DevcashHash({'G', 'e', 'n', 'e', 'i', 's'});
+      Hash prev_hash = DevcashHash({'G', 'e', 'n', 'e', 's', 'i', 's'});
       ChainState prior;
       utx_pool.ProposeBlock(prev_hash, prior, keys, context);
     }
@@ -100,6 +99,8 @@ bool HandleFinalBlock(DevcashMessageUniquePtr ptr,
     if (!utx_pool.HasProposal()) {
       callback(std::move(CreateNextProposal(keys,final_chain,utx_pool,context)));
       sent_message = true;
+    } else {
+      LOG_DEBUG << "Already sent a proposal?";
     }
   } else {
     LOG_DEBUG << "Pending transactions but not my turn";

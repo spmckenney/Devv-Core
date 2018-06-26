@@ -67,7 +67,7 @@ void ValidatorController::validatorCallback(DevcashMessageUniquePtr ptr) {
     DevcashMessage msg(*ptr.get());
     utx_pool_.AddTransactions(msg.data, keys_);
     size_t block_height = final_chain_.size();
-    if (block_height % context_.get_peer_count() == context_.get_current_node()) {
+    if (block_height%context_.get_peer_count() == context_.get_current_node()%context_.get_peer_count()) {
       LOG_INFO << "Received txs: CreateNextProposal? utx_pool.HasProposal(): " << utx_pool_.HasProposal();
       if (!utx_pool_.HasProposal()) {
         outgoing_callback_(std::move(
