@@ -19,6 +19,7 @@
 #include <openssl/pem.h>
 #include <openssl/crypto.h>
 #include <boost/thread/thread.hpp>
+#include <boost/filesystem.hpp>
 
 #include "consensus/chainstate.h"
 #include "consensus/tier2_message_handlers.h"
@@ -34,6 +35,8 @@
 #include "primitives/Transaction.h"
 #include "types/DevcashMessage.h"
 #include "common/devcash_exceptions.h"
+
+namespace fs = boost::filesystem;
 
 namespace Devcash
 {
@@ -247,12 +250,33 @@ void BlockchainModule::start()
     throw;
   }
 
+  std::string shard_path("output/"+app_context_.get_shard_uri()+"/"+app_context_.get_uri());
+  fs::path shard_dir(shard_path);
+  if (!is_directory(shard_dir)) {
+    LOG_ERROR << "Error opening dir"+shard_path+" is not a directory.";
+  }
+
   while (!shutdown_) {
     if (remote_blocks_ < final_chain_.size()) {
       std::vector<byte> request;
       auto request_msg = std::make_unique<DevcashMessage>(app_context_.get_uri(),
           REQUEST_BLOCK, request, remote_blocks_);
       server_.queueMessage(std::move(request_msg));
+      LOG_DEBUG << "Try to write output.";
+      if (is_directory(shard_dir)) {
+        std::string block_height(std::to_string(remote_blocks_));
+        LOG_DEBUG << "Write output to "+shard_path+"/"+block_height;
+        std::ofstream block_file(shard_path+"/"+block_height, std::ios::out | std::ios::binary);
+        if (block_file.is_open()) {
+          std::vector<byte> blocks(final_chain_.BinaryDump());
+          block_file.write((const char*) &blocks[0], blocks.size());
+          block_file.close();
+        } else {
+          LOG_ERROR << "Error failed to open output file: '" << shard_path+"/"+block_height << "'.";
+        }
+      } else {
+        LOG_ERROR << "Error opening dir: "+shard_path+" is not a directory.";
+      }
       remote_blocks_ = final_chain_.size();
     }
     LOG_DEBUG << "main loop: sleeping ";
