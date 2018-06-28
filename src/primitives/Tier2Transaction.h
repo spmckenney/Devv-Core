@@ -207,8 +207,7 @@ class Tier2Transaction : public Transaction {
           sender_set = true;
         }
       }
-      if ((oper == eOpType::Delete && amount > 0) || (oper != eOpType::Delete && amount < 0) ||
-           oper == eOpType::Modify) {
+      if (oper == eOpType::Delete || oper == eOpType::Modify) {
         if (!keys.isINN(sender)) {
           LOG_WARNING << "Invalid operation, non-INN address deleting or modifying coins.";
           return false;
