@@ -198,9 +198,6 @@ class Tier2Transaction : public Transaction {
       for (auto it = xfers.begin(); it != xfers.end(); ++it) {
         int64_t amount = it->getAmount();
         total += amount;
-        if ((oper == eOpType::Delete && amount > 0) || (oper != eOpType::Delete && amount < 0) ||
-            oper == eOpType::Modify) {
-        }
         if (amount < 0) {
           if (sender_set) {
             LOG_WARNING << "Multiple senders in transaction!";
@@ -208,6 +205,13 @@ class Tier2Transaction : public Transaction {
           }
           sender = it->getAddress();
           sender_set = true;
+        }
+      }
+      if ((oper == eOpType::Delete && amount > 0) || (oper != eOpType::Delete && amount < 0) ||
+           oper == eOpType::Modify) {
+        if (!keys.isINN(sender)) {
+          LOG_WARNING << "Invalid operation, non-INN address deleting or modifying coins.";
+          return false;
         }
       }
       if (total != 0) {
