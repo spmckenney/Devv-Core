@@ -69,6 +69,12 @@ std::unique_ptr<io::TransactionServer> create_transaction_server(const devcash_o
   return server;
 }
 
+void ParallelPush(std::mutex& m, std::vector<std::vector<byte>>& array
+    , const std::vector<byte>& elt) {
+  std::lock_guard<std::mutex> guard(m);
+  array.push_back(elt);
+}
+
 int main(int argc, char* argv[]) {
   init_log();
 
@@ -88,6 +94,7 @@ int main(int argc, char* argv[]) {
     LOG_DEBUG << "Loading transactions from " << options->working_dir;
     MTR_SCOPE_FUNC();
     std::vector<std::vector<byte>> transactions;
+    std::mutex tx_lock;
 
     ChainState priori;
 
@@ -146,7 +153,7 @@ int main(int argc, char* argv[]) {
         }
       }
 
-      transactions.push_back(batch);
+      ParallelPush(tx_lock, transactions, batch);
     }, 3);
 
     LOG_INFO << "Loaded " << std::to_string(input_blocks_) << " transactions in " << transactions.size() << " batches.";
