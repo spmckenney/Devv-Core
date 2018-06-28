@@ -36,7 +36,10 @@ KeyRing::KeyRing(const DevcashContext& context)
      Signature sig;
      test_hash = DevcashHash(msg);
 
-     std::string inn_keys = ReadFile(context_.get_inn_key_path());
+     std::string inn_keys;
+     if (context_.get_inn_key_path().size() > 0) {
+       inn_keys = ReadFile(context_.get_inn_key_path());
+     }
      if (!inn_keys.empty()) {
        size_t size = inn_keys.size();
        if (size%(kFILE_KEY_SIZE+(kADDR_SIZE*2)) == 0) {
@@ -75,7 +78,11 @@ KeyRing::KeyRing(const DevcashContext& context)
        inn_addr_ = InsertAddress(context_.kINN_ADDR, inn_key);
      }
 
-     std::string wallet_keys = ReadFile(context_.get_wallet_key_path());
+     std::string wallet_keys;
+     if (context_.get_wallet_key_path().size() > 0)
+     {
+       wallet_keys = ReadFile(context_.get_wallet_key_path());
+     }
      if (!wallet_keys.empty()) {
        size_t size = wallet_keys.size();
        if (size%(kFILE_KEY_SIZE+(kADDR_SIZE*2)) == 0) {
@@ -116,8 +123,11 @@ KeyRing::KeyRing(const DevcashContext& context)
          wallet_list_.push_back(wallet_addr);
        }
      }
-
-     std::string node_keys = ReadFile(context_.get_node_key_path());
+     std::string node_keys;
+     if (context_.get_node_key_path().size() > 0)
+     {
+       node_keys = ReadFile(context_.get_node_key_path());
+     }
      if (!node_keys.empty()) {
        size_t size = node_keys.size();
        if (size%(kFILE_KEY_SIZE+(kADDR_SIZE*2)) == 0) {
