@@ -35,7 +35,7 @@ public:
    */
   ChainState(ChainState&& other) noexcept = default;
 
-  ChainState& operator=(ChainState&& other)
+  ChainState& operator=(const ChainState&& other)
   {
     if (this != &other) {
       this->state_map_ = other.state_map_;

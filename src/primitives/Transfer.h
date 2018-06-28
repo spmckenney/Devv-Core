@@ -41,7 +41,7 @@ class Transfer {
    */
   Transfer(const Address& addr,
            uint64_t coin,
-           uint64_t amount,
+           int64_t amount,
            uint64_t delay)
       : canonical_(std::begin(addr), std::end(addr)) {
     Uint64ToBin(coin, canonical_);
@@ -75,7 +75,7 @@ class Transfer {
   friend bool operator!=(const Transfer& a, const Transfer& b) { return (a.canonical_ != b.canonical_); }
 
   /** Assign transfers */
-  Transfer& operator=(Transfer&& other) {
+  Transfer& operator=(const Transfer&& other) {
     if (this != &other) {
       this->canonical_ = other.canonical_;
     }
