@@ -19,21 +19,26 @@ namespace Devcash
 using namespace Devcash;
 
 bool ChainState::addCoin(const SmartCoin& coin) {
+  bool no_error = true;
   auto it = state_map_.find(coin.getAddress());
   if (it != state_map_.end()) {
     it->second[coin.getCoin()] += coin.getAmount();
+  } else {
+    std::pair<uint64_t, uint64_t> inner(coin.getCoin(), coin.getAmount());
+    std::pair<Address, std::pair<uint64_t, uint64_t> outer(coin.getAddress()
+      , inner);
+    auto result = state_map_.insert(outer);
+    no_error = result.second && no_error;
   }
-  return(true);
+  return(no_error);
 }
 
 bool ChainState::addCoins(const std::map<Address, SmartCoin>& coin_map) {
- for (auto& coin : coin_map) {
-   auto loc = state_map_.find(coin.first);
-   if (loc != state_map_.end()) {
-     loc->second[coin.second.getCoin()] += coin.second.getAmount();
-   }
- }
- return(true);
+  bool no_error = true;
+  for (auto& coin : coin_map) {
+ 	no_error = no_error && addCoin(coin);
+  }
+  return(no_error);
 }
 
 long ChainState::getAmount(uint64_t type, const Address& addr) const {
