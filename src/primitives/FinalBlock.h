@@ -91,14 +91,6 @@ class FinalBlock {
     tcm.set_keys(&keys);
     tcm.CreateTransactions(serial, transaction_vector_, offset, minSize(), tx_size_);
 
-    /*
-    while (offset < minSize()+tx_size_) {
-      //Transaction constructor increments offset by ref
-      Transaction one_tx(serial, offset, keys);
-      transaction_vector_.push_back(one_tx);
-    }
-    */
-
     Summary temp(serial, offset);
     summary_ = temp;
     Validation val_temp(serial, offset);

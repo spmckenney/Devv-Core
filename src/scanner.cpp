@@ -86,7 +86,7 @@ int main(int argc, char* argv[])
           file_tfer += tx.getTransfers().size();
           out += tx.getJSON();
         } else {
-          FinalBlock one_block(raw, priori, offset, keys, options->mode);
+          FinalBlock one_block(raw, priori, offset);
           size_t txs = one_block.getNumTransactions();
           size_t tfers = one_block.getNumTransfers();
           priori = one_block.getChainState();
