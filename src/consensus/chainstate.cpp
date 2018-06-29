@@ -20,13 +20,13 @@ using namespace Devcash;
 
 bool ChainState::addCoin(const SmartCoin& coin) {
   bool no_error = true;
-  auto it = state_map_.find(coin.getAddress());
+  auto it = state_map_.find(coin.addr_);
   if (it != state_map_.end()) {
-    it->second[coin.getCoin()] += coin.getAmount();
+    it->second[coin.coin_] += coin.amount_;
   } else {
     CoinMap inner;
-    inner.insert(std::make_pair(coin.getCoin(), coin.getAmount()));
-    std::pair<Address, CoinMap> outer(coin.getAddress(), inner);
+    inner.insert(std::make_pair(coin.coin_, coin.amount_));
+    std::pair<Address, CoinMap> outer(coin.addr_, inner);
     auto result = state_map_.insert(outer);
     no_error = result.second && no_error;
   }
