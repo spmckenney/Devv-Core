@@ -139,14 +139,6 @@ class Tier1Transaction : public Transaction {
 
  private:
   /**
-   * Creates a deep copy of this transaction
-   * @return unique pointer to clone of this
-   */
-  std::unique_ptr<Transaction> do_Clone() {
-    return std::unique_ptr<Transaction>(new Tier1Transaction(*this));
-  }
-
-  /**
    * Return a copy of the message digest
    * @return vector of bytes
    */
@@ -215,17 +207,16 @@ class Tier1Transaction : public Transaction {
     CASH_TRY {
       if (is_sound_) return (is_sound_);
 
-      /// @todo(mckenney) auto node_index
       int node_index = getNonce();
       EC_KEY* eckey(keys.getNodeKey(node_index));
       std::vector<byte> msg(getMessageDigest());
       Signature sig = getSignature();
 
-      if (!VerifyByteSig(eckey, DevcashHash(msg), sig)) {
+      if (!VerifyByteSig(eckey, dcHash(msg), sig)) {
         LOG_WARNING << "Error: T1 transaction signature did not validate.\n";
         LOG_DEBUG << "Transaction state is: " + getJSON();
         LOG_DEBUG << "Node index is: " + std::to_string(node_index);
-        LOG_DEBUG << "Signature is: " + ToHex(std::vector<byte>(std::begin(sig), std::end(sig)));
+        LOG_DEBUG << "Signature is: " + toHex(std::vector<byte>(std::begin(sig), std::end(sig)));
         return false;
       }
       return true;
@@ -309,7 +300,7 @@ class Tier1Transaction : public Transaction {
     }
     json += "],\"" + kNONCE_TAG + "\":" + std::to_string(getNonce()) + ",";
     Signature sig = getSignature();
-    json += "\"" + kSIG_TAG + "\":\"" + ToHex(std::vector<byte>(std::begin(sig), std::end(sig))) + "\"}";
+    json += "\"" + kSIG_TAG + "\":\"" + toHex(std::vector<byte>(std::begin(sig), std::end(sig))) + "\"}";
     return json;
   }
 

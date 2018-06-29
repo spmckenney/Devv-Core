@@ -34,10 +34,10 @@ class Tier2Transaction : public Transaction {
     LOG_INFO << "TX size: " + std::to_string(tx_size);
     if (serial.size() < tx_size) {
       LOG_WARNING << "Invalid serialized T2 transaction, wrong size!";
-      LOG_WARNING << "Transaction prefix: " + ToHex(serial);
+      LOG_WARNING << "Transaction prefix: " + toHex(serial);
       return;
     }
-    LOG_INFO << "TX canonical: " + ToHex(serial);
+    LOG_INFO << "TX canonical: " + toHex(serial);
     canonical_.insert(canonical_.end(), serial.begin(), serial.begin() + tx_size);
     if (getOperation() > 3) {
       LOG_WARNING << "Invalid serialized T2 transaction, invalid operation!";
@@ -75,7 +75,7 @@ class Tier2Transaction : public Transaction {
     if (serial.size() < offset + tx_size) {
       std::vector<byte> prefix(serial.begin() + offset, serial.begin() + offset + 8);
       LOG_WARNING << "Invalid serialized T2 transaction, wrong size (" + std::to_string(tx_size) + ")!";
-      LOG_WARNING << "Transaction prefix: " + ToHex(prefix);
+      LOG_WARNING << "Transaction prefix: " + toHex(prefix);
       LOG_WARNING << "Bytes offset: " + std::to_string(offset);
       return;
     }
@@ -153,7 +153,7 @@ class Tier2Transaction : public Transaction {
     Uint64ToBin(nonce, canonical_);
     std::vector<byte> msg(getMessageDigest());
     Signature sig;
-    SignBinary(eckey, DevcashHash(msg), sig);
+    SignBinary(eckey, dcHash(msg), sig);
     canonical_.insert(std::end(canonical_), std::begin(sig), std::end(sig));
     is_sound_ = isSound(keys);
     if (!is_sound_) {
@@ -170,14 +170,6 @@ class Tier2Transaction : public Transaction {
   }
 
  private:
-  /**
-   * Creates a deep copy of this transaction
-   * @return unique pointer to clone of this
-   */
-  std::unique_ptr<Transaction> do_Clone() {
-    return std::unique_ptr<Transaction>(new Tier2Transaction(*this));
-  }
-
   /**
    * Return a copy of the message digest
    * @return message digest
@@ -293,11 +285,11 @@ class Tier2Transaction : public Transaction {
       std::vector<byte> msg(getMessageDigest());
       Signature sig = getSignature();
 
-      if (!VerifyByteSig(eckey, DevcashHash(msg), sig)) {
+      if (!VerifyByteSig(eckey, dcHash(msg), sig)) {
         LOG_WARNING << "Error: transaction signature did not validate.\n";
         LOG_DEBUG << "Transaction state is: " + getJSON();
-        LOG_DEBUG << "Sender addr is: " + ToHex(std::vector<byte>(std::begin(sender), std::end(sender)));
-        LOG_DEBUG << "Signature is: " + ToHex(std::vector<byte>(std::begin(sig), std::end(sig)));
+        LOG_DEBUG << "Sender addr is: " + toHex(std::vector<byte>(std::begin(sender), std::end(sender)));
+        LOG_DEBUG << "Signature is: " + toHex(std::vector<byte>(std::begin(sig), std::end(sig)));
         return false;
       }
       return true;
@@ -391,7 +383,7 @@ class Tier2Transaction : public Transaction {
     }
     json += "],\"" + kNONCE_TAG + "\":" + std::to_string(getNonce()) + ",";
     Signature sig = getSignature();
-    json += "\"" + kSIG_TAG + "\":\"" + ToHex(std::vector<byte>(std::begin(sig), std::end(sig))) + "\"}";
+    json += "\"" + kSIG_TAG + "\":\"" + toHex(std::vector<byte>(std::begin(sig), std::end(sig))) + "\"}";
     return json;
   }
 };

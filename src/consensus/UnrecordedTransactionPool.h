@@ -50,14 +50,14 @@ class UnrecordedTransactionPool {
           //note that Transaction constructor advances counter by reference
           if (mode_ == eAppMode::T2) {
             TransactionPtr one_tx = std::make_unique<Tier2Transaction>(serial, counter, keys);
-            if (one_tx->getByteSize() < Transaction::MinSize()) {
+            if (one_tx->getByteSize() < Transaction::minSize()) {
               LOG_WARNING << "Invalid transaction, dropping the remainder of input.";
               break;
             }
             temp.push_back(std::move(one_tx));
 		  } else if (mode_ == eAppMode::T1) {
             TransactionPtr one_tx = std::make_unique<Tier1Transaction>(serial, counter, keys);
-            if (one_tx->getByteSize() < Transaction::MinSize()) {
+            if (one_tx->getByteSize() < Transaction::minSize()) {
               LOG_WARNING << "Invalid transaction, dropping the remainder of input.";
               break;
             }
@@ -418,8 +418,6 @@ class UnrecordedTransactionPool {
     unsigned int num_txs = 0;
     std::map<Address, SmartCoin> aggregate;
     for (auto iter = txs_.begin(); iter != txs_.end(); ++iter) {
-      /*aggregate = iter->second.second->AggregateState(aggregate
-                                        , state, keys, summary);*/
       if (iter->second.second->isValid(state, keys, summary)) {
         valid.push_back(std::move(iter->second.second->Clone()));
         iter->second.first++;
@@ -427,13 +425,6 @@ class UnrecordedTransactionPool {
         if (num_txs >= max_tx_per_block_) break;
       }
     }
-    /*state.addCoins(aggregate);
-    for (const auto& item : aggregate) {
-      if (!summary.addItem(item.first, item.second.coin_, item.second.amount_)) {
-        LOG_FATAL << "An aggregated transaction was invalid!!";
-        valid.clear();
-      }
-    }*/
     return valid;
   }
 

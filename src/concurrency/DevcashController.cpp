@@ -86,7 +86,7 @@ DevcashMessageUniquePtr CreateNextProposal(const KeyRing& keys,
       ChainState prior = final_chain.getHighestChainState();
       utx_pool.ProposeBlock(prev_hash, prior, keys, context);
     } else {
-      Hash prev_hash = dcHash({'G', 'e', 'n', 'e', 'i', 's'});
+      Hash prev_hash = dcHash({'G', 'e', 'n', 'e', 's', 'i', 's'});
       ChainState prior;
       utx_pool.ProposeBlock(prev_hash, prior, keys, context);
     }
@@ -101,7 +101,6 @@ DevcashMessageUniquePtr CreateNextProposal(const KeyRing& keys,
                                                       , PROPOSAL_BLOCK
                                                       , proposal
                                                       , DEBUG_PROPOSAL_INDEX);
-  // FIXME (spm): define index value somewhere
   LogDevcashMessageSummary(*propose_msg, "CreateNextProposal");
   return propose_msg;
 
@@ -115,7 +114,7 @@ void DevcashController::ValidatorCallback(DevcashMessageUniquePtr ptr) {
     return;
   }
   LogDevcashMessageSummary(*ptr, "ValidatorCallback");
-  //CASH_TRY {
+  try {
     LOG_DEBUG << "DevcashController::ValidatorCallback()";
     MTR_SCOPE_FUNC();
     if (ptr->message_type == TRANSACTION_ANNOUNCEMENT) {
@@ -139,12 +138,9 @@ void DevcashController::ValidatorCallback(DevcashMessageUniquePtr ptr) {
       LOG_DEBUG << "Unexpected message @ validator, to consensus.\n";
       PushConsensus(std::move(ptr));
     }
-    /*
-  } CASH_CATCH (const std::exception& e) {
+  } catch (const std::exception& e) {
     LOG_FATAL << FormatException(&e, "DevcashController.ValidatorCallback()");
-    StopAll();
   }
-    */
 }
 
 bool HandleFinalBlock(DevcashMessageUniquePtr ptr,
@@ -152,6 +148,8 @@ bool HandleFinalBlock(DevcashMessageUniquePtr ptr,
                       const KeyRing& keys,
                       Blockchain& final_chain,
                       UnrecordedTransactionPool& utx_pool,
+                      eAppMode mode,
+                      unsigned int batch_size,
                       std::function<void(DevcashMessageUniquePtr)> callback) {
   MTR_SCOPE_FUNC();
   //Make the incoming block final
@@ -164,7 +162,7 @@ bool HandleFinalBlock(DevcashMessageUniquePtr ptr,
   ChainState prior = final_chain.getHighestChainState();
   FinalPtr top_block = std::make_shared<FinalBlock>(utx_pool.FinalizeRemoteBlock(
                                                msg.data, prior, keys));
-  final_chain.push_back(top_block);
+  final_chain.push_back(top_block, mode, batch_size);
   LOG_NOTICE << "final_chain.push_back(): Estimated rate: (ntxs/duration): rate -> "
              << "(" << final_chain.getNumTransactions() << "/"
              << utx_pool.getElapsedTime() << "): "
@@ -183,7 +181,11 @@ bool HandleFinalBlock(DevcashMessageUniquePtr ptr,
 
   if (!utx_pool.HasPendingTransactions()) {
     LOG_INFO << "All pending transactions processed.";
-  } else if (block_height%context.get_peer_count() == context.get_current_node()%context.get_peer_count()) {
+    while (!utx_pool.HasPendingTransactions())
+      std::this_thread::sleep_for(std::chrono::milliseconds(5000));
+  }
+
+  if (block_height%context.get_peer_count() == context.get_current_node()%context.get_peer_count()) {
     if (!utx_pool.HasProposal()) {
       callback(std::move(CreateNextProposal(keys,final_chain,utx_pool,context)));
       sent_message = true;
@@ -233,6 +235,8 @@ bool HandleValidationBlock(DevcashMessageUniquePtr ptr,
                            const DevcashContext& context,
                            Blockchain& final_chain,
                            UnrecordedTransactionPool& utx_pool,
+                           eAppMode mode,
+                           unsigned int batch_size,
                            std::function<void(DevcashMessageUniquePtr)> callback) {
   MTR_SCOPE_FUNC();
   bool sent_message = false;
@@ -244,7 +248,7 @@ bool HandleValidationBlock(DevcashMessageUniquePtr ptr,
     //block can be finalized, so finalize
     LOG_DEBUG << "Ready to finalize block.";
     FinalPtr top_block = std::make_shared<FinalBlock>(utx_pool.FinalizeLocalBlock());
-    final_chain.push_back(top_block);
+    final_chain.push_back(top_block, mode, batch_size);
     LOG_NOTICE << "final_chain.push_back(): Estimated rate: (ntxs/duration): rate -> "
                << "(" << final_chain.getNumTransactions() << "/"
                << utx_pool.getElapsedTime() << "): "
@@ -365,7 +369,7 @@ bool HandleBlocksSince(DevcashMessageUniquePtr ptr,
 void DevcashController::ConsensusCallback(DevcashMessageUniquePtr ptr) {
   std::lock_guard<std::mutex> guard(mutex_);
   MTR_SCOPE_FUNC();
-  //CASH_TRY {
+  try {
     if (shutdown_) {
       LOG_DEBUG << "DevcashController()::ConsensusCallback(): shutdown_ == true";
       return;
@@ -378,6 +382,8 @@ void DevcashController::ConsensusCallback(DevcashMessageUniquePtr ptr) {
                        keys_,
                        final_chain_,
                        utx_pool_,
+                       mode_,
+                       batch_size_,
                        [this](DevcashMessageUniquePtr p) { this->server_.QueueMessage(std::move(p));});
       break;
 
@@ -405,6 +411,8 @@ void DevcashController::ConsensusCallback(DevcashMessageUniquePtr ptr) {
                             context_,
                             final_chain_,
                             utx_pool_,
+                            mode_,
+                            batch_size_,
                             [this](DevcashMessageUniquePtr p) { this->server_.QueueMessage(std::move(p));});
       break;
 
@@ -427,19 +435,17 @@ void DevcashController::ConsensusCallback(DevcashMessageUniquePtr ptr) {
       LOG_ERROR << "DevcashController()::ConsensusCallback(): Unexpected message, ignore.\n";
       break;
     }
-    /*
-  } CASH_CATCH (const std::exception& e) {
+  } catch (const std::exception& e) {
     LOG_FATAL << FormatException(&e, "DevcashController.ConsensusCallback()");
     CASH_THROW(e);
     StopAll();
   }
-    */
 }
 
 void DevcashController::ShardCommsCallback(DevcashMessageUniquePtr ptr) {
   std::lock_guard<std::mutex> guard(mutex_);
   MTR_SCOPE_FUNC();
-  //CASH_TRY {
+  try {
     if (shutdown_) {
       LOG_DEBUG << "DevcashController()::ShardCommsCallback(): shutdown_ == true";
       return;
@@ -525,13 +531,9 @@ void DevcashController::ShardCommsCallback(DevcashMessageUniquePtr ptr) {
       LOG_ERROR << "DevcashController()::ShardCommsCallback(): Unexpected message, ignore.\n";
       break;
     }
-    /*
-  } CASH_CATCH (const std::exception& e) {
+  } catch (const std::exception& e) {
     LOG_FATAL << FormatException(&e, "DevcashController.ShardCommsCallback()");
-    CASH_THROW(e);
-    StopAll();
   }
-    */
 }
 
 void DevcashController::ValidatorToyCallback(DevcashMessageUniquePtr ptr) {

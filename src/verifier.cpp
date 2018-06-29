@@ -46,7 +46,7 @@ namespace fs = boost::filesystem;
  */
 bool isBlockData(std::vector<byte> raw) {
   //check if big enough
-  if (raw.size() < FinalBlock::MinSize()) return false;
+  if (raw.size() < FinalBlock::minSize()) return false;
   //check version
   if (raw[0] != 0x00) return false;
   size_t offset = 9;
@@ -65,10 +65,10 @@ bool isBlockData(std::vector<byte> raw) {
  */
 bool isTxData(std::vector<byte> raw) {
   //check if big enough
-  if (raw.size() < Transaction::MinSize()) return false;
+  if (raw.size() < Transaction::minSize()) return false;
   //check transfer count
   uint64_t xfer_count = BinToUint64(raw, 0);
-  size_t tx_size = Transaction::MinSize()+(Transfer::Size()*xfer_count);
+  size_t tx_size = Transaction::minSize()+(Transfer::Size()*xfer_count);
   if (raw.size() < tx_size) return false;
   //check operation
   if (raw[8] >= 4) return false;

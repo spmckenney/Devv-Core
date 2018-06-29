@@ -55,10 +55,15 @@ public:
    * Add a block to this chain.
    * @param block - a shared pointer to the block to add
    */
-  void push_back(BlockSharedPtr block) {
+  void push_back(BlockSharedPtr block, eAppMode mode, unsigned int batch_size) {
     chain_.push_back(block);
     chain_size_++;
-    num_transactions_ += block->getNumTransactions();
+    if (mode == eAppMode::T2) {
+      num_transactions_ += block->getNumTransactions();
+    } else if (mode == eAppMode::T1) {
+      //account for summarized T2 transactions
+      num_transactions_ += block->getNumTransactions()*batch_size;
+    }
 
     LOG_NOTICE << name_ << "Updating Final Blockchain - (size/ntxs)"
                 << " (" << chain_size_ << "/" << num_transactions_ << ")";

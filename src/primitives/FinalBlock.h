@@ -32,9 +32,9 @@ class FinalBlock {
         summary_(proposed.getSummary()),
         vals_(proposed.getValidation()),
         block_state_(proposed.getBlockState()) {
-    merkle_root_ = DevcashHash(getBlockDigest());
+    merkle_root_ = dcHash(getBlockDigest());
     std::vector<byte> merkle(std::begin(merkle_root_), std::end(merkle_root_));
-    LOG_INFO << "Merkle: " + ToHex(merkle);
+    LOG_INFO << "Merkle: " + toHex(merkle);
   }
 
   /**
@@ -228,9 +228,9 @@ class FinalBlock {
     json += "\"" + kBYTES_TAG + "\":" + std::to_string(num_bytes_) + ",";
     json += "\"" + kTIME_TAG + "\":" + std::to_string(block_time_) + ",";
     std::vector<byte> prev_hash(std::begin(prev_hash_), std::end(prev_hash_));
-    json += "\"" + kPREV_HASH_TAG + "\":" + ToHex(prev_hash) + ",";
+    json += "\"" + kPREV_HASH_TAG + "\":" + toHex(prev_hash) + ",";
     std::vector<byte> merkle(std::begin(merkle_root_), std::end(merkle_root_));
-    json += "\"" + kMERKLE_TAG + "\":" + ToHex(merkle) + ",";
+    json += "\"" + kMERKLE_TAG + "\":" + toHex(merkle) + ",";
     json += "\"" + kTX_SIZE_TAG + "\":" + std::to_string(tx_size_) + ",";
     json += "\"" + kSUM_SIZE_TAG + "\":" + std::to_string(sum_size_) + ",";
     json += "\"" + kVAL_COUNT_TAG + "\":" + std::to_string(val_count_) + ",";
