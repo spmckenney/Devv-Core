@@ -26,7 +26,7 @@ namespace {
     test_buffer_0_.push_back(10);
   }
 
-  ~InputBufferTest()  = default;
+  ~InputBufferTest() override = default;
 
   void SetUp() override {
     // Code here will be called immediately after the constructor (right
@@ -727,7 +727,6 @@ TEST(Primitives, getCanonical0) {
 
   Validation val_test = Validation::Create();
   val_test.addValidation(keys.getNodeAddr(0), tx1.getSignature());
-  uint32_t val_count = val_test.getValidationCount();
   InputBuffer buffer3(val_test.getCanonical());
   Validation val_test2 = Validation::Create(buffer3);
 

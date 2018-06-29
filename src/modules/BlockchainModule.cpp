@@ -113,7 +113,7 @@ std::unique_ptr<BlockchainModule> BlockchainModule::Create(io::TransactionServer
   /// The controllers contain the the algorithms, the ParallelExecutor parallelizes them
 
   blockchain_module_ptr->validator_executor_ =
-      std::make_unique<ParallelExecutor<ValidatorController>>(vc, context, 1);
+      std::make_unique<ParallelExecutor<ValidatorController>>(vc, 1);
   /// Attach a callback to be run in the threads
 
   blockchain_module_ptr->validator_executor_->attachCallback(
@@ -126,7 +126,7 @@ std::unique_ptr<BlockchainModule> BlockchainModule::Create(io::TransactionServer
 
   /// The controllers contain the the algorithms, the ParallelExecutor parallelizes them
   blockchain_module_ptr->consensus_executor_ =
-      std::make_unique<ParallelExecutor<ConsensusController>>(cc, context, 1);
+      std::make_unique<ParallelExecutor<ConsensusController>>(cc, 1);
 
   /// Attach a callback to be run in the threads
   blockchain_module_ptr->consensus_executor_->attachCallback([&](DevcashMessageUniquePtr p) {
@@ -139,7 +139,7 @@ std::unique_ptr<BlockchainModule> BlockchainModule::Create(io::TransactionServer
 
   /// The controllers contain the the algorithms, the ParallelExecutor parallelizes them
   blockchain_module_ptr->internetwork_executor_ =
-      std::make_unique<ParallelExecutor<InternetworkController>>(ic, context, 1);
+      std::make_unique<ParallelExecutor<InternetworkController>>(ic, 1);
 
   /// Attach a callback to be run in the threads
   blockchain_module_ptr->internetwork_executor_->attachCallback([&](DevcashMessageUniquePtr p) {
@@ -219,7 +219,6 @@ void BlockchainModule::performSanityChecks()
 
   std::vector<byte> msg = {'h', 'e', 'l', 'l', 'o'};
   Hash test_hash(DevcashHash(msg));
-  std::string sDer;
 
   EC_KEY *loadkey = LoadEcKey(app_context_.kADDRs[1],
                               app_context_.kADDR_KEYs[1]);

@@ -28,10 +28,8 @@ class ParallelExecutor {
    * @param num_threads
    */
   ParallelExecutor(Controller& controller,
-                     DevcashContext& context,
                      size_t num_threads)
       : controller_(controller)
-      , context_(context)
       , thread_group_(num_threads)
   {
     LOG_DEBUG << "ParallelExecutor(" << num_threads << ")";
@@ -91,7 +89,6 @@ class ParallelExecutor {
 
  private:
   Controller& controller_;
-  DevcashContext& context_;
   ThreadGroup thread_group_;
 };
 

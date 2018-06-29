@@ -176,7 +176,6 @@ int main(int argc, char* argv[]) {
 
       /* Should we announce a transaction? */
       if (processed < transactions.size()) {
-        size_t num_messages = 0;
         auto announce_msg = std::make_unique<DevcashMessage>(this_context.get_uri(), TRANSACTION_ANNOUNCEMENT, transactions.at(processed),
                                                                DEBUG_TRANSACTION_INDEX);
         server->queueMessage(std::move(announce_msg));

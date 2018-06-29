@@ -332,7 +332,6 @@ inline Summary Summary::Create(InputBuffer& buffer) {
     throw std::runtime_error(warning);
   }
   size_t addr_count = buffer.getNextUint32();
-  std::vector<byte> out;
   for (size_t i = 0; i < addr_count; ++i) {
     Address one_addr;
     buffer.copy(one_addr);

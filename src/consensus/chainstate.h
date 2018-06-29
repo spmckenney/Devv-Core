@@ -57,7 +57,6 @@ public:
  *  @return false otherwise
 */
   bool addCoin(const SmartCoin& coin);
-  bool addCoins(const std::map<Address, SmartCoin>& coin_map);
 
 /** Gets the number of coins at a particular location.
  *  @param type the coin type to check
@@ -65,12 +64,6 @@ public:
  *  @return the number of this type of coins at this address
 */
   long getAmount(uint64_t type, const Address& addr) const;
-
-/** Clears this chain state.
- *  @return true if the state cleared successfully
- *  @return false otherwise
-*/
-  bool clear();
 
 /** Get the map describing this chain state
  *  @return tre map describing this chain state

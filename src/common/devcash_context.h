@@ -23,20 +23,6 @@ static const int kVALIDATION_PERCENT = 51;
 
 static const unsigned int kSYNC_PORT_BASE = 55330;
 
-inline bool exists_test1(const std::string& name) {
-  struct stat buffer;
-  return (stat (name.c_str(), &buffer) == 0);
-}
-
-inline bool exists_test(const std::string &name) {
-  if (FILE *file = fopen(name.c_str(), "r")) {
-    fclose(file);
-    return true;
-  } else {
-    return false;
-  }
-}
-
 struct DevcashContext {
 
   /**
@@ -109,8 +95,6 @@ struct DevcashContext {
   std::string get_node_key_path() const { return node_keys_; }
   std::string get_wallet_key_path() const { return wallet_keys_; }
 
-  std::string get_sync_host() const { return (sync_host_+":"+std::to_string(sync_port_)); }
-
 private:
   /** Number of connected peers */
   const size_t peer_count_ = 3;
@@ -134,12 +118,6 @@ private:
   std::string inn_keys_;
   std::string node_keys_;
   std::string wallet_keys_;
-
-  // Host the nodes will sync to
-  std::string sync_host_;
-
-  // Port the nodes will sync to
-  unsigned int sync_port_;
 };
 
 } /* namespace Devcash */
