@@ -274,7 +274,7 @@ bool HandleBlocksSince(DevcashMessageUniquePtr ptr,
       }
       //TODO: update upcoming state in utx pool
     }
-    if (height > remote_blocks) remote_blocks = height;
+    if (height > remote_blocks) { remote_blocks = height; }
     LOG_INFO << "Finished updating local state for Tier1 block height: "+std::to_string(height);
   }
   return false;

@@ -72,12 +72,12 @@ class DevcashRingQueue {
       std::unique_lock<std::mutex> eqLock(update_);
       ptrRing_.at(pushAt_) = std::move(pointer);
       pending_++;
-      if (pushAt_+1 == popAt_) isFull_=true;
-      if (pushAt_+1 >= kRingSize_&& popAt_ == 0) isEmpty_=true;
+      if (pushAt_+1 == popAt_) { isFull_ = true; }
+      if (pushAt_+1 >= kRingSize_&& popAt_ == 0) { isEmpty_ = true; }
       isEmpty_ = false;
       empty_.notify_one();
       pushAt_++;
-      if (pushAt_ >= kRingSize_) pushAt_ = 0;
+      if (pushAt_ >= kRingSize_) { pushAt_ = 0; }
       if (pushAt_ == popAt_) {
         isFull_ = true;
       } else {
@@ -97,7 +97,7 @@ class DevcashRingQueue {
    */
   void popGuard() {
     CASH_TRY {
-      std::lock_guard<std::mutex> pop_guard(popGuardLock_);;
+      std::lock_guard<std::mutex> pop_guard(popGuardLock_);
       std::unique_lock<std::mutex> lock(popLock_);
       while (isEmpty_) {
         empty_.wait(lock, [&]() {
@@ -105,8 +105,8 @@ class DevcashRingQueue {
         );
       }
       pending_--;
-      if (popAt_+1 == pushAt_) isEmpty_=true;
-      if (popAt_+1 >= kRingSize_&& pushAt_ == 0) isEmpty_=true;
+      if ((popAt_ + 1) == pushAt_) { isEmpty_ = true; }
+      if ((popAt_ + 1) >= kRingSize_&& pushAt_ == 0) { isEmpty_ = true; }
     } CASH_CATCH (const std::exception& e) {
       LOG_WARNING << FormatException(&e, "DevcashRingQueue.popGuard");
     }
@@ -124,7 +124,7 @@ class DevcashRingQueue {
       isFull_ = false;
       full_.notify_one();
       popAt_++;
-      if (popAt_ >= kRingSize_) popAt_ = 0;
+      if (popAt_ >= kRingSize_) { popAt_ = 0; }
       if (popAt_ == pushAt_) {
         isEmpty_ = true;
       } else {

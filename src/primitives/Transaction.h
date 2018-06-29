@@ -117,7 +117,7 @@ class Transaction {
    * Returns a canonical bytestring representation of this transaction.
    * @return a canonical bytestring representation of this transaction.
    */
-  std::vector<byte> getCanonical() const { return canonical_; }
+  const std::vector<byte>& getCanonical() const { return canonical_; }
 
   /**
    * Returns the message digest bytestring for this transaction.

@@ -211,7 +211,7 @@ void BlockchainModule::init()
 
 void BlockchainModule::performSanityChecks()
 {
-  if (!isCryptoInit) InitCrypto();
+  if (!isCryptoInit) { InitCrypto(); }
   EVP_MD_CTX *ctx;
   if (!(ctx = EVP_MD_CTX_create())) {
     throw std::runtime_error("Could not create signature context!");

@@ -125,14 +125,14 @@ class UnrecordedTransactionPool {
       Signature sig = item->getSignature();
       auto it = txs_.find(sig);
       bool valid = it->second.second->isValid(state, keys, summary);
-      if (!valid) return false; //tx is invalid
+      if (!valid) { return false; } //tx is invalid
       if (it != txs_.end()) {
         if (valid) {
           it->second.first++;
         }
       } else if (item->isSound(keys)) {
         SharedTransaction pair((uint8_t) 0, std::move(item));
-        if (valid) pair.first++;
+        if (valid) { pair.first++; }
         txs_.insert(std::pair<Signature, SharedTransaction>(sig, std::move(pair)));
         if (num_cum_txs_ == 0) {
           LOG_NOTICE << "AddTransactions(): First transaction added to TxMap";
@@ -268,7 +268,7 @@ class UnrecordedTransactionPool {
     LOG_DEBUG << "ReverifyProposal()";
     MTR_SCOPE_FUNC();
     std::lock_guard<std::mutex> proposal_guard(pending_proposal_mutex_);
-    if (pending_proposal_.isNull()) return false;
+    if (pending_proposal_.isNull()) { return false; }
     pending_proposal_.setPrevHash(prev_hash);
     return true;
     //The remainder of this function is unneeded when transactions are unique
@@ -297,7 +297,7 @@ class UnrecordedTransactionPool {
   bool CheckValidation(InputBuffer& buffer, const DevcashContext& context) {
     LOG_DEBUG << "CheckValidation()";
     std::lock_guard<std::mutex> proposal_guard(pending_proposal_mutex_);
-    if (pending_proposal_.isNull()) return false;
+    if (pending_proposal_.isNull()) { return false; }
     return pending_proposal_.checkValidationData(buffer, context);
   }
 
@@ -417,7 +417,7 @@ class UnrecordedTransactionPool {
         valid.push_back(std::move(iter->second.second->clone()));
         iter->second.first++;
         num_txs++;
-        if (num_txs >= max_tx_per_block_) break;
+        if (num_txs >= max_tx_per_block_) { break; }
       }
     }
     /*state.addCoins(aggregate);

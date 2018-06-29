@@ -12,21 +12,20 @@
  *      Author: Nick Williams
  */
 
-#include <stdio.h>
-#include <stdlib.h>
 #include <algorithm>
 #include <cmath>
 #include <fstream>
 #include <iostream>
 #include <string>
+#include <memory>
 
 #include "common/argument_parser.h"
 #include "common/devcash_context.h"
+#include "common/logger.h"
+
 #include "modules/BlockchainModule.h"
 
 using namespace Devcash;
-
-#define UNUSED(x) ((void)x)
 
 int main(int argc, char* argv[]) {
   init_log();
@@ -87,7 +86,7 @@ int main(int argc, char* argv[]) {
     while (counter < options->generate_count) {
         for (size_t i = 0; i < addr_count; ++i) {
           for (size_t j = 0; j < addr_count; ++j) {
-            if (i == j) continue;
+            if (i == j) { continue; }
             std::vector<Transfer> peer_xfers;
             Transfer sender(keys.getWalletAddr(i), 0, -1*options->tx_limit, 0);
             peer_xfers.push_back(sender);
@@ -101,11 +100,11 @@ int main(int argc, char* argv[]) {
             out.insert(out.end(), peer_canon.begin(), peer_canon.end());
             LOG_TRACE << "Circuit test generated tx with sig: " << ToHex(peer_tx.getSignature());
             counter++;
-            if (counter >= options->generate_count) break;
+            if (counter >= options->generate_count) { break; }
           }  // end inner for
-          if (counter >= options->generate_count) break;
+          if (counter >= options->generate_count) { break; }
         }  // end outer for
-        if (counter >= options->generate_count) break;
+        if (counter >= options->generate_count) { break; }
         for (size_t i = 0; i < addr_count; ++i) {
           std::vector<Transfer> peer_xfers;
           Transfer sender(keys.getWalletAddr(i), 0
@@ -121,9 +120,9 @@ int main(int argc, char* argv[]) {
           out.insert(out.end(), peer_canon.begin(), peer_canon.end());
           LOG_TRACE << "GenerateTransactions(): generated tx with sig: " << ToHex(peer_tx.getSignature());
           counter++;
-          if (counter >= options->generate_count) break;
+          if (counter >= options->generate_count) { break; }
         }  // end outer for
-        if (counter >= options->generate_count) break;
+        if (counter >= options->generate_count) { break; }
     }  // end counter while
 
     LOG_INFO << "Generated " << counter << " transactions.";

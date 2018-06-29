@@ -105,7 +105,7 @@ std::string ReadFile(const std::string& filePath)
 static bool InterpretBool(const std::string& strValue)
 {
   MTR_SCOPE_FUNC();
-  if (strValue.empty()) return true;
+  if (strValue.empty()) { return true; }
   return (std::stoi(strValue) != 0);
 }
 
@@ -187,7 +187,9 @@ int RaiseFileDescriptorLimit(int nMinFD) {
     if (limitFD.rlim_cur < (rlim_t)nMinFD) {
       limitFD.rlim_cur = nMinFD;
       if (limitFD.rlim_cur > limitFD.rlim_max)
+      {
         limitFD.rlim_cur = limitFD.rlim_max;
+      }
       setrlimit(RLIMIT_NOFILE, &limitFD);
       getrlimit(RLIMIT_NOFILE, &limitFD);
     }
@@ -232,8 +234,9 @@ void AllocateFileRange(FILE* file, unsigned int offset, unsigned int length) {
   fseek(file, offset, SEEK_SET);
   while (length > 0) {
     unsigned int now = 65536;
-    if (length < now)
+    if (length < now) {
       now = length;
+    }
     //fwrite allowed to fail; this function is advisory anyway
     fwrite(buf, 1, now, file);
     length -= now;
@@ -244,7 +247,7 @@ void AllocateFileRange(FILE* file, unsigned int offset, unsigned int length) {
 void signalHandler(int signum) {
   //StartShutdown();
   LOG_INFO << "Signal ("+std::to_string(signum)+") received.";
-  //Shutdown();
+  //shutdown();
 }
 
 void SetupEnvironment()
@@ -266,8 +269,9 @@ bool SetupNetworking()
   // Initialize Windows Sockets
   WSADATA wsadata;
   int ret = WSAStartup(MAKEWORD(2,2), &wsadata);
-  if (ret != NO_ERROR || LOBYTE(wsadata.wVersion ) != 2 || HIBYTE(wsadata.wVersion) != 2)
+  if (ret != NO_ERROR || LOBYTE(wsadata.wVersion ) != 2 || HIBYTE(wsadata.wVersion) != 2) {
     return false;
+  }
 #endif
   return true;
 }

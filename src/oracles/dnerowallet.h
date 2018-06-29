@@ -73,7 +73,7 @@ class dnerowallet : public oracleInterface {
    * @return false otherwise
    */
   bool isValid(Transaction& checkTx, const ChainState&) override {
-    if (!isSound(checkTx)) return false;
+    if (!isSound(checkTx)) { return false; }
     return true;
   }
 

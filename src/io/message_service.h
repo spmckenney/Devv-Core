@@ -169,7 +169,7 @@ class TransactionClient final {
  * @return zero-padded number
  */
 static inline std::string zeroPrepend(const std::string& number, size_t num_width) {
-  if (number.size() >= num_width) return number;
+  if (number.size() >= num_width) { return number; }
 
   auto to_pad = num_width - number.size();
   return std::string(to_pad, '0').append(number);

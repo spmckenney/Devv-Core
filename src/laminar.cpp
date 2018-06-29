@@ -33,6 +33,7 @@ int main(int argc, char* argv[]) {
     std::unique_ptr<devcash_options> options = parse_options(argc, argv);
 
     if (!options) {
+      LOG_ERROR << "parse_options error";
       exit(-1);
     }
 
@@ -84,7 +85,7 @@ int main(int argc, char* argv[]) {
     while (counter < options->generate_count) {
       for (size_t i = 0; i < addr_count; ++i) {
         for (size_t j = i; j < addr_count; ++j) {
-          if (i == j) continue;
+          if (i == j) { continue; }
           std::vector<Transfer> peer_xfers;
           Transfer sender(keys.getWalletAddr(i), 0, options->tx_limit * -1, 0);
           peer_xfers.push_back(sender);
@@ -97,12 +98,15 @@ int main(int argc, char* argv[]) {
           std::vector<byte> peer_canon(peer_tx.getCanonical());
           out.insert(out.end(), peer_canon.begin(), peer_canon.end());
           LOG_TRACE << "GenerateTransactions(): generated tx with sig: " << ToHex(peer_tx.getSignature());
+          if (!peer_tx.isSound(keys)) {
+            throw std::runtime_error("Transaction is not sound!");
+          }
           counter++;
-          if (counter >= options->generate_count) break;
+          if (counter >= options->generate_count) { break; }
         }  // end inner for
-        if (counter >= options->generate_count) break;
+        if (counter >= options->generate_count) { break; }
       }  // end outer for
-      if (counter >= options->generate_count) break;
+      if (counter >= options->generate_count) { break; }
     }  // end counter while
 
     LOG_INFO << "Generated " << counter << " transactions.";
@@ -114,11 +118,11 @@ int main(int argc, char* argv[]) {
         outFile.close();
       } else {
         LOG_FATAL << "Failed to open output file '" << options->write_file << "'.";
-        return (false);
+        return -1;
       }
     }
 
-    return (true);
+    return 0;
   }
   CASH_CATCH(...) {
     std::exception_ptr p = std::current_exception();
@@ -126,6 +130,6 @@ int main(int argc, char* argv[]) {
     err += (p ? p.__cxa_exception_type()->name() : "null");
     LOG_FATAL << "Error: " + err << std::endl;
     std::cerr << err << std::endl;
-    return (false);
+    return -1;
   }
 }

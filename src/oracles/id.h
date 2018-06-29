@@ -51,7 +51,7 @@ class DCid : public oracleInterface {
    * @return false otherwise
    */
   bool isSound(Transaction& checkTx) override {
-    if (checkTx.getOperation() == eOpType::Exchange) return false;
+    if (checkTx.getOperation() == eOpType::Exchange) { return false; }
     return true;
   }
 
@@ -68,7 +68,7 @@ class DCid : public oracleInterface {
    * @return false otherwise
    */
   bool isValid(Transaction& checkTx, const ChainState& context) override {
-    if (!isSound(checkTx)) return false;
+    if (!isSound(checkTx)) { return false; }
     std::vector<Transfer> xfers;
     for (auto it=xfers.begin(); it != xfers.end(); ++it) {
       if (it->getAmount() > 0) {

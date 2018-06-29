@@ -73,9 +73,9 @@ static EC_KEY* GenerateEcKey(std::string& publicKey, std::string& pk) {
 
     EC_GROUP_set_asn1_flag(ecGroup, OPENSSL_EC_NAMED_CURVE);
     int state = EC_KEY_set_group(eckey, ecGroup);
-    if (1 != state) LOG_ERROR << "Failed to set EC group status.";
+    if (1 != state) { LOG_ERROR << "Failed to set EC group status."; }
     state = EC_KEY_generate_key(eckey);
-    if (1 != state) LOG_ERROR << "Failed to generate EC key.";
+    if (1 != state) { LOG_ERROR << "Failed to generate EC key."; }
 
     OpenSSL_add_all_algorithms();
     EVP_PKEY* pkey = EVP_PKEY_new();
@@ -95,7 +95,7 @@ static EC_KEY* GenerateEcKey(std::string& publicKey, std::string& pk) {
     BIO* fOut = BIO_new(BIO_s_mem());
     int result = PEM_write_bio_PKCS8PrivateKey(fOut, pkey, cipher, NULL, 0, NULL,
       const_cast<char*>(pwd));
-    if (result != 1) LOG_ERROR << "Failed to generate PEM private key file";
+    if (result != 1) { LOG_ERROR << "Failed to generate PEM private key file"; }
     char buffer[1024];
     while (BIO_read(fOut, buffer, 1024) > 0) {
       pk += buffer;
@@ -160,7 +160,7 @@ static EC_KEY* LoadEcKey(const std::string& publicKey, const std::string& privKe
     EC_POINT* tempPoint = NULL;
     const char* pubKeyBuffer = &publicKey[0u];
     const EC_POINT* pubKeyPoint = EC_POINT_hex2point(EC_KEY_get0_group(eckey), pubKeyBuffer, tempPoint, NULL);
-    if (eckey == NULL) LOG_ERROR << "Invalid public key point.";
+    if (eckey == NULL) { LOG_ERROR << "Invalid public key point."; }
 
     OpenSSL_add_all_algorithms();
     EVP_PKEY* pkey = EVP_PKEY_new();
@@ -264,8 +264,9 @@ static bool VerifyByteSig(EC_KEY* ecKey, const Devcash::Hash& msg
     , const Devcash::Signature& sig) {
   CASH_TRY {
     EVP_MD_CTX *ctx;
-    if(!(ctx = EVP_MD_CTX_create()))
+    if(!(ctx = EVP_MD_CTX_create())) {
       LOG_FATAL << "Could not create signature context!";
+    }
     Devcash::Hash temp = msg;
     unsigned char* copy_sig = (unsigned char*) malloc(Devcash::kSIG_SIZE+1);
     for (size_t i=0; i<Devcash::kSIG_SIZE; ++i) {
@@ -302,8 +303,9 @@ static void SignBinary(EC_KEY* ec_key, const Devcash::Hash& msg, Devcash::Signat
         SHA256_DIGEST_LENGTH, signature, ec_key);
 
     //0 -> invalid, -1 -> openssl error
-    if (1 != state)
+    if (1 != state) {
       LOG_ERROR << "Signature did not validate("+std::to_string(state)+")";
+    }
 
     int len = i2d_ECDSA_SIG(signature, NULL);
     unsigned char* ptr = &sig[0];

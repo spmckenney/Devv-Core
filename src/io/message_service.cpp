@@ -71,7 +71,7 @@ void TransactionServer::run() noexcept {
       break;
     }
     sendMessage(std::move(message));
-    if (server_thread_ && !keep_running_) break;
+    if (server_thread_ && !keep_running_) { break; }
   }
 }
 
@@ -89,11 +89,11 @@ void TransactionClient::processIncomingMessage() noexcept {
   /* Block until a message is available to be received from socket */
 
   auto uri = s_recv(*sub_socket_);
-  if (uri == "") return;
+  if (uri == "") { return; }
 
   LOG_DEBUG << "Received - envelope message: " << uri;
   auto mess = s_vrecv(*sub_socket_);
-  if (mess.size() == 0) return;
+  if (mess.size() == 0) { return; }
 
   auto devcash_message = deserialize(mess);
   LOG_DEBUG << "processIncomingMessage(): Received [" << devcash_message->index << ", "
@@ -122,7 +122,7 @@ void TransactionClient::run() {
 
     for (;;) {
       processIncomingMessage();
-      if (client_thread_ && !keep_running_) break;
+      if (client_thread_ && !keep_running_) { break; }
     }
   } catch (const std::exception& e) {
     LOG_FATAL << "EXCEPTION[TransactionClient::run()]:"+std::string(e.what());

@@ -105,7 +105,7 @@ int main(int argc, char* argv[])
 
       bool first_addr = true;
       std::stringstream state_stream;
-      if (priori.getStateMap().empty()) LOG_INFO << entry << "END with no state";
+      if (priori.getStateMap().empty()) { LOG_INFO << entry << "END with no state"; }
       for (auto const& item : priori.getStateMap()) {
         LOG_INFO << entry << " END STATE BEGIN: ";
         state_stream << "{\"Addr\":\"";

@@ -38,8 +38,6 @@ using namespace Devcash;
 
 namespace fs = boost::filesystem;
 
-#define UNUSED(x) ((void)x)
-
 /** Checks if binary is encoding a block
  * @note this function is pretty heuristic, do not use in critical cases
  * @return true if this data encodes a block
@@ -47,15 +45,15 @@ namespace fs = boost::filesystem;
  */
 bool IsBlockData(const std::vector<byte>& raw) {
   //check if big enough
-  if (raw.size() < FinalBlock::MinSize()) return false;
+  if (raw.size() < FinalBlock::MinSize()) { return false; }
   //check version
-  if (raw[0] != 0x00) return false;
+  if (raw[0] != 0x00) { return false; }
   size_t offset = 9;
   uint64_t block_time = BinToUint64(raw, offset);
   // check blocktime is from 2018 or newer.
-  if (block_time < 1514764800) return false;
+  if (block_time < 1514764800) { return false; }
   // check blocktime is in past
-  if (block_time > GetMillisecondsSinceEpoch()) return false;
+  if (block_time > GetMillisecondsSinceEpoch()) { return false; }
   return true;
 }
 
@@ -66,13 +64,13 @@ bool IsBlockData(const std::vector<byte>& raw) {
  */
 bool IsTxData(const std::vector<byte>& raw) {
   // check if big enough
-  if (raw.size() < Transaction::MinSize()) return false;
+  if (raw.size() < Transaction::MinSize()) { return false; }
   // check transfer count
   uint64_t xfer_count = BinToUint64(raw, 0);
   size_t tx_size = Transaction::MinSize() + (Transfer::Size() * xfer_count);
-  if (raw.size() < tx_size) return false;
+  if (raw.size() < tx_size) { return false; }
   // check operation
-  if (raw[8] >= 4) return false;
+  if (raw[8] >= 4) { return false; }
   return true;
 }
 
@@ -82,13 +80,13 @@ bool IsTxData(const std::vector<byte>& raw) {
  */
 bool CompareChainStateMaps(const std::map<Address, std::map<uint64_t, uint64_t>>& first,
                            const std::map<Address, std::map<uint64_t, uint64_t>>& second) {
-  if (first.size() != second.size()) return false;
+  if (first.size() != second.size()) { return false; }
   for (auto i = first.begin(), j = second.begin(); i != first.end(); ++i, ++j) {
-    if (i->first != j->first) return false;
-    if (i->second.size() != j->second.size()) return false;
+    if (i->first != j->first) { return false; }
+    if (i->second.size() != j->second.size()) { return false; }
     for (auto x = i->second.begin(), y = j->second.begin(); x != i->second.end(); ++x, ++y) {
-      if (x->first != y->first) return false;
-      if (x->second != y->second) return false;
+      if (x->first != y->first) { return false; }
+      if (x->second != y->second) { return false; }
     }
   }
   return true;
@@ -174,9 +172,9 @@ int main(int argc, char* argv[]) {
       assert(file_size > 0);
       bool is_block = IsBlockData(raw);
       bool is_transaction = IsTxData(raw);
-      if (is_block) LOG_INFO << file_name << " has blocks.";
-      if (is_transaction) LOG_INFO << file_name << " has transactions.";
-      if (!is_block && !is_transaction) LOG_WARNING << file_name << " contains unknown data.";
+      if (is_block) { LOG_INFO << file_name << " has blocks."; }
+      if (is_transaction) { LOG_INFO << file_name << " has transactions."; }
+      if (!is_block && !is_transaction) { LOG_WARNING << file_name << " contains unknown data."; }
 
       InputBuffer buffer(raw);
       while (buffer.getOffset() < static_cast<size_t>(file_size)) {

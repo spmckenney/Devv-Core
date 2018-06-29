@@ -34,15 +34,15 @@ typedef std::chrono::milliseconds millisecs;
  */
 bool IsBlockData(const std::vector<byte>& raw) {
   //check if big enough
-  if (raw.size() < FinalBlock::MinSize()) return false;
+  if (raw.size() < FinalBlock::MinSize()) { return false; }
   //check version
-  if (raw[0] != 0x00) return false;
+  if (raw[0] != 0x00) { return false; }
   size_t offset = 9;
   uint64_t block_time = BinToUint64(raw, offset);
   // check blocktime is from 2018 or newer.
-  if (block_time < 1514764800) return false;
+  if (block_time < 1514764800) { return false; }
   // check blocktime is in past
-  if (block_time > GetMillisecondsSinceEpoch()) return false;
+  if (block_time > GetMillisecondsSinceEpoch()) { return false; }
   return true;
 }
 
@@ -53,13 +53,13 @@ bool IsBlockData(const std::vector<byte>& raw) {
  */
 bool IsTxData(const std::vector<byte>& raw) {
   // check if big enough
-  if (raw.size() < Transaction::MinSize()) return false;
+  if (raw.size() < Transaction::MinSize()) { return false; }
   // check transfer count
   uint64_t xfer_count = BinToUint64(raw, 0);
   size_t tx_size = Transaction::MinSize() + (Transfer::Size() * xfer_count);
-  if (raw.size() < tx_size) return false;
+  if (raw.size() < tx_size) { return false; }
   // check operation
-  if (raw[8] >= 4) return false;
+  if (raw[8] >= 4) { return false; }
   return true;
 }
 
@@ -82,6 +82,7 @@ int main(int argc, char* argv[]) {
     std::unique_ptr<devcash_options> options = parse_options(argc, argv);
 
     if (!options) {
+      LOG_ERROR << "parse_options error";
       exit(-1);
     }
 
@@ -128,9 +129,9 @@ int main(int argc, char* argv[]) {
       assert(file_size > 0);
       bool is_block = IsBlockData(raw);
       bool is_transaction = IsTxData(raw);
-      if (is_block) LOG_INFO << files.at(i) << " has blocks.";
-      if (is_transaction) LOG_INFO << files.at(i) << " has transactions.";
-      if (!is_block && !is_transaction) LOG_WARNING << files.at(i) << " contains unknown data.";
+      if (is_block) { LOG_INFO << files.at(i) << " has blocks."; }
+      if (is_transaction) { LOG_INFO << files.at(i) << " has transactions."; }
+      if (!is_block && !is_transaction) { LOG_WARNING << files.at(i) << " contains unknown data."; }
 
       InputBuffer buffer(raw);
       while (buffer.getOffset() < static_cast<size_t>(file_size)) {

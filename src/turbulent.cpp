@@ -24,8 +24,6 @@
 
 using namespace Devcash;
 
-#define UNUSED(x) ((void)x)
-
 int main(int argc, char* argv[]) {
   init_log();
 
@@ -33,6 +31,7 @@ int main(int argc, char* argv[]) {
     std::unique_ptr<devcash_options> options = parse_options(argc, argv);
 
     if (!options) {
+      LOG_ERROR << "parse_options failed";
       exit(-1);
     }
 
@@ -76,7 +75,7 @@ int main(int argc, char* argv[]) {
         for (size_t i = 0; i < addr_count; ++i) {
           size_t j = std::rand() % addr_count;
           size_t amount = std::rand() % options->tx_limit;
-          if (i == j) continue;
+          if (i == j) { continue; }
           std::vector<Transfer> peer_xfers;
           Transfer sender(keys.getWalletAddr(i), 0, amount * -1, 0);
           peer_xfers.push_back(sender);
@@ -90,9 +89,9 @@ int main(int argc, char* argv[]) {
           out.insert(out.end(), peer_canon.begin(), peer_canon.end());
           LOG_TRACE << "GenerateTransactions(): generated tx with sig: " << ToHex(peer_tx.getSignature());
           counter++;
-          if (counter >= options->generate_count) break;
+          if (counter >= options->generate_count) { break; }
         }  // end for loop
-        if (counter >= options->generate_count) break;
+        if (counter >= options->generate_count) { break; }
     }  // end counter while
 
     LOG_INFO << "Generated " << counter << " transactions.";

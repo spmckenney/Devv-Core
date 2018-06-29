@@ -182,7 +182,7 @@ class Tier2Transaction : public Transaction {
   bool do_isSound(const KeyRing& keys) const {
     MTR_SCOPE_FUNC();
     //CASH_TRY {
-      if (is_sound_) return (is_sound_);
+      if (is_sound_) { return (is_sound_); }
       long total = 0;
       byte oper = getOperation();
 
@@ -249,7 +249,7 @@ class Tier2Transaction : public Transaction {
    */
   bool do_isValid(ChainState& state, const KeyRing& keys, Summary& summary) const override {
     CASH_TRY {
-      if (!isSound(keys)) return false;
+      if (!isSound(keys)) { return false; }
       byte oper = getOperation();
       std::vector<Transfer> xfers = getTransfers();
       for (auto it = xfers.begin(); it != xfers.end(); ++it) {
