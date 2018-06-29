@@ -209,6 +209,8 @@ int main(int argc, char* argv[]) {
             LOG_WARNING << "A transaction is invalid. TX details: ";
             LOG_WARNING << tx.getJSON();
           }
+        } else {
+          LOG_WARNING << "!is_block && !is_transaction";
         }
       }
     }

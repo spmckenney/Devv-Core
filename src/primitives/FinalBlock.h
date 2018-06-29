@@ -122,6 +122,8 @@ class FinalBlock {
       } else if (mode == eAppMode::T2) {
         Tier2TransactionPtr one_tx = Tier2Transaction::CreateUniquePtr(buffer, keys);
         transaction_vector_.push_back(std::move(one_tx));
+      } else {
+        LOG_WARNING << "Unsupported mode: " << mode;
       }
     }
 

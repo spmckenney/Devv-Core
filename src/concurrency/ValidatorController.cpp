@@ -73,6 +73,9 @@ void ValidatorController::validatorCallback(DevcashMessageUniquePtr ptr) {
         outgoing_callback_(std::move(
             tx_announcement_cb_(keys_, final_chain_, utx_pool_, context_)));
       }
+    } else {
+      LOG_INFO << "NOT PROPOSING! (" << block_height%context_.get_peer_count() << ")" <<
+            " (" << context_.get_current_node()%context_.get_peer_count() << ")";
     }
   } else {
     throw DevcashMessageError("Wrong message type arrived: " + std::to_string(ptr->message_type));

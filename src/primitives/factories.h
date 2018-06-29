@@ -22,8 +22,9 @@ static std::unique_ptr<Transaction> CreateTransaction(InputBuffer& buffer,
   } else if (mode == eAppMode::T2) {
     auto tx = Tier2Transaction::CreateUniquePtr(buffer, keys, calculate_soundness);
     return tx;
+  } else {
+    throw DeserializationError("CreateTransaction(): unknown eAppMode type");
   }
-  throw DeserializationError("CreateTransaction(): unknown eAppMode type");
 }
 
 } // namespace Devcash

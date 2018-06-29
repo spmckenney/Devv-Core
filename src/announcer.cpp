@@ -150,6 +150,9 @@ int main(int argc, char* argv[]) {
           std::vector<byte> tx_canon(tx.getCanonical());
           batch.insert(batch.end(), tx_canon.begin(), tx_canon.end());
           input_blocks_++;
+        } else {
+          LOG_WARNING << "Unsupported configuration: is_transaction: " << is_transaction
+                << " and mode: " << options->mode;
         }
       }
 

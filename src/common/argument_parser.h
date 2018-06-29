@@ -94,6 +94,8 @@ network could be build and tested.\n\nAllowed options");
         options->mode = T1;
       } else if (mode == "T2") {
         options->mode = T2;
+      } else {
+        LOG_WARNING << "unknown mode: " << mode;
       }
       LOG_INFO << "mode: " << options->mode;
     } else {

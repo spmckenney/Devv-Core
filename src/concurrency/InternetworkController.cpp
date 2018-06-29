@@ -76,7 +76,11 @@ void InternetworkController::messageCallback(DevcashMessageUniquePtr ptr) {
             std::string uri = context_.get_uri_from_index(context_.get_current_node() % context_.get_peer_count());
             auto blocks_msg = std::make_unique<DevcashMessage>(uri, GET_BLOCKS_SINCE, request, remote_blocks_);
             outgoing_callback_(std::move(blocks_msg));
+          } else {
+            LOG_WARNING << "Unsupported mode: " << mode_;
           }
+        } else {
+          LOG_DEBUG << "remote_blocks_ >= final_chain_.size()";
         }
         break;
 

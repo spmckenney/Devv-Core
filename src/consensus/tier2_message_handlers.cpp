@@ -237,6 +237,8 @@ bool HandleBlocksSinceRequest(DevcashMessageUniquePtr ptr,
                                                      ptr->index);
     callback(std::move(response));
     return true;
+  } else {
+    LOG_WARNING << "Unsupported mode: " << context.get_app_mode();
   }
   return false;
 }
