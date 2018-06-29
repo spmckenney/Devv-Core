@@ -214,10 +214,10 @@ int main(int argc, char* argv[])
         }
       }
 
-    if (!CompareChainStateMaps(priori.stateMap_, posteri.stateMap_)) {
+    if (!CompareChainStateMaps(priori.state_map_, posteri.state_map_)) {
       LOG_WARNING << "End states do not match!";
-      LOG_WARNING << "Prior state: "+WriteChainStateMap(priori.stateMap_);
-      LOG_WARNING << "Post state: "+WriteChainStateMap(posteri.stateMap_);
+      LOG_WARNING << "Prior state: "+WriteChainStateMap(priori.state_map_);
+      LOG_WARNING << "Post state: "+WriteChainStateMap(posteri.state_map_);
     } else {
       LOG_INFO << "End states match.";
     }

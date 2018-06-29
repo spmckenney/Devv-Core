@@ -419,7 +419,7 @@ class UnrecordedTransactionPool {
     std::map<Address, SmartCoin> aggregate;
     for (auto iter = txs_.begin(); iter != txs_.end(); ++iter) {
       if (iter->second.second->isValid(state, keys, summary)) {
-        valid.push_back(std::move(iter->second.second->Clone()));
+        valid.push_back(std::move(iter->second.second->clone()));
         iter->second.first++;
         num_txs++;
         if (num_txs >= max_tx_per_block_) break;

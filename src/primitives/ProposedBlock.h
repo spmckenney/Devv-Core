@@ -21,7 +21,7 @@ namespace Devcash
 static std::vector<TransactionPtr> copy(const std::vector<TransactionPtr>& txs) {
   std::vector<TransactionPtr> tx_out;
   for (auto& iter : txs) {
-    tx_out.push_back(iter->Clone());
+    tx_out.push_back(iter->clone());
   }
   return(std::move(tx_out));
 }

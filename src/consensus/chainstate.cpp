@@ -11,7 +11,7 @@
 #include <map>
 #include <mutex>
 
-#include "chainstate.h"
+#include "primitives/Summary.h"
 
 namespace Devcash
 {
@@ -42,8 +42,8 @@ bool ChainState::addCoins(const std::map<Address, SmartCoin>& coin_map) {
 }
 
 long ChainState::getAmount(uint64_t type, const Address& addr) const {
-  auto it = stateMap_.find(addr);
-  if (it != stateMap_.end()) {
+  auto it = state_map_.find(addr);
+  if (it != state_map_.end()) {
     int64_t amount = it->second.at(type);
     return amount;
   }

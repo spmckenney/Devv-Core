@@ -23,14 +23,14 @@ public:
   ChainState() {}
 
   ChainState(const ChainState& other)
-  : stateMap_(other.stateMap_)
+  : state_map_(other.state_map_)
   {
   }
 
   ChainState& operator=(ChainState&& other)
   {
     if (this != &other) {
-      this->stateMap_ = other.stateMap_;
+      this->state_map_ = other.state_map_;
     }
     return *this;
   }
@@ -38,7 +38,7 @@ public:
   ChainState& operator=(const ChainState& other)
   {
     if (this != &other) {
-      this->stateMap_ = other.stateMap_;
+      this->state_map_ = other.state_map_;
     }
     return *this;
   }
@@ -79,7 +79,7 @@ public:
 */
   bool clear();
 
-  std::map<Address, std::map<uint64_t, uint64_t>> stateMap_;
+  std::map<Address, std::map<uint64_t, uint64_t>> state_map_;
 };
 
 } //namespace Devcash
