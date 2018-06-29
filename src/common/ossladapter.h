@@ -22,35 +22,12 @@
 
 static const char* pwd = "password";  /** password for aes pem */
 
-/** Maps a hex string into a buffer as binary data.
- *  @pre the buffer should have memory allocated
- *  @pre the buffer size should be half the length of the hex number plus one
- *  @param hex the number to change into binary data
- *  @param buffer an allocated buffer where this data will be written
- *  @return pointer to the buffer
- */
-/*static char* hex2Bytes(std::string hex, char* buffer) {
-  int len = hex.length();
-  for (int i=0;i<len/2;i++) {
-    buffer[i] = Char2Int(hex.at(i*2))*16+Char2Int(hex.at(1+i*2));
-  }
-  buffer[len/2] = '\0';
-  return(buffer);
-}*/
-
 /** Gets the EC_GROUP for normal transactions.
  *  @return a pointer to the EC_GROUP
  */
 static EC_GROUP* getEcGroup() {
   return(EC_GROUP_new_by_curve_name(NID_secp256k1));
 }
-
-/** Gets the EC_GROUP for INN transactions.
- *  @return a pointer to the EC_GROUP
- */
-/*static EC_GROUP* getInnGroup() {
-  return(EC_GROUP_new_by_curve_name(NID_secp384r1));
-}*/
 
 /** Generates a new EC_KEY.
  *  @pre an OpenSSL context must have been initialized
@@ -187,22 +164,6 @@ static EC_KEY* LoadEcKey(const std::string& publicKey, const std::string& privKe
   return nullptr;
 }
 
-/** Hashes a string with SHA-256.
- *  @param msg the string to hash
- *  @return a hex string of the hashed value
- */
-/*static std::string strHash(const std::string& msg) {
-  unsigned char md[SHA256_DIGEST_LENGTH];
-  char temp[msg.length()+1];
-  strcpy(temp, msg.c_str());
-  SHA256_CTX sha256;
-  SHA256_Init(&sha256);
-  SHA256_Update(&sha256, temp, strlen(temp));
-  SHA256_Final(md, &sha256);
-  std::string out = ToHex((byte*) md, SHA256_DIGEST_LENGTH);
-  return(out);
-}*/
-
 /** Hashes a bytestring with SHA-256.
  *  @note none of the parameters of this function are const.
  *  Parameters may be altered by this function.
@@ -217,39 +178,6 @@ static Devcash::Hash DevcashHash(const std::vector<Devcash::byte>& msg) {
   SHA256_Final(&md[0], &sha256);
   return md;
 }
-
-/** Verifies the signature corresponding to a given string
- *  @param ecKey pointer to the public key that will check this signature
- *  @param msg the message digest to verify
- *  @param strSig a hex string of the signature to verify
- *  @return true iff the signature verifies with the provided key and context
- *  @return false otherwise
- */
-/*static bool verifySig(EC_KEY* ecKey, const std::string msg, const std::string strSig) {
-  CASH_TRY {
-    EVP_MD_CTX *ctx;
-    if(!(ctx = EVP_MD_CTX_create()))
-      LOG_FATAL << "Could not create signature context!";
-    int len = strSig.length();
-    if (len%2==1) {
-      LOG_ERROR << "Invalid signature hex!";
-      return(false);
-    }
-
-    char temp[msg.length()+1];
-    strcpy(temp, msg.c_str());
-
-    unsigned char *newSig = (unsigned char*) malloc(len/2+1);
-    hex2Bytes(strSig, (char*) newSig);
-    ECDSA_SIG *signature = d2i_ECDSA_SIG(NULL, (const unsigned char**) &newSig, len/2);
-    int state = ECDSA_do_verify((const unsigned char*) temp, strlen(temp), signature, ecKey);
-
-    return(1 == state);
-  } CASH_CATCH (const std::exception& e) {
-    LOG_WARNING << FormatException(&e, "Crypto.verifySignature");
-  }
-  return(false);
-}*/
 
 /** Verifies the signature corresponding to a given string
  *  @param ecKey pointer to the public key that will check this signature
@@ -315,43 +243,5 @@ static void SignBinary(EC_KEY* ec_key, const Devcash::Hash& msg, Devcash::Signat
     LOG_WARNING << Devcash::FormatException(&e, "Crypto.sign");
   }
 }
-
-/** Generates the signature for a given string and key pair
- *  @pre the EC_KEY must include a private key
- *  @pre the OpenSSL context must be intialized
- *  @param ecKey pointer to the public key that will check this signature
- *  @param msg the message digest to sign
- *  @return true a hex string of the signature
- *  @throws std::exception on error
- */
-/*static std::string sign(EC_KEY* ecKey, std::string msg) {
-  CASH_TRY {
-    char temp[msg.length()+1];
-    strcpy(temp, msg.c_str());
-
-    ECDSA_SIG *signature = ECDSA_do_sign((const unsigned char*) temp,
-        strlen(temp), ecKey);
-    int state = ECDSA_do_verify((const unsigned char*) temp,
-        strlen(temp), signature, ecKey);
-
-    //0 -> invalid, -1 -> openssl error
-    if (1 != state)
-      LOG_ERROR << "Signature did not validate("+std::to_string(state)+")";
-
-    int len = i2d_ECDSA_SIG(signature, NULL);
-    unsigned char *sigBytes = (unsigned char*) malloc(len);
-    unsigned char *ptr;
-    memset(sigBytes, 6, len);
-    ptr=sigBytes;
-    len = i2d_ECDSA_SIG(signature, &ptr);
-    std::string out = ToHex((byte*) sigBytes, len);
-
-    free(sigBytes);
-  return(out);
-  } CASH_CATCH (const std::exception& e) {
-    LOG_WARNING << FormatException(&e, "Crypto.sign");
-  }
-  return("");
-}*/
 
 #endif /* SRC_COMMON_OSSLADAPTER_H_ */

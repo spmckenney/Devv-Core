@@ -271,18 +271,6 @@ class UnrecordedTransactionPool {
     if (pending_proposal_.isNull()) { return false; }
     pending_proposal_.setPrevHash(prev_hash);
     return true;
-    //The remainder of this function is unneeded when transactions are unique
-    //use logic like below if Proposals will be created in advance
-    //and Transactions may have already been finalized
-    /*std::vector<Transaction> pending = pending_proposal_.getTransactions();
-    Summary summary;
-    ChainState new_state(prior);
-    if (ReverifyTransactions(pending, new_state, keys, summary)) {
-      return true;
-    }
-    pending_proposal_.setNull();
-    LOG_WARNING << "ProposedBlock invalidated by FinalBlock!";
-    return false;*/
   }
 
   /**
@@ -420,13 +408,6 @@ class UnrecordedTransactionPool {
         if (num_txs >= max_tx_per_block_) { break; }
       }
     }
-    /*state.addCoins(aggregate);
-    for (const auto& item : aggregate) {
-      if (!summary.addItem(item.first, item.second.coin_, item.second.amount_)) {
-        LOG_FATAL << "An aggregated transaction was invalid!!";
-        valid.clear();
-      }
-    }*/
     return valid;
   }
 

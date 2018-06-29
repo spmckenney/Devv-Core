@@ -109,21 +109,6 @@ int main(int argc, char* argv[])
 
     LOG_NOTICE << "BlockchainModule is halted.";
 
-    /*
-    if (!validator_module.init()) {
-      LOG_FATAL << "Basic setup failed";
-      return false;
-    }
-    LOG_INFO << "Basic Setup complete";
-
-    if (!validator_module.performSanityChecks()) {
-      LOG_FATAL << "Sanity checks failed";
-      return false;
-    }
-    LOG_INFO << "Sanity checks passed";
-
-    validator_module.RunNode();
-*/
     MTR_END("main", "outer");
     mtr_flush();
     mtr_shutdown();

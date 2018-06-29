@@ -16,7 +16,6 @@
 #include <chrono>
 #include <exception>
 #include <map>
-#include <stdint.h>
 #include <bitset>
 #include <fstream>
 #include <iostream>
@@ -40,11 +39,6 @@ static const size_t kSIG_SIZE = 72;
 typedef std::array<byte, kSIG_SIZE> Signature;
 
 static const size_t kFILE_KEY_SIZE = 379;
-
-// Exit if no transactions in 10 sec
-static const size_t kTRANSACTION_TIMEOUT = 10000;
-
-static const size_t kMAX_T2_BLOCK_SIZE = 10000;
 
 template <typename Container>
 void CheckSizeEqual(const Container& c, size_t size) {
@@ -205,21 +199,6 @@ static std::vector<uint8_t> hex2CBOR(std::string hex) {
   buf.pop_back(); //remove null terminator
   return(buf);
 }
-
-/** Maps a CBOR byte vector to a hex string.
- *  @param b a CBOR byte vector to encode as hex digits.
- *  @return a string of hex digits encoding this byte vector.
-*/
-/*static std::string CBOR2hex(std::vector<uint8_t> b) {
-  int len = b.size();
-  std::stringstream ss;
-  for (int j=0; j<len; j++) {
-  int c = (int) b[j];
-  ss.put(alpha[(c>>4)&0xF]);
-  ss.put(alpha[c&0xF]);
-  }
-  return(ss.str());
-}*/
 
 template<typename T, typename ...Args>
 std::unique_ptr<T> make_unique( Args&& ...args )

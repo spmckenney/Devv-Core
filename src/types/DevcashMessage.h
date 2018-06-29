@@ -81,8 +81,6 @@ template <typename T>
 inline void append(std::vector<uint8_t>& buf, const T& obj) {
   unsigned int pos = buf.size();
   buf.resize(pos + sizeof(obj));
-  //LOG_DEBUG << "Appending size: " << sizeof(obj) << " at index "
-  //          << pos << ", new size " << buf.size();
   std::memcpy(buf.data()+pos, &obj, sizeof(obj));
 }
 
@@ -187,19 +185,14 @@ static DevcashMessageUniquePtr deserialize(const std::vector<uint8_t>& bytes) {
   // Get the header_version
   buffer_index = extract(header_version, bytes, buffer_index);
   assert(header_version == kMSG_HEADER);
-  //LOG_DEBUG << "header_version: " << static_cast<int>(header_version) << " buffer_index " << buffer_index;
   // index
   buffer_index = extract(message->index, bytes, buffer_index);
-  //LOG_DEBUG << "index: " <<  message->index << " buffer_index " << buffer_index;
   // message type
   buffer_index = extract(message->message_type, bytes, buffer_index);
-  //LOG_DEBUG << "message_type: " <<  message->message_type << " buffer_index " << buffer_index;
   // URI
   buffer_index = extract(message->uri, bytes, buffer_index);
-  //LOG_DEBUG << "uri: " <<  message->uri << " buffer_index " << buffer_index;
   // data
-  buffer_index = extract(message->data, bytes, buffer_index);
-  //LOG_DEBUG << "buf_size: " << " buffer_index " << message->data.size();
+  extract(message->data, bytes, buffer_index);
 
   return(message);
 }

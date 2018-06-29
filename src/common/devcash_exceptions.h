@@ -50,17 +50,6 @@ struct DeserializationError : public DevcashMessageError {
    * Destructor.
    */
   ~DeserializationError() override = default;
-
-  /**
-   * Returns a pointer to the (constant) error description.
-   *  @return A pointer to a const char*. The underlying memory
-   *          is in possession of the Exception object. Callers must
-   *          not attempt to free the memory.
-   *
-  const char* what() const noexcept override {
-    return std::runtime_error::what();
-  }
-  */
 };
 
 } // namespace Devcash

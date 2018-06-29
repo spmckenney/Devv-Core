@@ -11,7 +11,7 @@ namespace Devcash {
 
 ConsensusController::ConsensusController(const KeyRing &keys,
                                          DevcashContext &context,
-                                         const ChainState &prior,
+                                         const ChainState &,
                                          Blockchain &final_chain,
                                          UnrecordedTransactionPool &utx_pool,
                                          eAppMode mode)
@@ -20,9 +20,9 @@ ConsensusController::ConsensusController(const KeyRing &keys,
     , final_chain_(final_chain)
     , utx_pool_(utx_pool)
     , mode_(mode)
-, final_block_cb_(HandleFinalBlock)
-, proposal_block_cb_(HandleProposalBlock)
-, validation_block_cb_(HandleValidationBlock)
+    , final_block_cb_(HandleFinalBlock)
+    , proposal_block_cb_(HandleProposalBlock)
+    , validation_block_cb_(HandleValidationBlock)
 {
 }
 
@@ -51,14 +51,6 @@ void ConsensusController::consensusCallback(DevcashMessageUniquePtr ptr) {
                                              utx_pool_.get_transaction_creation_manager(),
                                              [this](DevcashMessageUniquePtr p) { this->outgoing_callback_(std::move(p)); });
         break;
-
-      /*
-        case eMessageType::TRANSACTION_ANNOUNCEMENT:
-        LOG_DEBUG << "ValidatorController()::consensusCallback(): TRANSACTION_ANNOUNCEMENT";
-        LOG_WARNING << "Unexpected message @ consensus, to validator";
-        pushValidator(std::move(ptr));
-        break;
-*/
       case eMessageType::VALID:LOG_DEBUG << "ValidatorController()::consensusCallback(): VALIDATION";
         validation_block_cb_(std::move(ptr),
                                                context_,
@@ -68,19 +60,6 @@ void ConsensusController::consensusCallback(DevcashMessageUniquePtr ptr) {
                                                  this->outgoing_callback_(std::move(p));
                                                });
         break;
-      /*
-      case eMessageType::REQUEST_BLOCK:LOG_DEBUG << "Unexpected message @ consensus, to shard comms.";
-        pushShardComms(std::move(ptr));
-        break;
-
-      case eMessageType::GET_BLOCKS_SINCE:LOG_DEBUG << "Unexpected message @ consensus, to shard comms.\n";
-        pushShardComms(std::move(ptr));
-        break;
-
-      case eMessageType::BLOCKS_SINCE:LOG_DEBUG << "Unexpected message @ consensus, to shard comms.\n";
-        pushShardComms(std::move(ptr));
-        break;
-      */
       default:
         throw DevcashMessageError("consensusCallback(): Unexpected message type:"
                                       + std::to_string(ptr->message_type));

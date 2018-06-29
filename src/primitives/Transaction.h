@@ -184,15 +184,6 @@ class Transaction {
     return do_isValid(state, keys, summary);
   }
 
-  /*
-  virtual std::map<Address, SmartCoin> aggregateState(std::map<Address, SmartCoin>& aggregator,
-                                                      const ChainState& state,
-                                                      const KeyRing& keys,
-                                                      const Summary& summary) const {
-    return do_aggregateState(aggregator, state, keys, summary);
-  }
-  */
-
   /**
    * Returns a JSON string representing this transaction.
    * @return a JSON string representing this transaction.
@@ -232,13 +223,6 @@ class Transaction {
   virtual bool do_isValid(ChainState& state, const KeyRing& keys, Summary& summary) const = 0;
 
   virtual std::string do_getJSON() const = 0;
-
-  /*
-  virtual std::map<Address, SmartCoin> do_aggregateState(std::map<Address, SmartCoin>& aggregator,
-                                                         const ChainState& state,
-                                                         const KeyRing& keys,
-                                                         const Summary& summary) const = 0;
-  */
 };
 
 typedef std::unique_ptr<Transaction> TransactionPtr;

@@ -35,9 +35,6 @@ struct TypeName<int>
     }
 };
 
-// usage:
-//const char* name = TypeName<MyType>::Get();
-
 class Blockchain {
 public:
   typedef std::shared_ptr<FinalBlock> BlockSharedPtr;
