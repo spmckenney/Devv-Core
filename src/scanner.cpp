@@ -101,8 +101,8 @@ int main(int argc, char* argv[])
 
       bool firstAddr = true;
       std::stringstream state_stream;
-      if (priori.stateMap_.empty()) LOG_INFO << entry << "END with no state";
-      for (auto it = priori.stateMap_.begin(); it != priori.stateMap_.end(); ++it) {
+      if (priori.state_map_.empty()) LOG_INFO << entry << "END with no state";
+      for (auto it = priori.state_map_.begin(); it != priori.state_map_.end(); ++it) {
         LOG_INFO << entry << " END STATE BEGIN: ";
         state_stream << "{\"Addr\":\"";
         state_stream << toHex(std::vector<byte>(std::begin(it->first)
