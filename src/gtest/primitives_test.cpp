@@ -12,7 +12,7 @@
 
 namespace {
 
-#define TEST_DESCRIPTION(desc) RecordProperty("description", desc)
+#define TEST_DESCRIPTION(desc) RecordProperty("primitive data type unit tests", desc)
 
 /**
  *
