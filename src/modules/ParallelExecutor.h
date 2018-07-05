@@ -6,6 +6,8 @@
  */
 #pragma once
 
+#include "common/devcash_context.h"
+
 #include "concurrency/ThreadGroup.h"
 #include "types/DevcashMessage.h"
 
@@ -83,7 +85,11 @@ class ParallelExecutor {
    * @param message
    */
   void pushMessage(DevcashMessageUniquePtr message) {
-    LOG_DEBUG << "ParallelExecutor::pushMessage()";
+    LOG_DEBUG << "pushMessage(), do not segfault";
+    if (message == nullptr) {
+      LOG_ERROR << "pushMessage() attempting to push a nullptr";
+      throw std::runtime_error("pushMessage() attempting to push a nullptr");
+    }
     thread_group_.pushMessage(std::move(message));
   }
 
