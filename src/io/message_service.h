@@ -176,34 +176,24 @@ static inline std::string zeroPrepend(const std::string& number, size_t num_widt
 }
 
 /**
- * Connects to sync_host and blocks until a sync_packet is received.
- * @param sync_host ZMQ URI of host:port synchronization server
- * @param node_number The number of this node
+ * Create the TransactionClient and add the host connections
+ * @param host_vector
+ * @param context
  * @return
  */
-static inline bool synchronize(const std::string& sync_host, unsigned int node_number) {
-  /// @todo (mckenney) Create more robust and configurable synchronization
-  //  Prepare our context and socket
-  zmq::context_t context(1);
-  zmq::socket_t socket(context, ZMQ_REQ);
+std::unique_ptr<io::TransactionClient> CreateTransactionClient(const std::vector<std::string>& host_vector,
+                                                               zmq::context_t& context);
 
-  LOG_INFO << "Connecting to synchronization host (" << sync_host << ")";
-  socket.connect("tcp://" + sync_host);
-
-  std::string node_str = "node-" + zeroPrepend(std::to_string(node_number), 3);
-
-  zmq::message_t request(node_str.size());
-  memcpy(request.data(), "Hello", node_str.size());
-
-  LOG_INFO << "Sending sync packet ";
-  socket.send(request);
-
-  //  Get the reply.
-  zmq::message_t reply;
-  socket.recv(&reply);
-  LOG_DEBUG << "Received sync response - it's go time";
-  return true;
-}
+/**
+ * Creates a server and binds to the bind_endpoint to listen for
+ * incoming connections
+ *
+ * @param bind_endpoint
+ * @param context
+ * @return
+ */
+std::unique_ptr<io::TransactionServer> CreateTransactionServer(const std::string& bind_endpoint,
+                                                               zmq::context_t& context);
 
 }  // namespace io
 }  // namespace Devcash

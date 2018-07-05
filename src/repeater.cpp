@@ -27,14 +27,6 @@ namespace fs = boost::filesystem;
 #define DEBUG_TRANSACTION_INDEX (processed + 11000000)
 typedef std::chrono::milliseconds millisecs;
 
-std::unique_ptr<io::TransactionClient> create_transaction_client(const devcash_options& options,
-                                                                 zmq::context_t& context) {
-  std::unique_ptr<io::TransactionClient> client(new io::TransactionClient(context));
-  for (auto i : options.host_vector) {
-    client->addConnection(i);
-  }
-  return client;
-}
 
 int main(int argc, char* argv[]) {
   init_log();
@@ -65,7 +57,8 @@ int main(int argc, char* argv[]) {
     //@todo(nick@cloudsolar.co): read pre-existing chain
     unsigned int chain_height = 0;
 
-    std::unique_ptr<io::TransactionClient> peer_listener = create_transaction_client(*options, zmq_context);
+    std::unique_ptr<io::TransactionClient> peer_listener =
+        io::CreateTransactionClient(options->host_vector, zmq_context);
     peer_listener->attachCallback([&](DevcashMessageUniquePtr p) {
       if (p->message_type == eMessageType::FINAL_BLOCK) {
         //write final chain to file

@@ -157,5 +157,21 @@ void TransactionClient::listenTo(const std::string& filter) { filter_vector_.pus
 
 void TransactionClient::attachCallback(DevcashMessageCallback callback) { callback_ = callback; }
 
+std::unique_ptr<io::TransactionClient> CreateTransactionClient(const std::vector<std::string>& host_vector,
+                                                               zmq::context_t& context) {
+  std::unique_ptr<io::TransactionClient> client(new io::TransactionClient(context));
+  for (auto i : host_vector) {
+    client->addConnection(i);
+  }
+  return client;
+}
+
+std::unique_ptr<io::TransactionServer> CreateTransactionServer(const std::string& bind_endpoint,
+                                                               zmq::context_t& context) {
+  std::unique_ptr<io::TransactionServer> server(new io::TransactionServer(context,
+                                                                          bind_endpoint));
+  return server;
+}
+
 }  // namespace io
 }  // namespace Devcash

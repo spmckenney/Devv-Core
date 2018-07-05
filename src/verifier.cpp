@@ -19,8 +19,6 @@
  *  Author: Nick Williams
  */
 
-#include <stdio.h>
-#include <stdlib.h>
 #include <boost/filesystem.hpp>
 #include <fstream>
 #include <functional>
@@ -33,93 +31,11 @@
 #include "io/message_service.h"
 #include "modules/BlockchainModule.h"
 #include "primitives/json_interface.h"
+#include "primitives/block_tools.h"
 
 using namespace Devcash;
 
 namespace fs = boost::filesystem;
-
-/** Checks if binary is encoding a block
- * @note this function is pretty heuristic, do not use in critical cases
- * @return true if this data encodes a block
- * @return false otherwise
- */
-bool IsBlockData(const std::vector<byte>& raw) {
-  //check if big enough
-  if (raw.size() < FinalBlock::MinSize()) { return false; }
-  //check version
-  if (raw[0] != 0x00) { return false; }
-  size_t offset = 9;
-  uint64_t block_time = BinToUint64(raw, offset);
-  // check blocktime is from 2018 or newer.
-  if (block_time < 1514764800) { return false; }
-  // check blocktime is in past
-  if (block_time > GetMillisecondsSinceEpoch()) { return false; }
-  return true;
-}
-
-/** Checks if binary is encoding Transactions
- * @note this function is pretty heuristic, do not use in critical cases
- * @return true if this data encodes Transactions
- * @return false otherwise
- */
-bool IsTxData(const std::vector<byte>& raw) {
-  // check if big enough
-  if (raw.size() < Transaction::MinSize()) { return false; }
-  // check transfer count
-  uint64_t xfer_count = BinToUint64(raw, 0);
-  size_t tx_size = Transaction::MinSize() + (Transfer::Size() * xfer_count);
-  if (raw.size() < tx_size) { return false; }
-  // check operation
-  if (raw[8] >= 4) { return false; }
-  return true;
-}
-
-/** Checks if two chain state maps contain the same state
- * @return true if the maps have the same state
- * @return false otherwise
- */
-bool CompareChainStateMaps(const std::map<Address, std::map<uint64_t, uint64_t>>& first,
-                           const std::map<Address, std::map<uint64_t, uint64_t>>& second) {
-  if (first.size() != second.size()) { return false; }
-  for (auto i = first.begin(), j = second.begin(); i != first.end(); ++i, ++j) {
-    if (i->first != j->first) { return false; }
-    if (i->second.size() != j->second.size()) { return false; }
-    for (auto x = i->second.begin(), y = j->second.begin(); x != i->second.end(); ++x, ++y) {
-      if (x->first != y->first) { return false; }
-      if (x->second != y->second) { return false; }
-    }
-  }
-  return true;
-}
-
-/** Dumps the map inside a chainstate object into a human-readable JSON format.
- * @return a string containing a description of the chain state.
- */
-std::string WriteChainStateMap(const std::map<Address, std::map<uint64_t, uint64_t>>& map) {
-  std::string out("{");
-  bool first_addr = true;
-  for (auto e : map) {
-    if (first_addr) {
-      first_addr = false;
-    } else {
-      out += ",";
-    }
-    Address a = e.first;
-    out += "\"" + ToHex(std::vector<byte>(std::begin(a), std::end(a))) + "\":[";
-    bool is_first = true;
-    for (auto f : e.second) {
-      if (is_first) {
-        is_first = false;
-      } else {
-        out += ",";
-      }
-      out += std::to_string(f.first) + ":" + std::to_string(f.second);
-    }
-    out += "]";
-  }
-  out += "}";
-  return out;
-}
 
 int main(int argc, char* argv[]) {
   init_log();

@@ -19,55 +19,13 @@
 #include "common/devcash_context.h"
 #include "io/message_service.h"
 #include "modules/BlockchainModule.h"
+#include "primitives/block_tools.h"
 
 using namespace Devcash;
 
 namespace fs = boost::filesystem;
 
 #define DEBUG_TRANSACTION_INDEX (processed + 11000000)
-typedef std::chrono::milliseconds millisecs;
-
-/** Checks if binary is encoding a block
- * @note this function is pretty heuristic, do not use in critical cases
- * @return true if this data encodes a block
- * @return false otherwise
- */
-bool IsBlockData(const std::vector<byte>& raw) {
-  //check if big enough
-  if (raw.size() < FinalBlock::MinSize()) { return false; }
-  //check version
-  if (raw[0] != 0x00) { return false; }
-  size_t offset = 9;
-  uint64_t block_time = BinToUint64(raw, offset);
-  // check blocktime is from 2018 or newer.
-  if (block_time < 1514764800) { return false; }
-  // check blocktime is in past
-  if (block_time > GetMillisecondsSinceEpoch()) { return false; }
-  return true;
-}
-
-/** Checks if binary is encoding Transactions
- * @note this function is pretty heuristic, do not use in critical cases
- * @return true if this data encodes Transactions
- * @return false otherwise
- */
-bool IsTxData(const std::vector<byte>& raw) {
-  // check if big enough
-  if (raw.size() < Transaction::MinSize()) { return false; }
-  // check transfer count
-  uint64_t xfer_count = BinToUint64(raw, 0);
-  size_t tx_size = Transaction::MinSize() + (Transfer::Size() * xfer_count);
-  if (raw.size() < tx_size) { return false; }
-  // check operation
-  if (raw[8] >= 4) { return false; }
-  return true;
-}
-
-std::unique_ptr<io::TransactionServer> create_transaction_server(const devcash_options& options,
-                                                                 zmq::context_t& context) {
-  std::unique_ptr<io::TransactionServer> server(new io::TransactionServer(context, options.bind_endpoint));
-  return server;
-}
 
 void ParallelPush(std::mutex& m, std::vector<std::vector<byte>>& array
     , const std::vector<byte>& elt) {
@@ -162,17 +120,16 @@ int main(int argc, char* argv[]) {
 
     LOG_INFO << "Loaded " << std::to_string(input_blocks_) << " transactions in " << transactions.size() << " batches.";
 
-    std::unique_ptr<io::TransactionServer> server = create_transaction_server(*options, context);
+    std::unique_ptr<io::TransactionServer> server = io::CreateTransactionServer(options->bind_endpoint, context);
     server->startServer();
     auto ms = kMAIN_WAIT_INTERVAL;
     unsigned int processed = 0;
 
-    LOG_NOTICE << "Please press a key to ignore";
+    //LOG_NOTICE << "Please press a key to ignore";
     std::cin.ignore(); //why read something if you need to ignore it? :)
     while (true) {
       LOG_DEBUG << "Sleeping for " << ms << ": processed/batches (" << std::to_string(processed) << "/"
                 << transactions.size() << ")";
-      std::this_thread::sleep_for(millisecs(ms));
 
       /* Should we announce a transaction? */
       if (processed < transactions.size()) {

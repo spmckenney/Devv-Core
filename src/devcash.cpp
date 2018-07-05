@@ -22,22 +22,6 @@
 
 using namespace Devcash;
 
-std::unique_ptr<io::TransactionClient> create_transaction_client(const devcash_options& options,
-                                                                 zmq::context_t& context) {
-  std::unique_ptr<io::TransactionClient> client(new io::TransactionClient(context));
-  for (auto i : options.host_vector) {
-    client->addConnection(i);
-  }
-  return client;
-}
-
-std::unique_ptr<io::TransactionServer> create_transaction_server(const devcash_options& options,
-                                                                 zmq::context_t& context) {
-  std::unique_ptr<io::TransactionServer> server(new io::TransactionServer(context,
-                                                                          options.bind_endpoint));
-  return server;
-}
-
 int main(int argc, char* argv[])
 {
 
@@ -61,8 +45,8 @@ int main(int argc, char* argv[])
     KeyRing keys(devcash_context);
     ChainState prior;
 
-    std::unique_ptr<io::TransactionServer> server = create_transaction_server(*options, zmq_context);
-    std::unique_ptr<io::TransactionClient> peer_client = create_transaction_client(*options, zmq_context);
+    std::unique_ptr<io::TransactionServer> server = io::CreateTransactionServer(options->bind_endpoint, zmq_context);
+    std::unique_ptr<io::TransactionClient> peer_client = io::CreateTransactionClient(options->host_vector, zmq_context);
 
 
     // Create loopback client to subscribe to simulator transactions
