@@ -25,17 +25,15 @@
 using namespace Devcash;
 namespace fs = boost::filesystem;
 
-#define UNUSED(x) ((void)x)
-
 int main(int argc, char* argv[])
 {
-
   init_log();
 
   CASH_TRY {
     std::unique_ptr<devcash_options> options = parse_options(argc, argv);
 
     if (!options) {
+      LOG_ERROR << "parse_options failed";
       exit(-1);
     }
 
@@ -131,7 +129,8 @@ int main(int argc, char* argv[])
         LOG_INFO << entry << " END STATE END";
       }
 
-      LOG_INFO << entry << " has "+std::to_string(file_txs)+" txs, "+std::to_string(file_tfer)+" tfers in "+std::to_string(file_blocks)+" blocks.";
+      LOG_INFO << entry << " has " << std::to_string(file_txs)
+              << " txs, " +std::to_string(file_tfer)+" tfers in "+std::to_string(file_blocks)+" blocks.";
       block_counter += file_blocks;
       tx_counter += file_txs;
       tfer_count += file_tfer;

@@ -8,7 +8,6 @@
 #ifndef SRC_PRIMITIVES_SMARTCOIN_H_
 #define SRC_PRIMITIVES_SMARTCOIN_H_
 
-#include <stdint.h>
 #include <string>
 #include <vector>
 
@@ -21,7 +20,6 @@ namespace Devcash {
 /// @todo (mckenney) move to constants
 static const uint64_t kCOIN = 100000000;
 static const uint64_t kMAX_COIN = 184000000000 * kCOIN;
-inline bool MoneyRange(const uint64_t& nValue) { return (nValue <= kMAX_COIN); }
 
 /**
  * A smart coin.
@@ -48,8 +46,8 @@ class SmartCoin {
    * Set the address
    * @param addr_
    */
-  void setAddress(const Address& addr_) {
-    SmartCoin::addr_ = addr_;
+  void setAddress(const Address& addr) {
+    addr_ = addr;
   }
   /**
    *
@@ -62,8 +60,8 @@ class SmartCoin {
    *
    * @param coin_
    */
-  void setCoin(uint64_t coin_) {
-    SmartCoin::coin_ = coin_;
+  void setCoin(uint64_t coin) {
+    coin_ = coin;
   }
   /**
    *
@@ -76,8 +74,8 @@ class SmartCoin {
    *
    * @param amount_
    */
-  void setAmount(uint64_t amount_) {
-    SmartCoin::amount_ = amount_;
+  void setAmount(uint64_t amount) {
+    amount_ = amount;
   }
 
  private:
