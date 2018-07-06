@@ -119,7 +119,7 @@ int main(int argc, char* argv[])
           size_t span = buffer.getOffset();
           FinalBlock one_block(buffer, priori, keys, options->mode);
           if (buffer.getOffset() == span) {
-            LOG_WARNING << entry << " has invalid block!";
+            LOG_WARNING << file_name << " has invalid block!";
             break;
 		  }
           size_t txs = one_block.getNumTransactions();
@@ -138,9 +138,9 @@ int main(int argc, char* argv[])
 
       bool first_addr = true;
       std::stringstream state_stream;
-      if (priori.getStateMap().empty()) { LOG_INFO << entry << "END with no state"; }
+      if (priori.getStateMap().empty()) { LOG_INFO << file_name << " END with no state"; }
       for (auto const& item : priori.getStateMap()) {
-        LOG_INFO << entry << " END STATE BEGIN: ";
+        LOG_INFO << file_name << " END STATE BEGIN: ";
         state_stream << "{\"Addr\":\"";
         state_stream << ToHex(std::vector<byte>(std::begin(item.first)
           , std::end(item.first)));
@@ -161,10 +161,10 @@ int main(int argc, char* argv[])
           state_stream << ",";
         }
         LOG_INFO << state_stream.str();
-        LOG_INFO << entry << " END STATE END";
+        LOG_INFO << file_name << " END STATE END";
       }
 
-      LOG_INFO << entry << " has " << std::to_string(file_txs)
+      LOG_INFO << file_name << " has " << std::to_string(file_txs)
               << " txs, " +std::to_string(file_tfer)+" tfers in "+std::to_string(file_blocks)+" blocks.";
       block_counter += file_blocks;
       tx_counter += file_txs;
