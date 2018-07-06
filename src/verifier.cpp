@@ -37,11 +37,24 @@ using namespace Devcash;
 
 namespace fs = boost::filesystem;
 
+struct verifier_options {
+  eAppMode mode  = eAppMode::T1;
+  unsigned int node_index = 0;
+  unsigned int shard_index = 0;
+  std::string working_dir;
+  std::string inn_keys;
+  std::string node_keys;
+  std::string wallet_keys;
+  eDebugMode debug_mode;
+};
+
+std::unique_ptr<struct verifier_options> ParseVerifierOptions(int argc, char** argv);
+
 int main(int argc, char* argv[]) {
   init_log();
 
   CASH_TRY {
-    std::unique_ptr<devcash_options> options = parse_options(argc, argv);
+    auto options = ParseVerifierOptions(argc, argv);
 
     if (!options) {
       exit(-1);
@@ -49,8 +62,12 @@ int main(int argc, char* argv[]) {
 
     zmq::context_t context(1);
 
-    DevcashContext this_context(options->node_index, options->shard_index, options->mode, options->inn_keys,
-                                options->node_keys, options->wallet_keys);
+    DevcashContext this_context(options->node_index,
+                                options->shard_index,
+                                options->mode,
+                                options->inn_keys,
+                                options->node_keys,
+                                options->wallet_keys);
     KeyRing keys(this_context);
 
     LOG_DEBUG << "Verifying " << options->working_dir;
@@ -151,4 +168,138 @@ int main(int argc, char* argv[]) {
     std::cerr << err << std::endl;
     return (false);
   }
+}
+
+std::unique_ptr<struct verifier_options> ParseVerifierOptions(int argc, char** argv) {
+
+  namespace po = boost::program_options;
+
+  auto options = std::make_unique<verifier_options>();
+
+  try {
+    po::options_description desc("\n\
+" + std::string(argv[0]) + " [OPTIONS] \n\
+\n\
+Scans a directory for transactions and blocks.\n\
+Then, it accumulates the states implied by all the sound transactions it finds\n\
+as well as getting the chain state implied by the blockchain(s) in the directory.\n\
+Finally, it compares these states and dumps them if they are not equal.\n\
+\n\
+If states are not equal, keep in mind that order and timing matter.\n\
+A transaction may be sound, but not valid when it is announced to the verifiers.\n\
+In this case, this transaction will be recorded in the chainstate implied by sound transactions,\n\
+but not the chainstate created in the actual chains and the chains may be correct even though\n\
+they are missing that transaction, which could not be processed when it was announced.\n\
+\n\
+Likewise, this verion is only designed to verify 1 chain.\n\
+If there are transactions being distributed among multiple chains, the chains may arrive at\n\
+different states from the one implied by the set of transactions themselves.\n\
+\n\
+Required parameters");
+    desc.add_options()
+        ("mode", po::value<std::string>(), "Devcash mode (T1|T2|scan)")
+        ("node-index", po::value<unsigned int>(), "Index of this node")
+        ("shard-index", po::value<unsigned int>(), "Index of this shard")
+        ("working-dir", po::value<std::string>(), "Directory to be verified")
+        ("inn-keys", po::value<std::string>(), "Path to INN key file")
+        ("node-keys", po::value<std::string>(), "Path to Node key file")
+        ("wallet-keys", po::value<std::string>(), "Path to Wallet key file")
+        ;
+
+    po::options_description d2("Optional parameters");
+    d2.add_options()
+        ("help", "produce help message")
+        ("debug-mode", po::value<std::string>(), "Debug mode (on|off|perf) for testing")
+        ;
+    desc.add(d2);
+
+    po::variables_map vm;
+    po::store(po::parse_command_line(argc, argv, desc), vm);
+    po::notify(vm);
+
+    if (vm.count("help")) {
+      std::cout << desc << "\n";
+      return nullptr;
+    }
+
+    if (vm.count("mode")) {
+      std::string mode = vm["mode"].as<std::string>();
+      if (mode == "SCAN") {
+        options->mode = scan;
+      } else if (mode == "T1") {
+        options->mode = T1;
+      } else if (mode == "T2") {
+        options->mode = T2;
+      } else {
+        LOG_WARNING << "unknown mode: " << mode;
+      }
+      LOG_INFO << "mode: " << options->mode;
+    } else {
+      LOG_INFO << "mode was not set.";
+    }
+
+    if (vm.count("debug-mode")) {
+      std::string debug_mode = vm["debug-mode"].as<std::string>();
+      if (debug_mode == "on") {
+        options->debug_mode = on;
+      } else if (debug_mode == "toy") {
+        options->debug_mode = toy;
+      } else if (debug_mode == "perf") {
+        options->debug_mode = perf;
+      } else {
+        options->debug_mode = off;
+      }
+      LOG_INFO << "debug_mode: " << options->debug_mode;
+    } else {
+      LOG_INFO << "debug_mode was not set.";
+    }
+
+    if (vm.count("node-index")) {
+      options->node_index = vm["node-index"].as<unsigned int>();
+      LOG_INFO << "Node index: " << options->node_index;
+    } else {
+      LOG_INFO << "Node index was not set.";
+    }
+
+    if (vm.count("shard-index")) {
+      options->shard_index = vm["shard-index"].as<unsigned int>();
+      LOG_INFO << "Shard index: " << options->shard_index;
+    } else {
+      LOG_INFO << "Shard index was not set.";
+    }
+
+    if (vm.count("working-dir")) {
+      options->working_dir = vm["working-dir"].as<std::string>();
+      LOG_INFO << "Working dir: " << options->working_dir;
+    } else {
+      LOG_INFO << "Working dir was not set.";
+    }
+
+    if (vm.count("inn-keys")) {
+      options->inn_keys = vm["inn-keys"].as<std::string>();
+      LOG_INFO << "INN keys file: " << options->inn_keys;
+    } else {
+      LOG_INFO << "INN keys file was not set.";
+    }
+
+    if (vm.count("node-keys")) {
+      options->node_keys = vm["node-keys"].as<std::string>();
+      LOG_INFO << "Node keys file: " << options->node_keys;
+    } else {
+      LOG_INFO << "Node keys file was not set.";
+    }
+
+    if (vm.count("wallet-keys")) {
+      options->wallet_keys = vm["wallet-keys"].as<std::string>();
+      LOG_INFO << "Wallet keys file: " << options->wallet_keys;
+    } else {
+      LOG_INFO << "Wallet keys file was not set.";
+    }
+  }
+  catch (std::exception& e) {
+    LOG_ERROR << "error: " << e.what();
+    return nullptr;
+  }
+
+  return options;
 }

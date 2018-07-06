@@ -28,7 +28,7 @@ int main(int argc, char* argv[])
   init_log();
 
   try {
-    std::unique_ptr<devcash_options> options = parse_options(argc, argv);
+    auto options = ParseDevcashOptions(argc, argv);
 
     if (!options) {
       exit(-1);
@@ -45,8 +45,8 @@ int main(int argc, char* argv[])
     KeyRing keys(devcash_context);
     ChainState prior;
 
-    std::unique_ptr<io::TransactionServer> server = io::CreateTransactionServer(options->bind_endpoint, zmq_context);
-    std::unique_ptr<io::TransactionClient> peer_client = io::CreateTransactionClient(options->host_vector, zmq_context);
+    auto server = io::CreateTransactionServer(options->bind_endpoint, zmq_context);
+    auto peer_client = io::CreateTransactionClient(options->host_vector, zmq_context);
 
 
     // Create loopback client to subscribe to simulator transactions

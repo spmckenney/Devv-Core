@@ -25,15 +25,31 @@
 using namespace Devcash;
 namespace fs = boost::filesystem;
 
+struct scanner_options {
+  eAppMode mode  = eAppMode::T1;
+  unsigned int node_index = 0;
+  unsigned int shard_index = 0;
+  std::string working_dir;
+  std::string write_file;
+  std::string inn_keys;
+  std::string node_keys;
+  std::string wallet_keys;
+  unsigned int generate_count;
+  unsigned int tx_limit;
+  eDebugMode debug_mode;
+};
+
+std::unique_ptr<struct scanner_options> ParseScannerOptions(int argc, char** argv);
+
 int main(int argc, char* argv[])
 {
   init_log();
 
   CASH_TRY {
-    std::unique_ptr<devcash_options> options = parse_options(argc, argv);
+    auto options = ParseScannerOptions(argc, argv);
 
     if (!options) {
-      LOG_ERROR << "parse_options failed";
+      LOG_ERROR << "ParseScannerOptions failed";
       exit(-1);
     }
 
@@ -157,4 +173,153 @@ int main(int argc, char* argv[])
     std::cerr << err << std::endl;
     return(false);
   }
+}
+
+std::unique_ptr<struct scanner_options> ParseScannerOptions(int argc, char** argv) {
+
+  namespace po = boost::program_options;
+
+  auto options = std::make_unique<scanner_options>();
+
+  try {
+    po::options_description desc("\n\
+" + std::string(argv[0]) + " [OPTIONS] \n\
+\n\
+A block scanner.\n\
+Use T1 to scan a tier 1 chain, T2 to scan a T2 chain, and scan to\n\
+scan raw transactions.\n\
+\n\
+Required parameters");
+    desc.add_options()
+        ("mode", po::value<std::string>(), "Devcash mode (T1|T2|scan)")
+        ("node-index", po::value<unsigned int>(), "Index of this node")
+        ("shard-index", po::value<unsigned int>(), "Index of this shard")
+        ("working-dir", po::value<std::string>(), "Directory where inputs are read and outputs are written")
+        ("output", po::value<std::string>(), "Output path in binary JSON or CBOR")
+        ("inn-keys", po::value<std::string>(), "Path to INN key file")
+        ("node-keys", po::value<std::string>(), "Path to Node key file")
+        ("wallet-keys", po::value<std::string>(), "Path to Wallet key file")
+        ("generate-tx", po::value<unsigned int>(), "Generate at least this many Transactions")
+        ("tx-limit", po::value<unsigned int>(), "Number of transaction to process before shutting down.")
+        ;
+
+    po::options_description d2("Optional parameters");
+    d2.add_options()
+        ("help", "produce help message")
+        ("debug-mode", po::value<std::string>(), "Debug mode (on|off|perf) for testing")
+        ;
+    desc.add(d2);
+
+    po::variables_map vm;
+    po::store(po::parse_command_line(argc, argv, desc), vm);
+    po::notify(vm);
+
+    if (vm.count("help")) {
+      std::cout << desc << "\n";
+      return nullptr;
+    }
+
+    if (vm.count("mode")) {
+      std::string mode = vm["mode"].as<std::string>();
+      if (mode == "SCAN") {
+        options->mode = scan;
+      } else if (mode == "T1") {
+        options->mode = T1;
+      } else if (mode == "T2") {
+        options->mode = T2;
+      } else {
+        LOG_WARNING << "unknown mode: " << mode;
+      }
+      LOG_INFO << "mode: " << options->mode;
+    } else {
+      LOG_INFO << "mode was not set.";
+    }
+
+    if (vm.count("debug-mode")) {
+      std::string debug_mode = vm["debug-mode"].as<std::string>();
+      if (debug_mode == "on") {
+        options->debug_mode = on;
+      } else if (debug_mode == "toy") {
+        options->debug_mode = toy;
+      } else if (debug_mode == "perf") {
+        options->debug_mode = perf;
+      } else {
+        options->debug_mode = off;
+      }
+      LOG_INFO << "debug_mode: " << options->debug_mode;
+    } else {
+      LOG_INFO << "debug_mode was not set.";
+    }
+
+    if (vm.count("node-index")) {
+      options->node_index = vm["node-index"].as<unsigned int>();
+      LOG_INFO << "Node index: " << options->node_index;
+    } else {
+      LOG_INFO << "Node index was not set.";
+    }
+
+    if (vm.count("shard-index")) {
+      options->shard_index = vm["shard-index"].as<unsigned int>();
+      LOG_INFO << "Shard index: " << options->shard_index;
+    } else {
+      LOG_INFO << "Shard index was not set.";
+    }
+
+    if (vm.count("working-dir")) {
+      options->working_dir = vm["working-dir"].as<std::string>();
+      LOG_INFO << "Working dir: " << options->working_dir;
+    } else {
+      LOG_INFO << "Working dir was not set.";
+    }
+
+    if (vm.count("output")) {
+      options->write_file = vm["output"].as<std::string>();
+      LOG_INFO << "Output file: " << options->write_file;
+    } else {
+      LOG_INFO << "Output file was not set.";
+    }
+
+    if (vm.count("inn-keys")) {
+      options->inn_keys = vm["inn-keys"].as<std::string>();
+      LOG_INFO << "INN keys file: " << options->inn_keys;
+    } else {
+      LOG_INFO << "INN keys file was not set.";
+    }
+
+    if (vm.count("node-keys")) {
+      options->node_keys = vm["node-keys"].as<std::string>();
+      LOG_INFO << "Node keys file: " << options->node_keys;
+    } else {
+      LOG_INFO << "Node keys file was not set.";
+    }
+
+    if (vm.count("wallet-keys")) {
+      options->wallet_keys = vm["wallet-keys"].as<std::string>();
+      LOG_INFO << "Wallet keys file: " << options->wallet_keys;
+    } else {
+      LOG_INFO << "Wallet keys file was not set.";
+    }
+
+    if (vm.count("generate-tx")) {
+      options->generate_count = vm["generate-tx"].as<unsigned int>();
+      LOG_INFO << "Generate Transactions: " << options->generate_count;
+    } else {
+      LOG_INFO << "Generate Transactions was not set, defaulting to 0";
+      options->generate_count = 0;
+    }
+
+    if (vm.count("tx-limit")) {
+      options->tx_limit = vm["tx-limit"].as<unsigned int>();
+      LOG_INFO << "Transaction limit: " << options->tx_limit;
+    } else {
+      LOG_INFO << "Transaction limit was not set, defaulting to 0 (unlimited)";
+      options->tx_limit = 100;
+    }
+  }
+  catch (std::exception& e) {
+    LOG_ERROR << "error: " << e.what();
+    return nullptr;
+  }
+
+  return options;
 }

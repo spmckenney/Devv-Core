@@ -62,10 +62,10 @@ int main(int argc, char* argv[]) {
   init_log();
 
   try {
-    std::unique_ptr<announcer_options> options = ParseAnnouncerOptions(argc, argv);
+    auto options = ParseAnnouncerOptions(argc, argv);
 
     if (!options) {
-      LOG_ERROR << "parse_options error";
+      LOG_ERROR << "ParseAnnouncerOptions error";
       exit(-1);
     }
 
@@ -145,7 +145,7 @@ int main(int argc, char* argv[]) {
 
     LOG_INFO << "Loaded " << std::to_string(input_blocks_) << " transactions in " << transactions.size() << " batches.";
 
-    std::unique_ptr<io::TransactionServer> server = io::CreateTransactionServer(options->bind_endpoint, context);
+    auto server = io::CreateTransactionServer(options->bind_endpoint, context);
     server->startServer();
     auto ms = kMAIN_WAIT_INTERVAL;
     unsigned int processed = 0;
@@ -193,13 +193,11 @@ std::unique_ptr<struct announcer_options> ParseAnnouncerOptions(int argc, char**
 
   try {
     po::options_description desc("\n\
-The t1_example program can be used to demonstrate connectivity of\n\
-T1 and T2 networks. By default, it will send random DevcashMessage\n\
-every 5 seconds to any other t1_example programs that have connected\n\
-to it will receive the message. If it receives a message, it will\n\
-execute the appropriate T1 or T2 callback. t1_example can connect\n\
-and listen to multiple other t1_example programs so almost any size\n\
-network could be build and tested.\n\nAllowed options");
+" + std::string(argv[0]) + " [OPTIONS] \n\
+\n\
+Reads Devcash transaction files from a directory and \n\
+annouonces them to nodes provided by the host-list arguments.\n\
+\nAllowed options");
     desc.add_options()
         ("help", "produce help message")
         ("debug-mode", po::value<std::string>(), "Debug mode (on|toy|perf) for testing")

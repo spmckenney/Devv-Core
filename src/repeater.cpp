@@ -31,7 +31,6 @@ typedef std::chrono::milliseconds millisecs;
  * Holds command-line options
  */
 struct repeater_options {
-  std::string bind_endpoint;
   std::vector<std::string> host_vector{};
   eAppMode mode = eAppMode::T1;
   unsigned int node_index = 0;
@@ -56,7 +55,7 @@ int main(int argc, char* argv[]) {
   init_log();
 
   try {
-    std::unique_ptr<repeater_options> options = ParseRepeaterOptions(argc, argv);
+    auto options = ParseRepeaterOptions(argc, argv);
 
     if (!options) {
       exit(-1);
@@ -81,8 +80,7 @@ int main(int argc, char* argv[]) {
     //@todo(nick@cloudsolar.co): read pre-existing chain
     unsigned int chain_height = 0;
 
-    std::unique_ptr<io::TransactionClient> peer_listener =
-        io::CreateTransactionClient(options->host_vector, zmq_context);
+    auto peer_listener = io::CreateTransactionClient(options->host_vector, zmq_context);
     peer_listener->attachCallback([&](DevcashMessageUniquePtr p) {
       if (p->message_type == eMessageType::FINAL_BLOCK) {
         //write final chain to file
@@ -139,13 +137,9 @@ std::unique_ptr<struct repeater_options> ParseRepeaterOptions(int argc, char** a
 
   try {
     po::options_description desc("\n\
-The t1_example program can be used to demonstrate connectivity of\n\
-T1 and T2 networks. By default, it will send random DevcashMessage\n\
-every 5 seconds to any other t1_example programs that have connected\n\
-to it will receive the message. If it receives a message, it will\n\
-execute the appropriate T1 or T2 callback. t1_example can connect\n\
-and listen to multiple other t1_example programs so almost any size\n\
-network could be build and tested.\n\nAllowed options");
+" + std::string(argv[0]) + " [OPTIONS] \n\
+Listens for FinalBlock messages and saves them to a file\n\
+\nAllowed options");
     desc.add_options()
         ("help", "produce help message")
         ("debug-mode", po::value<std::string>(), "Debug mode (on|toy|perf) for testing")
@@ -156,7 +150,6 @@ network could be build and tested.\n\nAllowed options");
         ("num-validator-threads", po::value<unsigned int>(), "Number of validation threads")
         ("host-list,host", po::value<std::vector<std::string>>(),
          "Client URI (i.e. tcp://192.168.10.1:5005). Option can be repeated to connect to multiple nodes.")
-        ("bind-endpoint", po::value<std::string>(), "Endpoint for server (i.e. tcp://*:5556)")
         ("working-dir", po::value<std::string>(), "Directory where inputs are read and outputs are written")
         ("output", po::value<std::string>(), "Output path in binary JSON or CBOR")
         ("trace-output", po::value<std::string>(), "Output path to JSON trace file (Chrome)")
@@ -220,13 +213,6 @@ network could be build and tested.\n\nAllowed options");
       LOG_INFO << "Shard index: " << options->shard_index;
     } else {
       LOG_INFO << "Shard index was not set.";
-    }
-
-    if (vm.count("bind-endpoint")) {
-      options->bind_endpoint = vm["bind-endpoint"].as<std::string>();
-      LOG_INFO << "Bind URI: " << options->bind_endpoint;
-    } else {
-      LOG_INFO << "Bind URI was not set";
     }
 
     if (vm.count("host-list")) {

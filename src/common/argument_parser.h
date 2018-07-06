@@ -39,7 +39,7 @@ struct devcash_options {
   eDebugMode debug_mode;
 };
 
-std::unique_ptr<struct devcash_options> parse_options(int argc, char** argv) {
+std::unique_ptr<struct devcash_options> ParseDevcashOptions(int argc, char** argv) {
 
   namespace po = boost::program_options;
 
@@ -47,13 +47,8 @@ std::unique_ptr<struct devcash_options> parse_options(int argc, char** argv) {
 
   try {
     po::options_description desc("\n\
-The t1_example program can be used to demonstrate connectivity of\n\
-T1 and T2 networks. By default, it will send random DevcashMessage\n\
-every 5 seconds to any other t1_example programs that have connected\n\
-to it will receive the message. If it receives a message, it will\n\
-execute the appropriate T1 or T2 callback. t1_example can connect\n\
-and listen to multiple other t1_example programs so almost any size\n\
-network could be build and tested.\n\nAllowed options");
+Create a devcash node\n\
+\nAllowed options");
     desc.add_options()
       ("help", "produce help message")
       ("debug-mode", po::value<std::string>(), "Debug mode (on|toy|perf) for testing")

@@ -40,13 +40,13 @@ struct circuit_options {
   eDebugMode debug_mode;
 };
 
-std::unique_ptr<struct circuit_options> ParseCircuitArguments(int argc, char** argv);
+std::unique_ptr<struct circuit_options> ParseCircuitOptions(int argc, char** argv);
 
 int main(int argc, char* argv[]) {
   init_log();
 
   CASH_TRY {
-    std::unique_ptr<circuit_options> options = ParseCircuitArguments(argc, argv);
+    std::unique_ptr<circuit_options> options = ParseCircuitOptions(argc, argv);
 
     if (!options) {
       exit(-1);
@@ -162,7 +162,7 @@ int main(int argc, char* argv[]) {
   }
 }
 
-std::unique_ptr<struct circuit_options> ParseCircuitArguments(int argc, char** argv) {
+std::unique_ptr<struct circuit_options> ParseCircuitOptions(int argc, char** argv) {
 
   namespace po = boost::program_options;
 
@@ -172,7 +172,13 @@ std::unique_ptr<struct circuit_options> ParseCircuitArguments(int argc, char** a
     po::options_description desc("\n\
 " + std::string(argv[0]) + " [OPTIONS] \n\
 \n\
-Creates full circuit transactions.\n\
+Creates up to generate_count transactions as follows:\n\
+ 1.  INN transactions create addr_count coins for every address\n\
+ 2.  Each peer address sends 1 coin to every other address\n\
+ 3.  Each peer address returns addr_count coins to the INN\n\
+\n\
+For perfect circuits, make sure that generate_count is one more \n\
+than a perfect square.\n\
 \n\
 Required parameters");
     desc.add_options()
