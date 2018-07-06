@@ -85,7 +85,7 @@ int main(int argc, char* argv[])
     }
     for  (auto const& file_name : files) {
       LOG_DEBUG << "Reading " << file_name;
-      std::ifstream file(entry.path().string(), std::ios::binary);
+      std::ifstream file(file_name, std::ios::binary);
       file.unsetf(std::ios::skipws);
       std::size_t file_size;
       file.seekg(0, std::ios::end);
