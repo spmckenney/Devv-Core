@@ -21,6 +21,7 @@
 #include "common/devcash_context.h"
 #include "modules/BlockchainModule.h"
 #include "primitives/json_interface.h"
+#include "primitives/block_tools.h"
 
 using namespace Devcash;
 namespace fs = boost::filesystem;
@@ -72,9 +73,18 @@ int main(int argc, char* argv[])
       return(false);
     }
 
+    if (!is_directory(p)) {
+      LOG_ERROR << "Error opening dir: " << options->working_dir << " is not a directory";
+      return false;
+    }
+
     std::string out;
+    std::vector<std::string> files;
     for(auto& entry : boost::make_iterator_range(fs::directory_iterator(p), {})) {
-      LOG_DEBUG << "Reading " << entry;
+      files.push_back(entry.path().string());
+    }
+    for  (auto const& file_name : files) {
+      LOG_DEBUG << "Reading " << file_name;
       std::ifstream file(entry.path().string(), std::ios::binary);
       file.unsetf(std::ios::skipws);
       std::size_t file_size;
@@ -85,6 +95,13 @@ int main(int argc, char* argv[])
       std::vector<byte> raw;
       raw.reserve(file_size);
       raw.insert(raw.begin(), std::istream_iterator<byte>(file), std::istream_iterator<byte>());
+      bool is_block = IsBlockData(raw);
+      bool is_transaction = IsTxData(raw);
+      if (is_block) { LOG_INFO << file_name << " has blocks."; }
+      if (is_transaction) { LOG_INFO << file_name << " has transactions."; }
+      if (!is_block && !is_transaction) {
+        LOG_WARNING << file_name << " contains unknown data.";
+      }
       size_t file_blocks = 0;
       size_t file_txs = 0;
       size_t file_tfer = 0;
@@ -92,13 +109,13 @@ int main(int argc, char* argv[])
       ChainState priori;
 
       InputBuffer buffer(raw);
-      while (buffer.getOffset() < file_size) {
-        if (options->mode == eAppMode::scan) {
+      while (buffer.getOffset() < static_cast<size_t>(file_size)) {
+        if (is_transaction) {
           Tier2Transaction tx(Tier2Transaction::Create(buffer, keys, true));
           file_txs++;
           file_tfer += tx.getTransfers().size();
           out += tx.getJSON();
-        } else {
+        } else if (is_block) {
           size_t span = buffer.getOffset();
           FinalBlock one_block(buffer, priori, keys, options->mode);
           if (buffer.getOffset() == span) {
@@ -114,6 +131,8 @@ int main(int argc, char* argv[])
           file_blocks++;
           file_txs += txs;
           file_tfer += tfers;
+        } else {
+          LOG_WARNING << "!is_block && !is_transaction";
         }
       }
 
