@@ -189,7 +189,7 @@ class Tier1Transaction : public Transaction {
   bool do_isSound(const KeyRing& keys) const override {
     MTR_SCOPE_FUNC();
     CASH_TRY {
-      if (is_sound_) return (is_sound_);
+      if (is_sound_) { return (is_sound_); }
 
       /// @todo(mckenney) auto node_index
       int node_index = getNonce();
@@ -221,7 +221,7 @@ class Tier1Transaction : public Transaction {
    */
   bool do_isValid(ChainState& state, const KeyRing& keys, Summary& summary) const override {
     CASH_TRY {
-      if (!isSound(keys)) return false;
+      if (!isSound(keys)) { return false; }
 
       std::vector<Transfer> xfers = getTransfers();
       for (auto& transfer : xfers) {

@@ -1,4 +1,3 @@
-
 /*
  * devcash.cpp the main class.  Checks args and hands of to init.
  *
@@ -16,29 +15,12 @@
 
 #include "common/argument_parser.h"
 #include "common/devcash_context.h"
-#include "concurrency/DevcashController.h"
-#include "node/DevcashNode.h"
+#include "concurrency/ValidatorController.h"
+#include "modules/BlockchainModule.h"
 #include "io/message_service.h"
+#include "modules/ParallelExecutor.h"
 
 using namespace Devcash;
-
-#define UNUSED(x) ((void)x)
-
-std::unique_ptr<io::TransactionClient> create_transaction_client(const devcash_options& options,
-                                                                 zmq::context_t& context) {
-  std::unique_ptr<io::TransactionClient> client(new io::TransactionClient(context));
-  for (auto i : options.host_vector) {
-    client->addConnection(i);
-  }
-  return client;
-}
-
-std::unique_ptr<io::TransactionServer> create_transaction_server(const devcash_options& options,
-                                                                 zmq::context_t& context) {
-  std::unique_ptr<io::TransactionServer> server(new io::TransactionServer(context,
-                                                                          options.bind_endpoint));
-  return server;
-}
 
 int main(int argc, char* argv[])
 {
@@ -46,30 +28,29 @@ int main(int argc, char* argv[])
   init_log();
 
   try {
-    std::unique_ptr<devcash_options> options = parse_options(argc, argv);
+    auto options = ParseDevcashOptions(argc, argv);
 
     if (!options) {
       exit(-1);
     }
 
-    zmq::context_t context(1);
+    zmq::context_t zmq_context(1);
 
-    DevcashContext this_context(options->node_index
+    DevcashContext devcash_context(options->node_index
                                 , options->shard_index
                                 , options->mode
                                 , options->inn_keys
                                 , options->node_keys
-                                , options->wallet_keys
-                                , options->sync_port
-                                , options->sync_host);
-    KeyRing keys(this_context);
+                                , options->wallet_keys);
+    KeyRing keys(devcash_context);
     ChainState prior;
 
-    std::unique_ptr<io::TransactionServer> server = create_transaction_server(*options, context);
-    std::unique_ptr<io::TransactionClient> peer_client = create_transaction_client(*options, context);
+    auto server = io::CreateTransactionServer(options->bind_endpoint, zmq_context);
+    auto peer_client = io::CreateTransactionClient(options->host_vector, zmq_context);
+
 
     // Create loopback client to subscribe to simulator transactions
-    std::unique_ptr<io::TransactionClient> loopback_client(new io::TransactionClient(context));
+    std::unique_ptr<io::TransactionClient> loopback_client(new io::TransactionClient(zmq_context));
     auto be = options->bind_endpoint;
     std::string this_uri = "";
     try {
@@ -79,20 +60,6 @@ int main(int argc, char* argv[])
     }
     loopback_client->addConnection(this_uri);
 
-    DevcashController controller(*server,
-                                 *peer_client,
-                                 *loopback_client,
-                                 options->num_validator_threads,
-                                 options->num_consensus_threads,
-                                 options->tx_batch_size,
-                                 keys,
-                                 this_context,
-                                 prior,
-                                 options->mode,
-                                 options->working_dir,
-                                 options->stop_file);
-
-    DevcashNode this_node(controller, this_context);
 
     /**
      * Chrome tracing setup
@@ -109,24 +76,22 @@ int main(int argc, char* argv[])
 
     MTR_BEGIN("main", "outer");
 
-    if (options->mode == eAppMode::scan) {
-      LOG_INFO << "Internal scanner is deprecated.";
-    } else {
-      if (!this_node.Init()) {
-        LOG_FATAL << "Basic setup failed";
-        return false;
+    {
+      LOG_NOTICE << "Creating the BlockchainModule";
+      auto bcm = BlockchainModule::Create(*server, *peer_client, *loopback_client, keys, prior, options->mode, devcash_context, 1000);
+      LOG_NOTICE << "Starting the BlockchainModule";
+
+      bcm->start();
+
+      for (;;) {
+        int i = 10;
+        LOG_DEBUG << "main loop: sleeping " << i;
+        sleep(i);
       }
-      LOG_INFO << "Basic Setup complete";
-      if (!this_node.SanityChecks()) {
-        LOG_FATAL << "Sanity checks failed";
-        return false;
-      }
-      LOG_INFO << "Sanity checks passed";
-      if (options->debug_mode == eDebugMode::toy) {
-        this_node.RunNetworkTest(options->node_index);
-      }
-      this_node.RunNode();
+      LOG_NOTICE << "Stopping the BlockchainModule";
     }
+
+    LOG_NOTICE << "BlockchainModule is halted.";
 
     MTR_END("main", "outer");
     mtr_flush();
@@ -144,3 +109,15 @@ int main(int argc, char* argv[])
     return(false);
   }
 }
+
+
+/*
+    std::signal(SIGINT, signal_handler);
+    std::signal(SIGABRT, signal_handler);
+    std::signal(SIGTERM, signal_handler);
+    shutdown_handler = [&](int signal) {
+      LOG_INFO << "Received signal ("+std::to_string(signal)+").";
+      shutdown();
+    };
+ */
+

@@ -71,7 +71,7 @@ void TransactionServer::run() noexcept {
       break;
     }
     sendMessage(std::move(message));
-    if (server_thread_ && !keep_running_) break;
+    if (server_thread_ && !keep_running_) { break; }
   }
 }
 
@@ -89,11 +89,11 @@ void TransactionClient::processIncomingMessage() noexcept {
   /* Block until a message is available to be received from socket */
 
   auto uri = s_recv(*sub_socket_);
-  if (uri == "") return;
+  if (uri == "") { return; }
 
   LOG_DEBUG << "Received - envelope message: " << uri;
   auto mess = s_vrecv(*sub_socket_);
-  if (mess.size() == 0) return;
+  if (mess.size() == 0) { return; }
 
   auto devcash_message = deserialize(mess);
   LOG_DEBUG << "processIncomingMessage(): Received [" << devcash_message->index << ", "
@@ -106,22 +106,26 @@ void TransactionClient::processIncomingMessage() noexcept {
 }
 
 void TransactionClient::run() {
-  MTR_META_THREAD_NAME("TransactionClient::run() Thread");
-  sub_socket_ = std::unique_ptr<zmq::socket_t>(new zmq::socket_t(context_, ZMQ_SUB));
-  int timeout_ms = 100;
-  sub_socket_->setsockopt(ZMQ_RCVTIMEO, &timeout_ms, sizeof(timeout_ms));
+  try {
+    MTR_META_THREAD_NAME("TransactionClient::run() Thread");
+    sub_socket_ = std::unique_ptr<zmq::socket_t>(new zmq::socket_t(context_, ZMQ_SUB));
+    int timeout_ms = 100;
+    sub_socket_->setsockopt(ZMQ_RCVTIMEO, &timeout_ms, sizeof(timeout_ms));
 
-  for (auto endpoint : peer_urls_) {
-    sub_socket_->connect(endpoint);
-    for (auto filter : filter_vector_) {
-      LOG_DEBUG << "ZMQ_SUBSCRIBE: '" << endpoint << ":" << filter << "'";
-      sub_socket_->setsockopt(ZMQ_SUBSCRIBE, filter.c_str(), filter.size());
+    for (auto endpoint : peer_urls_) {
+      sub_socket_->connect(endpoint);
+      for (auto filter : filter_vector_) {
+        LOG_DEBUG << "ZMQ_SUBSCRIBE: '" << endpoint << ":" << filter << "'";
+        sub_socket_->setsockopt(ZMQ_SUBSCRIBE, filter.c_str(), filter.size());
+      }
     }
-  }
 
-  for (;;) {
-    processIncomingMessage();
-    if (client_thread_ && !keep_running_) break;
+    for (;;) {
+      processIncomingMessage();
+      if (client_thread_ && !keep_running_) { break; }
+    }
+  } catch (const std::exception& e) {
+    LOG_FATAL << "EXCEPTION[TransactionClient::run()]:"+std::string(e.what());
   }
 }
 
@@ -136,11 +140,13 @@ void TransactionClient::startClient() {
 }
 
 void TransactionClient::stopClient() {
-  LOG_DEBUG << "Stopping TransactionClient";
   if (keep_running_) {
+    LOG_DEBUG << "Stopping TransactionClient";
     keep_running_ = false;
-    client_thread_->join();
-    client_thread_ = nullptr;
+    if (client_thread_) {
+      client_thread_->join();
+      client_thread_ = nullptr;
+    }
     LOG_INFO << "Stopped TransactionClient";
   } else {
     LOG_WARNING << "Attempted to stop a stopped TransactionClient!";
@@ -150,6 +156,22 @@ void TransactionClient::stopClient() {
 void TransactionClient::listenTo(const std::string& filter) { filter_vector_.push_back(filter); }
 
 void TransactionClient::attachCallback(DevcashMessageCallback callback) { callback_ = callback; }
+
+std::unique_ptr<io::TransactionClient> CreateTransactionClient(const std::vector<std::string>& host_vector,
+                                                               zmq::context_t& context) {
+  std::unique_ptr<io::TransactionClient> client(new io::TransactionClient(context));
+  for (auto i : host_vector) {
+    client->addConnection(i);
+  }
+  return client;
+}
+
+std::unique_ptr<io::TransactionServer> CreateTransactionServer(const std::string& bind_endpoint,
+                                                               zmq::context_t& context) {
+  std::unique_ptr<io::TransactionServer> server(new io::TransactionServer(context,
+                                                                          bind_endpoint));
+  return server;
+}
 
 }  // namespace io
 }  // namespace Devcash

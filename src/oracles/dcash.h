@@ -72,7 +72,7 @@ class dcash : public oracleInterface {
    * @return false otherwise
    */
   bool isValid(Transaction& checkTx, const ChainState& context) override {
-    if (!isSound(checkTx)) return false;
+    if (!isSound(checkTx)) { return false; }
     std::vector<Transfer> xfers = checkTx.getTransfers();
     for (auto it=xfers.begin(); it != xfers.end(); ++it) {
       if (it->getAmount() < 0) {

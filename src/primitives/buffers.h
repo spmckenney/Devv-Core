@@ -172,11 +172,15 @@ class InputBuffer {
     return buffer_.size();
   }
 
+  void reset() {
+    offset_ = 0;
+  }
+
  private:
   /// Serialized buffer
-  const std::vector<byte>& buffer_;
+  std::vector<byte> buffer_;
   /// Current offset
-  size_t offset_;
+  size_t offset_ = 0;
 };
 
 } // namespace Devcash

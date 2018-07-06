@@ -1,7 +1,9 @@
-//
-// Created by mckenney on 6/17/18.
-//
-
+/*
+ * ProposedBlock.h
+ *
+ *  Created on: Jun 19, 2018
+ *      Author: Shawn McKenney
+ */
 #include "ProposedBlock.h"
 #include "primitives/json_interface.h"
 

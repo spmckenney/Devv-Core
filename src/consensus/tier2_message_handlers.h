@@ -84,7 +84,6 @@ bool HandleValidationBlock(DevcashMessageUniquePtr ptr,
                            const DevcashContext& context,
                            Blockchain& final_chain,
                            UnrecordedTransactionPool& utx_pool,
-                           std::string working_dir,
                            std::function<void(DevcashMessageUniquePtr)> callback);
 
 /**

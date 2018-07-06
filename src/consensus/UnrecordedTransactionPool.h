@@ -85,7 +85,9 @@ class UnrecordedTransactionPool {
           if (num_cum_txs_ == 0) {
             LOG_NOTICE << "AddTransactions(): First transaction added to TxMap";
             timer_.reset();
+#ifdef MTR_ENABLED
             trace_ = std::make_unique<MTRScopedTrace>("timer", "lifetime1");
+#endif
           }
           num_cum_txs_++;
           counter++;
@@ -123,19 +125,21 @@ class UnrecordedTransactionPool {
       Signature sig = item->getSignature();
       auto it = txs_.find(sig);
       bool valid = it->second.second->isValid(state, keys, summary);
-      if (!valid) return false; //tx is invalid
+      if (!valid) { return false; } //tx is invalid
       if (it != txs_.end()) {
         if (valid) {
           it->second.first++;
         }
       } else if (item->isSound(keys)) {
         SharedTransaction pair((uint8_t) 0, std::move(item));
-        if (valid) pair.first++;
+        if (valid) { pair.first++; }
         txs_.insert(std::pair<Signature, SharedTransaction>(sig, std::move(pair)));
         if (num_cum_txs_ == 0) {
           LOG_NOTICE << "AddTransactions(): First transaction added to TxMap";
           timer_.reset();
+#ifdef MTR_ENABLED
           trace_ = std::make_unique<MTRScopedTrace>("timer", "lifetime2");
+#endif
         }
         num_cum_txs_++;
 
@@ -264,21 +268,9 @@ class UnrecordedTransactionPool {
     LOG_DEBUG << "ReverifyProposal()";
     MTR_SCOPE_FUNC();
     std::lock_guard<std::mutex> proposal_guard(pending_proposal_mutex_);
-    if (pending_proposal_.isNull()) return false;
+    if (pending_proposal_.isNull()) { return false; }
     pending_proposal_.setPrevHash(prev_hash);
     return true;
-    //The remainder of this function is unneeded when transactions are unique
-    //use logic like below if Proposals will be created in advance
-    //and Transactions may have already been finalized
-    /*std::vector<Transaction> pending = pending_proposal_.getTransactions();
-    Summary summary;
-    ChainState new_state(prior);
-    if (ReverifyTransactions(pending, new_state, keys, summary)) {
-      return true;
-    }
-    pending_proposal_.setNull();
-    LOG_WARNING << "ProposedBlock invalidated by FinalBlock!";
-    return false;*/
   }
 
   /**
@@ -293,7 +285,7 @@ class UnrecordedTransactionPool {
   bool CheckValidation(InputBuffer& buffer, const DevcashContext& context) {
     LOG_DEBUG << "CheckValidation()";
     std::lock_guard<std::mutex> proposal_guard(pending_proposal_mutex_);
-    if (pending_proposal_.isNull()) return false;
+    if (pending_proposal_.isNull()) { return false; }
     return pending_proposal_.checkValidationData(buffer, context);
   }
 
@@ -364,8 +356,9 @@ class UnrecordedTransactionPool {
 
   // Time since starting
   Timer timer_;
+#ifdef MTR_ENABLED
   std::unique_ptr<MTRScopedTrace> trace_;
-
+#endif
   TransactionCreationManager tcm_;
   eAppMode mode_;
 
@@ -412,16 +405,9 @@ class UnrecordedTransactionPool {
         valid.push_back(std::move(iter->second.second->clone()));
         iter->second.first++;
         num_txs++;
-        if (num_txs >= max_tx_per_block_) break;
+        if (num_txs >= max_tx_per_block_) { break; }
       }
     }
-    /*state.addCoins(aggregate);
-    for (const auto& item : aggregate) {
-      if (!summary.addItem(item.first, item.second.coin_, item.second.amount_)) {
-        LOG_FATAL << "An aggregated transaction was invalid!!";
-        valid.clear();
-      }
-    }*/
     return valid;
   }
 

@@ -38,8 +38,7 @@ DevcashMessageUniquePtr CreateNextProposal(const KeyRing& keys,
       ChainState prior = final_chain.getHighestChainState();
       utx_pool.ProposeBlock(prev_hash, prior, keys, context);
     } else {
-      /// @todo (mckenney) misspelled?
-      Hash prev_hash = DevcashHash({'G', 'e', 'n', 'e', 'i', 's'});
+      Hash prev_hash = DevcashHash({'G', 'e', 'n', 'e', 's', 'i', 's'});
       ChainState prior;
       utx_pool.ProposeBlock(prev_hash, prior, keys, context);
     }
@@ -100,6 +99,8 @@ bool HandleFinalBlock(DevcashMessageUniquePtr ptr,
     if (!utx_pool.HasProposal()) {
       callback(std::move(CreateNextProposal(keys,final_chain,utx_pool,context)));
       sent_message = true;
+    } else {
+      LOG_DEBUG << "Already sent a proposal?";
     }
   } else {
     LOG_DEBUG << "Pending transactions but not my turn";
@@ -147,7 +148,6 @@ bool HandleValidationBlock(DevcashMessageUniquePtr ptr,
                            const DevcashContext& context,
                            Blockchain& final_chain,
                            UnrecordedTransactionPool& utx_pool,
-                           std::string working_dir,
                            std::function<void(DevcashMessageUniquePtr)> callback) {
   MTR_SCOPE_FUNC();
   bool sent_message = false;
@@ -165,23 +165,6 @@ bool HandleValidationBlock(DevcashMessageUniquePtr ptr,
                << final_chain.getNumTransactions() / (utx_pool.getElapsedTime()/1000) << " txs/sec";
 
     std::vector<byte> final_msg = top_block->getCanonical();
-
-    //write final chain to file
-    std::string shard_dir(working_dir+"/"+context.get_shard_uri());
-    fs::path p(shard_dir);
-    if (is_directory(p)) {
-      std::string block_height(std::to_string(final_chain.size()-1));
-      std::ofstream block_file(block_height
-        , std::ios::out | std::ios::binary);
-      if (block_file.is_open()) {
-        block_file.write((const char*) final_msg.data(), final_msg.size());
-        block_file.close();
-      } else {
-        LOG_ERROR << "Failed to open output file '" << shard_dir+"/"+block_height << "'.";
-      }
-    } else {
-      LOG_ERROR << "Error opening dir: " << shard_dir << " is not a directory";
-    }
 
     auto final_block = std::make_unique<DevcashMessage>(context.get_shard_uri(), FINAL_BLOCK, final_msg, ptr->index);
     LogDevcashMessageSummary(*final_block, "HandleValidationBlock() -> Final block");
@@ -254,6 +237,8 @@ bool HandleBlocksSinceRequest(DevcashMessageUniquePtr ptr,
                                                      ptr->index);
     callback(std::move(response));
     return true;
+  } else {
+    LOG_WARNING << "Unsupported mode: " << context.get_app_mode();
   }
   return false;
 }
@@ -289,7 +274,7 @@ bool HandleBlocksSince(DevcashMessageUniquePtr ptr,
       }
       //TODO: update upcoming state in utx pool
     }
-    if (height > remote_blocks) remote_blocks = height;
+    if (height > remote_blocks) { remote_blocks = height; }
     LOG_INFO << "Finished updating local state for Tier1 block height: "+std::to_string(height);
   }
   return false;

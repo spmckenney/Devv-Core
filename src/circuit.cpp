@@ -12,42 +12,56 @@
  *      Author: Nick Williams
  */
 
-#include <stdio.h>
-#include <stdlib.h>
 #include <algorithm>
 #include <cmath>
 #include <fstream>
 #include <iostream>
 #include <string>
+#include <memory>
 
 #include "common/argument_parser.h"
 #include "common/devcash_context.h"
-#include "node/DevcashNode.h"
+#include "common/logger.h"
+
+#include "modules/BlockchainModule.h"
 
 using namespace Devcash;
 
-#define UNUSED(x) ((void)x)
+struct circuit_options {
+  eAppMode mode  = eAppMode::T1;
+  unsigned int node_index = 0;
+  unsigned int shard_index = 0;
+  std::string write_file;
+  std::string inn_keys;
+  std::string node_keys;
+  std::string wallet_keys;
+  unsigned int generate_count;
+  unsigned int tx_limit;
+  eDebugMode debug_mode;
+};
+
+std::unique_ptr<struct circuit_options> ParseCircuitOptions(int argc, char** argv);
 
 int main(int argc, char* argv[]) {
   init_log();
 
   CASH_TRY {
-    std::unique_ptr<devcash_options> options = parse_options(argc, argv);
+    std::unique_ptr<circuit_options> options = ParseCircuitOptions(argc, argv);
 
     if (!options) {
       exit(-1);
     }
 
     DevcashContext this_context(options->node_index, options->shard_index, options->mode, options->inn_keys,
-                                options->node_keys, options->wallet_keys, options->sync_port, options->sync_host);
+                                options->node_keys, options->wallet_keys);
 
     KeyRing keys(this_context);
 
     std::vector<byte> out;
     EVP_MD_CTX* ctx;
     if (!(ctx = EVP_MD_CTX_create())) {
-      LOG_FATAL << "Could not create signature context!";
-      CASH_THROW("Could not create signature context!");
+      std::string err("Could not create signature context!");
+      throw std::runtime_error(err);
     }
 
     Address inn_addr = keys.getInnAddr();
@@ -68,16 +82,14 @@ int main(int argc, char* argv[]) {
     size_t counter = 0;
 
     std::vector<Transfer> xfers;
-    Transfer inn_transfer(inn_addr, 0
-      , -1*addr_count*(addr_count-1)*options->tx_limit, 0);
+    Transfer inn_transfer(inn_addr, 0, -1 * addr_count * (addr_count - 1) * options->tx_limit, 0);
     xfers.push_back(inn_transfer);
     for (size_t i = 0; i < addr_count; ++i) {
-      Transfer transfer(keys.getWalletAddr(i), 0
-        , options->tx_limit*(addr_count-1), 0);
+      Transfer transfer(keys.getWalletAddr(i), 0, options->tx_limit * (addr_count - 1), 0);
       xfers.push_back(transfer);
     }
     Tier2Transaction inn_tx(eOpType::Create, xfers, GetMillisecondsSinceEpoch() +
-                            (1000000 * (options->node_index + 1) * (options->tx_limit + 1)),
+                                (1000000 * (options->node_index + 1) * (options->tx_limit + 1)),
                             keys.getKey(inn_addr), keys);
     std::vector<byte> inn_canon(inn_tx.getCanonical());
     out.insert(out.end(), inn_canon.begin(), inn_canon.end());
@@ -85,54 +97,52 @@ int main(int argc, char* argv[]) {
     counter++;
 
     while (counter < options->generate_count) {
-        for (size_t i = 0; i < addr_count; ++i) {
-          for (size_t j = 0; j < addr_count; ++j) {
-            if (i == j) continue;
-            std::vector<Transfer> peer_xfers;
-            Transfer sender(keys.getWalletAddr(i), 0, -1*options->tx_limit, 0);
-            peer_xfers.push_back(sender);
-            Transfer receiver(keys.getWalletAddr(j), 0, options->tx_limit, 0);
-            peer_xfers.push_back(receiver);
-            Tier2Transaction peer_tx(
-                eOpType::Exchange, peer_xfers,
-                GetMillisecondsSinceEpoch() + (1000000 * (options->node_index + 1) * (i + 1) * (j + 1)),
-                keys.getWalletKey(i), keys);
-            std::vector<byte> peer_canon(peer_tx.getCanonical());
-            out.insert(out.end(), peer_canon.begin(), peer_canon.end());
-            LOG_TRACE << "Circuit test generated tx with sig: " << ToHex(peer_tx.getSignature());
-            counter++;
-            if (counter >= options->generate_count) break;
-          }  // end inner for
-          if (counter >= options->generate_count) break;
-        }  // end outer for
-        if (counter >= options->generate_count) break;
-        for (size_t i = 0; i < addr_count; ++i) {
+      for (size_t i = 0; i < addr_count; ++i) {
+        for (size_t j = 0; j < addr_count; ++j) {
+          if (i == j) { continue; }
           std::vector<Transfer> peer_xfers;
-          Transfer sender(keys.getWalletAddr(i), 0
-            , -1 * (addr_count-1)*options->tx_limit, 0);
+          Transfer sender(keys.getWalletAddr(i), 0, -1 * options->tx_limit, 0);
           peer_xfers.push_back(sender);
-          Transfer receiver(inn_addr, 0, (addr_count-1)*options->tx_limit, 0);
+          Transfer receiver(keys.getWalletAddr(j), 0, options->tx_limit, 0);
           peer_xfers.push_back(receiver);
           Tier2Transaction peer_tx(
               eOpType::Exchange, peer_xfers,
-              GetMillisecondsSinceEpoch() + (1000000 * (options->node_index + 1) * (i + 1) * (addr_count + 2)),
+              GetMillisecondsSinceEpoch() + (1000000 * (options->node_index + 1) * (i + 1) * (j + 1)),
               keys.getWalletKey(i), keys);
           std::vector<byte> peer_canon(peer_tx.getCanonical());
           out.insert(out.end(), peer_canon.begin(), peer_canon.end());
-          LOG_TRACE << "GenerateTransactions(): generated tx with sig: " << ToHex(peer_tx.getSignature());
+          LOG_TRACE << "Circuit test generated tx with sig: " << ToHex(peer_tx.getSignature());
           counter++;
-          if (counter >= options->generate_count) break;
-        }  // end outer for
-        if (counter >= options->generate_count) break;
+          if (counter >= options->generate_count) { break; }
+        }  // end inner for
+        if (counter >= options->generate_count) { break; }
+      }  // end outer for
+      if (counter >= options->generate_count) { break; }
+      for (size_t i = 0; i < addr_count; ++i) {
+        std::vector<Transfer> peer_xfers;
+        Transfer sender(keys.getWalletAddr(i), 0, -1 * (addr_count - 1) * options->tx_limit, 0);
+        peer_xfers.push_back(sender);
+        Transfer receiver(inn_addr, 0, (addr_count - 1) * options->tx_limit, 0);
+        peer_xfers.push_back(receiver);
+        Tier2Transaction peer_tx(
+            eOpType::Exchange, peer_xfers,
+            GetMillisecondsSinceEpoch() + (1000000 * (options->node_index + 1) * (i + 1) * (addr_count + 2)),
+            keys.getWalletKey(i), keys);
+        std::vector<byte> peer_canon(peer_tx.getCanonical());
+        out.insert(out.end(), peer_canon.begin(), peer_canon.end());
+        LOG_TRACE << "GenerateTransactions(): generated tx with sig: " << ToHex(peer_tx.getSignature());
+        counter++;
+        if (counter >= options->generate_count) { break; }
+      }  // end outer for
+      if (counter >= options->generate_count) { break; }
     }  // end counter while
 
     LOG_INFO << "Generated " << counter << " transactions.";
 
-
     if (!options->write_file.empty()) {
       std::ofstream out_file(options->write_file, std::ios::out | std::ios::binary);
       if (out_file.is_open()) {
-        out_file.write((const char*)out.data(), out.size());
+        out_file.write((const char*) out.data(), out.size());
         out_file.close();
       } else {
         LOG_FATAL << "Failed to open output file '" << options->write_file << "'.";
@@ -150,4 +160,149 @@ int main(int argc, char* argv[]) {
     std::cerr << err << std::endl;
     return (false);
   }
+}
+
+std::unique_ptr<struct circuit_options> ParseCircuitOptions(int argc, char** argv) {
+
+  namespace po = boost::program_options;
+
+  std::unique_ptr<circuit_options> options(new circuit_options());
+
+  try {
+    po::options_description desc("\n\
+" + std::string(argv[0]) + " [OPTIONS] \n\
+\n\
+Creates up to generate_count transactions as follows:\n\
+ 1.  INN transactions create addr_count coins for every address\n\
+ 2.  Each peer address sends 1 coin to every other address\n\
+ 3.  Each peer address returns addr_count coins to the INN\n\
+\n\
+For perfect circuits, make sure that generate_count is one more \n\
+than a perfect square.\n\
+\n\
+Required parameters");
+    desc.add_options()
+        ("mode", po::value<std::string>(), "Devcash mode (T1|T2|scan)")
+        ("node-index", po::value<unsigned int>(), "Index of this node")
+        ("shard-index", po::value<unsigned int>(), "Index of this shard")
+        ("output", po::value<std::string>(), "Output path in binary JSON or CBOR")
+        ("inn-keys", po::value<std::string>(), "Path to INN key file")
+        ("node-keys", po::value<std::string>(), "Path to Node key file")
+        ("wallet-keys", po::value<std::string>(), "Path to Wallet key file")
+        ("generate-tx", po::value<unsigned int>(), "Generate at least this many Transactions")
+        ("tx-limit", po::value<unsigned int>(), "Number of transaction to process before shutting down.")
+        ;
+
+    po::options_description d2("Optional parameters");
+    d2.add_options()
+        ("help", "produce help message")
+        ("debug-mode", po::value<std::string>(), "Debug mode (on|off|perf) for testing")
+        ;
+    desc.add(d2);
+
+    po::variables_map vm;
+    po::store(po::parse_command_line(argc, argv, desc), vm);
+    po::notify(vm);
+
+    if (vm.count("help")) {
+      std::cout << desc << "\n";
+      return nullptr;
+    }
+
+    if (vm.count("mode")) {
+      std::string mode = vm["mode"].as<std::string>();
+      if (mode == "SCAN") {
+        options->mode = scan;
+      } else if (mode == "T1") {
+        options->mode = T1;
+      } else if (mode == "T2") {
+        options->mode = T2;
+      } else {
+        LOG_WARNING << "unknown mode: " << mode;
+      }
+      LOG_INFO << "mode: " << options->mode;
+    } else {
+      LOG_INFO << "mode was not set.";
+    }
+
+    if (vm.count("debug-mode")) {
+      std::string debug_mode = vm["debug-mode"].as<std::string>();
+      if (debug_mode == "on") {
+        options->debug_mode = on;
+      } else if (debug_mode == "toy") {
+        options->debug_mode = toy;
+      } else if (debug_mode == "perf") {
+        options->debug_mode = perf;
+      } else {
+        options->debug_mode = off;
+      }
+      LOG_INFO << "debug_mode: " << options->debug_mode;
+    } else {
+      LOG_INFO << "debug_mode was not set.";
+    }
+
+    if (vm.count("node-index")) {
+      options->node_index = vm["node-index"].as<unsigned int>();
+      LOG_INFO << "Node index: " << options->node_index;
+    } else {
+      LOG_INFO << "Node index was not set.";
+    }
+
+    if (vm.count("shard-index")) {
+      options->shard_index = vm["shard-index"].as<unsigned int>();
+      LOG_INFO << "Shard index: " << options->shard_index;
+    } else {
+      LOG_INFO << "Shard index was not set.";
+    }
+
+    if (vm.count("output")) {
+      options->write_file = vm["output"].as<std::string>();
+      LOG_INFO << "Output file: " << options->write_file;
+    } else {
+      LOG_INFO << "Output file was not set.";
+    }
+
+    if (vm.count("inn-keys")) {
+      options->inn_keys = vm["inn-keys"].as<std::string>();
+      LOG_INFO << "INN keys file: " << options->inn_keys;
+    } else {
+      LOG_INFO << "INN keys file was not set.";
+    }
+
+    if (vm.count("node-keys")) {
+      options->node_keys = vm["node-keys"].as<std::string>();
+      LOG_INFO << "Node keys file: " << options->node_keys;
+    } else {
+      LOG_INFO << "Node keys file was not set.";
+    }
+
+    if (vm.count("wallet-keys")) {
+      options->wallet_keys = vm["wallet-keys"].as<std::string>();
+      LOG_INFO << "Wallet keys file: " << options->wallet_keys;
+    } else {
+      LOG_INFO << "Wallet keys file was not set.";
+    }
+
+    if (vm.count("generate-tx")) {
+      options->generate_count = vm["generate-tx"].as<unsigned int>();
+      LOG_INFO << "Generate Transactions: " << options->generate_count;
+    } else {
+      LOG_INFO << "Generate Transactions was not set, defaulting to 0";
+      options->generate_count = 0;
+    }
+
+    if (vm.count("tx-limit")) {
+      options->tx_limit = vm["tx-limit"].as<unsigned int>();
+      LOG_INFO << "Transaction limit: " << options->tx_limit;
+    } else {
+      LOG_INFO << "Transaction limit was not set, defaulting to 0 (unlimited)";
+      options->tx_limit = 100;
+    }
+  }
+  catch (std::exception& e) {
+    LOG_ERROR << "error: " << e.what();
+    return nullptr;
+  }
+
+  return options;
 }

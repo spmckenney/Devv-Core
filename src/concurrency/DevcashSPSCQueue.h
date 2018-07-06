@@ -26,8 +26,6 @@ namespace Devcash {
  */
 class DevcashSPSCQueue {
  public:
-  //static const int kDEFAULT_RING_SIZE = 1024;
-
   /* Constructors/Destructors */
   DevcashSPSCQueue() {
   }
@@ -45,9 +43,8 @@ class DevcashSPSCQueue {
    */
   bool push(std::unique_ptr<DevcashMessage> pointer) {
     DevcashMessage* ptr = pointer.release();
-    //LOG_DEBUG << "pushing: " << ptr << " " << ptr->uri;
     while (!spsc_queue_.push(ptr)) {
-      //std::this_thread::sleep_for (std::chrono::milliseconds(1));
+      std::this_thread::sleep_for (std::chrono::milliseconds(1));
     }
     return true;
   }
@@ -60,10 +57,9 @@ class DevcashSPSCQueue {
     DevcashMessage* ptr;
 
     while (!spsc_queue_.pop(ptr)) {
-      //std::this_thread::sleep_for (std::chrono::milliseconds(1));
+      std::this_thread::sleep_for (std::chrono::milliseconds(1));
     }
 
-    //LOG_DEBUG << "popped: " << ptr << " " << ptr->uri;
     std::unique_ptr<DevcashMessage> pointer(ptr);
     return pointer;
   }

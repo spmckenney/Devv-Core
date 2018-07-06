@@ -148,12 +148,12 @@ class Summary {
       SummaryPair existing(summary_.at(addr));
       if (item.delay > 0) {
         DelayedMap delayed(existing.first);
-        if (!AddToDelayedMap(coin, item, delayed)) return false;
+        if (!AddToDelayedMap(coin, item, delayed)) { return false; }
         SummaryPair updated(delayed, existing.second);
         summary_.at(addr) = updated;
       } else {
         CoinMap the_map(existing.second);
-        if (!AddToCoinMap(coin, item, the_map)) return false;
+        if (!AddToCoinMap(coin, item, the_map)) { return false; }
         SummaryPair updated(existing.first, the_map);
         summary_.at(addr) = updated;
       }
@@ -332,7 +332,6 @@ inline Summary Summary::Create(InputBuffer& buffer) {
     throw std::runtime_error(warning);
   }
   size_t addr_count = buffer.getNextUint32();
-  std::vector<byte> out;
   for (size_t i = 0; i < addr_count; ++i) {
     Address one_addr;
     buffer.copy(one_addr);

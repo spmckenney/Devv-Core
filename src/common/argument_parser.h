@@ -16,7 +16,7 @@
 
 namespace Devcash {
 
-enum eDebugMode {off, on, toy};
+enum eDebugMode {off, on, toy, perf};
 
 struct devcash_options {
   std::string bind_endpoint;
@@ -26,8 +26,6 @@ struct devcash_options {
   unsigned int shard_index;
   unsigned int num_consensus_threads;
   unsigned int num_validator_threads;
-  unsigned int sync_port;
-  std::string sync_host;
   std::string working_dir;
   std::string write_file;
   std::string trace_file;
@@ -41,7 +39,7 @@ struct devcash_options {
   eDebugMode debug_mode;
 };
 
-std::unique_ptr<struct devcash_options> parse_options(int argc, char** argv) {
+std::unique_ptr<struct devcash_options> ParseDevcashOptions(int argc, char** argv) {
 
   namespace po = boost::program_options;
 
@@ -49,13 +47,8 @@ std::unique_ptr<struct devcash_options> parse_options(int argc, char** argv) {
 
   try {
     po::options_description desc("\n\
-The t1_example program can be used to demonstrate connectivity of\n\
-T1 and T2 networks. By default, it will send random DevcashMessage\n\
-every 5 seconds to any other t1_example programs that have connected\n\
-to it will receive the message. If it receives a message, it will\n\
-execute the appropriate T1 or T2 callback. t1_example can connect\n\
-and listen to multiple other t1_example programs so almost any size\n\
-network could be build and tested.\n\nAllowed options");
+Create a devcash node\n\
+\nAllowed options");
     desc.add_options()
       ("help", "produce help message")
       ("debug-mode", po::value<std::string>(), "Debug mode (on|toy|perf) for testing")
@@ -67,8 +60,6 @@ network could be build and tested.\n\nAllowed options");
       ("host-list,host", po::value<std::vector<std::string>>(),
        "Client URI (i.e. tcp://192.168.10.1:5005). Option can be repeated to connect to multiple nodes.")
       ("bind-endpoint", po::value<std::string>(), "Endpoint for server (i.e. tcp://*:5556)")
-      ("sync-host", po::value<std::string>(), "Enable node startup synchronization with sync-host")
-      ("sync-port", po::value<unsigned int>(), "Port number for sync-host")
       ("working-dir", po::value<std::string>(), "Directory where inputs are read and outputs are written")
       ("output", po::value<std::string>(), "Output path in binary JSON or CBOR")
       ("trace-output", po::value<std::string>(), "Output path to JSON trace file (Chrome)")
@@ -78,7 +69,7 @@ network could be build and tested.\n\nAllowed options");
       ("generate-tx", po::value<unsigned int>(), "Generate at least this many Transactions")
       ("tx-batch-size", po::value<unsigned int>(), "Target size of transaction batches")
       ("tx-limit", po::value<unsigned int>(), "Number of transaction to process before shutting down.")
-      ("stop-file", po::value<unsigned int>(), "A file in working-dir indicating that this node should stop.")
+      ("stop-file", po::value<std::string>(), "A file in working-dir indicating that this node should stop.")
       ;
 
     po::variables_map vm;
@@ -98,6 +89,8 @@ network could be build and tested.\n\nAllowed options");
         options->mode = T1;
       } else if (mode == "T2") {
         options->mode = T2;
+      } else {
+        LOG_WARNING << "unknown mode: " << mode;
       }
       LOG_INFO << "mode: " << options->mode;
     } else {
@@ -153,21 +146,6 @@ network could be build and tested.\n\nAllowed options");
       LOG_INFO << "Bind URI: " << options->bind_endpoint;
     } else {
       LOG_INFO << "Bind URI was not set";
-    }
-
-    if (vm.count("sync-host")) {
-      options->sync_host = vm["sync-host"].as<std::string>();
-      LOG_INFO << "Sync host: " << options->sync_host;
-    } else {
-      options->sync_host = "";
-      LOG_INFO << "Sync host not set";
-    }
-
-    if (vm.count("sync-port")) {
-      options->sync_port = vm["sync-port"].as<unsigned int>();
-      LOG_INFO << "Sync port: " << options->sync_port;
-    } else {
-      LOG_INFO << "Sync port was not set.";
     }
 
     if (vm.count("host-list")) {

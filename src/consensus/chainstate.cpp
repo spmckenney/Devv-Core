@@ -11,7 +11,7 @@
 #include <map>
 #include <mutex>
 
-#include "chainstate.h"
+#include "primitives/Summary.h"
 
 namespace Devcash
 {
@@ -19,21 +19,18 @@ namespace Devcash
 using namespace Devcash;
 
 bool ChainState::addCoin(const SmartCoin& coin) {
+  bool no_error = true;
   auto it = state_map_.find(coin.getAddress());
   if (it != state_map_.end()) {
     it->second[coin.getCoin()] += coin.getAmount();
+  } else {
+    CoinMap inner;
+    inner.insert(std::make_pair(coin.getCoin(), coin.getAmount()));
+    std::pair<Address, CoinMap> outer(coin.getAddress(), inner);
+    auto result = state_map_.insert(outer);
+    no_error = result.second && no_error;
   }
-  return(true);
-}
-
-bool ChainState::addCoins(const std::map<Address, SmartCoin>& coin_map) {
- for (auto& coin : coin_map) {
-   auto loc = state_map_.find(coin.first);
-   if (loc != state_map_.end()) {
-     loc->second[coin.second.getCoin()] += coin.second.getAmount();
-   }
- }
- return(true);
+  return(no_error);
 }
 
 long ChainState::getAmount(uint64_t type, const Address& addr) const {

@@ -78,8 +78,8 @@ add_library(primitives
 
 set(devcash_core_libs devcash_node common concurrency consensus io primitives)
 
-# Add DevcashNode.cpp
-add_library(devcash_node node/DevcashNode.cpp)
+# Add BlockchainModule.cpp
+add_library(devcash_node modules/BlockchainModule.cpp)
 
 option(WITH_THREAD_TESTING "Enable thread testing" OFF)
 
@@ -167,6 +167,32 @@ endif(Boost_FOUND)
 target_include_directories(announcer PRIVATE ${dcInclude})
 
 install (TARGETS announcer DESTINATION bin)
+
+#
+# Repeater
+#
+
+add_executable(repeater repeater.cpp ${dcInclude})
+target_link_libraries (repeater
+  ${devcash_core_libs}
+  ${ZMQ}
+  )
+
+if (OPENSSL_FOUND)
+  include_directories(${OPENSSL_INCLUDE_DIR})
+  target_link_libraries (repeater ${OPENSSL_LIBRARIES})
+endif (OPENSSL_FOUND)
+
+target_link_libraries(repeater ${CMAKE_THREAD_LIBS_INIT})
+
+if(Boost_FOUND)
+  include_directories(${Boost_INCLUDE_DIRS})
+  target_link_libraries(repeater ${Boost_LIBRARIES})
+endif(Boost_FOUND)
+
+target_include_directories(repeater PRIVATE ${dcInclude})
+
+install (TARGETS repeater DESTINATION bin)
 
 #
 # Chain state Tests
@@ -348,4 +374,4 @@ target_link_libraries(zmq_envelope_subscriber
   )
 
 ######### gtest ##########
-# include(${CMAKE_CURRENT_SOURCE_DIR}/gtest/CMakeLists.txt)
+include(${CMAKE_CURRENT_SOURCE_DIR}/gtest/CMakeLists.txt)

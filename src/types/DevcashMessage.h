@@ -19,6 +19,7 @@
 namespace Devcash {
 
 const int num_debug_chars = 8;
+const uint8_t kMSG_HEADER = 52;
 
 enum eMessageType {
   FINAL_BLOCK = 0,
@@ -70,6 +71,8 @@ struct DevcashMessage {
 };
 
 typedef std::unique_ptr<DevcashMessage> DevcashMessageUniquePtr;
+/// typedef of the DevcashMessage callback signature
+typedef std::function<void(DevcashMessageUniquePtr)> DevcashMessageCallback;
 
 /**
  * Append to serialized buffer
@@ -78,8 +81,6 @@ template <typename T>
 inline void append(std::vector<uint8_t>& buf, const T& obj) {
   unsigned int pos = buf.size();
   buf.resize(pos + sizeof(obj));
-  //LOG_DEBUG << "Appending size: " << sizeof(obj) << " at index "
-  //          << pos << ", new size " << buf.size();
   std::memcpy(buf.data()+pos, &obj, sizeof(obj));
 }
 
@@ -108,11 +109,11 @@ inline void append(std::vector<uint8_t>& buf, const std::vector<uint8_t>& obj) {
 }
 
 /**
- * Serialize a messag into a buffer
+ * Serialize a message into a buffer
  */
 static std::vector<uint8_t> serialize(const DevcashMessage& msg) {
   // Arbitrary header
-  uint8_t header_version = 41;
+  uint8_t header_version = kMSG_HEADER;
   // Serialized buffer
   std::vector<uint8_t> bytes;
 
@@ -183,20 +184,15 @@ static DevcashMessageUniquePtr deserialize(const std::vector<uint8_t>& bytes) {
 
   // Get the header_version
   buffer_index = extract(header_version, bytes, buffer_index);
-  assert(header_version == 41);
-  //LOG_DEBUG << "header_version: " << static_cast<int>(header_version) << " buffer_index " << buffer_index;
+  assert(header_version == kMSG_HEADER);
   // index
   buffer_index = extract(message->index, bytes, buffer_index);
-  //LOG_DEBUG << "index: " <<  message->index << " buffer_index " << buffer_index;
   // message type
   buffer_index = extract(message->message_type, bytes, buffer_index);
-  //LOG_DEBUG << "message_type: " <<  message->message_type << " buffer_index " << buffer_index;
   // URI
   buffer_index = extract(message->uri, bytes, buffer_index);
-  //LOG_DEBUG << "uri: " <<  message->uri << " buffer_index " << buffer_index;
   // data
-  buffer_index = extract(message->data, bytes, buffer_index);
-  //LOG_DEBUG << "buf_size: " << " buffer_index " << message->data.size();
+  extract(message->data, bytes, buffer_index);
 
   return(message);
 }

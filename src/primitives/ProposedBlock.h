@@ -4,7 +4,6 @@
  *  Created on: Apr 20, 2018
  *      Author: Nick Williams
  */
-
 #ifndef PRIMITIVES_PROPOSEDBLOCK_H_
 #define PRIMITIVES_PROPOSEDBLOCK_H_
 
@@ -62,6 +61,11 @@ class ProposedBlock {
    */
   ProposedBlock& operator=(ProposedBlock&& other) = default;
 
+  /**
+   *
+   * @param prior
+   * @return
+   */
   static ProposedBlock Create(const ChainState& prior);
 
   /**
@@ -360,7 +364,7 @@ class ProposedBlock {
   /**
    * Private default constructor.
    */
-  ProposedBlock() noexcept = default;
+  ProposedBlock() = default;
 
   /**
    * Create a new ProposedBlock from an existing ChainState
@@ -447,6 +451,9 @@ inline ProposedBlock ProposedBlock::Create(InputBuffer &buffer,
 
   return new_block;
 }
+
+typedef std::unique_ptr<ProposedBlock> ProposedBlockPtr;
+typedef std::shared_ptr<ProposedBlock> ProposedBlockSharedPtr;
 
 }  // end namespace Devcash
 

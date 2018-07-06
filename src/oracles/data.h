@@ -58,7 +58,8 @@ class DCdata : public oracleInterface {
         return false;
       }*/
     }
-    return true;
+    /// @todo implement me
+    return false;
   }
 
   /** Checks if a transaction is valid according to this oracle
@@ -72,7 +73,7 @@ class DCdata : public oracleInterface {
    * @return false otherwise
    */
   bool isValid(Transaction& checkTx, const ChainState&) override {
-    if (!isSound(checkTx)) return false;
+    if (!isSound(checkTx)) { return false; }
     return true;
   }
 
@@ -83,7 +84,7 @@ class DCdata : public oracleInterface {
  * @return a tier 1 transaction to implement this tier 2 logic.
  */
   Tier1TransactionPtr getT1Syntax(Tier2TransactionPtr) override {
-    // TODO(spm)
+    /// @todo fixme
     Tier1TransactionPtr t1 = std::make_unique<Tier1Transaction>();
     return(t1);
   }

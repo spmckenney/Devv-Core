@@ -7,7 +7,7 @@
 namespace Devcash {
 
 bool Summary::isSane() const {
-  if (summary_.empty()) return false;
+  if (summary_.empty()) { return false; }
   uint64_t coin_total = 0;
   for (auto summary : summary_) {
     auto summary_pair = summary.second;

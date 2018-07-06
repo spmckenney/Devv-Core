@@ -17,7 +17,7 @@
 #include "blockingconcurrentqueue.h"
 
 #include "types/DevcashMessage.h"
-#include "common/devcash_context.h"
+#include "common/devcash_constants.h"
 #include "common/logger.h"
 
 namespace Devcash {
@@ -61,10 +61,13 @@ class DevcashMPMCQueue {
 
     // Keep looping while wait is false (timeout) and keep_popping is true
     while (!queue_.wait_dequeue_timed(ptr, std::chrono::milliseconds(5))) {
-      if (!keep_popping_) break;
+      if (!keep_popping_) {
+        LOG_INFO << "keep_popping_ == false";
+        break;
+      }
     }
 
-    //LOG_DEBUG << "popped: " << ptr << " " << ptr->uri;
+    LOG_DEBUG << "DevcashMPMCQueue::pop()ped: " << ptr << " " << ptr->uri;
     std::unique_ptr<DevcashMessage> pointer(ptr);
     return pointer;
   }

@@ -25,18 +25,21 @@ KeyRing::KeyRing(const DevcashContext& context)
   : context_(context), key_map_(), node_list_(), inn_addr_()
 {
   CASH_TRY {
-     EVP_MD_CTX* ctx;
-         if(!(ctx = EVP_MD_CTX_create())) {
-           LOG_FATAL << "Could not create signature context!";
-           CASH_THROW("Could not create signature context!");
-         }
+    EVP_MD_CTX* ctx;
+    if (!(ctx = EVP_MD_CTX_create())) {
+      LOG_FATAL << "Could not create signature context!";
+      CASH_THROW("Could not create signature context!");
+    }
 
-     std::vector<byte> msg = {'h', 'e', 'l', 'l', 'o'};
-     Hash test_hash;
-     Signature sig;
-     test_hash = DevcashHash(msg);
+    std::vector<byte> msg = {'h', 'e', 'l', 'l', 'o'};
+    Hash test_hash;
+    Signature sig;
+    test_hash = DevcashHash(msg);
 
-     std::string inn_keys = ReadFile(context_.get_inn_key_path());
+     std::string inn_keys;
+     if (context_.get_inn_key_path().size() > 0) {
+       inn_keys = ReadFile(context_.get_inn_key_path());
+     }
      if (!inn_keys.empty()) {
        size_t size = inn_keys.size();
        if (size%(kFILE_KEY_SIZE+(kADDR_SIZE*2)) == 0) {
@@ -75,7 +78,11 @@ KeyRing::KeyRing(const DevcashContext& context)
        inn_addr_ = InsertAddress(context_.kINN_ADDR, inn_key);
      }
 
-     std::string wallet_keys = ReadFile(context_.get_wallet_key_path());
+     std::string wallet_keys;
+     if (context_.get_wallet_key_path().size() > 0)
+     {
+       wallet_keys = ReadFile(context_.get_wallet_key_path());
+     }
      if (!wallet_keys.empty()) {
        size_t size = wallet_keys.size();
        if (size%(kFILE_KEY_SIZE+(kADDR_SIZE*2)) == 0) {
@@ -116,8 +123,11 @@ KeyRing::KeyRing(const DevcashContext& context)
          wallet_list_.push_back(wallet_addr);
        }
      }
-
-     std::string node_keys = ReadFile(context_.get_node_key_path());
+     std::string node_keys;
+     if (context_.get_node_key_path().size() > 0)
+     {
+       node_keys = ReadFile(context_.get_node_key_path());
+     }
      if (!node_keys.empty()) {
        size_t size = node_keys.size();
        if (size%(kFILE_KEY_SIZE+(kADDR_SIZE*2)) == 0) {
@@ -168,7 +178,7 @@ KeyRing::KeyRing(const DevcashContext& context)
 
 EC_KEY* KeyRing::getKey(const Address& addr) const {
   auto it = key_map_.find(addr);
-  if (it != key_map_.end()) return it->second;
+  if (it != key_map_.end()) { return it->second; }
   std::string hex(ToHex(std::vector<byte>(std::begin(addr), std::end(addr))));
   LOG_ERROR << "Key for '"+hex+"' is missing!\n";
   CASH_THROW("Key for '"+hex+"' is missing!");
@@ -190,11 +200,12 @@ unsigned int KeyRing::CountWallets() const {
   return wallet_list_.size();
 }
 
+/// FIXME @todo bug mckenney
 unsigned int KeyRing::getNodeIndex(const Address& addr) const {
   unsigned int pos = find(node_list_.begin(), node_list_.end(), addr)
     - node_list_.begin();
   if (pos >= node_list_.size()) {
-    return -1;
+    throw std::range_error("Address not found in node_list_");
   }
   return pos;
 }
@@ -210,7 +221,7 @@ Address KeyRing::getWalletAddr(int index) const {
 EC_KEY* KeyRing::getNodeKey(int index) const {
   Address node_addr = node_list_.at(index);
   auto it = key_map_.find(node_addr);
-  if (it != key_map_.end()) return it->second;
+  if (it != key_map_.end()) { return it->second; }
   LOG_WARNING << "Node["+std::to_string(index)+"] key is missing!\n";
   CASH_THROW("Node["+std::to_string(index)+"] key is missing!");
 }
@@ -218,7 +229,7 @@ EC_KEY* KeyRing::getNodeKey(int index) const {
 EC_KEY* KeyRing::getWalletKey(int index) const {
   Address wallet_addr = wallet_list_.at(index);
   auto it = key_map_.find(wallet_addr);
-  if (it != key_map_.end()) return it->second;
+  if (it != key_map_.end()) { return it->second; }
   LOG_WARNING << "Wallet["+std::to_string(index)+"] key is missing!\n";
   CASH_THROW("Wallet["+std::to_string(index)+"] key is missing!");
 }
