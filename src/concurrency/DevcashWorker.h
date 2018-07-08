@@ -2,7 +2,7 @@
  * DevcashWorker.h
  *
  *  Created on: Mar 26, 2018
- *      Author: Silver
+ *      Author: Nick Williams
  */
 
 #ifndef CONCURRENCY_DEVCASHWORKER_H_

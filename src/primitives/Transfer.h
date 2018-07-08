@@ -151,6 +151,8 @@ class Transfer {
   std::vector<byte> canonical_;
 };
 
+typedef std::unique_ptr<Transfer> TransferPtr;
+
 /**
  * Converts the vector of bytes to an array of bytes (Devcash::Address)
  * @param[in] vec input address as vector of bytes
