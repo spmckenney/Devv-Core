@@ -67,7 +67,7 @@ class dnero : public oracleInterface {
   bool isValid(Transaction& checkTx, const ChainState& context) override {
     if (!isSound(checkTx)) { return false; }
     std::vector<TransferPtr> xfers = checkTx.getTransfers();
-    for (auto it=xfers.begin(); it != xfers.end(); ++it) {
+    for (auto& it : xfers) {
       if (it->getAmount() < 0) {
         Address addr = it->getAddress();
         if ((context.getAmount(dnerowallet::getCoinIndex(), addr) < 1) &&

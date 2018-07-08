@@ -193,7 +193,7 @@ class Tier2Transaction : public Transaction {
       Address sender;
 
       std::vector<TransferPtr> xfers = getTransfers();
-      for (auto it = xfers.begin(); it != xfers.end(); ++it) {
+      for (auto& it : xfers) {
         int64_t amount = it->getAmount();
         total += amount;
         if (amount < 0) {
@@ -250,7 +250,7 @@ class Tier2Transaction : public Transaction {
       if (!isSound(keys)) { return false; }
       byte oper = getOperation();
       std::vector<TransferPtr> xfers = getTransfers();
-      for (auto it = xfers.begin(); it != xfers.end(); ++it) {
+      for (auto& it : xfers) {
         int64_t amount = it->getAmount();
         uint64_t coin = it->getCoin();
         Address addr = it->getAddress();

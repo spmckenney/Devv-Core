@@ -49,7 +49,7 @@ class dneroavailable : public oracleInterface {
  */
   bool isSound(Transaction& checkTx) override {
     std::vector<TransferPtr> xfers = checkTx.getTransfers();
-    for (auto it=xfers.begin(); it != xfers.end(); ++it) {
+    for (auto& it : xfers) {
       if (it->getAmount() > 1) {
         LOG_WARNING << "Error: Can only have at most 1 dneroavailable token.";
         return false;

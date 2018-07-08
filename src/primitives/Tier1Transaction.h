@@ -247,11 +247,11 @@ class Tier1Transaction : public Transaction {
     size_t offset = transferOffset();
     InputBuffer buffer(canonical_, offset);
     Summary summary(Summary::Create(buffer));
-    std::string json("{\"" + kSUM_SIZE_TAG + "\":");
+    std::string json("{\"" + kSUMMARY_TAG + "\":");
     json += std::to_string(sum_size_) + ",";
     json += "\"" + kOPER_TAG + "\":" + std::to_string(getOperation()) + ",";
     json += "\"" + kXFER_TAG + "\":[";
-    json += summary.getJSON();
+    json += GetJSON(summary);
     json += "],\"" + kNONCE_TAG + "\":" + std::to_string(getNonce()) + ",";
     Signature sig = getSignature();
     json += "\"" + kSIG_TAG + "\":\"" + ToHex(std::vector<byte>(std::begin(sig), std::end(sig))) + "\"}";
