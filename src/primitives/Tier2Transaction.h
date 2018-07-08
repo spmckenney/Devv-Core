@@ -281,7 +281,7 @@ class Tier2Transaction : public Transaction {
     json += "\"" + kXFER_TAG + "\":[";
     bool isFirst = true;
     std::vector<TransferPtr> xfers = getTransfers();
-    for (auto it = xfers.begin(); it != xfers.end(); ++it) {
+    for (auto& it : xfers) {
       if (isFirst) {
         isFirst = false;
       } else {

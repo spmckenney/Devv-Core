@@ -12,6 +12,7 @@
 
 #include "Transaction.h"
 #include "primitives/buffers.h"
+#include "primitives/json_interface.h"
 
 using namespace Devcash;
 
