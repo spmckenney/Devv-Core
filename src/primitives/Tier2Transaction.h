@@ -252,7 +252,7 @@ class Tier2Transaction : public Transaction {
       bool sender_set = false;
       Address sender;
 
-      std::vector<Transfer> xfers = getTransfers();
+      std::vector<TransferPtr> xfers = getTransfers();
       for (auto it = xfers.begin(); it != xfers.end(); ++it) {
         int64_t amount = it->getAmount();
         total += amount;
@@ -306,7 +306,7 @@ class Tier2Transaction : public Transaction {
     CASH_TRY {
       if (!isSound(keys)) return false;
       byte oper = getOperation();
-      std::vector<Transfer> xfers = getTransfers();
+      std::vector<TransferPtr> xfers = getTransfers();
       for (auto it = xfers.begin(); it != xfers.end(); ++it) {
         int64_t amount = it->getAmount();
         uint64_t coin = it->getCoin();
@@ -369,7 +369,7 @@ class Tier2Transaction : public Transaction {
     json += "\"" + kOPER_TAG + "\":" + std::to_string(getOperation()) + ",";
     json += "\"" + kXFER_TAG + "\":[";
     bool isFirst = true;
-    std::vector<Transfer> xfers = getTransfers();
+    std::vector<TransferPtr> xfers = getTransfers();
     for (auto it = xfers.begin(); it != xfers.end(); ++it) {
       if (isFirst) {
         isFirst = false;

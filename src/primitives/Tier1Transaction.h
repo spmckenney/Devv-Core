@@ -157,7 +157,8 @@ class Tier1Transaction : public Transaction {
    * @return vector of Transfer objects
    */
   std::vector<TransferPtr> do_getTransfers() const {
-    Summary summary(canonical_, transferOffset());
+    size_t offset = transferOffset();
+    Summary summary(canonical_, offset);
     return summary.getTransfers();
   }
 
@@ -166,8 +167,8 @@ class Tier1Transaction : public Transaction {
    * @return nonce
    */
   uint64_t do_getNonce() const {
-    Summary summary(canonical_, transferOffset());
-    return BinToUint64(canonical_, transferOffset()+summary.getByteSize());
+    size_t offset = transferOffset();
+    return BinToUint64(canonical_, offset+sum_size_);
   }
 
   /**
@@ -237,14 +238,14 @@ class Tier1Transaction : public Transaction {
     CASH_TRY {
       if (!isSound(keys)) return false;
 
-      std::vector<Transfer> xfers = getTransfers();
+      std::vector<TransferPtr> xfers = getTransfers();
       for (auto& transfer : xfers) {
-        int64_t amount = transfer.getAmount();
-        uint64_t coin = transfer.getCoin();
-        Address addr = transfer.getAddress();
+        int64_t amount = transfer->getAmount();
+        uint64_t coin = transfer->getCoin();
+        Address addr = transfer->getAddress();
         SmartCoin next_flow(addr, coin, amount);
         state.addCoin(next_flow);
-        summary.addItem(addr, coin, amount, transfer.getDelay());
+        summary.addItem(addr, coin, amount, transfer->getDelay());
       }
       return true;
     }
@@ -257,20 +258,15 @@ class Tier1Transaction : public Transaction {
    * @return a JSON string representing this transaction.
    */
   std::string do_getJSON() const {
-    std::string json("{\"" + kSUM_SIZE_TAG + "\":");
+    std::string json("{\"" + kSUMMARY_TAG + "\":");
     json += std::to_string(sum_size_) + ",";
     json += "\"" + kOPER_TAG + "\":" + std::to_string(getOperation()) + ",";
     json += "\"" + kXFER_TAG + "\":[";
     bool isFirst = true;
-    std::vector<Transfer> xfers = getTransfers();
-    for (auto& transfer : xfers) {
-      if (isFirst) {
-        isFirst = false;
-      } else {
-        json += ",";
-      }
-      json += transfer.getJSON();
-    }
+    std::vector<TransferPtr> xfers = getTransfers();
+    size_t offset = transferOffset();
+    Summary summary(canonical_, offset);
+    json += summary.getJSON();
     json += "],\"" + kNONCE_TAG + "\":" + std::to_string(getNonce()) + ",";
     Signature sig = getSignature();
     json += "\"" + kSIG_TAG + "\":\"" + toHex(std::vector<byte>(std::begin(sig), std::end(sig))) + "\"}";

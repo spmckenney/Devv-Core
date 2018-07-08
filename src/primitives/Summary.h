@@ -241,12 +241,12 @@ class Summary {
       if (!delayed.empty()) {
         for (auto j = delayed.begin(); j != delayed.end(); ++j) {
           TransferPtr xfer = std::make_unique<Transfer>(iter->first, j->first, j->second.delta, j->second.delay);
-          out.push_back(xfer);
+          out.push_back(std::move(xfer));
         }
       }
       if (!coin_map.empty()) {
         for (auto j = coin_map.begin(); j != coin_map.end(); ++j) {
-          TransferPtr xfer= std::make_unqiue<Transfer>(iter->first, j->first, j->second, 0);
+          TransferPtr xfer= std::make_unique<Transfer>(iter->first, j->first, j->second, 0);
           out.push_back(xfer);
         }
       }

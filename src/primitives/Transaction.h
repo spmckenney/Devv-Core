@@ -36,7 +36,7 @@ using namespace Devcash;
 
 namespace Devcash {
 static const std::string kXFER_COUNT_TAG = "xfer_count";
-static const std::string kSUM_SIZE_TAG = "sum_size";
+static const std::string kSUMMARY_TAG = "summary";
 static const std::string kOPER_TAG = "oper";
 static const std::string kXFER_TAG = "xfer";
 static const std::string kNONCE_TAG = "nonce";

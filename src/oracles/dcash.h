@@ -49,7 +49,7 @@ class dcash : public oracleInterface {
    * @return false otherwise
    */
   bool isSound(Transaction& checkTx) override {
-    std::vector<Transfer> xfers = checkTx.getTransfers();
+    std::vector<TransferPtr> xfers = checkTx.getTransfers();
     for (auto it=xfers.begin(); it != xfers.end(); ++it) {
       if (it->getDelay() != 0) {
         LOG_WARNING << "Error: Delays are not allowed for dcash.";
@@ -73,7 +73,7 @@ class dcash : public oracleInterface {
    */
   bool isValid(Transaction& checkTx, const ChainState& context) override {
     if (!isSound(checkTx)) return false;
-    std::vector<Transfer> xfers = checkTx.getTransfers();
+    std::vector<TransferPtr> xfers = checkTx.getTransfers();
     for (auto it=xfers.begin(); it != xfers.end(); ++it) {
       if (it->getAmount() < 0) {
         Address addr = it->getAddress();
