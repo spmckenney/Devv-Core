@@ -20,10 +20,10 @@ struct devcash_options {
   std::string bind_endpoint;
   std::vector<std::string> host_vector{};
   eAppMode mode;
-  unsigned int node_index;
-  unsigned int shard_index;
-  unsigned int num_consensus_threads;
-  unsigned int num_validator_threads;
+  unsigned int node_index = 0;
+  unsigned int shard_index = 0;
+  unsigned int num_consensus_threads = 1;
+  unsigned int num_validator_threads = 1;
   std::string working_dir;
   std::string write_file;
   std::string trace_file;
@@ -31,10 +31,7 @@ struct devcash_options {
   std::string node_keys;
   std::string wallet_keys;
   std::string stop_file;
-  unsigned int generate_count;
-  unsigned int tx_batch_size;
-  unsigned int tx_limit;
-  eDebugMode debug_mode;
+  eDebugMode debug_mode = off;
 };
 
 std::unique_ptr<struct devcash_options> ParseDevcashOptions(int argc, char** argv) {
@@ -42,42 +39,73 @@ std::unique_ptr<struct devcash_options> ParseDevcashOptions(int argc, char** arg
   namespace po = boost::program_options;
 
   std::unique_ptr<devcash_options> options(new devcash_options());
+  std::vector<std::string> config_filenames;
 
   try {
-    po::options_description desc("\n\
-Create a devcash node\n\
-\nAllowed options");
-    desc.add_options()
-      ("help", "produce help message")
-      ("debug-mode", po::value<std::string>(), "Debug mode (on|toy|perf) for testing")
-      ("mode", po::value<std::string>(), "Devcash mode (T1|T2|scan)")
-      ("node-index", po::value<unsigned int>(), "Index of this node")
-      ("shard-index", po::value<unsigned int>(), "Index of this shard")
-      ("num-consensus-threads", po::value<unsigned int>(), "Number of consensus threads")
-      ("num-validator-threads", po::value<unsigned int>(), "Number of validation threads")
-      ("host-list,host", po::value<std::vector<std::string>>(),
-       "Client URI (i.e. tcp://192.168.10.1:5005). Option can be repeated to connect to multiple nodes.")
-      ("bind-endpoint", po::value<std::string>(), "Endpoint for server (i.e. tcp://*:5556)")
-      ("working-dir", po::value<std::string>(), "Directory where inputs are read and outputs are written")
-      ("output", po::value<std::string>(), "Output path in binary JSON or CBOR")
-      ("trace-output", po::value<std::string>(), "Output path to JSON trace file (Chrome)")
-      ("inn-keys", po::value<std::string>(), "Path to INN key file")
-      ("node-keys", po::value<std::string>(), "Path to Node key file")
-      ("wallet-keys", po::value<std::string>(), "Path to Wallet key file")
-      ("generate-tx", po::value<unsigned int>(), "Generate at least this many Transactions")
-      ("tx-batch-size", po::value<unsigned int>(), "Target size of transaction batches")
-      ("tx-limit", po::value<unsigned int>(), "Number of transaction to process before shutting down.")
-      ("stop-file", po::value<std::string>(), "A file in working-dir indicating that this node should stop.")
-      ;
+    po::options_description general("General Options");
+    general.add_options()
+        ("help,h", "produce help message")
+        ("version,v", "print version string")
+        ("config", po::value(&config_filenames), "Config file where options may be specified (can be specified more than once)")
+        ;
+
+    po::options_description behavior("Identity and Behavior Options");
+    behavior.add_options()
+        ("mode", po::value<std::string>(), "Devcash mode (T1|T2|scan)")
+        ("node-index", po::value<unsigned int>(), "Index of this node")
+        ("shard-index", po::value<unsigned int>(), "Index of this shard")
+        ("host-list,H", po::value<std::vector<std::string>>()->composing(),
+         "Client URI (i.e. tcp://192.168.10.1:5005). Option can be repeated to connect to multiple nodes.")
+        ("bind-endpoint", po::value<std::string>(), "Endpoint for server (i.e. tcp://*:5556)")
+        ("inn-keys", po::value<std::string>(), "Path to INN key file")
+        ("node-keys", po::value<std::string>(), "Path to Node key file")
+        ("wallet-keys", po::value<std::string>(), "Path to Wallet key file")
+        ;
+
+    po::options_description debugging("Debugging and Performance Options");
+    debugging.add_options()
+        ("debug-mode", po::value<std::string>(), "Debug mode (on|toy|perf) for testing")
+        ("trace-output", po::value<std::string>(), "Output path to JSON trace file (Chrome)")
+        ("num-consensus-threads", po::value<unsigned int>(), "Number of consensus threads")
+        ("num-validator-threads", po::value<unsigned int>(), "Number of validation threads")
+        ("working-dir", po::value<std::string>(), "Directory where inputs are read and outputs are written")
+        ("stop-file", po::value<std::string>(), "A file in working-dir indicating that this node should stop.")
+        ;
+
+    po::options_description all_options;
+    all_options.add(general);
+    all_options.add(behavior);
+    all_options.add(debugging);
 
     po::variables_map vm;
-    po::store(po::parse_command_line(argc, argv, desc), vm);
-    po::notify(vm);
+    po::store(po::command_line_parser(argc, argv).
+                  options(all_options).
+                  run(),
+              vm);
 
     if (vm.count("help")) {
-      std::cout << desc << "\n";
+      std::cout << all_options << "\n";
       return nullptr;
     }
+
+    if(vm.count("config") > 0)
+    {
+      config_filenames = vm["config"].as<std::vector<std::string> >();
+
+      for(size_t i = 0; i < config_filenames.size(); ++i)
+      {
+        std::ifstream ifs(config_filenames[i].c_str());
+        if(ifs.fail())
+        {
+          std::cerr << "Error opening config file: " << config_filenames[i] << std::endl;
+          return nullptr;
+        }
+        po::store(po::parse_config_file(ifs, all_options), vm);
+      }
+    }
+
+    po::store(po::parse_command_line(argc, argv, all_options), vm);
+    po::notify(vm);
 
     if (vm.count("mode")) {
       std::string mode = vm["mode"].as<std::string>();
@@ -194,30 +222,6 @@ Create a devcash node\n\
       LOG_INFO << "Wallet keys file: " << options->wallet_keys;
     } else {
       LOG_INFO << "Wallet keys file was not set.";
-    }
-
-    if (vm.count("generate-tx")) {
-      options->generate_count = vm["generate-tx"].as<unsigned int>();
-      LOG_INFO << "Generate Transactions: " << options->generate_count;
-    } else {
-      LOG_INFO << "Generate Transactions was not set, defaulting to 0";
-      options->generate_count = 0;
-    }
-
-    if (vm.count("tx-batch-size")) {
-      options->tx_batch_size = vm["tx-batch-size"].as<unsigned int>();
-      LOG_INFO << "Transaction batch size: " << options->tx_batch_size;
-    } else {
-      LOG_INFO << "Transaction batch size was not set, defaulting to 10,000";
-      options->tx_batch_size = 10000;
-    }
-
-    if (vm.count("tx-limit")) {
-      options->tx_limit = vm["tx-limit"].as<unsigned int>();
-      LOG_INFO << "Transaction limit: " << options->tx_limit;
-    } else {
-      LOG_INFO << "Transaction limit was not set, defaulting to 0 (unlimited)";
-      options->tx_limit = 100;
     }
 
     if (vm.count("stop-file")) {
