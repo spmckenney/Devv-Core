@@ -16,8 +16,6 @@
 
 namespace Devcash {
 
-enum eDebugMode {off, on, toy, perf};
-
 struct devcash_options {
   std::string bind_endpoint;
   std::vector<std::string> host_vector{};

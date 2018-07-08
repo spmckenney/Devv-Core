@@ -10,15 +10,14 @@
  *      Author: Nick Williams
  */
 
-#include <stdio.h>
-#include <stdlib.h>
 #include <cstdlib>
 #include <ctime>
 #include <fstream>
 #include <iostream>
 #include <string>
 
-#include "common/argument_parser.h"
+#include <boost/program_options.hpp>
+
 #include "common/devcash_context.h"
 #include "modules/BlockchainModule.h"
 
