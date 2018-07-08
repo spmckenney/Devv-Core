@@ -12,7 +12,6 @@
 
 #include "Transaction.h"
 #include "primitives/buffers.h"
-#include "primitives/json_interface.h"
 
 using namespace Devcash;
 
@@ -252,7 +251,45 @@ class Tier1Transaction : public Transaction {
     json += std::to_string(sum_size_) + ",";
     json += "\"" + kOPER_TAG + "\":" + std::to_string(getOperation()) + ",";
     json += "\"" + kXFER_TAG + "\":[";
-    json += GetJSON(summary);
+    json += "{\"" + kADDR_SIZE_TAG + "\":";
+    auto summary_map = summary.getSummaryMap();
+    uint64_t addr_size = summary_map.size();
+    json += std::to_string(addr_size) + ",summary:[";
+    for (auto summary : summary_map) {
+      json += "\"" + ToHex(std::vector<byte>(std::begin(summary.first), std::end(summary.first))) + "\":[";
+      SummaryPair top_pair(summary.second);
+      DelayedMap delayed(top_pair.first);
+      CoinMap coin_map(top_pair.second);
+      uint64_t delayed_size = delayed.size();
+      uint64_t coin_size = coin_map.size();
+      json += "\"" + kDELAY_SIZE_TAG + "\":" + std::to_string(delayed_size) + ",";
+      json += "\"" + kCOIN_SIZE_TAG + "\":" + std::to_string(coin_size) + ",";
+      bool is_first = true;
+      json += "\"delayed\":[";
+      for (auto delayed_item : delayed) {
+        if (is_first) {
+          is_first = false;
+        } else {
+          json += ",";
+        }
+        json += "\"" + kTYPE_TAG + "\":" + std::to_string(delayed_item.first) + ",";
+        json += "\"" + kDELAY_TAG + "\":" + std::to_string(delayed_item.second.delay) + ",";
+        json += "\"" + kAMOUNT_TAG + "\":" + std::to_string(delayed_item.second.delta);
+      }
+      json += "],\"coin_map\":[";
+      is_first = true;
+      for (auto coin : coin_map) {
+        if (is_first) {
+          is_first = false;
+        } else {
+          json += ",";
+        }
+        json += "\"" + kTYPE_TAG + "\":" + std::to_string(coin.first) + ",";
+        json += "\"" + kAMOUNT_TAG + "\":" + std::to_string(coin.second);
+      }
+      json += "]";
+    }
+    json += "]}";
     json += "],\"" + kNONCE_TAG + "\":" + std::to_string(getNonce()) + ",";
     Signature sig = getSignature();
     json += "\"" + kSIG_TAG + "\":\"" + ToHex(std::vector<byte>(std::begin(sig), std::end(sig))) + "\"}";
