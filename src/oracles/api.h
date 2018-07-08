@@ -69,7 +69,7 @@ class DCapi : public oracleInterface {
    */
   bool isValid(Transaction& checkTx, const ChainState& context) override {
     if (!isSound(checkTx)) { return false; }
-    std::vector<Transfer> xfers = checkTx.getTransfers();
+    std::vector<TransferPtr> xfers = checkTx.getTransfers();
     for (auto it=xfers.begin(); it != xfers.end(); ++it) {
       int64_t amount = it->getAmount();
       if (amount > 0) {

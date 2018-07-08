@@ -36,17 +36,16 @@ class Tier1Transaction : public Transaction {
     MTR_START("Transaction", "Transaction", &trace_int);
     MTR_STEP("Transaction", "Transaction", &trace_int, "step1");
 
-    buffer.copy(std::back_inserter(canonical_), 8);
-    buffer.copy(std::back_inserter(canonical_), 8, false);
-    sum_size_ = buffer.getNextUint64();
+    sum_size_ = buffer.getNextUint64(false);
+    buffer.copy(std::back_inserter(canonical_)
+      , sum_size_ + kSIG_SIZE + minNonceSize()*2);
 
     MTR_STEP("Transaction", "Transaction", &trace_int, "step2");
-    if (buffer.size() < buffer.getOffset() + sum_size_ + kSIG_SIZE) {
+    if (buffer.size() < buffer.getOffset()
+                        + sum_size_ + kSIG_SIZE + minNonceSize()*2) {
       LOG_WARNING << "Invalid serialized T1 transaction, too small!";
       return;
     }
-
-    buffer.copy(std::back_inserter(canonical_), sum_size_ + kSIG_SIZE);
 
     MTR_STEP("Transaction", "Transaction", &trace_int, "sound");
     if (calculate_soundness) {
@@ -73,12 +72,12 @@ class Tier1Transaction : public Transaction {
     if (!summary.isSane()) {
       LOG_WARNING << "Serialized T1 transaction has bad summary!";
     }
-    xfer_count_ = summary.getTransferCount();
-    canonical_.reserve(sum_size_ + 16 + kSIG_SIZE);
-    Uint64ToBin(nonce, canonical_);
+    sum_size_ = summary.getByteSize();
+    canonical_.reserve(sum_size_ + minNonceSize()*2 + kSIG_SIZE);
     Uint64ToBin(sum_size_, canonical_);
     std::vector<byte> sum_canon(summary.getCanonical());
     canonical_.insert(std::end(canonical_), std::begin(sum_canon), std::end(sum_canon));
+    Uint64ToBin(nonce, canonical_);
     canonical_.insert(std::end(canonical_), std::begin(sig), std::end(sig));
     is_sound_ = isSound(keys);
     if (!is_sound_) {
@@ -141,9 +140,8 @@ class Tier1Transaction : public Transaction {
    * Gets a vector of Transfers
    * @return vector of Transfer objects
    */
-  std::vector<Transfer> do_getTransfers() const {
-    /// @todo Address hard-coded value
-    size_t offset = 16;
+  std::vector<TransferPtr> do_getTransfers() const {
+    size_t offset = transferOffset();
     InputBuffer buffer(canonical_, offset);
     Summary summary(Summary::Create(buffer));
     return summary.getTransfers();
@@ -153,14 +151,17 @@ class Tier1Transaction : public Transaction {
    * Get the nonce of this Transaction
    * @return nonce
    */
-  uint64_t do_getNonce() const { return BinToUint64(canonical_, 0); }
+  uint64_t do_getNonce() const {
+    size_t offset = transferOffset();
+    return BinToUint64(canonical_, offset+sum_size_);
+  }
 
   /**
    * Get a copy of the Signature of this Transaction
    * @return Signature
    */
   Signature do_getSignature() const {
-    /// @todo(spm) Does this have to be a copy?
+    //Signature should be immutable so copy on request
     Signature sig;
     std::copy_n(canonical_.begin() + sum_size_ + 16, kSIG_SIZE, sig.begin());
     return sig;
@@ -223,14 +224,14 @@ class Tier1Transaction : public Transaction {
     CASH_TRY {
       if (!isSound(keys)) { return false; }
 
-      std::vector<Transfer> xfers = getTransfers();
+      std::vector<TransferPtr> xfers = getTransfers();
       for (auto& transfer : xfers) {
-        int64_t amount = transfer.getAmount();
-        uint64_t coin = transfer.getCoin();
-        Address addr = transfer.getAddress();
+        int64_t amount = transfer->getAmount();
+        uint64_t coin = transfer->getCoin();
+        Address addr = transfer->getAddress();
         SmartCoin next_flow(addr, coin, amount);
         state.addCoin(next_flow);
-        summary.addItem(addr, coin, amount, transfer.getDelay());
+        summary.addItem(addr, coin, amount, transfer->getDelay());
       }
       return true;
     }
@@ -243,20 +244,14 @@ class Tier1Transaction : public Transaction {
    * @return a JSON string representing this transaction.
    */
   std::string do_getJSON() const {
-    std::string json("{\"" + kXFER_COUNT_TAG + "\":");
-    json += std::to_string(xfer_count_) + ",";
+    size_t offset = transferOffset();
+    InputBuffer buffer(canonical_, offset);
+    Summary summary(Summary::Create(buffer));
+    std::string json("{\"" + kSUM_SIZE_TAG + "\":");
+    json += std::to_string(sum_size_) + ",";
     json += "\"" + kOPER_TAG + "\":" + std::to_string(getOperation()) + ",";
     json += "\"" + kXFER_TAG + "\":[";
-    bool isFirst = true;
-    std::vector<Transfer> xfers = getTransfers();
-    for (auto& transfer : xfers) {
-      if (isFirst) {
-        isFirst = false;
-      } else {
-        json += ",";
-      }
-      json += transfer.getJSON();
-    }
+    json += summary.getJSON();
     json += "],\"" + kNONCE_TAG + "\":" + std::to_string(getNonce()) + ",";
     Signature sig = getSignature();
     json += "\"" + kSIG_TAG + "\":\"" + ToHex(std::vector<byte>(std::begin(sig), std::end(sig))) + "\"}";

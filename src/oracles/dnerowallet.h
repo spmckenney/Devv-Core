@@ -49,7 +49,7 @@ class dnerowallet : public oracleInterface {
    * @return false otherwise
    */
   bool isSound(Transaction& checkTx) override {
-    std::vector<Transfer> xfers = checkTx.getTransfers();
+    std::vector<TransferPtr> xfers = checkTx.getTransfers();
     for (auto it=xfers.begin();
         it != xfers.end(); ++it) {
       if (it->getAmount() > 1) {

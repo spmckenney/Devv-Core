@@ -129,14 +129,12 @@ class Tier2Transaction : public Transaction {
    * Create and return a vector of Transfers in this transaction
    * @return vector of Transfer objects
    */
-  std::vector<Transfer> do_getTransfers() const {
-    std::vector<Transfer> out;
-    /// @todo - Hardcoded value
-    InputBuffer buffer(canonical_, 9);
+  std::vector<TransferPtr> do_getTransfers() const {
+    std::vector<TransferPtr> out;
     for (size_t i = 0; i < xfer_count_; ++i) {
-      /// @todo memory leak!!
-      Transfer* t = new Transfer(buffer);
-      out.push_back(*t);
+      InputBuffer buffer(canonical_, transferOffset() + (Transfer::Size()*i));
+      TransferPtr t = std::make_unique<Transfer>(buffer);
+      out.push_back(std::move(t));
     }
     return out;
   }
@@ -146,8 +144,8 @@ class Tier2Transaction : public Transaction {
    * @return the nonce
    */
   uint64_t do_getNonce() const {
-    /// @todo hard-coded value
-    return BinToUint64(canonical_, 9 + (Transfer::Size() * xfer_count_));
+    return BinToUint64(canonical_
+      , transferOffset() + (Transfer::Size() * xfer_count_));
   }
 
   /**
@@ -194,7 +192,7 @@ class Tier2Transaction : public Transaction {
       bool sender_set = false;
       Address sender;
 
-      std::vector<Transfer> xfers = getTransfers();
+      std::vector<TransferPtr> xfers = getTransfers();
       for (auto it = xfers.begin(); it != xfers.end(); ++it) {
         int64_t amount = it->getAmount();
         total += amount;
@@ -251,7 +249,7 @@ class Tier2Transaction : public Transaction {
     CASH_TRY {
       if (!isSound(keys)) { return false; }
       byte oper = getOperation();
-      std::vector<Transfer> xfers = getTransfers();
+      std::vector<TransferPtr> xfers = getTransfers();
       for (auto it = xfers.begin(); it != xfers.end(); ++it) {
         int64_t amount = it->getAmount();
         uint64_t coin = it->getCoin();
@@ -282,7 +280,7 @@ class Tier2Transaction : public Transaction {
     json += "\"" + kOPER_TAG + "\":" + std::to_string(getOperation()) + ",";
     json += "\"" + kXFER_TAG + "\":[";
     bool isFirst = true;
-    std::vector<Transfer> xfers = getTransfers();
+    std::vector<TransferPtr> xfers = getTransfers();
     for (auto it = xfers.begin(); it != xfers.end(); ++it) {
       if (isFirst) {
         isFirst = false;

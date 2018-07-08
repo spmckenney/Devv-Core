@@ -236,19 +236,21 @@ class Summary {
    * Get the transfers
    * @return a vector of Transfers
    */
-  std::vector<Transfer> getTransfers() {
-    std::vector<Transfer> out;
+  std::vector<TransferPtr> getTransfers() {
+    std::vector<TransferPtr> out;
     for (auto summary : summary_) {
       SummaryPair top_pair(summary.second);
       DelayedMap delayed(top_pair.first);
       CoinMap coin_map(top_pair.second);
       for (auto delayed_item : delayed) {
-        Transfer xfer(summary.first, delayed_item.first, delayed_item.second.delta, delayed_item.second.delay);
-        out.push_back(xfer);
+        TransferPtr xfer = std::make_unique<Transfer>(summary.first
+          , delayed_item.first, delayed_item.second.delta, delayed_item.second.delay);
+        out.push_back(std::move(xfer));
       }
       for (auto coin : coin_map) {
-        Transfer xfer(summary.first, coin.first, coin.second, 0);
-        out.push_back(xfer);
+        TransferPtr xfer = std::make_unique<Transfer>(summary.first
+          , coin.first, coin.second, 0);
+        out.push_back(std::move(xfer));
       }
     }
     return out;
