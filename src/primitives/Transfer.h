@@ -131,6 +131,8 @@ class Transfer {
   std::vector<byte> canonical_;
 };
 
+typedef std::unique_ptr<Transfer> TransferPtr;
+
 } //end namespace Devcash
 
 

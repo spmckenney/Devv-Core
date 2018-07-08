@@ -232,21 +232,21 @@ class Summary {
     return json;
   }
 
-  std::vector<Transfer> getTransfers() {
-    std::vector<Transfer> out;
+  std::vector<TransferPtr> getTransfers() {
+    std::vector<TransferPtr> out;
     for (auto iter = summary_.begin(); iter != summary_.end(); ++iter) {
       SummaryPair top_pair(iter->second);
       DelayedMap delayed(top_pair.first);
       CoinMap coin_map(top_pair.second);
       if (!delayed.empty()) {
         for (auto j = delayed.begin(); j != delayed.end(); ++j) {
-          Transfer xfer(iter->first, j->first, j->second.delta, j->second.delay);
+          TransferPtr xfer = std::make_unique<Transfer>(iter->first, j->first, j->second.delta, j->second.delay);
           out.push_back(xfer);
         }
       }
       if (!coin_map.empty()) {
         for (auto j = coin_map.begin(); j != coin_map.end(); ++j) {
-          Transfer xfer(iter->first, j->first, j->second, 0);
+          TransferPtr xfer= std::make_unqiue<Transfer>(iter->first, j->first, j->second, 0);
           out.push_back(xfer);
         }
       }

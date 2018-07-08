@@ -33,20 +33,21 @@ class Tier1Transaction : public Transaction {
     MTR_START("Transaction", "Transaction", &trace_int);
     MTR_STEP("Transaction", "Transaction", &trace_int, "step1");
 
-    canonical_.insert(canonical_.end(), serial.begin(), serial.begin());
-    size_t offset = 8;
-
-    canonical_.insert(canonical_.end(), serial.begin() + offset, serial.begin() + 8);
+    size_t offset = 0;
     sum_size_ = BinToUint64(serial, offset);
     offset += 8;
 
+    canonical_.insert(canonical_.end(), serial.begin()
+      , serial.begin() + sum_size_ + kSIG_SIZE + minNonceSize());
+
     MTR_STEP("Transaction", "Transaction", &trace_int, "step2");
-    if (serial.size() < offset + sum_size_ + kSIG_SIZE) {
+    if (serial.size() < offset + sum_size_ + kSIG_SIZE + minNonceSize()) {
       LOG_WARNING << "Invalid serialized T1 transaction, too small!";
       return;
     }
 
-    canonical_.insert(canonical_.end(), serial.begin() + offset, serial.begin() + sum_size_ + kSIG_SIZE);
+    canonical_.insert(canonical_.end(), serial.begin() + offset
+      , serial.begin() + sum_size_ + kSIG_SIZE + minNonceSize());
     offset += sum_size_ + kSIG_SIZE;
 
     MTR_STEP("Transaction", "Transaction", &trace_int, "sound");
@@ -75,21 +76,18 @@ class Tier1Transaction : public Transaction {
     MTR_START("Transaction", "Transaction", &trace_int);
     MTR_STEP("Transaction", "Transaction", &trace_int, "step1");
 
-    canonical_.insert(canonical_.end(), serial.begin() + offset, serial.begin() + offset + 8);
-    offset += 8;
-
-    canonical_.insert(canonical_.end(), serial.begin() + offset, serial.begin() + offset + 8);
     sum_size_ = BinToUint64(serial, offset);
     offset += 8;
 
     MTR_STEP("Transaction", "Transaction", &trace_int, "step2");
-    if (serial.size() < offset + sum_size_ + kSIG_SIZE) {
+    if (serial.size() < offset + sum_size_ + kSIG_SIZE + minNonceSize()) {
       LOG_WARNING << "Invalid serialized T1 transaction, too small!";
       return;
     }
 
-    canonical_.insert(canonical_.end(), serial.begin() + offset, serial.begin() + offset + sum_size_ + kSIG_SIZE);
-    offset += sum_size_ + kSIG_SIZE;
+    canonical_.insert(canonical_.end(), serial.begin() + offset
+      , serial.begin() + offset + kSIG_SIZE + minNonceSize());
+    offset += sum_size_ + kSIG_SIZE + minNonceSize();
 
     MTR_STEP("Transaction", "Transaction", &trace_int, "sound");
     if (calculate_soundness) {
@@ -116,12 +114,12 @@ class Tier1Transaction : public Transaction {
     if (!summary.isSane()) {
       LOG_WARNING << "Serialized T1 transaction has bad summary!";
     }
-    xfer_count_ = summary.getTransferCount();
-    canonical_.reserve(sum_size_ + 16 + kSIG_SIZE);
-    Uint64ToBin(nonce, canonical_);
+    sum_size_ = summary.getByteSize();
+    canonical_.reserve(sum_size_ + minNonceSize()*2 + kSIG_SIZE);
     Uint64ToBin(sum_size_, canonical_);
     std::vector<byte> sum_canon(summary.getCanonical());
     canonical_.insert(std::end(canonical_), std::begin(sum_canon), std::end(sum_canon));
+    Uint64ToBin(nonce, canonical_);
     canonical_.insert(std::end(canonical_), std::begin(sig), std::end(sig));
     is_sound_ = isSound(keys);
     if (!is_sound_) {
@@ -158,10 +156,8 @@ class Tier1Transaction : public Transaction {
    * Gets a vector of Transfers
    * @return vector of Transfer objects
    */
-  std::vector<Transfer> do_getTransfers() const {
-    /// @todo Address hard-coded value
-    size_t offset = 16;
-    Summary summary(canonical_, offset);
+  std::vector<TransferPtr> do_getTransfers() const {
+    Summary summary(canonical_, transferOffset());
     return summary.getTransfers();
   }
 
@@ -169,14 +165,17 @@ class Tier1Transaction : public Transaction {
    * Get the nonce of this Transaction
    * @return nonce
    */
-  uint64_t do_getNonce() const { return BinToUint64(canonical_, 0); }
+  uint64_t do_getNonce() const {
+    Summary summary(canonical_, transferOffset());
+    return BinToUint64(canonical_, transferOffset()+summary.getByteSize());
+  }
 
   /**
    * Get a copy of the Signature of this Transaction
    * @return Signature
    */
   Signature do_getSignature() const {
-    /// @todo(spm) Does this have to be a copy?
+    // signature should be immutable, so copy it on request
     Signature sig;
     std::copy_n(canonical_.begin() + sum_size_ + 16, kSIG_SIZE, sig.begin());
     return sig;
@@ -253,39 +252,13 @@ class Tier1Transaction : public Transaction {
     return false;
   }
 
-  /*
-   std::map<Address, SmartCoin> do_aggregateState(std::map<Address, SmartCoin>& aggregator, const ChainState&,
-                                                 const KeyRing& keys, const Summary&) const override {
-    CASH_TRY {
-      if (!isSound(keys)) return aggregator;
-
-      std::vector<Transfer> xfers = getTransfers();
-      for (auto it = xfers.begin(); it != xfers.end(); ++it) {
-        int64_t amount = it->getAmount();
-        uint64_t coin = it->getCoin();
-        Address addr = it->getAddress();
-        SmartCoin next_flow(addr, coin, amount);
-        auto loc = aggregator.find(addr);
-        if (loc == aggregator.end()) {
-          std::pair<Address, SmartCoin> pair(addr, next_flow);
-          aggregator.insert(pair);
-        } else {
-          loc->second.amount_ += amount;
-        }
-      }
-    }
-    CASH_CATCH(const std::exception& e) { LOG_WARNING << FormatException(&e, "transaction"); }
-    return aggregator;
-  }
-  */
-
   /**
    * Returns a JSON string representing this transaction.
    * @return a JSON string representing this transaction.
    */
   std::string do_getJSON() const {
-    std::string json("{\"" + kXFER_COUNT_TAG + "\":");
-    json += std::to_string(xfer_count_) + ",";
+    std::string json("{\"" + kSUM_SIZE_TAG + "\":");
+    json += std::to_string(sum_size_) + ",";
     json += "\"" + kOPER_TAG + "\":" + std::to_string(getOperation()) + ",";
     json += "\"" + kXFER_TAG + "\":[";
     bool isFirst = true;

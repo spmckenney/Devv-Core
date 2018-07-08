@@ -190,14 +190,12 @@ class Tier2Transaction : public Transaction {
    * Create and return a vector of Transfers in this transaction
    * @return vector of Transfer objects
    */
-  std::vector<Transfer> do_getTransfers() const {
-    std::vector<Transfer> out;
+  std::vector<TransferPtr> do_getTransfers() const {
+    std::vector<TransferPtr> out;
     for (size_t i = 0; i < xfer_count_; ++i) {
-      /// @todo - Hardcoded value
-      size_t offset = 9 + (Transfer::Size() * i);
-      /// @todo memory leak!!
-      Transfer* t = new Transfer(canonical_, offset);
-      out.push_back(*t);
+      size_t offset = transferOffset() + (Transfer::Size() * i);
+      TransferPtr t = std::make_unique<Transfer>(canonical_, offset);
+      out.push_back(t);
     }
     return out;
   }
@@ -207,8 +205,7 @@ class Tier2Transaction : public Transaction {
    * @return the nonce
    */
   uint64_t do_getNonce() const {
-    /// @todo hard-coded value
-    return BinToUint64(canonical_, 9 + (Transfer::Size() * xfer_count_));
+    return BinToUint64(canonical_, transferOffset() + (Transfer::Size() * xfer_count_));
   }
 
   /**
