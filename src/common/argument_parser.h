@@ -18,7 +18,7 @@
 namespace Devcash {
 
 template <typename T>
-void removeDuplicates(std::vector<T>& vec)
+void RemoveDuplicates(std::vector<T>& vec)
 {
   std::sort(vec.begin(), vec.end());
   vec.erase(std::unique(vec.begin(), vec.end()), vec.end());
@@ -183,7 +183,7 @@ std::unique_ptr<struct devcash_options> ParseDevcashOptions(int argc, char** arg
 
     if (vm.count("host-list")) {
       options->host_vector = vm["host-list"].as<std::vector<std::string>>();
-      removeDuplicates(options->host_vector);
+      RemoveDuplicates(options->host_vector);
       LOG_INFO << "Node URIs:";
       for (auto i : options->host_vector) {
         LOG_INFO << "  " << i;
