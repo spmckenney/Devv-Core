@@ -110,8 +110,8 @@ class Tier1Transaction : public Transaction {
   friend std::unique_ptr<Tier1Transaction> std::make_unique<Tier1Transaction>();
 
   /**
-   * Get the nonce of this Transaction
-   * @return nonce
+   * Get the node index of the T2 validator that signed this transaction.
+   * @return node index
    */
   uint64_t getNodeIndex() const {
     size_t offset = transferOffset();
