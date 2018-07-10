@@ -580,7 +580,7 @@ TEST_F(Tier2TransactionTest, createInnTx_0) {
 }
 
 TEST_F(Tier2TransactionTest, getOperation_0) {
-  unsigned int nonce_num = 10;
+  uint64_t nonce_num = 10;
   std::vector<Transfer> peer_xfers;
   Transfer sender(keys_.getWalletAddr(0), 0, nonce_num * -1, 0);
   peer_xfers.push_back(sender);
@@ -588,7 +588,6 @@ TEST_F(Tier2TransactionTest, getOperation_0) {
   peer_xfers.push_back(receiver);
 
   std::vector<byte> nonce_bin;
-  uint64_t nonce_num = GetMillisecondsSinceEpoch() + (1000000);
   Uint64ToBin(nonce_num, nonce_bin);
 
   Tier2Transaction tx1(
