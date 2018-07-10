@@ -64,7 +64,7 @@ class Transaction {
    * @param xfer_count
    * @param is_sound
    */
-  Transaction(uint64_t xfer_count, bool is_sound) : xfer_count_(xfer_count), canonical_(), is_sound_(is_sound) {}
+  Transaction(bool is_sound) : canonical_(), is_sound_(is_sound) {}
 
   /**
    * Constructor
@@ -72,8 +72,8 @@ class Transaction {
    * @param canonical
    * @param is_sound
    */
-  Transaction(uint64_t xfer_count, const std::vector<byte>& canonical, bool is_sound)
-      : xfer_count_(xfer_count), canonical_(canonical), is_sound_(is_sound) {}
+  Transaction(const std::vector<byte>& canonical, bool is_sound)
+      : canonical_(canonical), is_sound_(is_sound) {}
 
   /**
    * Copy constructor
