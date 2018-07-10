@@ -47,7 +47,7 @@ class Tier2Transaction : public Transaction {
                    std::vector<byte> nonce,
                    EC_KEY* eckey,
                    const KeyRing& keys)
-      : Transaction(xfers.size(), false) {
+      : Transaction(false) {
     xfer_count_ = xfers.size();
     nonce_size_ = nonce.size();
 

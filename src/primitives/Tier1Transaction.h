@@ -68,7 +68,7 @@ class Tier1Transaction : public Transaction {
                    const Signature& sig,
                    uint64_t node_dex,
                    const KeyRing& keys)
-      : Transaction(0, false), sum_size_(summary.getByteSize()) {
+      : Transaction(false), sum_size_(summary.getByteSize()) {
     if (!summary.isSane()) {
       LOG_WARNING << "Serialized T1 transaction has bad summary!";
     }
