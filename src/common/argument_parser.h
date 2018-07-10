@@ -8,6 +8,7 @@
 #include <memory>
 #include <iostream>
 #include <exception>
+#include <algorithm>
 
 #include <boost/program_options.hpp>
 
@@ -16,10 +17,17 @@
 
 namespace Devcash {
 
+template <typename T>
+void removeDuplicates(std::vector<T>& vec)
+{
+  std::sort(vec.begin(), vec.end());
+  vec.erase(std::unique(vec.begin(), vec.end()), vec.end());
+}
+
 struct devcash_options {
   std::string bind_endpoint;
   std::vector<std::string> host_vector{};
-  eAppMode mode;
+  eAppMode mode = T1;
   unsigned int node_index = 0;
   unsigned int shard_index = 0;
   unsigned int num_consensus_threads = 1;
@@ -175,6 +183,7 @@ std::unique_ptr<struct devcash_options> ParseDevcashOptions(int argc, char** arg
 
     if (vm.count("host-list")) {
       options->host_vector = vm["host-list"].as<std::vector<std::string>>();
+      removeDuplicates(options->host_vector);
       LOG_INFO << "Node URIs:";
       for (auto i : options->host_vector) {
         LOG_INFO << "  " << i;
