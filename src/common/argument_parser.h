@@ -25,7 +25,6 @@ struct devcash_options {
   unsigned int num_consensus_threads = 1;
   unsigned int num_validator_threads = 1;
   std::string working_dir;
-  std::string write_file;
   std::string trace_file;
   std::string inn_keys;
   std::string node_keys;
@@ -187,13 +186,6 @@ std::unique_ptr<struct devcash_options> ParseDevcashOptions(int argc, char** arg
       LOG_INFO << "Working dir: " << options->working_dir;
     } else {
       LOG_INFO << "Working dir was not set.";
-    }
-
-    if (vm.count("output")) {
-      options->write_file = vm["output"].as<std::string>();
-      LOG_INFO << "Output file: " << options->write_file;
-    } else {
-      LOG_INFO << "Output file was not set.";
     }
 
     if (vm.count("trace-output")) {
