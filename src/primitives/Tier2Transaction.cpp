@@ -23,7 +23,18 @@ void Tier2Transaction::Fill(Tier2Transaction& tx,
   }
   /// Don't increment the buffer, we want to copy it all to canonical_
   tx.xfer_count_ = buffer.getNextUint64(false);
-  size_t tx_size = MinSize() + (Transfer::Size() * tx.xfer_count_);
+  tx.nonce_size_ = buffer.getSecondUint64(false);
+
+  if (tx.nonce_size_ < minNonceSize()) {
+    std::stringstream ss;
+    std::vector<byte> prefix(buffer.getCurrentIterator(), buffer.getCurrentIterator() + 8);
+    ss << "Invalid serialized T2 transaction, bad nonce size (" + std::to_string(nonce_size_) + ")!";
+    ss << "Transaction prefix: " + ToHex(prefix);
+    ss << "Bytes offset: " + std::to_string(buffer.getOffset());
+    throw DeserializationError(ss.str());
+  }
+
+  size_t tx_size = MinSize() + (Transfer::Size() * tx.xfer_count_) + nonce_size_;
   if (buffer.size() < buffer.getOffset() + tx_size) {
     std::stringstream ss;
     std::vector<byte> prefix(buffer.getCurrentIterator(), buffer.getCurrentIterator() + 8);

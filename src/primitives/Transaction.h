@@ -40,10 +40,13 @@ namespace Devcash {
 
 static const std::string kXFER_COUNT_TAG = "xfer_count";
 static const std::string kSUMMARY_TAG = "summary";
+static const std::string kSUM_SIZE_TAG = "sum_size";
 static const std::string kOPER_TAG = "oper";
 static const std::string kXFER_TAG = "xfer";
 static const std::string kNONCE_TAG = "nonce";
+static const std::string kNONCE_SIZE_TAG = "nonce_size";
 static const std::string kSIG_TAG = "sig";
+static const std::string kVALIDATOR_DEX_TAG = "val_dex";
 
 /**
  * Types of operations performed by transactions
@@ -110,16 +113,22 @@ class Transaction {
   static size_t EnvelopeSize() { return 17; }
 
   /**
-   * Returns transfer offset (hard-coded to 9)
-   * @return transfer offset (hard-coded to 9)
+   * Returns transfer offset (hard-coded to 17)
+   * @return transfer offset (hard-coded to 17)
    */
-  static size_t transferOffset() { return 9; }
+  static size_t transferOffset() { return 17; }
 
   /**
    * Returns min nonce size (hard-coded to 8)
    * @return min nonce size (hard-coded to 8)
    */
   static size_t minNonceSize() { return 8; }
+
+ /**
+  * Returns min nonce size (hard-coded to 8)
+  * @return min nonce size (hard-coded to 8)
+  */
+  static size_t uint64Size() { return 8; }
 
   /**
    * Make a deep copy of the TierXTransaction subclass
@@ -146,22 +155,10 @@ class Transaction {
   size_t getByteSize() const { return (canonical_.size()); }
 
   /**
-   * Returns the operation performed by this transfer
-   * @return
-   */
-  byte getOperation() const { return do_getOperation(); }
-
-  /**
    * Get a vector of Transfers
    * @return vector of Transfer objects
    */
   std::vector<TransferPtr> getTransfers() const { return do_getTransfers(); }
-
-  /**
-   * Get the nonce of this Transaction
-   * @return
-   */
-  uint64_t getNonce() const { return do_getNonce(); }
 
   /**
    * Get Signature
@@ -210,9 +207,6 @@ class Transaction {
    */
   Transaction() = default;
 
-  /// The number of Transfers in this Transaction
-  uint64_t xfer_count_ = 0;
-
   /// The canonical representation of this Transaction
   std::vector<byte> canonical_ = {};
 
@@ -222,11 +216,7 @@ class Transaction {
  private:
   virtual std::vector<byte> do_getMessageDigest() const = 0;
 
-  virtual byte do_getOperation() const = 0;
-
   virtual std::vector<TransferPtr> do_getTransfers() const = 0;
-
-  virtual uint64_t do_getNonce() const = 0;
 
   virtual Signature do_getSignature() const = 0;
 

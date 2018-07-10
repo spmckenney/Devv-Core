@@ -49,7 +49,7 @@ class DCdata : public oracleInterface {
    * @return true iff the transaction can be valid according to this oracle
    * @return false otherwise
    */
-  bool isSound(Transaction& checkTx) override {
+  bool isSound(Tier2Transaction& checkTx) override {
     if (checkTx.getOperation() == eOpType::Exchange) {
       //TODO: check that exchange is to an INN data collection address
       //TODO: check that nonce size is valid for coins expended
@@ -72,7 +72,7 @@ class DCdata : public oracleInterface {
    * @return true iff the transaction is valid according to this oracle
    * @return false otherwise
    */
-  bool isValid(Transaction& checkTx, const ChainState&) override {
+  bool isValid(Tier2Transaction& checkTx, const ChainState&) override {
     if (!isSound(checkTx)) { return false; }
     return true;
   }

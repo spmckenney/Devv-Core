@@ -132,6 +132,20 @@ class InputBuffer {
   }
 
   /**
+   * Returns the second uint64_t in the buffer and increment the buffer
+   * by the size if increment_buffer is true
+   *
+   * @param increment_buffer
+   * @return
+   */
+  uint64_t getSecondUint64(bool increment_buffer = true)
+  {
+    uint64_t ret(BinToUint64(buffer_, offset_+8));
+    if (increment_buffer) { offset_ += sizeof(ret); }
+    return ret;
+  }
+
+  /**
    * Return a const ref to the full buffer
    * @return
    */

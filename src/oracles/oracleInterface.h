@@ -85,7 +85,7 @@ class oracleInterface {
  * @return true iff the transaction can be valid according to this oracle
  * @return false otherwise
  */
-  virtual bool isSound(Transaction& checkTx) = 0;
+  virtual bool isSound(Tier2Transaction& checkTx) = 0;
 
 /** Checks if a transaction is valid according to this oracle
  *  given a specific chain state.
@@ -96,7 +96,7 @@ class oracleInterface {
  * @return true iff the transaction is valid according to this oracle
  * @return false otherwise
  */
-  virtual bool isValid(Transaction& checkTx, const ChainState& context) = 0;
+  virtual bool isValid(Tier2Transaction& checkTx, const ChainState& context) = 0;
 
 /** Generate a tier 1 smartcoin transaction based on this tier 2 transaction.
  *

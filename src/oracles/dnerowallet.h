@@ -48,7 +48,7 @@ class dnerowallet : public oracleInterface {
    * @return true iff the transaction can be valid according to this oracle
    * @return false otherwise
    */
-  bool isSound(Transaction& checkTx) override {
+  bool isSound(Tier2Transaction& checkTx) override {
     std::vector<TransferPtr> xfers = checkTx.getTransfers();
     for (auto& it : xfers) {
       if (it->getAmount() > 1) {
@@ -71,7 +71,7 @@ class dnerowallet : public oracleInterface {
    * @return true iff the transaction is valid according to this oracle
    * @return false otherwise
    */
-  bool isValid(Transaction& checkTx, const ChainState&) override {
+  bool isValid(Tier2Transaction& checkTx, const ChainState&) override {
     if (!isSound(checkTx)) { return false; }
     return true;
   }

@@ -48,7 +48,7 @@ class dnero : public oracleInterface {
    * @return true iff the transaction can be valid according to this oracle
    * @return false otherwise
    */
-  bool isSound(Transaction&) override {
+  bool isSound(Tier2Transaction&) override {
     return true;
   }
 
@@ -64,7 +64,7 @@ class dnero : public oracleInterface {
    * @return true iff the transaction is valid according to this oracle
    * @return false otherwise
    */
-  bool isValid(Transaction& checkTx, const ChainState& context) override {
+  bool isValid(Tier2Transaction& checkTx, const ChainState& context) override {
     if (!isSound(checkTx)) { return false; }
     std::vector<TransferPtr> xfers = checkTx.getTransfers();
     for (auto& it : xfers) {

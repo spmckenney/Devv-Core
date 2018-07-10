@@ -44,19 +44,29 @@ class Tier2Transaction : public Transaction {
    */
   Tier2Transaction(byte oper,
                    const std::vector<Transfer>& xfers,
-                   uint64_t nonce,
+                   std::vector<byte> nonce,
                    EC_KEY* eckey,
                    const KeyRing& keys)
       : Transaction(xfers.size(), false) {
-    canonical_.reserve(MinSize() + (Transfer::Size() * xfer_count_));
+    xfer_count_ = xfers.size();
+    nonce_size_ = nonce.size();
+
+    if (nonce_size_ < minNonceSize()) {
+      LOG_WARNING << "Invalid serialized T2 transaction, nonce is too small ("
+        +std::to_string(nonce_size_)+").";
+    }
+
+    canonical_.reserve(MinSize() +
+      (Transfer::Size() * xfer_count_) + nonce_size_);
 
     Uint64ToBin(xfer_count_, canonical_);
+    Uint64ToBin(nonce_size_, canonical_);
     canonical_.push_back(oper);
     for (auto& transfer : xfers) {
       std::vector<byte> xfer_canon(transfer.getCanonical());
       canonical_.insert(std::end(canonical_), std::begin(xfer_canon), std::end(xfer_canon));
     }
-    Uint64ToBin(nonce, canonical_);
+    canonical_.insert(std::end(canonical_), std::begin(nonce), std::end(nonce));
     std::vector<byte> msg(getMessageDigest());
     Signature sig;
     SignBinary(eckey, DevcashHash(msg), sig);
@@ -76,6 +86,24 @@ class Tier2Transaction : public Transaction {
                                                            bool calculate_soundness = true);
 
   /**
+   * Returns the operation performed by this transfer
+   * @return
+   */
+  byte getOperation() const { return canonical_[16]; }
+
+  /**
+   * Get the nonce of this Transaction
+   * @return
+   */
+  std::vector<byte> getNonce() const {
+	std::vector<byte> nonce(canonical_.begin()
+	  + (envelopeSize() + xfer_count_ * Transfer::Size())
+	  , canonical_.begin()
+	  + (envelopeSize() + xfer_count_ * Transfer::Size() + nonce_size_));
+    return nonce;
+  }
+
+  /**
    * Creates a clone (deep copy) of this transaction
    * @return
    */
@@ -87,6 +115,11 @@ class Tier2Transaction : public Transaction {
   friend std::unique_ptr<Tier2Transaction> std::make_unique<Tier2Transaction>();
 
  private:
+  // The number of Transfers in this Transaction
+  uint64_t xfer_count_ = 0;
+  // The size of this Transaction's nonce
+  uint64_t nonce_size_ = 0;
+
   /**
    * Private default constructor
    */
@@ -115,15 +148,10 @@ class Tier2Transaction : public Transaction {
    */
   std::vector<byte> do_getMessageDigest() const override {
     /// @todo(mckenney) can this be a reference?
-    std::vector<byte> md(canonical_.begin(), canonical_.begin() + (EnvelopeSize() + Transfer::Size() * xfer_count_));
+    std::vector<byte> md(canonical_.begin(), canonical_.begin()
+      + (EnvelopeSize() + nonce_size_ + Transfer::Size() * xfer_count_));
     return md;
   }
-
-  /**
-   * Returns the operation type of this transaction
-   * @return byte representation of this operation
-   */
-  byte do_getOperation() const override { return canonical_[8]; }
 
   /**
    * Create and return a vector of Transfers in this transaction
@@ -140,22 +168,15 @@ class Tier2Transaction : public Transaction {
   }
 
   /**
-   * Return the nonce of this transaction
-   * @return the nonce
-   */
-  uint64_t do_getNonce() const {
-    return BinToUint64(canonical_
-      , transferOffset() + (Transfer::Size() * xfer_count_));
-  }
-
-  /**
    * Create and return the signature of this transaction
    * @return the signature of this transaction
    */
   Signature do_getSignature() const {
     /// @todo(mckenney) can this be a reference rather than pointer?
     Signature sig;
-    std::copy_n(canonical_.begin() + (17 + (Transfer::Size() * xfer_count_)), kSIG_SIZE, sig.begin());
+    std::copy_n(canonical_.begin()
+      + (envelopeSize() + nonce_size_ + (Transfer::Size() * xfer_count_))
+      , kSIG_SIZE, sig.begin());
     return sig;
   }
 
@@ -179,15 +200,10 @@ class Tier2Transaction : public Transaction {
    */
   bool do_isSound(const KeyRing& keys) const {
     MTR_SCOPE_FUNC();
-    //CASH_TRY {
+    try {
       if (is_sound_) { return (is_sound_); }
       long total = 0;
       byte oper = getOperation();
-
-      if (getNonce() < 1) {
-        LOG_WARNING << "Error: nonce is required";
-        return (false);
-      }
 
       bool sender_set = false;
       Address sender;
@@ -233,8 +249,9 @@ class Tier2Transaction : public Transaction {
         return false;
       }
       return true;
-    //}
-    //CASH_CATCH(const std::exception& e) { LOG_WARNING << FormatException(&e, "transaction"); }
+    } catch (const std::exception& e) {
+      LOG_WARNING << FormatException(&e, "transaction");
+    }
     return false;
   }
 
@@ -277,6 +294,7 @@ class Tier2Transaction : public Transaction {
   std::string do_getJSON() const {
     std::string json("{\"" + kXFER_COUNT_TAG + "\":");
     json += std::to_string(xfer_count_) + ",";
+    json += "\"" + kNONCE_SIZE_TAG + "\":"+std::to_string(nonce_size_);
     json += "\"" + kOPER_TAG + "\":" + std::to_string(getOperation()) + ",";
     json += "\"" + kXFER_TAG + "\":[";
     bool isFirst = true;
@@ -289,7 +307,7 @@ class Tier2Transaction : public Transaction {
       }
       json += it->getJSON();
     }
-    json += "],\"" + kNONCE_TAG + "\":" + std::to_string(getNonce()) + ",";
+    json += "],\"" + kNONCE_TAG + "\":\"" + ToHex(getNonce()) + "\",";
     Signature sig = getSignature();
     json += "\"" + kSIG_TAG + "\":\"" + ToHex(std::vector<byte>(std::begin(sig), std::end(sig))) + "\"}";
     return json;
