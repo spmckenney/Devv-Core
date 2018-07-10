@@ -562,7 +562,9 @@ TEST_F(Tier2TransactionTest, createInnTx_0) {
   size_t addr_count = keys_.CountWallets();
   Address inn_addr = keys_.getInnAddr();
 
-  unsigned int nonce_num = 10;
+  uint64_t nonce_num = GetMillisecondsSinceEpoch() + 1000011;
+  std::vector<byte> nonce_bin;
+  Uint64ToBin(nonce_num, nonce_bin);
 
   std::vector<Transfer> xfers;
   Transfer inn_transfer(inn_addr, 0, -1 * addr_count * (addr_count - 1) * nonce_num, 0);
@@ -571,8 +573,7 @@ TEST_F(Tier2TransactionTest, createInnTx_0) {
     Transfer transfer(keys_.getWalletAddr(i), 0, (addr_count - 1) * nonce_num, 0);
     xfers.push_back(transfer);
   }
-  Tier2Transaction inn_tx(eOpType::Create, xfers, GetMillisecondsSinceEpoch() +
-                              (1000000 * (nonce_num + 1)),
+  Tier2Transaction inn_tx(eOpType::Create, xfers, nonce_bin,
                           keys_.getKey(inn_addr), keys_);
 
   EXPECT_EQ(inn_tx.getOperation(), eOpType::Create);
@@ -586,10 +587,14 @@ TEST_F(Tier2TransactionTest, getOperation_0) {
   Transfer receiver(keys_.getWalletAddr(1), 0, nonce_num, 0);
   peer_xfers.push_back(receiver);
 
+  std::vector<byte> nonce_bin;
+  uint64_t nonce_num = GetMillisecondsSinceEpoch() + (1000000);
+  Uint64ToBin(nonce_num, nonce_bin);
+
   Tier2Transaction tx1(
       eOpType::Exchange,
       peer_xfers,
-      GetMillisecondsSinceEpoch() + (1000000),
+      nonce_bin,
       keys_.getWalletKey(0),
       keys_);
 
@@ -597,10 +602,13 @@ TEST_F(Tier2TransactionTest, getOperation_0) {
 }
 
 TEST_F(Tier2TransactionTest, op2_0) {
+  std::vector<byte> nonce_bin;
+  uint64_t nonce_num = GetMillisecondsSinceEpoch() + (1000000);
+  Uint64ToBin(nonce_num, nonce_bin);
   Tier2Transaction tx1(
               eOpType::Exchange,
               transfers_,
-              GetMillisecondsSinceEpoch() + (1000000),
+              nonce_bin,
               keys_.getWalletKey(0),
               keys_);
 
@@ -609,10 +617,13 @@ TEST_F(Tier2TransactionTest, op2_0) {
 
 
 TEST_F(Tier2TransactionTest, clone_0) {
+  std::vector<byte> nonce_bin;
+  uint64_t nonce_num = GetMillisecondsSinceEpoch();
+  Uint64ToBin(nonce_num, nonce_bin);
   Tier2Transaction tx1(
               eOpType::Exchange,
               transfers_,
-              GetMillisecondsSinceEpoch(),
+              nonce_bin,
               keys_.getWalletKey(0),
               keys_);
 
@@ -623,22 +634,41 @@ TEST_F(Tier2TransactionTest, clone_0) {
 
 TEST_F(Tier2TransactionTest, getNonce_0) {
   uint64_t nonce = 12345678;
+  std::vector<byte> nonce_bin;
+  Uint64ToBin(nonce, nonce_bin);
   Tier2Transaction tx1(
               eOpType::Exchange,
               transfers_,
-              nonce,
+              nonce_bin,
               keys_.getWalletKey(0),
               keys_);
+  size_t offset = 0;
+  uint64_t nonce_copy = BinToUint64(tx1.getNonce(), offset);
+  EXPECT_EQ(nonce, nonce_copy);
+}
 
-  EXPECT_EQ(nonce, tx1.getNonce());
+TEST_F(Tier2TransactionTest, getBigNonce_0) {
+  std::vector<byte> nonce_bin;
+  for (int i=0; i<256; ++i) {
+    nonce_bin.push_back((byte) i);
+  }
+  Tier2Transaction tx1(
+              eOpType::Exchange,
+              transfers_,
+              nonce_bin,
+              keys_.getWalletKey(0),
+              keys_);
+  EXPECT_EQ(nonce_bin, tx1.getNonce());
 }
 
 TEST_F(Tier2TransactionTest, isSound_0) {
   uint64_t nonce = 12345678;
+  std::vector<byte> nonce_bin;
+  Uint64ToBin(nonce, nonce_bin);
   Tier2Transaction tx1(
               eOpType::Exchange,
               transfers_,
-              nonce,
+              nonce_bin,
               keys_.getWalletKey(0),
               keys_);
 
@@ -647,10 +677,12 @@ TEST_F(Tier2TransactionTest, isSound_0) {
 
 TEST_F(Tier2TransactionTest, checkCanonical) {
   uint64_t nonce = 12345678;
+  std::vector<byte> nonce_bin;
+  Uint64ToBin(nonce, nonce_bin);
   Tier2Transaction tx1(
               eOpType::Exchange,
               transfers_,
-              nonce,
+              nonce_bin,
               keys_.getWalletKey(0),
               keys_);
 
@@ -658,10 +690,13 @@ TEST_F(Tier2TransactionTest, checkCanonical) {
 }
 
 TEST_F(Tier2TransactionTest, serdes_0) {
+  uint64_t nonce = GetMillisecondsSinceEpoch() + (100);
+  std::vector<byte> nonce_bin;
+  Uint64ToBin(nonce, nonce_bin);
   Tier2Transaction tx1(
               eOpType::Exchange,
               transfers_,
-              GetMillisecondsSinceEpoch() + (100),
+              nonce_bin,
               keys_.getWalletKey(0),
               keys_);
 
@@ -672,9 +707,12 @@ TEST_F(Tier2TransactionTest, serdes_0) {
 }
 
 TEST_F(Tier2TransactionTest, serdes_1) {
+  uint64_t nonce = GetMillisecondsSinceEpoch() + (100);
+  std::vector<byte> nonce_bin;
+  Uint64ToBin(nonce, nonce_bin);
   Tier2Transaction tx1(
               eOpType::Exchange, transfers_,
-              GetMillisecondsSinceEpoch() + (100),
+              nonce_bin,
               keys_.getWalletKey(0), keys_);
 
   InputBuffer buffer(tx1.getCanonical());
@@ -712,9 +750,12 @@ TEST(Primitives, getCanonical0) {
     exit(-1);
   }
 
+  uint64_t nonce = GetMillisecondsSinceEpoch() + (100);
+  std::vector<byte> nonce_bin;
+  Uint64ToBin(nonce, nonce_bin);
   Tier2Transaction tx1(
               eOpType::Exchange, xfers,
-              GetMillisecondsSinceEpoch() + (100),
+              nonce_bin,
               keys.getWalletKey(1), keys);
 
   InputBuffer buffer2(tx1.getCanonical());

@@ -97,9 +97,9 @@ class Tier2Transaction : public Transaction {
    */
   std::vector<byte> getNonce() const {
 	std::vector<byte> nonce(canonical_.begin()
-	  + (EnvelopeSize() + xfer_count_ * Transfer::Size())
+	    + (EnvelopeSize() + xfer_count_ * Transfer::Size())
 	  , canonical_.begin()
-	  + (EnvelopeSize() + xfer_count_ * Transfer::Size() + nonce_size_));
+	    + (EnvelopeSize() + xfer_count_ * Transfer::Size() + nonce_size_));
     return nonce;
   }
 
