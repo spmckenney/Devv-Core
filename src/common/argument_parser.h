@@ -83,7 +83,7 @@ std::unique_ptr<struct devcash_options> ParseDevcashOptions(int argc, char** arg
               vm);
 
     if (vm.count("help")) {
-      std::cout << all_options << "\n";
+      LOG_INFO << all_options;
       return nullptr;
     }
 
@@ -96,7 +96,7 @@ std::unique_ptr<struct devcash_options> ParseDevcashOptions(int argc, char** arg
         std::ifstream ifs(config_filenames[i].c_str());
         if(ifs.fail())
         {
-          std::cerr << "Error opening config file: " << config_filenames[i] << std::endl;
+          LOG_ERROR << "Error opening config file: " << config_filenames[i];
           return nullptr;
         }
         po::store(po::parse_config_file(ifs, all_options), vm);
