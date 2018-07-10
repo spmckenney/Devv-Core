@@ -611,7 +611,7 @@ TEST_F(Tier2TransactionTest, op2_0) {
               keys_.getWalletKey(0),
               keys_);
 
-  EXPECT_EQ(tx1.getByteSize(), 203);
+  EXPECT_EQ(tx1.getByteSize(), 211);
 }
 
 
