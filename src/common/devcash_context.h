@@ -23,6 +23,8 @@ static const int kVALIDATION_PERCENT = 51;
 
 static const unsigned int kSYNC_PORT_BASE = 55330;
 
+enum eDebugMode {off, on, toy, perf};
+
 struct DevcashContext {
 
   /**
