@@ -23,11 +23,27 @@ void Tier2Transaction::Fill(Tier2Transaction& tx,
   }
   /// Don't increment the buffer, we want to copy it all to canonical_
   tx.xfer_count_ = buffer.getNextUint64(false);
-  size_t tx_size = MinSize() + (Transfer::Size() * tx.xfer_count_);
+  tx.nonce_size_ = buffer.getSecondUint64(false);
+
+  if (tx.nonce_size_ < minNonceSize()) {
+    std::stringstream ss;
+    std::vector<byte> prefix(buffer.getCurrentIterator()
+        , buffer.getCurrentIterator() + 8);
+    ss << "Invalid serialized T2 transaction, bad nonce size ("
+        + std::to_string(tx.nonce_size_) + ")!";
+    ss << "Transaction prefix: " + ToHex(prefix);
+    ss << "Bytes offset: " + std::to_string(buffer.getOffset());
+    throw DeserializationError(ss.str());
+  }
+
+  size_t tx_size = MinSize() + (Transfer::Size() * tx.xfer_count_)
+                             + tx.nonce_size_;
   if (buffer.size() < buffer.getOffset() + tx_size) {
     std::stringstream ss;
-    std::vector<byte> prefix(buffer.getCurrentIterator(), buffer.getCurrentIterator() + 8);
-    ss << "Invalid serialized T2 transaction, wrong size (" + std::to_string(tx_size) + ")!";
+    std::vector<byte> prefix(buffer.getCurrentIterator()
+        , buffer.getCurrentIterator() + 8);
+    ss << "Invalid serialized T2 transaction, wrong size ("
+        + std::to_string(tx_size) + ")!";
     ss << "Transaction prefix: " + ToHex(prefix);
     ss << "Bytes offset: " + std::to_string(buffer.getOffset());
     throw DeserializationError(ss.str());
@@ -36,7 +52,8 @@ void Tier2Transaction::Fill(Tier2Transaction& tx,
   buffer.copy(std::back_inserter(tx.canonical_), tx_size);
 
   if (tx.getOperation() > 3) {
-    LOG_WARNING << "Invalid serialized T2 transaction, invalid operation! (" << tx.getOperation() << ")";
+    LOG_WARNING << "Invalid serialized T2 transaction, invalid operation! ("
+                << tx.getOperation() << ")";
     return;
   }
   MTR_STEP("Transaction", "Transaction", &trace_int, "sound");
@@ -60,7 +77,8 @@ Tier2Transaction Tier2Transaction::Create(InputBuffer& buffer,
 
 Tier2TransactionPtr Tier2Transaction::CreateUniquePtr(InputBuffer& buffer,
                                                       const KeyRing& keys,
-                                                      bool calculate_soundness) {
+                                                      bool calculate_soundness)
+{
   auto tx = std::make_unique<Tier2Transaction>();
   Tier2Transaction::Fill(*tx, buffer, keys, calculate_soundness);
   return tx;

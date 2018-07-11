@@ -50,7 +50,7 @@ class DCVote : public oracleInterface {
    * @return true iff the transaction can be valid according to this oracle
    * @return false otherwise
    */
-  bool isSound(Transaction& checkTx) override;
+  bool isSound(Tier2Transaction& checkTx) override;
 
   /** Checks if a transaction is valid according to this oracle
    *  given a specific chain state.
@@ -65,7 +65,7 @@ class DCVote : public oracleInterface {
    * @return true iff the transaction is valid according to this oracle
    * @return false otherwise
    */
-  bool isValid(Transaction& checkTx, const ChainState& context) override;
+  bool isValid(Tier2Transaction& checkTx, const ChainState& context) override;
 
 /** Generate a tier 1 smartcoin transaction based on this tier 2 transaction.
  *

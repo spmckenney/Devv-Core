@@ -185,21 +185,6 @@ static int char2int(char in) {
   return(-1);
 }
 
-/** Maps a hex string into a byte vector for CBOR parsing.
- *  @param hex a string of hex digits encoding a CBOR message.
- *  @return a byte vector of the same data in binary form.
-*/
-static std::vector<uint8_t> hex2CBOR(std::string hex) {
-  MTR_SCOPE_FUNC();
-  int len = hex.length();
-  std::vector<uint8_t> buf(len/2+1);
-  for (int i=0;i<len/2;i++) {
-    buf.at(i) = (uint8_t) char2int(hex.at(i*2))*16+char2int(hex.at(1+i*2));
-  }
-  buf.pop_back(); //remove null terminator
-  return(buf);
-}
-
 template<typename T, typename ...Args>
 std::unique_ptr<T> make_unique( Args&& ...args )
 {

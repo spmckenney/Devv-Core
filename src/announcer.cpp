@@ -124,8 +124,7 @@ int main(int argc, char* argv[]) {
           const Summary &sum = one_block.getSummary();
           Validation val(one_block.getValidation());
           std::pair<Address, Signature> pair(val.getFirstValidation());
-          int index = keys.getNodeIndex(pair.first);
-          Tier1Transaction tx(sum, pair.second, (uint64_t) index, keys);
+          Tier1Transaction tx(sum, pair.second, pair.first, keys);
           std::vector<byte> tx_canon(tx.getCanonical());
           batch.insert(batch.end(), tx_canon.begin(), tx_canon.end());
           input_blocks_++;

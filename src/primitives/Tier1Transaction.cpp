@@ -18,17 +18,15 @@ void Tier1Transaction::Fill(Tier1Transaction& tx,
   MTR_START("Transaction", "Transaction", &trace_int);
   MTR_STEP("Transaction", "Transaction", &trace_int, "step1");
 
-  buffer.copy(std::back_inserter(tx.canonical_), 8);
-  buffer.copy(std::back_inserter(tx.canonical_), 8, false);
-  tx.sum_size_ = buffer.getNextUint64();
-
-  MTR_STEP("Transaction", "Transaction", &trace_int, "step2");
-  if (buffer.size() < buffer.getOffset() + tx.sum_size_ + kSIG_SIZE) {
+  tx.sum_size_ = buffer.getNextUint64(false);
+  size_t tx_size = tx.sum_size_ + kSIG_SIZE + uint64Size() + kADDR_SIZE;
+  if (buffer.size() < buffer.getOffset() + tx_size) {
     LOG_WARNING << "Invalid serialized T1 transaction, too small!";
     return;
   }
 
-  buffer.copy(std::back_inserter(tx.canonical_), tx.sum_size_ + kSIG_SIZE);
+  MTR_STEP("Transaction", "Transaction", &trace_int, "step2");
+  buffer.copy(std::back_inserter(tx.canonical_), tx_size);
 
   MTR_STEP("Transaction", "Transaction", &trace_int, "sound");
   if (calculate_soundness) {

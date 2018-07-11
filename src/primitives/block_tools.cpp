@@ -34,8 +34,8 @@ bool IsTxData(const std::vector<byte>& raw) {
   return true;
 }
 
-bool CompareChainStateMaps(const std::map<Address, std::map<uint64_t, uint64_t>>& first,
-                           const std::map<Address, std::map<uint64_t, uint64_t>>& second) {
+bool CompareChainStateMaps(const std::map<Address, std::map<uint64_t, int64_t>>& first,
+                           const std::map<Address, std::map<uint64_t, int64_t>>& second) {
   if (first.size() != second.size()) { return false; }
   for (auto i = first.begin(), j = second.begin(); i != first.end(); ++i, ++j) {
     if (i->first != j->first) { return false; }
@@ -48,7 +48,7 @@ bool CompareChainStateMaps(const std::map<Address, std::map<uint64_t, uint64_t>>
   return true;
 }
 
-std::string WriteChainStateMap(const std::map<Address, std::map<uint64_t, uint64_t>>& map) {
+std::string WriteChainStateMap(const std::map<Address, std::map<uint64_t, int64_t>>& map) {
   std::string out("{");
   bool first_addr = true;
   for (auto e : map) {

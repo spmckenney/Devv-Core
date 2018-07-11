@@ -38,11 +38,11 @@ class Tier1Transaction : public Transaction {
 
     sum_size_ = buffer.getNextUint64(false);
     buffer.copy(std::back_inserter(canonical_)
-      , sum_size_ + kSIG_SIZE + minNonceSize()*2);
+      , sum_size_ + kSIG_SIZE + uint64Size() + kADDR_SIZE);
 
     MTR_STEP("Transaction", "Transaction", &trace_int, "step2");
     if (buffer.size() < buffer.getOffset()
-                        + sum_size_ + kSIG_SIZE + minNonceSize()*2) {
+                        + sum_size_ + kSIG_SIZE + uint64Size() + kADDR_SIZE) {
       LOG_WARNING << "Invalid serialized T1 transaction, too small!";
       return;
     }
@@ -66,18 +66,18 @@ class Tier1Transaction : public Transaction {
    */
   Tier1Transaction(const Summary& summary,
                    const Signature& sig,
-                   uint64_t nonce,
+                   const Address& node_addr,
                    const KeyRing& keys)
-      : Transaction(0, false), sum_size_(summary.getByteSize()) {
+      : Transaction(false), sum_size_(summary.getByteSize()) {
     if (!summary.isSane()) {
       LOG_WARNING << "Serialized T1 transaction has bad summary!";
     }
     sum_size_ = summary.getByteSize();
-    canonical_.reserve(sum_size_ + minNonceSize()*2 + kSIG_SIZE);
+    canonical_.reserve(sum_size_ + uint64Size() + kSIG_SIZE + kADDR_SIZE);
     Uint64ToBin(sum_size_, canonical_);
     std::vector<byte> sum_canon(summary.getCanonical());
     canonical_.insert(std::end(canonical_), std::begin(sum_canon), std::end(sum_canon));
-    Uint64ToBin(nonce, canonical_);
+    canonical_.insert(std::end(canonical_), std::begin(node_addr), std::end(node_addr));
     canonical_.insert(std::end(canonical_), std::begin(sig), std::end(sig));
     is_sound_ = isSound(keys);
     if (!is_sound_) {
@@ -109,7 +109,20 @@ class Tier1Transaction : public Transaction {
   /// Declare make_unique<>() as a friend
   friend std::unique_ptr<Tier1Transaction> std::make_unique<Tier1Transaction>();
 
+  /**
+   * Get the node address of the T2 validator that signed this transaction.
+   * @return node address
+   */
+  Address getNodeAddress() const {
+    Address node_addr;
+    std::copy_n(canonical_.begin()+sum_size_+uint64Size(), kADDR_SIZE, node_addr.begin());
+    return node_addr;
+  }
+
  private:
+  //The size of this Transaction's canonical summary
+  uint64_t sum_size_ = 0;
+
   /**
    * Private default constructor
    */
@@ -126,15 +139,10 @@ class Tier1Transaction : public Transaction {
    */
   std::vector<byte> do_getMessageDigest() const {
     /// @todo(spm) does this have to be a copy?
-    std::vector<byte> md(canonical_.begin() + 16, canonical_.begin() + sum_size_ + 16);
+    std::vector<byte> md(canonical_.begin() + uint64Size()
+      , canonical_.begin() + sum_size_ + uint64Size());
     return md;
   }
-
-  /**
-   * Returns 0 - doesn't apply to Tier1Transactions
-   * @return
-   */
-  byte do_getOperation() const override { return (byte)0; }
 
   /**
    * Gets a vector of Transfers
@@ -148,22 +156,14 @@ class Tier1Transaction : public Transaction {
   }
 
   /**
-   * Get the nonce of this Transaction
-   * @return nonce
-   */
-  uint64_t do_getNonce() const {
-    size_t offset = transferOffset();
-    return BinToUint64(canonical_, offset+sum_size_);
-  }
-
-  /**
    * Get a copy of the Signature of this Transaction
    * @return Signature
    */
   Signature do_getSignature() const {
     //Signature should be immutable so copy on request
     Signature sig;
-    std::copy_n(canonical_.begin() + sum_size_ + 16, kSIG_SIZE, sig.begin());
+    std::copy_n(canonical_.begin() + sum_size_ + uint64Size()*2
+      , kSIG_SIZE, sig.begin());
     return sig;
   }
 
@@ -189,25 +189,25 @@ class Tier1Transaction : public Transaction {
    */
   bool do_isSound(const KeyRing& keys) const override {
     MTR_SCOPE_FUNC();
-    CASH_TRY {
+    try {
       if (is_sound_) { return (is_sound_); }
 
-      /// @todo(mckenney) auto node_index
-      int node_index = getNonce();
-      EC_KEY* eckey(keys.getNodeKey(node_index));
+      Address node_addr = getNodeAddress();
+      EC_KEY* eckey(keys.getKey(node_addr));
       std::vector<byte> msg(getMessageDigest());
       Signature sig = getSignature();
 
       if (!VerifyByteSig(eckey, DevcashHash(msg), sig)) {
         LOG_WARNING << "Error: T1 transaction signature did not validate.\n";
         LOG_DEBUG << "Transaction state is: " + getJSON();
-        LOG_DEBUG << "Node index is: " + std::to_string(node_index);
+        LOG_DEBUG << "Node address is: " + ToHex(node_addr);
         LOG_DEBUG << "Signature is: " + ToHex(std::vector<byte>(std::begin(sig), std::end(sig)));
         return false;
       }
       return true;
+    } catch (const std::exception& e) {
+      LOG_WARNING << FormatException(&e, "transaction");
     }
-    CASH_CATCH(const std::exception& e) { LOG_WARNING << FormatException(&e, "transaction"); }
     return false;
   }
 
@@ -221,7 +221,7 @@ class Tier1Transaction : public Transaction {
    * @return false otherwise
    */
   bool do_isValid(ChainState& state, const KeyRing& keys, Summary& summary) const override {
-    CASH_TRY {
+    try {
       if (!isSound(keys)) { return false; }
 
       std::vector<TransferPtr> xfers = getTransfers();
@@ -235,7 +235,9 @@ class Tier1Transaction : public Transaction {
       }
       return true;
     }
-    CASH_CATCH(const std::exception& e) { LOG_WARNING << FormatException(&e, "transaction"); }
+    catch (const std::exception& e) {
+      LOG_WARNING << FormatException(&e, "transaction");
+    }
     return false;
   }
 
@@ -244,19 +246,19 @@ class Tier1Transaction : public Transaction {
    * @return a JSON string representing this transaction.
    */
   std::string do_getJSON() const {
-    size_t offset = transferOffset();
+    size_t offset = uint64Size();
     InputBuffer buffer(canonical_, offset);
     Summary summary(Summary::Create(buffer));
-    std::string json("{\"" + kSUMMARY_TAG + "\":");
+    std::string json("{\"" + kSUM_SIZE_TAG + "\":");
     json += std::to_string(sum_size_) + ",";
-    json += "\"" + kOPER_TAG + "\":" + std::to_string(getOperation()) + ",";
-    json += "\"" + kXFER_TAG + "\":[";
+    json += "\"" + kSUMMARY_TAG + "\":[";
     json += "{\"" + kADDR_SIZE_TAG + "\":";
     auto summary_map = summary.getSummaryMap();
     uint64_t addr_size = summary_map.size();
-    json += std::to_string(addr_size) + ",summary:[";
+    json += std::to_string(addr_size) + ",\""+kSUMMARY_TAG+"\":[";
     for (auto summary : summary_map) {
-      json += "\"" + ToHex(std::vector<byte>(std::begin(summary.first), std::end(summary.first))) + "\":[";
+      json += "\"" + ToHex(std::vector<byte>(std::begin(summary.first)
+        , std::end(summary.first))) + "\":[";
       SummaryPair top_pair(summary.second);
       DelayedMap delayed(top_pair.first);
       CoinMap coin_map(top_pair.second);
@@ -290,13 +292,12 @@ class Tier1Transaction : public Transaction {
       json += "]";
     }
     json += "]}";
-    json += "],\"" + kNONCE_TAG + "\":" + std::to_string(getNonce()) + ",";
+    json += "],\"" + kVALIDATOR_DEX_TAG + "\":" + ToHex(getNodeAddress()) + ",";
     Signature sig = getSignature();
     json += "\"" + kSIG_TAG + "\":\"" + ToHex(std::vector<byte>(std::begin(sig), std::end(sig))) + "\"}";
     return json;
   }
 
-  uint64_t sum_size_ = 0;
 };
 
 typedef std::unique_ptr<Tier1Transaction> Tier1TransactionPtr;

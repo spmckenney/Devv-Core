@@ -214,8 +214,7 @@ bool HandleBlocksSinceRequest(DevcashMessageUniquePtr ptr,
       Summary sum = Summary::Copy(one_block.getSummary());
       Validation val(one_block.getValidation());
       std::pair<Address, Signature> pair(val.getFirstValidation());
-      int index = keys.getNodeIndex(pair.first);
-      Tier1Transaction tx(sum, pair.second, (uint64_t) index, keys);
+      Tier1Transaction tx(sum, pair.second, pair.first, keys);
       std::vector<byte> tx_canon(tx.getCanonical());
       tier1_data.insert(tier1_data.end(), tx_canon.begin(), tx_canon.end());
     }

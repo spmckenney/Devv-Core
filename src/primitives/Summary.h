@@ -33,7 +33,7 @@ struct DelayedItem {
    * @param delay
    * @param delta
    */
-  explicit DelayedItem(uint64_t delay = 0, uint64_t delta = 0)
+  explicit DelayedItem(uint64_t delay = 0, int64_t delta = 0)
       : delay(delay), delta(delta) {}
 
   /// The delay of this item
@@ -47,7 +47,7 @@ static const std::string kDELAY_SIZE_TAG = "delay_size";
 static const std::string kCOIN_SIZE_TAG = "coin_size";
 
 typedef std::map<uint64_t, DelayedItem> DelayedMap;
-typedef std::map<uint64_t, uint64_t> CoinMap;
+typedef std::map<uint64_t, int64_t> CoinMap;
 typedef std::pair<DelayedMap, CoinMap> SummaryPair;
 typedef std::map<Address, SummaryPair> SummaryMap;
 
@@ -84,7 +84,7 @@ inline bool AddToCoinMap(uint64_t coin, const DelayedItem& item, CoinMap& existi
     the_item += item.delta;
     existing.at(coin) = the_item;
   } else {
-    std::pair<uint64_t, uint64_t> one_item(coin, item.delta);
+    std::pair<uint64_t, int64_t> one_item(coin, item.delta);
     existing.insert(one_item);
   }
   return true;
@@ -164,7 +164,7 @@ class Summary {
         std::pair<uint64_t, DelayedItem> new_pair(coin, item);
         new_delayed.insert(new_pair);
       } else {
-        std::pair<uint64_t, uint64_t> new_pair(coin, item.delta);
+        std::pair<uint64_t, int64_t> new_pair(coin, item.delta);
         new_map.insert(new_pair);
       }
       SummaryPair new_summary(new_delayed, new_map);
@@ -181,7 +181,7 @@ class Summary {
    * @param[in] delay the delay in seconds before this transaction can be received
    * @return true iff the summary was added
    */
-  bool addItem(const Address& addr, uint64_t coin_type, uint64_t delta, uint64_t delay = 0) {
+  bool addItem(const Address& addr, uint64_t coin_type, int64_t delta, uint64_t delay = 0) {
     DelayedItem item(delay, delta);
     return addItem(addr, coin_type, item);
   }
@@ -208,11 +208,11 @@ class Summary {
       for (auto delayed_item : delayed) {
         Uint64ToBin(delayed_item.first, out);
         Uint64ToBin(delayed_item.second.delay, out);
-        Uint64ToBin(delayed_item.second.delta, out);
+        Int64ToBin(delayed_item.second.delta, out);
       }
       for (auto coin : coin_map) {
         Uint64ToBin(coin.first, out);
-        Uint64ToBin(coin.second, out);
+        Int64ToBin(coin.second, out);
       }
     }
     return out;

@@ -32,7 +32,7 @@ class SmartCoin {
    * @param coin
    * @param amount
    */
-  SmartCoin(const Address& addr, uint64_t coin, uint64_t amount = 0)
+  SmartCoin(const Address& addr, uint64_t coin, int64_t amount = 0)
       : addr_(addr), coin_(coin), amount_(amount) {}
 
  public:
@@ -67,14 +67,14 @@ class SmartCoin {
    *
    * @return
    */
-  uint64_t getAmount() const {
+  int64_t getAmount() const {
     return amount_;
   }
   /**
    *
    * @param amount_
    */
-  void setAmount(uint64_t amount) {
+  void setAmount(int64_t amount) {
     amount_ = amount;
   }
 
@@ -84,7 +84,7 @@ class SmartCoin {
   /// Coin
   uint64_t coin_;
   /// Amount
-  uint64_t amount_ = 0;
+  int64_t amount_ = 0;
 };
 
 }  // end namespace Devcash

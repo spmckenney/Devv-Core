@@ -37,7 +37,6 @@ static const std::string kMERKLE_TAG = "merkle";
 static const std::string kBYTES_TAG = "bytes";
 static const std::string kTIME_TAG = "time";
 static const std::string kTX_SIZE_TAG = "txlen";
-static const std::string kSUM_SIZE_TAG = "sumlen";
 static const std::string kVAL_COUNT_TAG = "vcount";
 static const std::string kTXS_TAG = "txs";
 static const std::string kSUM_TAG = "sum";

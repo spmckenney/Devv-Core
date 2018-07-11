@@ -78,8 +78,11 @@ int main(int argc, char* argv[]) {
         , (addr_count-1)*options->tx_limit, 0);
       xfers.push_back(transfer);
     }
-    Tier2Transaction inn_tx(eOpType::Create, xfers, GetMillisecondsSinceEpoch() +
-                            (1000000 * (options->node_index + 1) * (options->tx_limit + 1)),
+    uint64_t nonce = GetMillisecondsSinceEpoch() + (1000000
+                     * (options->node_index + 1) * (options->tx_limit + 1));
+	std::vector<byte> nonce_bin;
+    Uint64ToBin(nonce, nonce_bin);
+    Tier2Transaction inn_tx(eOpType::Create, xfers, nonce_bin,
                             keys.getKey(inn_addr), keys);
     std::vector<byte> inn_canon(inn_tx.getCanonical());
     out.insert(out.end(), inn_canon.begin(), inn_canon.end());
@@ -96,9 +99,11 @@ int main(int argc, char* argv[]) {
           peer_xfers.push_back(sender);
           Transfer receiver(keys.getWalletAddr(j), 0, amount, 0);
           peer_xfers.push_back(receiver);
+          nonce = GetMillisecondsSinceEpoch() + (1000000
+                     * (options->node_index + 1) * (i + 1) * (j + 1));
+          Uint64ToBin(nonce, nonce_bin);
           Tier2Transaction peer_tx(
-              eOpType::Exchange, peer_xfers,
-              GetMillisecondsSinceEpoch() + (1000000 * (options->node_index + 1) * (i + 1) * (j + 1)),
+              eOpType::Exchange, peer_xfers, nonce_bin,
               keys.getWalletKey(i), keys);
           std::vector<byte> peer_canon(peer_tx.getCanonical());
           out.insert(out.end(), peer_canon.begin(), peer_canon.end());
