@@ -38,11 +38,11 @@ class Tier1Transaction : public Transaction {
 
     sum_size_ = buffer.getNextUint64(false);
     buffer.copy(std::back_inserter(canonical_)
-      , sum_size_ + kSIG_SIZE + uint64Size()*2);
+      , sum_size_ + kSIG_SIZE + uint64Size() + kADDR_SIZE);
 
     MTR_STEP("Transaction", "Transaction", &trace_int, "step2");
     if (buffer.size() < buffer.getOffset()
-                        + sum_size_ + kSIG_SIZE + uint64Size()*2) {
+                        + sum_size_ + kSIG_SIZE + uint64Size() + kADDR_SIZE) {
       LOG_WARNING << "Invalid serialized T1 transaction, too small!";
       return;
     }
@@ -66,18 +66,18 @@ class Tier1Transaction : public Transaction {
    */
   Tier1Transaction(const Summary& summary,
                    const Signature& sig,
-                   uint64_t node_dex,
+                   const Address& node_addr,
                    const KeyRing& keys)
       : Transaction(false), sum_size_(summary.getByteSize()) {
     if (!summary.isSane()) {
       LOG_WARNING << "Serialized T1 transaction has bad summary!";
     }
     sum_size_ = summary.getByteSize();
-    canonical_.reserve(sum_size_ + uint64Size()*2 + kSIG_SIZE);
+    canonical_.reserve(sum_size_ + uint64Size() + kSIG_SIZE + kADDR_SIZE);
     Uint64ToBin(sum_size_, canonical_);
     std::vector<byte> sum_canon(summary.getCanonical());
     canonical_.insert(std::end(canonical_), std::begin(sum_canon), std::end(sum_canon));
-    Uint64ToBin(node_dex, canonical_);
+    canonical_.insert(std::end(canonical_), std::begin(node_addr), std::end(node_addr));
     canonical_.insert(std::end(canonical_), std::begin(sig), std::end(sig));
     is_sound_ = isSound(keys);
     if (!is_sound_) {
@@ -113,9 +113,12 @@ class Tier1Transaction : public Transaction {
    * Get the node index of the T2 validator that signed this transaction.
    * @return node index
    */
-  uint64_t getNodeIndex() const {
+  Address getNodeAddress() const {
     size_t offset = transferOffset();
-    return BinToUint64(canonical_, offset+sum_size_+uint64Size());
+    Address node_addr;
+    std::copy_n(node_addr.begin(), kADDR_SIZE
+               , canonical.begin()+sum_size_+uint64Size());
+    return node_addr;
   }
 
  private:
@@ -191,8 +194,8 @@ class Tier1Transaction : public Transaction {
     try {
       if (is_sound_) { return (is_sound_); }
 
-      int node_index = getNodeIndex();
-      EC_KEY* eckey(keys.getNodeKey(node_index));
+      Address node_addr = getNodeAddress();
+      EC_KEY* eckey(keys.getKey(node_addr));
       std::vector<byte> msg(getMessageDigest());
       Signature sig = getSignature();
 
