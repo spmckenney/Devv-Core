@@ -28,12 +28,12 @@ bool IsTxData(const std::vector<byte>& raw);
  * @return true if the maps have the same state
  * @return false otherwise
  */
-bool CompareChainStateMaps(const std::map<Address, std::map<uint64_t, uint64_t>>& first,
-                           const std::map<Address, std::map<uint64_t, uint64_t>>& second);
+bool CompareChainStateMaps(const std::map<Address, std::map<uint64_t, int64_t>>& first,
+                           const std::map<Address, std::map<uint64_t, int64_t>>& second);
 
 /** Dumps the map inside a chainstate object into a human-readable JSON format.
  * @return a string containing a description of the chain state.
  */
-std::string WriteChainStateMap(const std::map<Address, std::map<uint64_t, uint64_t>>& map);
+std::string WriteChainStateMap(const std::map<Address, std::map<uint64_t, int64_t>>& map);
 
 } // namespace Devcash
