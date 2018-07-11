@@ -68,12 +68,12 @@ public:
 /** Get the map describing this chain state
  *  @return tre map describing this chain state
 */
-  std::map<Address, std::map<uint64_t, uint64_t>> getStateMap() {
+  std::map<Address, std::map<uint64_t, int64_t>> getStateMap() {
     return state_map_;
   }
 
 private:
- std::map<Address, std::map<uint64_t, uint64_t>> state_map_;
+ std::map<Address, std::map<uint64_t, int64_t>> state_map_;
 };
 
 } //namespace Devcash
