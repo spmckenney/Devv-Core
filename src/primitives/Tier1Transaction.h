@@ -110,14 +110,12 @@ class Tier1Transaction : public Transaction {
   friend std::unique_ptr<Tier1Transaction> std::make_unique<Tier1Transaction>();
 
   /**
-   * Get the node index of the T2 validator that signed this transaction.
-   * @return node index
+   * Get the node address of the T2 validator that signed this transaction.
+   * @return node address
    */
   Address getNodeAddress() const {
-    size_t offset = transferOffset();
     Address node_addr;
-    std::copy_n(node_addr.begin(), kADDR_SIZE
-               , canonical.begin()+sum_size_+uint64Size());
+    std::copy_n(canonical_.begin()+sum_size_+uint64Size(), kADDR_SIZE, node_addr.begin());
     return node_addr;
   }
 
@@ -202,7 +200,7 @@ class Tier1Transaction : public Transaction {
       if (!VerifyByteSig(eckey, DevcashHash(msg), sig)) {
         LOG_WARNING << "Error: T1 transaction signature did not validate.\n";
         LOG_DEBUG << "Transaction state is: " + getJSON();
-        LOG_DEBUG << "Node index is: " + std::to_string(node_index);
+        LOG_DEBUG << "Node address is: " + ToHex(node_addr);
         LOG_DEBUG << "Signature is: " + ToHex(std::vector<byte>(std::begin(sig), std::end(sig)));
         return false;
       }
@@ -294,7 +292,7 @@ class Tier1Transaction : public Transaction {
       json += "]";
     }
     json += "]}";
-    json += "],\"" + kVALIDATOR_DEX_TAG + "\":" + std::to_string(getNodeIndex()) + ",";
+    json += "],\"" + kVALIDATOR_DEX_TAG + "\":" + ToHex(getNodeAddress()) + ",";
     Signature sig = getSignature();
     json += "\"" + kSIG_TAG + "\":\"" + ToHex(std::vector<byte>(std::begin(sig), std::end(sig))) + "\"}";
     return json;
