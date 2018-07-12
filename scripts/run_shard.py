@@ -1,120 +1,95 @@
 #!/usr/bin/python3
+'''
+Usage:
+  ./run_shard.py config_file output_dir
+Example:
+  ./run_shard.py ../../my_config.txt /tmp/output
+
+Creates an X node shard on localhost. Each node will read the config file for
+default options. The nodes will be connected to each other and each will also
+open a connection to an announcer at "tcp://localhost:(announcer_base_port + node_num).
+'''
 
 import sys
 import os
 import time
 import subprocess
 
-#nodes=['node0', 'node1', 'node2']
 nodes=['localhost',
-       'localhost',
-       'localhost',
-       'localhost',
-       'localhost',
-       'localhost',
-       'localhost',
        'localhost',
        'localhost']
 
-sync_host="devcash"
-nodes_per_shard=3
-num_t2_shards=2
-debug_mode="off"
-num_threads=1
-proto="tcp"
+announce_node='localhost'
+
+start_processes = True
+run_in_charliecloud = False
+
+num_nodes = len(nodes)
+num_t2_shards=1
 base_port = 56550
-sync_base_port = sys.argv[2]
-trace_file="trace_file"
-num_t2_transactions=1000
-tx_batch_size=20
-gdb="gdb -ex run --args"
-#scan_dir="/home/spmckenney/run-14/shard-1"
-scan_dir="/home/spmckenney/dmnt/nicks/r1"
-key_dir= "/home/spmckenney/dmnt/nicks/keys"
+announcer_base_port = 57550
 
-log_dir = sys.argv[1]
+config_file = sys.argv[1]
+log_dir = sys.argv[2]
 
-if len(nodes) < 3:
+if num_nodes < 3:
     print("Error, number of nodes must be >= 3")
 
 bind_port = []
 node_target = []
-for i in range(len(nodes)):
-    bind_port.append(proto+"://*:"+str(base_port+i))
-    node_target.append(proto+"://"+nodes[i]+":"+str(base_port+i))
-
+output_file = []
+for i in range(num_nodes):
+    bind_port.append("tcp://*:"+str(base_port+i))
+    node_target.append("tcp://"+nodes[i]+":"+str(base_port+i))
+    output_file.append(os.path.join(log_dir, "devvnode_output"+str(i)+".log"))
 
 host_list = []
-for i in range(len(nodes)):
+for i in range(num_nodes):
     host_list.append([])
-    shard_index=int(i / nodes_per_shard)
-    node_index=int(i % nodes_per_shard)
+    #node_index=i
     for index, node in enumerate(nodes):
         # skip self
         if (index == i):
             continue
-        # skip when neither shards nor indices match
-        if ((shard_index != int(index / nodes_per_shard))
-            and (node_index != int(index % nodes_per_shard))):
-            continue
-        # skip if both shards are T2 and different shards
-        if ((shard_index > 0) and (int(index / nodes_per_shard) > 0)):
-            if (shard_index != int(index / nodes_per_shard)):
-                continue
         host_list[i].append(node_target[index])
 
 
 cmds = []
 for i in range(len(nodes)):
-    shard_index = int(i / nodes_per_shard)
     cmds.append([])
     cmd = cmds[i]
-    #cmd.append("ch-run")
-    #cmd.append("/z/c-cloud/dirs/x86_64-ubuntu16.04-devcash-v021")
-    #cmd.append("--")
-    cmd.append(gdb + " ./devcash")
-    cmd.extend(["--node-index", str(i % nodes_per_shard)])
-    cmd.extend(["--shard-index", str(shard_index)])
-    cmd.extend(["--debug-mode", debug_mode])
-    cmd.extend(["--mode", "T2" if i > 2 else "T1"])
-    cmd.extend(["--num-consensus-threads", str(num_threads)])
-    cmd.extend(["--num-validator-threads", str(num_threads)])
+    if run_in_charliecloud:
+        cmd.append("ch-run")
+        cmd.append("/z/c-cloud/dirs/x86_64-ubuntu16.04-devcash-v028")
+        cmd.append("--")
+    cmd.append("./devcash")
+    # set node index
+    cmd.extend(["--node-index", str(i)])
+    # add config file
+    cmd.extend(["--config", config_file])
+    # connect to each node
     for host in host_list[i]:
         cmd.extend(["--host-list", host])
-    cmd.extend(["--sync-host", sync_host])
-    cmd.extend(["--sync-port", int(sync_base_port)+i])
-    cmd.extend(["--output", os.path.join(log_dir,"output_"+str(i)+".dat")])
-    cmd.extend(["--trace-output", os.path.join(log_dir,"trace_"+str(i)+".json")])
-    if shard_index > 0:
-        cmd.extend(["--generate-tx", str(num_t2_transactions)])
-        cmd.extend(["--tx-batch-size", str(tx_batch_size)])
-        cmd.extend(["--tx-limit", str(num_t2_transactions * num_t2_shards * nodes_per_shard)])
-    else:
-        cmd.extend(["--scan-dir", scan_dir])
-        cmd.extend(["--tx-limit", str(100)])
+    # connect to announcer
+    cmd.extend(["--host-list", "tcp://"+announce_node+":"+str(announcer_base_port+i)])
+    # bind for incoming connections
     cmd.extend(["--bind-endpoint", bind_port[i]])
-    cmd.extend(["--inn-keys", os.path.join(key_dir,"inn.key")])
-    cmd.extend(["--node-keys", os.path.join(key_dir,"node.key")])
-    cmd.extend(["--wallet-keys", os.path.join(key_dir,"wallet.key")])
-
-cmds.append(["synchronize_devcash_nodes.py", "3"])
 
 #############################
 
 ps = []
-for cmd in cmds:
-    #for i in cmd:
-    #    print("{} ".format(i))
-    print("")
-    print(*cmd)
-    #ps.append(subprocess.Popen(cmd))
-    #time.sleep(1.5)
+for index,cmd in enumerate(cmds):
+    print("Node " + str(index) + ":")
+    print("   Command: ",*cmd)
+    print("   Logfile: ",output_file[index])
+    if start_processes:
+        with open(output_file[index], "w") as outfile:
+            ps.append(subprocess.Popen(cmd, stdout=outfile, stderr=outfile))
+            time.sleep(1.5)
 
-exit(0)
+if start_processes:
+    for p in ps:
+        print("Waiting for nodes ... ctl-c to exit.")
+        p.wait()
 
-for p in ps:
-    print("Waiting...")
-    p.wait()
-
-
-print("Done")
+print("Goodbye.")
