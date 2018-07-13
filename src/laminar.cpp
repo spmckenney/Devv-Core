@@ -56,7 +56,7 @@ int main(int argc, char* argv[]) {
                                 options->node_keys, options->key_pass);
 
     KeyRing keys(this_context);
-    keys.LoadWallets(options->wallet_keys, this_context->key_pass);
+    keys.LoadWallets(options->wallet_keys, options->key_pass);
 
     std::vector<byte> out;
     EVP_MD_CTX* ctx;
