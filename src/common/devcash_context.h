@@ -34,7 +34,7 @@ struct DevcashContext {
     , eAppMode mode
     , const std::string& inn_key_path
     , const std::string& node_key_path
-    , const std::string& wallet_key_path)
+    , const std::string& key_pass)
     : current_node_(current_node)
     , current_shard_(current_shard)
     , app_mode_(mode)

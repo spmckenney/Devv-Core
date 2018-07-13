@@ -105,7 +105,7 @@ static bool GenerateAndWriteKeyfile(const std::string& path, size_t num_keys
   for (size_t i=0; i<num_keys; ++i) {
     std::string addr;
     std::string key;
-    GenerateEcKey(addr, key);
+    GenerateEcKey(addr, key, aes_password);
     output += addr+key;
   }
   std::ofstream out_file(path);
@@ -158,7 +158,7 @@ static EC_KEY* LoadEcKey(const std::string& publicKey
     BIO* fIn = BIO_new(BIO_s_mem());
     BIO_write(fIn, buffer, privKey.size()+1);
     pkey = PEM_read_bio_PrivateKey(fIn, NULL, NULL
-           , const_cast<char*>(aes_password));
+           , const_cast<char*>(aes_password.c_str()));
     eckey = EVP_PKEY_get1_EC_KEY(pkey);
     EC_KEY_set_public_key(eckey, pubKeyPoint);
     EVP_cleanup();
@@ -183,7 +183,7 @@ static EC_KEY* LoadEcKey(const std::string& publicKey
  *  @return if success, a pointer to the EC_KEY object
  *  @return if error, a NULLPTR
  */
-static EC_KEY* LoadPublicKey(const Address& public_key) {
+static EC_KEY* LoadPublicKey(const Devcash::Address& public_key) {
   CASH_TRY {
     EC_GROUP* ecGroup = getEcGroup();
     if (NULL == ecGroup) {
@@ -200,7 +200,7 @@ static EC_KEY* LoadPublicKey(const Address& public_key) {
       LOG_ERROR << "Failed to set EC group status.";
     }
 
-    std::string publicKey(toHex(public_key));
+    std::string publicKey(ToHex(public_key));
     EC_POINT* tempPoint = NULL;
     const char* pubKeyBuffer = &publicKey[0u];
     const EC_POINT* pubKeyPoint = EC_POINT_hex2point(EC_KEY_get0_group(eckey), pubKeyBuffer, tempPoint, NULL);
