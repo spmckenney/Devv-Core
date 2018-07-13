@@ -33,7 +33,7 @@ class KeyRing {
    * @return true, iff wallets were loaded
    * @return false, if an error occurred or no wallets loaded
    */
-  bool LoadWallets(const std::string& file_path, const DevcashContext& context);
+  bool LoadWallets(const std::string& file_path, const std::string& file_pass);
   /**
    * Get a pointer to the EC key corresponding to an address.
    * @param addr - the Address to obtain the key for

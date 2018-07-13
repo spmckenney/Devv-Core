@@ -132,7 +132,7 @@ KeyRing::KeyRing(const DevcashContext& context)
 }
 
 bool KeyRing::LoadWallets(const std::string& file_path
-                          , const DevcashContext& context) {
+                          , const std::string& file_pass) {
      EVP_MD_CTX* ctx;
      if (!(ctx = EVP_MD_CTX_create())) {
        LOG_FATAL << "Could not create signature context!";
@@ -159,7 +159,7 @@ bool KeyRing::LoadWallets(const std::string& file_path
              std::string key = wallet_keys.substr(counter, kFILE_KEY_SIZE);
              counter += kFILE_KEY_SIZE;
 
-             EC_KEY* wallet_key = LoadEcKey(addr, key, context.get_key_password());
+             EC_KEY* wallet_key = LoadEcKey(addr, key, file_pass);
              SignBinary(wallet_key, test_hash, sig);
 
              if (!VerifyByteSig(wallet_key, test_hash, sig)) {
