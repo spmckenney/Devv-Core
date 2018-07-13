@@ -133,6 +133,17 @@ KeyRing::KeyRing(const DevcashContext& context)
 
 bool KeyRing::LoadWallets(const std::string& file_path
                           , const DevcashContext& context) {
+     EVP_MD_CTX* ctx;
+     if (!(ctx = EVP_MD_CTX_create())) {
+       LOG_FATAL << "Could not create signature context!";
+       CASH_THROW("Could not create signature context!");
+     }
+
+     std::vector<byte> msg = {'h', 'e', 'l', 'l', 'o'};
+     Hash test_hash;
+     Signature sig;
+     test_hash = DevcashHash(msg);
+
      std::string wallet_keys;
      if (file_path.size() > 0)
      {

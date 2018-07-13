@@ -17,7 +17,7 @@
 #include <sstream>
 #include <iomanip>
 
-#include "common/devcash_types.h"
+#include "common/binary_converters.h"
 #include "common/util.h"
 
 /** Gets the EC_GROUP for normal transactions.
@@ -200,7 +200,7 @@ static EC_KEY* LoadPublicKey(const Devcash::Address& public_key) {
       LOG_ERROR << "Failed to set EC group status.";
     }
 
-    std::string publicKey(ToHex(public_key));
+    std::string publicKey(Devcash::ToHex(public_key));
     EC_POINT* tempPoint = NULL;
     const char* pubKeyBuffer = &publicKey[0u];
     const EC_POINT* pubKeyPoint = EC_POINT_hex2point(EC_KEY_get0_group(eckey), pubKeyBuffer, tempPoint, NULL);
