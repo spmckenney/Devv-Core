@@ -221,7 +221,8 @@ void BlockchainModule::performSanityChecks()
   Hash test_hash(DevcashHash(msg));
 
   EC_KEY *loadkey = LoadEcKey(app_context_.kADDRs[1],
-                              app_context_.kADDR_KEYs[1]);
+                              app_context_.kADDR_KEYs[1],
+                              "password");
 
   Signature sig;
   SignBinary(loadkey, test_hash, sig);
