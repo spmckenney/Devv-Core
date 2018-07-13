@@ -214,8 +214,12 @@ class Tier2Transaction : public Transaction {
         total += amount;
         if (amount < 0) {
           if (sender_set) {
-            LOG_WARNING << "Multiple senders in transaction!";
-            return false;
+            if (sender != it->getAddress()) {
+              LOG_WARNING << "Multiple senders in transaction!";
+              return false;
+            } else {
+              LOG_INFO << "Sending multiple distinct transfers at once.";
+            }
           }
           sender = it->getAddress();
           sender_set = true;
@@ -294,7 +298,7 @@ class Tier2Transaction : public Transaction {
   std::string do_getJSON() const {
     std::string json("{\"" + kXFER_COUNT_TAG + "\":");
     json += std::to_string(xfer_count_) + ",";
-    json += "\"" + kNONCE_SIZE_TAG + "\":"+std::to_string(nonce_size_);
+    json += "\"" + kNONCE_SIZE_TAG + "\":"+std::to_string(nonce_size_)+",";
     json += "\"" + kOPER_TAG + "\":" + std::to_string(getOperation()) + ",";
     json += "\"" + kXFER_TAG + "\":[";
     bool isFirst = true;
