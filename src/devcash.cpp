@@ -41,7 +41,7 @@ int main(int argc, char* argv[])
                                 , options->mode
                                 , options->inn_keys
                                 , options->node_keys
-                                , options->wallet_keys);
+                                , options->key_pass);
     KeyRing keys(devcash_context);
     ChainState prior;
 

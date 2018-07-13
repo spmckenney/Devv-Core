@@ -45,7 +45,7 @@ struct announcer_options {
   std::string working_dir;
   std::string inn_keys;
   std::string node_keys;
-  std::string wallet_keys;
+  std::string key_pass;
   std::string stop_file;
   eDebugMode debug_mode;
 };
@@ -73,7 +73,7 @@ int main(int argc, char* argv[]) {
     zmq::context_t context(1);
 
     DevcashContext this_context(options->node_index, options->shard_index, options->mode, options->inn_keys,
-                                options->node_keys, options->wallet_keys);
+                                options->node_keys, options->key_pass);
     KeyRing keys(this_context);
 
     LOG_DEBUG << "Loading transactions from " << options->working_dir;
@@ -212,7 +212,7 @@ annouonces them to nodes provided by the host-list arguments.\n\
         ("trace-output", po::value<std::string>(), "Output path to JSON trace file (Chrome)")
         ("inn-keys", po::value<std::string>(), "Path to INN key file")
         ("node-keys", po::value<std::string>(), "Path to Node key file")
-        ("wallet-keys", po::value<std::string>(), "Path to Wallet key file")
+        ("key-pass", po::value<std::string>(), "Password for private keys")
         ("generate-tx", po::value<unsigned int>(), "Generate at least this many Transactions")
         ("tx-batch-size", po::value<unsigned int>(), "Target size of transaction batches")
         ("tx-limit", po::value<unsigned int>(), "Number of transaction to process before shutting down.")
@@ -300,11 +300,11 @@ annouonces them to nodes provided by the host-list arguments.\n\
       LOG_INFO << "Node keys file was not set.";
     }
 
-    if (vm.count("wallet-keys")) {
-      options->wallet_keys = vm["wallet-keys"].as<std::string>();
-      LOG_INFO << "Wallet keys file: " << options->wallet_keys;
+    if (vm.count("key-pass")) {
+      options->key_pass = vm["key-pass"].as<std::string>();
+      LOG_INFO << "Key pass: " << options->key_pass;
     } else {
-      LOG_INFO << "Wallet keys file was not set.";
+      LOG_INFO << "Key pass was not set.";
     }
 
     if (vm.count("stop-file")) {

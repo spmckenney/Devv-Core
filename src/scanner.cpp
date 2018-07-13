@@ -33,7 +33,7 @@ struct scanner_options {
   std::string write_file;
   std::string inn_keys;
   std::string node_keys;
-  std::string wallet_keys;
+  std::string key_pass;
   unsigned int generate_count;
   unsigned int tx_limit;
   eDebugMode debug_mode;
@@ -62,7 +62,7 @@ int main(int argc, char* argv[])
       , options->mode
       , options->inn_keys
       , options->node_keys
-      , options->wallet_keys);
+      , options->key_pass);
 
     KeyRing keys(this_context);
 
@@ -216,7 +216,7 @@ Required parameters");
         ("output", po::value<std::string>(), "Output path in binary JSON or CBOR")
         ("inn-keys", po::value<std::string>(), "Path to INN key file")
         ("node-keys", po::value<std::string>(), "Path to Node key file")
-        ("wallet-keys", po::value<std::string>(), "Path to Wallet key file")
+        ("key-pass", po::value<std::string>(), "Password for private key")
         ("generate-tx", po::value<unsigned int>(), "Generate at least this many Transactions")
         ("tx-limit", po::value<unsigned int>(), "Number of transaction to process before shutting down.")
         ;
@@ -309,13 +309,6 @@ Required parameters");
       LOG_INFO << "Node keys file: " << options->node_keys;
     } else {
       LOG_INFO << "Node keys file was not set.";
-    }
-
-    if (vm.count("wallet-keys")) {
-      options->wallet_keys = vm["wallet-keys"].as<std::string>();
-      LOG_INFO << "Wallet keys file: " << options->wallet_keys;
-    } else {
-      LOG_INFO << "Wallet keys file was not set.";
     }
 
     if (vm.count("generate-tx")) {

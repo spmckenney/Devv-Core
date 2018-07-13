@@ -16,6 +16,7 @@ namespace Devcash {
 
 class KeyRing {
  public:
+  KeyRing() : key_map_(), node_list_(), inn_addr_() {}
   KeyRing(const DevcashContext& context);
   virtual ~KeyRing() {};
 
@@ -26,6 +27,13 @@ class KeyRing {
    * @return a binary representation of the provided address
    */
   Address InsertAddress(std::string hex, EC_KEY* key);
+  /**
+   * Adds wallet addresses to this directory from a file.
+   * @param file_path - the path to the file containing wallets
+   * @return true, iff wallets were loaded
+   * @return false, if an error occurred or no wallets loaded
+   */
+  bool LoadWallets(const std::string& file_path, const DevcashContext& context);
   /**
    * Get a pointer to the EC key corresponding to an address.
    * @param addr - the Address to obtain the key for
@@ -89,11 +97,9 @@ class KeyRing {
   std::vector<Address> getDesignatedWallets(int index) const;
 
  private:
-  KeyRing();
   KeyRing& operator=(KeyRing&);
   KeyRing(KeyRing&);
 
-  DevcashContext context_;
   std::map<Address, EC_KEY*> key_map_;
   std::vector<Address> node_list_;
   std::vector<Address> wallet_list_;

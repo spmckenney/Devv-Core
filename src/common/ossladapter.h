@@ -20,8 +20,6 @@
 #include "common/devcash_types.h"
 #include "common/util.h"
 
-static const char* pwd = "password";  /** password for aes pem */
-
 /** Gets the EC_GROUP for normal transactions.
  *  @return a pointer to the EC_GROUP
  */
@@ -33,10 +31,12 @@ static EC_GROUP* getEcGroup() {
  *  @pre an OpenSSL context must have been initialized
  *  @param publicKey [out] reference with ASCII armor
  *  @param pkHex [out] references private key with ASCII armor, pem, aes
+ *  @param aes_password [in] the password for aes
  *  @return if success, a pointer to the EC_KEY object
  *  @return if error, a NULLPTR
  */
-static EC_KEY* GenerateEcKey(std::string& publicKey, std::string& pk) {
+static EC_KEY* GenerateEcKey(std::string& publicKey, std::string& pk
+                           , const std::string& aes_password) {
   CASH_TRY {
     EC_GROUP* ecGroup = getEcGroup();
     if (NULL == ecGroup) {
@@ -71,7 +71,7 @@ static EC_KEY* GenerateEcKey(std::string& publicKey, std::string& pk) {
     const EVP_CIPHER* cipher = EVP_aes_128_cbc();
     BIO* fOut = BIO_new(BIO_s_mem());
     int result = PEM_write_bio_PKCS8PrivateKey(fOut, pkey, cipher, NULL, 0, NULL,
-      const_cast<char*>(pwd));
+      const_cast<char*>(aes_password.c_str()));
     if (result != 1) { LOG_ERROR << "Failed to generate PEM private key file"; }
     char buffer[1024];
     while (BIO_read(fOut, buffer, 1024) > 0) {
@@ -90,7 +90,16 @@ static EC_KEY* GenerateEcKey(std::string& publicKey, std::string& pk) {
   return nullptr;
 }
 
-static bool GenerateAndWriteKeyfile(std::string path, size_t num_keys) {
+/** Generates new EC_KEYs and writes the key pairs to a file.
+ *  @pre an OpenSSL context must have been initialized
+ *  @param path [in] the path of the file to write
+ *  @param num_keys [in] the number of key pairs to generate
+ *  @param aes_password [in] the password for aes
+ *  @return if success, true (file with key pairs should exist)
+ *  @return if error, false
+ */
+static bool GenerateAndWriteKeyfile(const std::string& path, size_t num_keys
+                                    , const std::string& aes_password) {
   std::string output;
   output.reserve(num_keys*(Devcash::kFILE_KEY_SIZE+(Devcash::kADDR_SIZE*2)));
   for (size_t i=0; i<num_keys; ++i) {
@@ -112,12 +121,15 @@ static bool GenerateAndWriteKeyfile(std::string path, size_t num_keys) {
 
 /** Loads an existing EC_KEY based on the provided key pair.
  *  @pre an OpenSSL context must have been initialized
- *  @param publicKey [in] reference with ASCII armor
- *  @param pkHex [in] references private key with ASCII armor, pem, aes
+ *  @param publicKey [in] reference compressed as hex
+ *  @param privKey [in] references private key with ASCII armor, pem, aes
+ *  @param aes_password [in] the password for aes
  *  @return if success, a pointer to the EC_KEY object
  *  @return if error, a NULLPTR
  */
-static EC_KEY* LoadEcKey(const std::string& publicKey, const std::string& privKey) {
+static EC_KEY* LoadEcKey(const std::string& publicKey
+                       , const std::string& privKey
+                       , const std::string& aes_password) {
   CASH_TRY {
     EC_GROUP* ecGroup = getEcGroup();
     if (NULL == ecGroup) {
@@ -145,8 +157,55 @@ static EC_KEY* LoadEcKey(const std::string& publicKey, const std::string& privKe
     strcpy(buffer, privKey.c_str());
     BIO* fIn = BIO_new(BIO_s_mem());
     BIO_write(fIn, buffer, privKey.size()+1);
-    pkey = PEM_read_bio_PrivateKey(fIn, NULL, NULL, const_cast<char*>(pwd));
+    pkey = PEM_read_bio_PrivateKey(fIn, NULL, NULL
+           , const_cast<char*>(aes_password));
     eckey = EVP_PKEY_get1_EC_KEY(pkey);
+    EC_KEY_set_public_key(eckey, pubKeyPoint);
+    EVP_cleanup();
+
+    if (1 != EC_GROUP_check(EC_KEY_get0_group(eckey), NULL)) {
+      LOG_ERROR << "group is invalid!";
+    }
+
+    if (1 != EC_KEY_check_key(eckey)) {
+      LOG_ERROR << "key is invalid!";
+    }
+    return(eckey);
+  } CASH_CATCH(const std::exception& e) {
+    LOG_WARNING << Devcash::FormatException(&e, "Crypto");
+  }
+  return nullptr;
+}
+
+/** Loads an existing public EC_KEY based on the provided public key.
+ *  @pre an OpenSSL context must have been initialized
+ *  @param public_key [in] reference compressed as Address
+ *  @return if success, a pointer to the EC_KEY object
+ *  @return if error, a NULLPTR
+ */
+static EC_KEY* LoadPublicKey(const Address& public_key) {
+  CASH_TRY {
+    EC_GROUP* ecGroup = getEcGroup();
+    if (NULL == ecGroup) {
+      LOG_ERROR << "Failed to generate EC group.";
+    }
+
+    EC_KEY *eckey=EC_KEY_new();
+    if (NULL == eckey) {
+      LOG_ERROR << "Failed to allocate EC key.";
+    }
+
+    EC_GROUP_set_asn1_flag(ecGroup, OPENSSL_EC_NAMED_CURVE);
+    if (1 != EC_KEY_set_group(eckey, ecGroup)) {
+      LOG_ERROR << "Failed to set EC group status.";
+    }
+
+    std::string publicKey(toHex(public_key));
+    EC_POINT* tempPoint = NULL;
+    const char* pubKeyBuffer = &publicKey[0u];
+    const EC_POINT* pubKeyPoint = EC_POINT_hex2point(EC_KEY_get0_group(eckey), pubKeyBuffer, tempPoint, NULL);
+    if (eckey == NULL) { LOG_ERROR << "Invalid public key point."; }
+
     EC_KEY_set_public_key(eckey, pubKeyPoint);
     EVP_cleanup();
 

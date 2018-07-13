@@ -36,7 +36,7 @@ struct devcash_options {
   std::string trace_file;
   std::string inn_keys;
   std::string node_keys;
-  std::string wallet_keys;
+  std::string key_pass;
   std::string stop_file;
   eDebugMode debug_mode = off;
 };
@@ -66,7 +66,7 @@ std::unique_ptr<struct devcash_options> ParseDevcashOptions(int argc, char** arg
         ("bind-endpoint", po::value<std::string>(), "Endpoint for server (i.e. tcp://*:5556)")
         ("inn-keys", po::value<std::string>(), "Path to INN key file")
         ("node-keys", po::value<std::string>(), "Path to Node key file")
-        ("wallet-keys", po::value<std::string>(), "Path to Wallet key file")
+        ("key-pass", po::value<std::string>(), "Password for private keys")
         ;
 
     po::options_description debugging("Debugging and Performance Options");
@@ -218,11 +218,11 @@ std::unique_ptr<struct devcash_options> ParseDevcashOptions(int argc, char** arg
       LOG_INFO << "Node keys file was not set.";
     }
 
-    if (vm.count("wallet-keys")) {
-      options->wallet_keys = vm["wallet-keys"].as<std::string>();
-      LOG_INFO << "Wallet keys file: " << options->wallet_keys;
+    if (vm.count("key-pass")) {
+      options->key_pass = vm["key-pass"].as<std::string>();
+      LOG_INFO << "Key pass: " << options->key_pass;
     } else {
-      LOG_INFO << "Wallet keys file was not set.";
+      LOG_INFO << "Key pass was not set.";
     }
 
     if (vm.count("stop-file")) {

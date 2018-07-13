@@ -41,7 +41,7 @@ struct DevcashContext {
     , uri_(get_uri_from_index(current_node+current_shard*peer_count_))
     , inn_keys_(inn_key_path)
     , node_keys_(node_key_path)
-    , wallet_keys_(wallet_key_path)
+    , key_pass_(key_pass)
   {
   }
 
@@ -95,7 +95,7 @@ struct DevcashContext {
 
   std::string get_inn_key_path() const { return inn_keys_; }
   std::string get_node_key_path() const { return node_keys_; }
-  std::string get_wallet_key_path() const { return wallet_keys_; }
+  std::string get_key_password() const { return key_pass_; }
 
 private:
   /** Number of connected peers */
@@ -119,7 +119,9 @@ private:
   //key file paths
   std::string inn_keys_;
   std::string node_keys_;
-  std::string wallet_keys_;
+
+  //AES private key password
+  std::string key_pass_;
 };
 
 } /* namespace Devcash */
