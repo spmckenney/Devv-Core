@@ -149,7 +149,7 @@ class Tier1Transaction : public Transaction {
    * @return vector of Transfer objects
    */
   std::vector<TransferPtr> do_getTransfers() const {
-    size_t offset = transferOffset();
+    size_t offset = uint64Size();
     InputBuffer buffer(canonical_, offset);
     Summary summary(Summary::Create(buffer));
     return summary.getTransfers();

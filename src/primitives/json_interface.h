@@ -21,7 +21,13 @@ static std::string GetJSON(const Summary& input_summary) {
   auto summary_map = input_summary.getSummaryMap();
   uint64_t addr_size = summary_map.size();
   json += std::to_string(addr_size) + ",summary:[";
+  bool first_addr = true;
   for (auto summary : summary_map) {
+    if (first_addr) {
+      first_addr = false;
+    } else {
+      json += ",";
+    }
     json += "\"" + ToHex(std::vector<byte>(std::begin(summary.first), std::end(summary.first))) + "\":[";
     SummaryPair top_pair(summary.second);
     DelayedMap delayed(top_pair.first);
