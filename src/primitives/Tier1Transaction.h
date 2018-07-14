@@ -162,7 +162,7 @@ class Tier1Transaction : public Transaction {
   Signature do_getSignature() const {
     //Signature should be immutable so copy on request
     Signature sig;
-    std::copy_n(canonical_.begin() + sum_size_ + uint64Size()*2
+    std::copy_n(canonical_.begin() + sum_size_ + uint64Size() + kADDR_SIZE
       , kSIG_SIZE, sig.begin());
     return sig;
   }
