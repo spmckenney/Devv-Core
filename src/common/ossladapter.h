@@ -200,9 +200,8 @@ static EC_KEY* LoadPublicKey(const Devcash::Address& public_key) {
       LOG_ERROR << "Failed to set EC group status.";
     }
 
-    std::vector<byte> bin_addr(public_key.getCanonical());
-    bin_addr.erase(bin_addr.begin(), bin_addr.begin()+1);
-    std::string publicKey(Devcash::ToHex(bin_addr));
+    std::string publicKey(public_key.getJSON());
+    publicKey.erase(0,1);
     EC_POINT* tempPoint = NULL;
     const char* pubKeyBuffer = &publicKey[0u];
     const EC_POINT* pubKeyPoint = EC_POINT_hex2point(EC_KEY_get0_group(eckey), pubKeyBuffer, tempPoint, NULL);
