@@ -26,8 +26,8 @@ bool IsTxData(const std::vector<byte>& raw) {
   // check if big enough
   if (raw.size() < Transaction::MinSize()) { return false; }
   // check transfer count
-  uint64_t xfer_count = BinToUint64(raw, 0);
-  size_t tx_size = Transaction::MinSize() + (Transfer::Size() * xfer_count);
+  uint64_t xfer_size = BinToUint64(raw, 0);
+  size_t tx_size = Transaction::MinSize() + xfer_size;
   if (raw.size() < tx_size) { return false; }
   // check operation
   if (raw[8] >= 4) { return false; }
@@ -58,7 +58,7 @@ std::string WriteChainStateMap(const std::map<Address, std::map<uint64_t, int64_
       out += ",";
     }
     Address a = e.first;
-    out += "\"" + ToHex(std::vector<byte>(std::begin(a), std::end(a))) + "\":[";
+    out += "\"" + a.getJSON() + "\":[";
     bool is_first = true;
     for (auto f : e.second) {
       if (is_first) {
