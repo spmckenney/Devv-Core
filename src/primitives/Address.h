@@ -22,7 +22,7 @@ static const size_t kNODE_ADDR_SIZE = 50;
 
 class Address {
  public:
-  Address();
+  Address() {}
   /**
    *
    * @param vec
