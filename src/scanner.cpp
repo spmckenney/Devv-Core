@@ -141,8 +141,7 @@ int main(int argc, char* argv[])
       for (auto const& item : priori.getStateMap()) {
         LOG_INFO << file_name << " END STATE BEGIN: ";
         state_stream << "{\"Addr\":\"";
-        state_stream << ToHex(std::vector<byte>(std::begin(item.first)
-          , std::end(item.first)));
+        state_stream << item.first.getJSON();
         state_stream << "\",\"state\":[";
         bool first_coin = true;
         for (auto coin = item.second.begin(); coin != item.second.end(); ++coin) {
