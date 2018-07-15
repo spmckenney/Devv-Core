@@ -181,7 +181,7 @@ TEST_F(InputBufferTest, test_uint64) {
       , addr_0_()
   {
     std::vector<Devcash::byte> tmp(Devcash::Hex2Bin(t1_context_0_.kADDRs[0]));
-    std::copy_n(tmp.begin(), Devcash::kADDR_SIZE, addr_0_.begin());
+    std::copy_n(tmp.begin(), Devcash::kWALLET_ADDR_SIZE, addr_0_.begin());
   }
 
   ~SummaryTest()  = default;
@@ -358,7 +358,7 @@ class TransferTest : public ::testing::Test {
       , addr_0_()
   {
     std::vector<Devcash::byte> tmp(Devcash::Hex2Bin(t1_context_0_.kADDRs[0]));
-    std::copy_n(tmp.begin(), Devcash::kADDR_SIZE, addr_0_.begin());
+    std::copy_n(tmp.begin(), Devcash::kWALLET_ADDR_SIZE, addr_0_.begin());
   }
 
   // You can do clean-up work that doesn't throw exceptions here.
@@ -402,13 +402,9 @@ TEST_F(TransferTest, getCanonicalIdentity) {
   EXPECT_EQ(test_transfer.getCanonical(), identity.getCanonical());
 }
 
-TEST_F(TransferTest, Size) {
-  EXPECT_EQ(Devcash::Transfer::Size(), Devcash::kADDR_SIZE + 24);
-}
-
 TEST_F(TransferTest, getAddress_0) {
   std::vector<Devcash::byte> tmp(33, 'A');
-  auto a = Devcash::ConvertToAddress(tmp);
+  Address a(tmp);
   Devcash::Transfer test0(a, 0, 1, 0);
   EXPECT_EQ(test0.getAddress(), a);
 }
@@ -416,16 +412,16 @@ TEST_F(TransferTest, getAddress_0) {
 TEST_F(TransferTest, getAddress_1) {
   Devcash::Transfer test0(addr_0_, 0, 1, 0);
   std::vector<Devcash::byte> tmp(Devcash::Hex2Bin(t1_context_0_.kADDRs[0]));
-  EXPECT_EQ(test0.getAddress(), Devcash::ConvertToAddress(tmp));
+  Address a(tmp);
+  EXPECT_EQ(test0.getAddress(), a);
 }
 
 // Exception - wrong size input
 TEST_F(TransferTest, getAddress_2) {
   Devcash::Transfer test0(addr_0_, 0, 1, 0);
-  Devcash::Address addr;
   std::vector<Devcash::byte> tmp(Devcash::Hex2Bin(""));
-  std::copy_n(tmp.begin(), Devcash::kADDR_SIZE, addr.begin());
-  EXPECT_THROW(Devcash::ConvertToAddress(tmp), std::runtime_error);
+  std::copy_n(tmp.begin(), Devcash::kWALLET_ADDR_SIZE, addr.begin());
+  EXPECT_THROW(Address a(tmp), std::runtime_error);
 }
 
 
@@ -443,7 +439,7 @@ class Tier1TransactionTest : public ::testing::Test {
       , addr_0_()
   {
     std::vector<Devcash::byte> tmp(Devcash::Hex2Bin(t1_context_0_.kADDRs[0]));
-    std::copy_n(tmp.begin(), Devcash::kADDR_SIZE, addr_0_.begin());
+    std::copy_n(tmp.begin(), Devcash::kWALLET_ADDR_SIZE, addr_0_.begin());
   }
 
   // You can do clean-up work that doesn't throw exceptions here.

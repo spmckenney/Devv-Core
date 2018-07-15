@@ -13,9 +13,8 @@
 namespace Devcash {
 
 Address KeyRing::InsertAddress(std::string hex, EC_KEY* key) {
-  Address to_insert;
   std::vector<byte> addr(Hex2Bin(hex));
-  std::copy_n(addr.begin(), kADDR_SIZE, to_insert.begin());
+  Address to_insert(addr);
   std::pair<Address, EC_KEY*> new_pair(to_insert, key);
   key_map_.insert(new_pair);
   return to_insert;
@@ -42,11 +41,11 @@ KeyRing::KeyRing(const DevcashContext& context)
     }
     if (!inn_keys.empty()) {
       size_t size = inn_keys.size();
-      if (size%(kFILE_KEY_SIZE+(kADDR_SIZE*2)) == 0) {
+      if (size%(kFILE_KEY_SIZE+(kNODE_ADDR_SIZE*2)) == 0) {
         size_t counter = 0;
           while (counter < (size-1)) {
-            std::string addr = inn_keys.substr(counter, (kADDR_SIZE*2));
-            counter += (kADDR_SIZE*2);
+            std::string addr = inn_keys.substr(counter, (kNODE_ADDR_SIZE*2));
+            counter += (kNODE_ADDR_SIZE*2);
             std::string key = inn_keys.substr(counter, kFILE_KEY_SIZE);
             counter += kFILE_KEY_SIZE;
 
@@ -85,11 +84,11 @@ KeyRing::KeyRing(const DevcashContext& context)
     }
     if (!node_keys.empty()) {
       size_t size = node_keys.size();
-      if (size%(kFILE_KEY_SIZE+(kADDR_SIZE*2)) == 0) {
+      if (size%(kFILE_KEY_SIZE+(kNODE_ADDR_SIZE*2)) == 0) {
         size_t counter = 0;
           while (counter < (size-1)) {
-            std::string addr = node_keys.substr(counter, (kADDR_SIZE*2));
-            counter += (kADDR_SIZE*2);
+            std::string addr = node_keys.substr(counter, (kNODE_ADDR_SIZE*2));
+            counter += (kNODE_ADDR_SIZE*2);
             std::string key = node_keys.substr(counter, kFILE_KEY_SIZE);
             counter += kFILE_KEY_SIZE;
 
@@ -151,11 +150,11 @@ bool KeyRing::LoadWallets(const std::string& file_path
      }
      if (!wallet_keys.empty()) {
        size_t size = wallet_keys.size();
-       if (size%(kFILE_KEY_SIZE+(kADDR_SIZE*2)) == 0) {
+       if (size%(kFILE_KEY_SIZE+(kWALLET_ADDR_SIZE*2)) == 0) {
          size_t counter = 0;
            while (counter < (size-1)) {
-             std::string addr = wallet_keys.substr(counter, (kADDR_SIZE*2));
-             counter += (kADDR_SIZE*2);
+             std::string addr = wallet_keys.substr(counter, (kWALLET_ADDR_SIZE*2));
+             counter += (kWALLET_ADDR_SIZE*2);
              std::string key = wallet_keys.substr(counter, kFILE_KEY_SIZE);
              counter += kFILE_KEY_SIZE;
 
@@ -190,7 +189,7 @@ EC_KEY* KeyRing::getKey(const Address& addr) const {
 }
 
 bool KeyRing::isINN(const Address& addr) const {
-  return(inn_addr_ == addr);
+  return addr.isNodeAddress();
 }
 
 Address KeyRing::getInnAddr() const {

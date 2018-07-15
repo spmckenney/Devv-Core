@@ -101,7 +101,7 @@ static EC_KEY* GenerateEcKey(std::string& publicKey, std::string& pk
 static bool GenerateAndWriteKeyfile(const std::string& path, size_t num_keys
                                     , const std::string& aes_password) {
   std::string output;
-  output.reserve(num_keys*(Devcash::kFILE_KEY_SIZE+(Devcash::kADDR_SIZE*2)));
+  output.reserve(num_keys*(Devcash::kFILE_KEY_SIZE+(Devcash::kWALLET_ADDR_SIZE*2)));
   for (size_t i=0; i<num_keys; ++i) {
     std::string addr;
     std::string key;
@@ -200,7 +200,7 @@ static EC_KEY* LoadPublicKey(const Devcash::Address& public_key) {
       LOG_ERROR << "Failed to set EC group status.";
     }
 
-    std::string publicKey(Devcash::ToHex(public_key));
+    std::string publicKey(Devcash::ToHex(public_key.getAddressRaw()));
     EC_POINT* tempPoint = NULL;
     const char* pubKeyBuffer = &publicKey[0u];
     const EC_POINT* pubKeyPoint = EC_POINT_hex2point(EC_KEY_get0_group(eckey), pubKeyBuffer, tempPoint, NULL);

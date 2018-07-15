@@ -28,12 +28,10 @@
 #include "common/devcash_types.h"
 #include "common/logger.h"
 #include "common/minitrace.h"
+#include "primitives/Address.h"
 
 namespace Devcash
 {
-
-static const size_t kADDR_SIZE = 33;
-typedef std::array<byte, kADDR_SIZE> Address;
 
 static const size_t kSIG_SIZE = 72;
 typedef std::array<byte, kSIG_SIZE> Signature;

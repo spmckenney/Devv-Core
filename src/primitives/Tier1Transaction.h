@@ -38,11 +38,11 @@ class Tier1Transaction : public Transaction {
 
     sum_size_ = buffer.getNextUint64(false);
     buffer.copy(std::back_inserter(canonical_)
-      , sum_size_ + kSIG_SIZE + uint64Size() + kADDR_SIZE);
+      , sum_size_ + kSIG_SIZE + uint64Size() + kNODE_ADDR_SIZE);
 
     MTR_STEP("Transaction", "Transaction", &trace_int, "step2");
-    if (buffer.size() < buffer.getOffset()
-                        + sum_size_ + kSIG_SIZE + uint64Size() + kADDR_SIZE) {
+    if (buffer.size() < buffer.getOffset() + sum_size_
+                      + kSIG_SIZE + uint64Size() + kNODE_ADDR_SIZE) {
       LOG_WARNING << "Invalid serialized T1 transaction, too small!";
       return;
     }
@@ -73,7 +73,7 @@ class Tier1Transaction : public Transaction {
       LOG_WARNING << "Serialized T1 transaction has bad summary!";
     }
     sum_size_ = summary.getByteSize();
-    canonical_.reserve(sum_size_ + uint64Size() + kSIG_SIZE + kADDR_SIZE);
+    canonical_.reserve(sum_size_ + uint64Size() + kSIG_SIZE + kNODE_ADDR_SIZE);
     Uint64ToBin(sum_size_, canonical_);
     std::vector<byte> sum_canon(summary.getCanonical());
     canonical_.insert(std::end(canonical_), std::begin(sum_canon), std::end(sum_canon));
@@ -114,8 +114,9 @@ class Tier1Transaction : public Transaction {
    * @return node address
    */
   Address getNodeAddress() const {
-    Address node_addr;
-    std::copy_n(canonical_.begin()+sum_size_+uint64Size(), kADDR_SIZE, node_addr.begin());
+	std::vector<byte> tmp(canonical_.begin()+sum_size_+uint64Size()
+	     , canonical_.begin()+sum_size_+uint64Size()+kNODE_ADDR_SIZE);
+    Address node_addr(tmp);
     return node_addr;
   }
 
@@ -162,7 +163,7 @@ class Tier1Transaction : public Transaction {
   Signature do_getSignature() const {
     //Signature should be immutable so copy on request
     Signature sig;
-    std::copy_n(canonical_.begin() + sum_size_ + uint64Size() + kADDR_SIZE
+    std::copy_n(canonical_.begin() + sum_size_ + uint64Size() + kNODE_ADDR_SIZE
       , kSIG_SIZE, sig.begin());
     return sig;
   }
