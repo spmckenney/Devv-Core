@@ -96,8 +96,8 @@ class Transfer {
    */
   size_t Size() { return cannonical_.size(); }
 
-  static size_t MinSize() { return kWALLET_ADDR_SIZE+24 }
-  static size_t MaxSize() { return kNODE_ADDR_SIZE+24 }
+  static size_t MinSize() { return kWALLET_ADDR_SIZE+24; }
+  static size_t MaxSize() { return kNODE_ADDR_SIZE+24; }
 
   /**
    * Gets this transfer in a canonical form.

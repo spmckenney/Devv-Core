@@ -183,7 +183,7 @@ static EC_KEY* LoadEcKey(const std::string& publicKey
  *  @return if success, a pointer to the EC_KEY object
  *  @return if error, a NULLPTR
  */
-static EC_KEY* LoadPublicKey(const Devcash::Address& public_key) {
+static EC_KEY* LoadPublicKey(Devcash::Address& public_key) {
   CASH_TRY {
     EC_GROUP* ecGroup = getEcGroup();
     if (NULL == ecGroup) {

@@ -81,7 +81,7 @@ class Address {
    * Return the size of this Address
    * @return size of this Address
    */
-  static size_t size() { return canonical_.size(); }
+  size_t size() { return canonical_.size(); }
 
   /**
    * Gets this address in a canonical form.
@@ -95,9 +95,10 @@ class Address {
    */
   std::string getJSON() const {
     MTR_SCOPE_FUNC();
+    const char alpha[] = "0123456789ABCDEF";
     std::stringstream ss;
     for (size_t j = 0; j < canonical_.size(); j++) {
-      int c = (int)input[j];
+      int c = (int)canonical.at(j);
       ss.put(alpha[(c >> 4) & 0xF]);
       ss.put(alpha[c & 0xF]);
     }

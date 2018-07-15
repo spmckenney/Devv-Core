@@ -93,11 +93,8 @@ class InputBuffer {
 
   void copy(Address& addr, bool increment_buffer = true)
   {
-    int n = getNextByte(false);
-    if (n != kWALLET_ADDR_SIZE && n != kNODE_ADDR_SIZE) {
-      LOG_ERROR << "Invalid address in InputBuffer::copy()";
-    }
-    std::copy_n(buffer_.begin() + offset_, n, addr.getCanonical().begin());
+    std::vector<byte>bin_addr(addr.getCanonical());
+    std::copy_n(buffer_.begin() + offset_, bin_addr.size(), bin_addr.begin());
     if (increment_buffer) { offset_ += n; }
   }
 

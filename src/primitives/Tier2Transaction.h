@@ -60,14 +60,14 @@ class Tier2Transaction : public Transaction {
 
     size_t xfer_size = 0;
     for (auto& transfer : xfers) {
-      xfer_size += transfer.size();
+      xfer_size += transfer.Size();
       std::vector<byte> xfer_canon(transfer.getCanonical());
       canonical_.insert(std::end(canonical_), std::begin(xfer_canon), std::end(xfer_canon));
     }
-    xfer_size_ = xfers_size;
+    xfer_size_ = xfer_size;
 
     std::vector<byte> xfer_size_bin;
-    Uint64ToBin(xfer_size_, xfer_size_bin_);
+    Uint64ToBin(xfer_size_, xfer_size_bin);
     //Note that xfer size goes on the beginning
     canonical_.insert(std::begin(canonical_), std::begin(xfer_size_bin), std::end(xfer_size_bin));
 
