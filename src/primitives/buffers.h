@@ -93,8 +93,10 @@ class InputBuffer {
 
   void copy(Address& addr, bool increment_buffer = true)
   {
-    std::vector<byte>bin_addr(addr.getCanonical());
-    std::copy_n(buffer_.begin() + offset_, bin_addr.size(), bin_addr.begin());
+    size_t t = getNextByte(false);
+    std::vector<byte> bin_addr(buffer_.begin() + offset_, buffer_.begin() + offset_ + t);
+    Address new_addr(bin_addr);
+    addr = new_addr;
     if (increment_buffer) { offset_ += bin_addr.size(); }
   }
 

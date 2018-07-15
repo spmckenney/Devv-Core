@@ -181,7 +181,8 @@ TEST_F(InputBufferTest, test_uint64) {
       , addr_0_()
   {
     std::vector<Devcash::byte> tmp(Devcash::Hex2Bin(t1_context_0_.kADDRs[0]));
-    std::copy_n(tmp.begin(), Devcash::kWALLET_ADDR_SIZE, addr_0_.begin());
+    std::vector<byte> bin_addr(addr_0_.getCanonical());
+    std::copy_n(tmp.begin(), Devcash::kWALLET_ADDR_SIZE, bin_addr.begin());
   }
 
   ~SummaryTest()  = default;
@@ -358,7 +359,8 @@ class TransferTest : public ::testing::Test {
       , addr_0_()
   {
     std::vector<Devcash::byte> tmp(Devcash::Hex2Bin(t1_context_0_.kADDRs[0]));
-    std::copy_n(tmp.begin(), Devcash::kWALLET_ADDR_SIZE, addr_0_.begin());
+    std::vector<byte> bin_addr(addr_0_.getCanonical());
+    std::copy_n(tmp.begin(), Devcash::kWALLET_ADDR_SIZE, bin_addr.begin());
   }
 
   // You can do clean-up work that doesn't throw exceptions here.
@@ -420,7 +422,8 @@ TEST_F(TransferTest, getAddress_1) {
 TEST_F(TransferTest, getAddress_2) {
   Devcash::Transfer test0(addr_0_, 0, 1, 0);
   std::vector<Devcash::byte> tmp(Devcash::Hex2Bin(""));
-  std::copy_n(tmp.begin(), Devcash::kWALLET_ADDR_SIZE, addr.begin());
+  std::vector<byte> bin_addr(addr_0_.getCanonical());
+  std::copy_n(tmp.begin(), Devcash::kWALLET_ADDR_SIZE, bin_addr.begin());
   EXPECT_THROW(Address a(tmp), std::runtime_error);
 }
 
@@ -439,7 +442,8 @@ class Tier1TransactionTest : public ::testing::Test {
       , addr_0_()
   {
     std::vector<Devcash::byte> tmp(Devcash::Hex2Bin(t1_context_0_.kADDRs[0]));
-    std::copy_n(tmp.begin(), Devcash::kWALLET_ADDR_SIZE, addr_0_.begin());
+    std::vector<byte> bin_addr(addr_0_.getCanonical());
+    std::copy_n(tmp.begin(), Devcash::kWALLET_ADDR_SIZE, bin_addr.begin());
   }
 
   // You can do clean-up work that doesn't throw exceptions here.
