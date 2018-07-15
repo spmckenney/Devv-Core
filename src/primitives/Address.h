@@ -22,25 +22,27 @@ static const size_t kNODE_ADDR_SIZE = 50;
 
 class Address {
  public:
+  Address();
   /**
    *
    * @param vec
    */
   Address(const std::vector<byte>& vec)
-      : canonical_(vec.size()) {
+      : canonical_(vec) {
     if (vec.size() == kWALLET_ADDR_SIZE) {
-      canonical_.insert(std::end(canonical_),std::begin(vec),std::end(vec));
+	  //prepend type
+      canonical_.insert(std::begin(canonical_), kWALLET_ADDR_SIZE);
     } else if (vec.size() == kWALLET_ADDR_SIZE+1
                && vec.at(0) == kWALLET_ADDR_SIZE) {
-      canonical_.insert(std::end(canonical_),std::begin(vec)+1,std::end(vec));
+      //already good, copied from argument
 	} else if (vec.size() == kNODE_ADDR_SIZE) {
-      canonical_.insert(std::end(canonical_),std::begin(vec),std::end(vec));
+      //prepend type
+      canonical_.insert(std::begin(canonical_), kNODE_ADDR_SIZE);
 	} else if (vec.size() == kNODE_ADDR_SIZE+1
 	           && vec.at(0) == kNODE_ADDR_SIZE) {
-      canonical_.insert(std::end(canonical_),std::begin(vec)+1,std::end(vec));
+      //already good, copied from argument
     } else {
-	  std::string err = "Invalid Address size.";
-	  throw std::runtime_error(err);
+	  LOG_ERROR << "Invalid Address size.";
     }
   }
 

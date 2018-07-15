@@ -76,8 +76,9 @@ class Tier1Transaction : public Transaction {
     canonical_.reserve(sum_size_ + uint64Size() + kSIG_SIZE + kNODE_ADDR_SIZE);
     Uint64ToBin(sum_size_, canonical_);
     std::vector<byte> sum_canon(summary.getCanonical());
+    std::vector<byte> addr(node_addr.getCanonical());
     canonical_.insert(std::end(canonical_), std::begin(sum_canon), std::end(sum_canon));
-    canonical_.insert(std::end(canonical_), std::begin(node_addr), std::end(node_addr));
+    canonical_.insert(std::end(canonical_), std::begin(addr), std::end(addr));
     canonical_.insert(std::end(canonical_), std::begin(sig), std::end(sig));
     is_sound_ = isSound(keys);
     if (!is_sound_) {
@@ -258,8 +259,7 @@ class Tier1Transaction : public Transaction {
     uint64_t addr_size = summary_map.size();
     json += std::to_string(addr_size) + ",\""+kSUMMARY_TAG+"\":[";
     for (auto summary : summary_map) {
-      json += "\"" + ToHex(std::vector<byte>(std::begin(summary.first)
-        , std::end(summary.first))) + "\":[";
+      json += "\"" + summary.first.getJSON() + "\":[";
       SummaryPair top_pair(summary.second);
       DelayedMap delayed(top_pair.first);
       CoinMap coin_map(top_pair.second);
