@@ -43,7 +43,7 @@ class Tier2Transaction : public Transaction {
    * @param keys
    */
   Tier2Transaction(byte oper,
-                   const std::vector<Transfer>& xfers,
+                   std::vector<Transfer>& xfers,
                    std::vector<byte> nonce,
                    EC_KEY* eckey,
                    const KeyRing& keys)

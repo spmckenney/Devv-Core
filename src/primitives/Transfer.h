@@ -94,7 +94,7 @@ class Transfer {
    * Return the size of this Transfer
    * @return size of this Transfer
    */
-  size_t Size() { return cannonical_.size(); }
+  size_t Size() { return canonical_.size(); }
 
   static size_t MinSize() { return kWALLET_ADDR_SIZE+24; }
   static size_t MaxSize() { return kNODE_ADDR_SIZE+24; }

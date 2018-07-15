@@ -98,7 +98,7 @@ class Address {
     const char alpha[] = "0123456789ABCDEF";
     std::stringstream ss;
     for (size_t j = 0; j < canonical_.size(); j++) {
-      int c = (int)canonical.at(j);
+      int c = (int)canonical_.at(j);
       ss.put(alpha[(c >> 4) & 0xF]);
       ss.put(alpha[c & 0xF]);
     }

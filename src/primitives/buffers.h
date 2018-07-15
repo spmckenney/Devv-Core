@@ -95,7 +95,7 @@ class InputBuffer {
   {
     std::vector<byte>bin_addr(addr.getCanonical());
     std::copy_n(buffer_.begin() + offset_, bin_addr.size(), bin_addr.begin());
-    if (increment_buffer) { offset_ += n; }
+    if (increment_buffer) { offset_ += bin_addr.size(); }
   }
 
   /**
