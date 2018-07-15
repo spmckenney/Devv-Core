@@ -81,7 +81,7 @@ static std::string GetJSON(const Validation& validation) {
     } else {
       out += ",";
     }
-    out += "\"" + ToHex(std::vector<byte>(std::begin(item.first), std::end(item.first))) + "\":";
+    out += "\"" + item.first.getJSON() + "\":";
     out += "\"" + ToHex(std::vector<byte>(std::begin(item.second), std::end(item.second))) + "\"";
   }
   out += "]";
