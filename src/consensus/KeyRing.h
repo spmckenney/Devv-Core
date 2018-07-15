@@ -39,7 +39,7 @@ class KeyRing {
    * @param addr - the Address to obtain the key for
    * @return a pointer to the openssl EC key for the provided address
    */
-  EC_KEY* getKey(Address& addr) const;
+  EC_KEY* getKey(const Address& addr) const;
   /**
    * Check if the provided address belongs to the INN space
    * @param addr - the Address to check

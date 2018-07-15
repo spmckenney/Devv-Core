@@ -180,7 +180,7 @@ bool KeyRing::LoadWallets(const std::string& file_path
      return true;
 }
 
-EC_KEY* KeyRing::getKey(Address& addr) const {
+EC_KEY* KeyRing::getKey(const Address& addr) const {
   auto it = key_map_.find(addr);
   if (it != key_map_.end()) { return it->second; }
 
