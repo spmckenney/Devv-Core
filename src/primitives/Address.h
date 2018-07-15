@@ -92,7 +92,14 @@ class Address {
    * @return hex string of this Address
    */
   std::string getJSON() const {
-    return ToHex(canonical_);
+    MTR_SCOPE_FUNC();
+    std::stringstream ss;
+    for (size_t j = 0; j < canonical_.size(); j++) {
+      int c = (int)input[j];
+      ss.put(alpha[(c >> 4) & 0xF]);
+      ss.put(alpha[c & 0xF]);
+    }
+    return (ss.str());
   }
 
   /**
@@ -120,6 +127,9 @@ class Address {
     return (canonical_.at(0) == kNODE_ADDR_SIZE);
   }
 
+  /**
+   * @return this address without the type prefix.
+   */
   std::vector<byte> getAddressRaw() {
 	std::vector<byte> raw(canonical_.begin()+1, canonical_.end());
     return raw;

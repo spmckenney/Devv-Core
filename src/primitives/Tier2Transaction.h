@@ -248,7 +248,7 @@ class Tier2Transaction : public Transaction {
       if (!VerifyByteSig(eckey, DevcashHash(msg), sig)) {
         LOG_WARNING << "Error: transaction signature did not validate.\n";
         LOG_DEBUG << "Transaction state is: " + getJSON();
-        LOG_DEBUG << "Sender addr is: " + ToHex(std::vector<byte>(std::begin(sender), std::end(sender)));
+        LOG_DEBUG << "Sender addr is: " + sender.getJSON();
         LOG_DEBUG << "Signature is: " + ToHex(std::vector<byte>(std::begin(sig), std::end(sig)));
         return false;
       }

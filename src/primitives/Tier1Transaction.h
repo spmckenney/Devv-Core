@@ -201,7 +201,7 @@ class Tier1Transaction : public Transaction {
       if (!VerifyByteSig(eckey, DevcashHash(msg), sig)) {
         LOG_WARNING << "Error: T1 transaction signature did not validate.\n";
         LOG_DEBUG << "Transaction state is: " + getJSON();
-        LOG_DEBUG << "Node address is: " + ToHex(node_addr);
+        LOG_DEBUG << "Node address is: " + node_addr.getJSON();
         LOG_DEBUG << "Signature is: " + ToHex(std::vector<byte>(std::begin(sig), std::end(sig)));
         return false;
       }
@@ -293,7 +293,7 @@ class Tier1Transaction : public Transaction {
       json += "]";
     }
     json += "]}";
-    json += "],\"" + kVALIDATOR_DEX_TAG + "\":" + ToHex(getNodeAddress()) + ",";
+    json += "],\"" + kVALIDATOR_DEX_TAG + "\":" + getNodeAddress().getJSON() + ",";
     Signature sig = getSignature();
     json += "\"" + kSIG_TAG + "\":\"" + ToHex(std::vector<byte>(std::begin(sig), std::end(sig))) + "\"}";
     return json;
