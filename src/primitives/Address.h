@@ -54,6 +54,10 @@ class Address {
   friend bool operator==(const Address& a, const Address& b) { return (a.canonical_ == b.canonical_); }
   /** Compare addresses */
   friend bool operator!=(const Address& a, const Address& b) { return (a.canonical_ != b.canonical_); }
+  friend bool operator<(const Address& a, const Address& b) { return (a.canonical_ < b.canonical_); }
+  friend bool operator<=(const Address& a, const Address& b) { return (a.canonical_ <= b.canonical_); }
+  friend bool operator>(const Address& a, const Address& b) { return (a.canonical_ > b.canonical_); }
+  friend bool operator>=(const Address& a, const Address& b) { return (a.canonical_ >= b.canonical_); }
 
   /** Assign address */
   Address& operator=(const Address&& other) {
@@ -75,7 +79,7 @@ class Address {
    * Return the size of this Address
    * @return size of this Address
    */
-  static size_t Size() { return canonical_.size(); }
+  static size_t size() { return canonical_.size(); }
 
   /**
    * Gets this address in a canonical form.

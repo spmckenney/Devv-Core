@@ -153,5 +153,16 @@ static std::string ToHex(const Array& input, size_t num_bytes = UINT32_MAX) {
   return (ss.str());
 }
 
+static std::string ToHex(const std::vector<byte>& input) {
+  MTR_SCOPE_FUNC();
+  std::stringstream ss;
+  for (size_t j = 0; j < std::min(num_bytes, input.size()); j++) {
+    int c = (int)input.at(j);
+    ss.put(alpha[(c >> 4) & 0xF]);
+    ss.put(alpha[c & 0xF]);
+  }
+  return (ss.str());
+}
+
 }  // namespace Devcash
 #endif  // DEVCASH_BINARY_CONVERTERS_H
