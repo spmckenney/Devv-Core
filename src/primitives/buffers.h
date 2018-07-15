@@ -91,6 +91,16 @@ class InputBuffer {
     if (increment_buffer) { offset_ += N; }
   }
 
+  void copy(Address& addr, bool increment_buffer = true)
+  {
+    int n = getNextByte(false);
+    if (n != kWALLET_ADDR_SIZE && n != kNODE_ADDR_SIZE) {
+      LOG_ERROR << "Invalid address in InputBuffer::copy()";
+    }
+    std::copy_n(buffer_.begin() + offset_, n, addr.getCanonical().begin());
+    if (increment_buffer) { offset_ += n; }
+  }
+
   /**
    * Returns the byte at the current position
    *

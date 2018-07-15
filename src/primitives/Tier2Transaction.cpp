@@ -22,7 +22,7 @@ void Tier2Transaction::Fill(Tier2Transaction& tx,
     throw DeserializationError("Invalid serialized T2 transaction, too small!");
   }
   /// Don't increment the buffer, we want to copy it all to canonical_
-  tx.xfer_count_ = buffer.getNextUint64(false);
+  tx.xfer_size_ = buffer.getNextUint64(false);
   tx.nonce_size_ = buffer.getSecondUint64(false);
 
   if (tx.nonce_size_ < minNonceSize()) {
@@ -36,8 +36,7 @@ void Tier2Transaction::Fill(Tier2Transaction& tx,
     throw DeserializationError(ss.str());
   }
 
-  size_t tx_size = MinSize() + (Transfer::Size() * tx.xfer_count_)
-                             + tx.nonce_size_;
+  size_t tx_size = MinSize() + tx.xfer_size_ + tx.nonce_size_;
   if (buffer.size() < buffer.getOffset() + tx_size) {
     std::stringstream ss;
     std::vector<byte> prefix(buffer.getCurrentIterator()

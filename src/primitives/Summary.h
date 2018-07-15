@@ -196,7 +196,8 @@ class Summary {
     auto addr_count = static_cast<uint32_t>(summary_.size());
     Uint32ToBin(addr_count, out);
     for (auto summary : summary_) {
-      out.insert(out.end(), summary.first.begin(), summary.first.end());
+      std::vector<byte> bin_addr(summary.first.getCanonical());
+      out.insert(out.end(), bin_addr.begin(), bin_addr.end());
 
       SummaryPair top_pair(summary.second);
       DelayedMap delayed(top_pair.first);

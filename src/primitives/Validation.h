@@ -110,7 +110,8 @@ class Validation {
     MTR_SCOPE_FUNC();
     std::vector<byte> serial;
     for (auto const& item : sigs_) {
-      serial.insert(serial.end(), item.first.begin(), item.first.end());
+      std::vector<byte> bin_addr(item.first.getCanonical());
+      serial.insert(serial.end(), bin_addr.begin(), bin_addr.end());
       serial.insert(serial.end(), item.second.begin(), item.second.end());
     }
     return serial;

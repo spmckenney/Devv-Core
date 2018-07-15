@@ -43,7 +43,7 @@ class Transfer {
            uint64_t coin,
            int64_t amount,
            uint64_t delay)
-      : canonical_(std::begin(addr), std::end(addr)) {
+      : canonical_(addr.getCanonical()) {
     Uint64ToBin(coin, canonical_);
     Int64ToBin(amount, canonical_);
     Uint64ToBin(delay, canonical_);
@@ -94,7 +94,10 @@ class Transfer {
    * Return the size of this Transfer
    * @return size of this Transfer
    */
-  static size_t Size() { return cannonical_.size(); }
+  size_t Size() { return cannonical_.size(); }
+
+  static size_t MinSize() { return kWALLET_ADDR_SIZE+24 }
+  static size_t MaxSize() { return kNODE_ADDR_SIZE+24 }
 
   /**
    * Gets this transfer in a canonical form.

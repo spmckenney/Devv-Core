@@ -48,7 +48,6 @@ class Tier2Transaction : public Transaction {
                    EC_KEY* eckey,
                    const KeyRing& keys)
       : Transaction(false) {
-    xfer_count_ = xfers.size();
     nonce_size_ = nonce.size();
 
     if (nonce_size_ < minNonceSize()) {
@@ -56,16 +55,22 @@ class Tier2Transaction : public Transaction {
         +std::to_string(nonce_size_)+").";
     }
 
-    canonical_.reserve(MinSize() +
-      (Transfer::Size() * xfer_count_) + nonce_size_);
-
-    Uint64ToBin(xfer_count_, canonical_);
     Uint64ToBin(nonce_size_, canonical_);
     canonical_.push_back(oper);
+
+    size_t xfer_size = 0;
     for (auto& transfer : xfers) {
+      xfer_size += transfer.size();
       std::vector<byte> xfer_canon(transfer.getCanonical());
       canonical_.insert(std::end(canonical_), std::begin(xfer_canon), std::end(xfer_canon));
     }
+    xfer_size_ = xfers_size;
+
+    std::vector<byte> xfer_size_bin;
+    Uint64ToBin(xfer_size_, xfer_size_bin_);
+    //Note that xfer size goes on the beginning
+    canonical_.insert(std::begin(canonical_), std::begin(xfer_size_bin), std::end(xfer_size_bin));
+
     canonical_.insert(std::end(canonical_), std::begin(nonce), std::end(nonce));
     std::vector<byte> msg(getMessageDigest());
     Signature sig;
@@ -96,10 +101,8 @@ class Tier2Transaction : public Transaction {
    * @return
    */
   std::vector<byte> getNonce() const {
-	std::vector<byte> nonce(canonical_.begin()
-	    + (EnvelopeSize() + xfer_count_ * Transfer::Size())
-	  , canonical_.begin()
-	    + (EnvelopeSize() + xfer_count_ * Transfer::Size() + nonce_size_));
+	std::vector<byte> nonce(canonical_.begin() + (EnvelopeSize() + xfer_size_)
+	  , canonical_.begin() + (EnvelopeSize() + xfer_size_ + nonce_size_));
     return nonce;
   }
 
@@ -115,8 +118,8 @@ class Tier2Transaction : public Transaction {
   friend std::unique_ptr<Tier2Transaction> std::make_unique<Tier2Transaction>();
 
  private:
-  // The number of Transfers in this Transaction
-  uint64_t xfer_count_ = 0;
+  // The bytesize of Transfers in this Transaction
+  uint64_t xfer_size_ = 0;
   // The size of this Transaction's nonce
   uint64_t nonce_size_ = 0;
 
@@ -149,7 +152,7 @@ class Tier2Transaction : public Transaction {
   std::vector<byte> do_getMessageDigest() const override {
     /// @todo(mckenney) can this be a reference?
     std::vector<byte> md(canonical_.begin(), canonical_.begin()
-      + (EnvelopeSize() + nonce_size_ + Transfer::Size() * xfer_count_));
+      + (EnvelopeSize() + nonce_size_ + xfer_size_));
     return md;
   }
 
@@ -159,9 +162,11 @@ class Tier2Transaction : public Transaction {
    */
   std::vector<TransferPtr> do_getTransfers() const {
     std::vector<TransferPtr> out;
-    for (size_t i = 0; i < xfer_count_; ++i) {
-      InputBuffer buffer(canonical_, transferOffset() + (Transfer::Size()*i));
+    size_t offset = 0;
+    while (offset < xfer_size_) {
+      InputBuffer buffer(canonical_, transferOffset() + offset);
       TransferPtr t = std::make_unique<Transfer>(buffer);
+      offset += t->Size();
       out.push_back(std::move(t));
     }
     return out;
@@ -174,8 +179,7 @@ class Tier2Transaction : public Transaction {
   Signature do_getSignature() const {
     /// @todo(mckenney) can this be a reference rather than pointer?
     Signature sig;
-    std::copy_n(canonical_.begin()
-      + (EnvelopeSize() + nonce_size_ + (Transfer::Size() * xfer_count_))
+    std::copy_n(canonical_.begin() + (EnvelopeSize() + nonce_size_ + xfer_size_)
       , kSIG_SIZE, sig.begin());
     return sig;
   }
@@ -296,8 +300,8 @@ class Tier2Transaction : public Transaction {
    * @return a JSON string representing this transaction.
    */
   std::string do_getJSON() const {
-    std::string json("{\"" + kXFER_COUNT_TAG + "\":");
-    json += std::to_string(xfer_count_) + ",";
+    std::string json("{\"" + kXFER_SIZE_TAG + "\":");
+    json += std::to_string(xfer_size_) + ",";
     json += "\"" + kNONCE_SIZE_TAG + "\":"+std::to_string(nonce_size_)+",";
     json += "\"" + kOPER_TAG + "\":" + std::to_string(getOperation()) + ",";
     json += "\"" + kXFER_TAG + "\":[";
