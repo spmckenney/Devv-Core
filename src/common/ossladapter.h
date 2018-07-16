@@ -328,6 +328,7 @@ static Devcash::Signature SignBinary(EC_KEY* ec_key, const Devcash::Hash& msg) {
   } CASH_CATCH (const std::exception& e) {
     LOG_WARNING << Devcash::FormatException(&e, "Crypto.sign");
   }
+  throw std::runtime_error("Signature procedure failed!");
 }
 
 #endif /* SRC_COMMON_OSSLADAPTER_H_ */

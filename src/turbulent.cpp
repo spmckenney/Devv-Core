@@ -87,7 +87,7 @@ int main(int argc, char* argv[]) {
                             keys.getKey(inn_addr), keys);
     std::vector<byte> inn_canon(inn_tx.getCanonical());
     out.insert(out.end(), inn_canon.begin(), inn_canon.end());
-    LOG_DEBUG << "GenerateTransactions(): generated inn_tx with sig: " << ToHex(inn_tx.getSignature());
+    LOG_DEBUG << "GenerateTransactions(): generated inn_tx with sig: " << inn_tx.getSignature().getJSON();
     counter++;
 
     while (counter < options->generate_count) {
