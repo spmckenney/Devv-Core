@@ -99,8 +99,8 @@ class Transfer {
    */
   size_t Size() const { return canonical_.size(); }
 
-  static size_t MinSize() { return kWALLET_ADDR_SIZE+24; }
-  static size_t MaxSize() { return kNODE_ADDR_SIZE+24; }
+  static size_t MinSize() { return kWALLET_ADDR_SIZE + 24 + 1; }
+  static size_t MaxSize() { return kNODE_ADDR_SIZE + 24 + 1; }
 
   /**
    * Gets this transfer in a canonical form.
@@ -130,11 +130,11 @@ class Transfer {
   Address getAddress() const {
 	if (canonical_.at(0) == kWALLET_ADDR_SIZE) {
       std::vector<byte> addr(canonical_.begin()
-                            , canonical_.begin()+kWALLET_ADDR_SIZE+1);
+                            , canonical_.begin()+kWALLET_ADDR_SIZE + 1);
       return addr;
 	} else if (canonical_.at(0) == kNODE_ADDR_SIZE) {
       std::vector<byte> addr(canonical_.begin()
-                            , canonical_.begin()+kNODE_ADDR_SIZE+1);
+                            , canonical_.begin()+kNODE_ADDR_SIZE + 1);
       return addr;
 	}
 	std::string err = "Transfer Address has invalid type prefix.";
@@ -147,9 +147,9 @@ class Transfer {
    */
   uint64_t getCoin() const {
 	if (canonical_.at(0) == kWALLET_ADDR_SIZE) {
-      return BinToUint64(canonical_, kWALLET_ADDR_SIZE);
+      return BinToUint64(canonical_, kWALLET_ADDR_SIZE + 1);
 	} else if (canonical_.at(0) == kNODE_ADDR_SIZE) {
-      return BinToUint64(canonical_, kNODE_ADDR_SIZE);
+      return BinToUint64(canonical_, kNODE_ADDR_SIZE + 1);
 	}
 	std::string err = "Transfer has invalid type prefix.";
 	throw std::runtime_error(err);
@@ -161,9 +161,9 @@ class Transfer {
    */
   int64_t getAmount() const {
 	if (canonical_.at(0) == kWALLET_ADDR_SIZE) {
-      return BinToInt64(canonical_, kWALLET_ADDR_SIZE + 8);
+      return BinToInt64(canonical_, kWALLET_ADDR_SIZE + 1 + 8);
 	} else if (canonical_.at(0) == kNODE_ADDR_SIZE) {
-      return BinToInt64(canonical_, kNODE_ADDR_SIZE + 8);
+      return BinToInt64(canonical_, kNODE_ADDR_SIZE + 1 + 8);
 	}
 	std::string err = "Transfer has invalid type prefix.";
 	throw std::runtime_error(err);
@@ -175,9 +175,9 @@ class Transfer {
    */
   uint64_t getDelay() const {
 	if (canonical_.at(0) == kWALLET_ADDR_SIZE) {
-      return BinToUint64(canonical_, kWALLET_ADDR_SIZE + 16);
+      return BinToUint64(canonical_, kWALLET_ADDR_SIZE + 1 + 16);
 	} else if (canonical_.at(0) == kNODE_ADDR_SIZE) {
-      return BinToUint64(canonical_, kNODE_ADDR_SIZE + 16);
+      return BinToUint64(canonical_, kNODE_ADDR_SIZE + 1 + 16);
 	}
 	std::string err = "Transfer has invalid type prefix.";
 	throw std::runtime_error(err);
