@@ -95,6 +95,7 @@ class Address {
    */
   std::string getJSON() const {
     MTR_SCOPE_FUNC();
+    if (isNull()) return "";
     const char alpha[] = "0123456789ABCDEF";
     std::stringstream ss;
     for (size_t j = 0; j < canonical_.size(); j++) {
@@ -118,6 +119,7 @@ class Address {
    * @return false otherwise
    */
   bool isWalletAddress() const {
+    if (isNull()) return false;
     return (canonical_.at(0) == kWALLET_ADDR_SIZE);
   }
 
@@ -127,6 +129,7 @@ class Address {
    * @return false otherwise
    */
   bool isNodeAddress() const {
+    if (isNull()) return false;
     return (canonical_.at(0) == kNODE_ADDR_SIZE);
   }
 
@@ -139,6 +142,7 @@ class Address {
    * @return this address without the type prefix.
    */
   std::vector<byte> getAddressRaw() {
+    if (isNull()) throw std::runtime_error("Address is not initialized!");
 	std::vector<byte> raw(canonical_.begin()+1, canonical_.end());
     return raw;
   }
