@@ -139,9 +139,9 @@ static EC_KEY* LoadEcKey(const std::string& publicKey
                        , const std::string& aes_password) {
   try {
     EC_GROUP* ecGroup;
-    if (publicKey.size() == kWALLET_ADDR_SIZE*2) {
+    if (publicKey.size() == Devcash::kWALLET_ADDR_SIZE*2) {
       ecGroup = getWalletGroup();
-    } else if (publicKey.size() == kNODE_ADDR_SIZE*2) {
+    } else if (publicKey.size() == Devcash::kNODE_ADDR_SIZE*2) {
       ecGroup = getNodeGroup();
     } else {
       throw std::runtime_error("Invalid public key!");
