@@ -80,7 +80,7 @@ int main(int argc, char* argv[]) {
       LOG_WARNING << "For complete circuits generate a perfect square + 1 transactions (ie 2,5,10,17...)";
     }
 
-    size_t addr_count = std::min(keys.CountWallets(), static_cast<unsigned int>(need_addrs));
+    size_t addr_count = std::min(keys.CountWallets(), static_cast<size_t>(need_addrs));
 
     size_t counter = 0;
 
@@ -111,6 +111,7 @@ int main(int argc, char* argv[]) {
           peer_xfers.push_back(sender);
           Transfer receiver(keys.getWalletAddr(j), 0, options->tx_limit, 0);
           peer_xfers.push_back(receiver);
+          nonce_bin.clear();
           nonce = GetMillisecondsSinceEpoch() + (1000000
                      * (options->node_index + 1) * (i + 1) * (j + 1));
           Uint64ToBin(nonce, nonce_bin);

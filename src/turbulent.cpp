@@ -100,6 +100,7 @@ int main(int argc, char* argv[]) {
           peer_xfers.push_back(sender);
           Transfer receiver(keys.getWalletAddr(j), 0, amount, 0);
           peer_xfers.push_back(receiver);
+          nonce_bin.clear();
           nonce = GetMillisecondsSinceEpoch() + (1000000
                      * (options->node_index + 1) * (i + 1) * (j + 1));
           Uint64ToBin(nonce, nonce_bin);
