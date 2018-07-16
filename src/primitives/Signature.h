@@ -17,8 +17,8 @@
 
 namespace Devcash {
 
-static const size_t kWALLET_SIG_SIZE = 72;
-static const size_t kNODE_SIG_SIZE = 103;
+static const size_t kWALLET_SIG_SIZE = 73;
+static const size_t kNODE_SIG_SIZE = 105;
 
 class Signature {
  public:

@@ -318,13 +318,23 @@ static Devcash::Signature SignBinary(EC_KEY* ec_key, const Devcash::Hash& msg) {
     }
 
     int len = i2d_ECDSA_SIG(signature, NULL);
-    std::vector<unsigned char> temp_sig;
-    temp_sig.reserve(len);
-    unsigned char* ptr = &temp_sig[0];
-    memset(&temp_sig[0], 6, len);
-    len = i2d_ECDSA_SIG(signature, &ptr);
-    Devcash::Signature sig(temp_sig);
-    return sig;
+    if (len < 80) { //must be 256-bit
+      std::array<unsigned char, kWALLET_SIG_SIZE> a;
+      unsigned char* ptr = &a[0];
+      memset(&a[0], 6, len);
+      len = i2d_ECDSA_SIG(signature, &ptr);
+      std::vector<unsigned char> vec_sig(a.begin(),a.end());
+      Devcash::Signature sig(vec_sig);
+      return sig;
+    } else { //otherwise 384-bit
+      std::array<unsigned char, kNODE_SIG_SIZE> a;
+      unsigned char* ptr = &a[0];
+      memset(&a[0], 6, len);
+      len = i2d_ECDSA_SIG(signature, &ptr);
+      std::vector<unsigned char> vec_sig(a.begin(),a.end());
+      Devcash::Signature sig(vec_sig);
+      return sig;
+    }
   } CASH_CATCH (const std::exception& e) {
     LOG_WARNING << Devcash::FormatException(&e, "Crypto.sign");
   }
