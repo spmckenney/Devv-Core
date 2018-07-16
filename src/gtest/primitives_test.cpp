@@ -9,6 +9,7 @@
 #include "primitives/Tier2Transaction.h"
 #include "primitives/Transfer.h"
 #include "primitives/json_interface.h"
+#include "primitives/block_tools.h"
 
 namespace {
 
@@ -433,9 +434,17 @@ class Tier1TransactionTest : public ::testing::Test {
   // You can remove any or all of the following functions if its body
   // is empty.
 
-  Tier1TransactionTest() : t1_context_0_(0, 0, Devcash::eAppMode::T1, "", "", "")
-      , addr_0_(Devcash::Hex2Bin(t1_context_0_.kADDRs[0]))
+  Tier1TransactionTest()
+      : t1_context_0_(0, 0, Devcash::eAppMode::T1, "", "", "")
+      , keys_(t1_context_0_)
   {
+    for (int i = 0; i < 4; ++i) {
+      keys_.addWalletKeyPair(t1_context_0_.kADDRs.at(i), t1_context_0_.kADDR_KEYs.at(i), "password");
+    }
+    keys_.setInnKeyPair(t1_context_0_.kINN_ADDR, t1_context_0_.kINN_KEY, "password");
+    for (int i = 0; i < 3; ++i) {
+      keys_.addNodeKeyPair(t1_context_0_.kNODE_ADDRs.at(i), t1_context_0_.kNODE_KEYs.at(i), "password");
+    }
   }
 
   // You can do clean-up work that doesn't throw exceptions here.
@@ -459,9 +468,8 @@ class Tier1TransactionTest : public ::testing::Test {
   // Create a default context
   Devcash::DevcashContext t1_context_0_;
 
-  // create a default address
-  Devcash::Address addr_0_;
-
+  // keys
+  Devcash::KeyRing keys_;
 };
 
 TEST_F(Tier1TransactionTest, defaultConstructor) {
@@ -472,17 +480,97 @@ TEST_F(Tier1TransactionTest, defaultConstructor) {
   EXPECT_EQ(transaction.getByteSize(), zero);
 }
 
-/*
-TEST_F(Tier1TransactionTest, getJSONIdentity) {
-  size_t offset = 0;
-  bool calculate_soundness = false;
-  Devcash::KeyRing rings(t1_context_0_);
-  Devcash::Tier1Transaction transaction;
-  Devcash::Tier1Transaction identity(transaction.getCanonical(), offset, rings, calculate_soundness);
+Tier1TransactionPtr CreateTestT1_0(const KeyRing& keys) {
+  Hash prev_hash;
+  std::vector<TransactionPtr> txs;
+  Summary sum_test = Summary::Create();
+  Validation val_test = Validation::Create();
+  ChainState state;
 
-  EXPECT_EQ(transaction.getJSON(), transaction.getJSON());
+  ProposedBlock proposal_test(prev_hash, txs, sum_test, val_test, state);
+  FinalBlock final_block(proposal_test);
+
+  return(CreateTier1Transaction(final_block, keys));
 }
- */
+
+Tier1Transaction CreateTestT1_1(const KeyRing& keys) {
+  Summary summary = Summary::Create();
+  Address a = keys.getInnAddr();
+  Address w = keys.getWalletAddr(0);
+  summary.addItem(a, (uint64_t) 12, (int64_t) -47);
+  summary.addItem(w, (uint64_t) 12, (int64_t) 47);
+  std::vector<byte> msg = summary.getCanonical();
+  auto s = SignBinary(keys.getKey(a), DevcashHash(msg));
+  Tier1Transaction tx1(summary, s, a, keys);
+  InputBuffer ib(tx1.getCanonical());
+  Tier1Transaction c = Tier1Transaction::Create(ib, keys, true);
+  LOG_INFO << "Original addr: " + ToHex(a);
+  LOG_INFO << "Final addr: " + ToHex(c.getNodeAddress());
+  return c;
+}
+
+Tier1TransactionPtr CreateTestT1_2(const KeyRing& keys) {
+  Summary summary = Summary::Create();
+  Address a = keys.getInnAddr();
+  Address w = keys.getWalletAddr(0);
+  summary.addItem(a, (uint64_t) 12, (int64_t) -47);
+  summary.addItem(w, (uint64_t) 12, (int64_t) 47);
+  std::vector<byte> msg = summary.getCanonical();
+  auto s = SignBinary(keys.getKey(a), DevcashHash(msg));
+  Tier1Transaction tx1(summary, s, a, keys);
+  InputBuffer ib(tx1.getCanonical());
+  Tier1Transaction c = Tier1Transaction::Create(ib, keys, true);
+  LOG_INFO << "Original addr: " + ToHex(a);
+  LOG_INFO << "Final addr: " + ToHex(c.getNodeAddress());
+
+  ib.reset();
+  auto d = Tier1Transaction::CreateUniquePtr(ib, keys, true);
+  LOG_INFO << "Original ptr addr: " + ToHex(a);
+  LOG_INFO << "Final ptr addrp: " + ToHex(d->getNodeAddress());
+
+  return d;
+}
+
+TEST_F(Tier1TransactionTest, getJSONIdentity) {
+  //size_t offset = 0;
+  //uint64_t node_index;
+  //bool calculate_soundness = false;
+  //Devcash::KeyRing keys(t1_context_0_);
+
+  Transfer sender(keys_.getWalletAddr(1), 0, -1, 0);
+  Transfer test_transfer(keys_.getWalletAddr(0), 0, 1, 0);
+
+  std::vector<Transfer> xfers;
+  xfers.push_back(sender);
+  xfers.push_back(test_transfer);
+
+  EVP_MD_CTX* ctx;
+  if(!(ctx = EVP_MD_CTX_create())) {
+    LOG_FATAL << "Could not create signature context!";
+    exit(-1);
+  }
+
+  uint64_t nonce = GetMillisecondsSinceEpoch() + (100);
+  std::vector<byte> nonce_bin;
+  Uint64ToBin(nonce, nonce_bin);
+  Tier2Transaction t2_tx1(
+      eOpType::Exchange, xfers,
+      nonce_bin,
+      keys_.getWalletKey(1), keys_);
+
+  auto tx = CreateTestT1_2(keys_);
+
+  /*
+   * Summary sum_test = Summary::Create();
+  //Devcash::Tier1Transaction identity(sum_test,
+                                     t2_tx1.getSignature(),
+                                     node_index,
+                                     keys);
+*/
+  std::string stuff;
+  EXPECT_EQ(tx->getJSON(), stuff);
+}
+
 /*
 TEST_F(Tier1TransactionTest, getCanonicalIdentity) {
   Devcash::Transfer test_transfer(addr_0_, 0, 1, 0);
@@ -514,14 +602,18 @@ class Tier2TransactionTest : public ::testing::Test {
       , keys_(t1_context_0_)
   {
     for (int i = 0; i < 4; ++i) {
-      EC_KEY* wallet_key = LoadEcKey(t1_context_0_.kADDRs[i], t1_context_0_.kADDR_KEYs[i], "password");
-      wallet_keys_.push_back(wallet_key);
-      wallet_list_.push_back(keys_.InsertAddress(t1_context_0_.kADDRs[i], wallet_key));
+      keys_.addWalletKeyPair(t1_context_0_.kADDRs[i], t1_context_0_.kADDR_KEYs[i], "password");
     }
 
-    Devcash::Transfer transfer1(wallet_list_.at(0), 0, -10, 0);
+    keys_.setInnKeyPair(t1_context_0_.kINN_ADDR, t1_context_0_.kINN_KEY, "password");
+
+    for (int i = 0; i < 3; ++i) {
+      keys_.addNodeKeyPair(t1_context_0_.kNODE_ADDRs.at(i), t1_context_0_.kNODE_KEYs.at(i), "password");
+    }
+
+    Devcash::Transfer transfer1(keys_.getWalletAddr(0), 0, -10, 0);
     transfers_.push_back(transfer1);
-    Devcash::Transfer transfer2(wallet_list_.at(1), 0, 10, 0);
+    Devcash::Transfer transfer2(keys_.getWalletAddr(1), 0, 10, 0);
     transfers_.push_back(transfer2);
   }
 
@@ -553,13 +645,10 @@ class Tier2TransactionTest : public ::testing::Test {
 
   // keys
   Devcash::KeyRing keys_;
-
-  std::vector<EC_KEY*> wallet_keys_;
-  std::vector<Address> wallet_list_;
 };
 
 TEST_F(Tier2TransactionTest, createInnTx_0) {
-  size_t addr_count = wallet_list_.size();
+  size_t addr_count = keys_.CountWallets();
   Address inn_addr = keys_.getInnAddr();
 
   uint64_t nonce_num = GetMillisecondsSinceEpoch() + 1000011;
@@ -569,8 +658,8 @@ TEST_F(Tier2TransactionTest, createInnTx_0) {
   std::vector<Transfer> xfers;
   Transfer inn_transfer(inn_addr, 0, -1 * addr_count * (addr_count - 1) * nonce_num, 0);
   xfers.push_back(inn_transfer);
-  for (size_t i = 0; i < wallet_list_.size(); ++i) {
-    Transfer transfer(wallet_list_.at(i), 0, (addr_count - 1) * nonce_num, 0);
+  for (size_t i = 0; i < addr_count; ++i) {
+    Transfer transfer(keys_.getWalletAddr(i), 0, (addr_count - 1) * nonce_num, 0);
     xfers.push_back(transfer);
   }
   Tier2Transaction inn_tx(eOpType::Create, xfers, nonce_bin,
@@ -582,9 +671,9 @@ TEST_F(Tier2TransactionTest, createInnTx_0) {
 TEST_F(Tier2TransactionTest, getOperation_0) {
   uint64_t nonce_num = 10;
   std::vector<Transfer> peer_xfers;
-  Transfer sender(wallet_list_.at(0), 0, nonce_num * -1, 0);
+  Transfer sender(keys_.getWalletAddr(0), 0, nonce_num * -1, 0);
   peer_xfers.push_back(sender);
-  Transfer receiver(wallet_list_.at(1), 0, nonce_num, 0);
+  Transfer receiver(keys_.getWalletAddr(1), 0, nonce_num, 0);
   peer_xfers.push_back(receiver);
 
   std::vector<byte> nonce_bin;
@@ -594,7 +683,7 @@ TEST_F(Tier2TransactionTest, getOperation_0) {
       eOpType::Exchange,
       peer_xfers,
       nonce_bin,
-      wallet_keys_.at(0),
+      keys_.getWalletKey(0),
       keys_);
 
   EXPECT_EQ(tx1.getOperation(), eOpType::Exchange);
@@ -802,11 +891,7 @@ TEST(Primitives, getCanonical0) {
   FinalBlock final_id(buffer6, proposal_test.getBlockState(), keys, eAppMode::T2);
 
   EXPECT_EQ(GetJSON(final_test), GetJSON(final_id));
-
-  if (final_test.getCanonical() == final_id.getCanonical()) {
-    LOG_INFO << "Final Block canonical identity pass.";
-  }
-
+  EXPECT_EQ(final_test.getCanonical(), final_id.getCanonical());
 }
 
 }  // namespace
