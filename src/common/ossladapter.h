@@ -277,13 +277,14 @@ static bool VerifyByteSig(EC_KEY* ecKey, const Devcash::Hash& msg
       LOG_FATAL << "Could not create signature context!";
     }
     Devcash::Hash temp = msg;
-    unsigned char* copy_sig = (unsigned char*) malloc(sig.size()+1);
-    for (size_t i=0; i<sig.size(); ++i) {
-      copy_sig[i] = sig[i];
+    std::vector<unsigned char> raw_sig(sig.getRawSignature());
+    unsigned char* copy_sig = (unsigned char*) malloc(raw_sig.size()+1);
+    for (size_t i=0; i<raw_sig.size(); ++i) {
+      copy_sig[i] = raw_sig[i];
     }
     ECDSA_SIG *signature = d2i_ECDSA_SIG(NULL
         , (const unsigned char**) &copy_sig
-        , sig.size());
+        , raw_sig.size());
     int state = ECDSA_do_verify((const unsigned char*) &temp[0]
         , SHA256_DIGEST_LENGTH, signature, ecKey);
 
@@ -317,7 +318,7 @@ static void SignBinary(EC_KEY* ec_key, const Devcash::Hash& msg, Devcash::Signat
     }
 
     int len = i2d_ECDSA_SIG(signature, NULL);
-    std::vector<byte> temp_sig(len);
+    std::vector<unsigned char> temp_sig(len);
     unsigned char* ptr = &temp_sig[0];
     memset(&temp_sig[0], 6, len);
     len = i2d_ECDSA_SIG(signature, &ptr);

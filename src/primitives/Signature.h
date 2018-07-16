@@ -141,7 +141,7 @@ class Signature {
   /**
    * @return this signature without the type prefix.
    */
-  std::vector<byte> getSignatureRaw() {
+  std::vector<byte> getRawSignature() const {
     if (isNull()) throw std::runtime_error("Signature is not initialized!");
 	std::vector<byte> raw(canonical_.begin()+1, canonical_.end());
     return raw;

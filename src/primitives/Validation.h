@@ -112,7 +112,8 @@ class Validation {
     for (auto const& item : sigs_) {
       std::vector<byte> bin_addr(item.first.getCanonical());
       serial.insert(serial.end(), bin_addr.begin(), bin_addr.end());
-      serial.insert(serial.end(), item.second.begin(), item.second.end());
+      std::vector<byte> bin_sig(item.second.getCanonical());
+      serial.insert(serial.end(), bin_sig.begin(), bin_sig.end());
     }
     return serial;
   }

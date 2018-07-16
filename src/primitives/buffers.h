@@ -110,6 +110,15 @@ class InputBuffer {
     if (increment_buffer) { offset_ += bin_addr.size(); }
   }
 
+  void copy(Signature& sig, bool increment_buffer = true)
+  {
+    size_t t = getNextByte();
+    std::vector<byte> bin_sig(buffer_.begin() + offset_, buffer_.begin() + offset_ + t);
+    Address new_sig(bin_sig);
+    sig = new_sig;
+    if (increment_buffer) { offset_ += bin_sig.size(); }
+  }
+
   /**
    * Returns the byte at the current position
    *
