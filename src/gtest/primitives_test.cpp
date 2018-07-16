@@ -15,6 +15,70 @@ namespace {
 
 #define TEST_DESCRIPTION(desc) RecordProperty("primitive data type unit tests", desc)
 
+TEST(converters, Int32ToBin_0) {
+  std::vector<byte> buf;
+  int32_t i = 100;
+  Int32ToBin(i, buf);
+  int32_t i2 = BinToInt32(buf, 0);
+  EXPECT_EQ(i, i2);
+}
+
+TEST(converters, Int32ToBin_1) {
+  std::vector<byte> buf;
+  int32_t i = INT32_MAX - 1;
+  Int32ToBin(i, buf);
+  int32_t i2 = BinToInt32(buf, 0);
+  EXPECT_EQ(i, i2);
+}
+
+TEST(converters, UInt32ToBin_0) {
+  std::vector<byte> buf;
+  uint32_t i = 10101;
+  Uint32ToBin(i, buf);
+  uint32_t i2 = BinToUint32(buf, 0);
+  EXPECT_EQ(i, i2);
+}
+
+TEST(converters, UInt32ToBin_1) {
+  std::vector<byte> buf;
+  uint32_t i = UINT32_MAX - 1;
+  Uint32ToBin(i, buf);
+  uint32_t i2 = BinToUint32(buf, 0);
+  EXPECT_EQ(i, i2);
+}
+
+TEST(converters, Int64ToBin_0) {
+  std::vector<byte> buf;
+  int64_t i = 100;
+  Int64ToBin(i, buf);
+  int64_t i2 = BinToInt64(buf, 0);
+  EXPECT_EQ(i, i2);
+}
+
+TEST(converters, Int64ToBin_1) {
+  std::vector<byte> buf;
+  int64_t i = INT64_MAX - 1;
+  Int64ToBin(i, buf);
+  int64_t i2 = BinToInt64(buf, 0);
+  EXPECT_EQ(i, i2);
+}
+
+TEST(converters, UInt64ToBin_0) {
+  std::vector<byte> buf;
+  uint64_t i = 10101;
+  Uint64ToBin(i, buf);
+  uint64_t i2 = BinToUint64(buf, 0);
+  EXPECT_EQ(i, i2);
+}
+
+TEST(converters, UInt64ToBin_1) {
+  std::vector<byte> buf;
+  uint64_t i = UINT64_MAX - 1;
+  Uint64ToBin(i, buf);
+  uint64_t i2 = BinToUint64(buf, 0);
+  EXPECT_EQ(i, i2);
+}
+
 /**
  *
  * InputBufferTest
@@ -424,6 +488,36 @@ TEST_F(TransferTest, getAddress_1) {
 }
 */
 
+TEST(ossl, SignBinary_0) {
+  // Create a default context
+  Devcash::DevcashContext context(0, 0, Devcash::eAppMode::T1, "", "", "");
+
+  // keys
+  Devcash::KeyRing keys(context);
+
+  for (int i = 0; i < 4; ++i) {
+    keys.addWalletKeyPair(context.kADDRs.at(i), context.kADDR_KEYs.at(i), "password");
+  }
+
+  keys.setInnKeyPair(context.kINN_ADDR, context.kINN_KEY, "password");
+
+  for (int i = 0; i < 3; ++i) {
+    keys.addNodeKeyPair(context.kNODE_ADDRs.at(i), context.kNODE_KEYs.at(i), "password");
+  }
+
+  Summary summary = Summary::Create();
+  Address a = keys.getInnAddr();
+  Address w = keys.getWalletAddr(0);
+  summary.addItem(a, (uint64_t) 12, (int64_t) -47);
+  summary.addItem(w, (uint64_t) 12, (int64_t) 47);
+  std::vector<byte> msg = summary.getCanonical();
+  auto k = keys.getKey(a);
+  auto h = DevcashHash(msg);
+  auto s1 = SignBinary(k, h);
+  auto s2 = SignBinary(k, h);
+  EXPECT_EQ(s1, s2);
+}
+
 /**
  *
  * Tier1TransactionTest
@@ -516,7 +610,10 @@ Tier1TransactionPtr CreateTestT1_2(const KeyRing& keys) {
   summary.addItem(a, (uint64_t) 12, (int64_t) -47);
   summary.addItem(w, (uint64_t) 12, (int64_t) 47);
   std::vector<byte> msg = summary.getCanonical();
-  auto s = SignBinary(keys.getKey(a), DevcashHash(msg));
+  auto k = keys.getKey(a);
+  auto h = DevcashHash(msg);
+  auto s = SignBinary(k, h);
+  auto s2 = SignBinary(k, h);
   Tier1Transaction tx1(summary, s, a, keys);
   InputBuffer ib(tx1.getCanonical());
   Tier1Transaction c = Tier1Transaction::Create(ib, keys, true);
@@ -722,7 +819,7 @@ TEST_F(Tier2TransactionTest, op2_0) {
               keys_.getWalletKey(0),
               keys_);
 
-  EXPECT_EQ(tx1.getByteSize(), 211);
+  EXPECT_EQ(tx1.getByteSize(), 215);
 }
 
 
@@ -796,11 +893,11 @@ TEST_F(Tier2TransactionTest, checkCanonical) {
               keys_.getWalletKey(0),
               keys_);
 
-  EXPECT_EQ(2, BinToUint64(tx1.getCanonical(), 0));
+  EXPECT_EQ(116, BinToUint64(tx1.getCanonical(), 0));
 }
 
 TEST_F(Tier2TransactionTest, serdes_0) {
-  uint64_t nonce = GetMillisecondsSinceEpoch() + (100);
+  uint64_t nonce = 123456789;
   std::vector<byte> nonce_bin;
   Uint64ToBin(nonce, nonce_bin);
   Tier2Transaction tx1(
