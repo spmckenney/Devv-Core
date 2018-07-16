@@ -178,11 +178,8 @@ TEST_F(InputBufferTest, test_uint64) {
  class SummaryTest : public ::testing::Test {
  protected:
   SummaryTest() : t1_context_0_(0, 0, Devcash::eAppMode::T1, "", "", "")
-      , addr_0_()
+      , addr_0_(Devcash::Hex2Bin(t1_context_0_.kADDRs[0]))
   {
-    std::vector<Devcash::byte> tmp(Devcash::Hex2Bin(t1_context_0_.kADDRs[0]));
-    std::vector<byte> bin_addr(addr_0_.getCanonical());
-    std::copy_n(tmp.begin(), Devcash::kWALLET_ADDR_SIZE, bin_addr.begin());
   }
 
   ~SummaryTest()  = default;
@@ -230,7 +227,7 @@ TEST_F(SummaryTest, addItem_0) {
 
   /// @todo (mckenney) maybe this should be calculated instead of being
   /// a magic number
-  size_t bytes_per_item = 69;
+  size_t bytes_per_item = 70;
   s.addItem(addr_0_, 10, 10);
   EXPECT_EQ(s.getByteSize(), bytes_per_item);
 }
@@ -241,7 +238,7 @@ TEST_F(SummaryTest, addItem_1) {
 
   /// @todo (mckenney) maybe this should be calculated instead of being
   /// a magic number
-  size_t bytes_per_item = 77;
+  size_t bytes_per_item = 78;
   s.addItem(addr_0_, 1, 2, 3);
   EXPECT_EQ(s.getByteSize(), bytes_per_item);
 }
@@ -256,7 +253,7 @@ TEST_F(SummaryTest, addItem_2) {
   uint64_t delta = 0;
   DelayedItem item(delay, delta);
 
-  size_t bytes_per_item = 77;
+  size_t bytes_per_item = 78;
   s.addItem(addr_0_, 10, item);
   EXPECT_EQ(s.getByteSize(), bytes_per_item);
 }
@@ -271,7 +268,7 @@ TEST_F(SummaryTest, addItem_3) {
   uint64_t delta = 10;
   DelayedItem item(delay, delta);
 
-  size_t bytes_per_item = 69;
+  size_t bytes_per_item = 70;
   s.addItem(addr_0_, 10, item);
   EXPECT_EQ(s.getByteSize(), bytes_per_item);
 }
@@ -289,8 +286,8 @@ TEST_F(SummaryTest, addItem_4) {
   uint64_t coin0 = 10;
   uint64_t coin1 = coin0;
 
-  size_t size0 = 69;
-  size_t size1 = 69;
+  size_t size0 = 70;
+  size_t size1 = 70;
   size_t transfer_count = 1;
 
   s.addItem(addr_0_, coin0, item);
@@ -310,8 +307,8 @@ TEST_F(SummaryTest, addItem_5) {
   uint64_t coin0 = 10;
   uint64_t coin1 = coin0;
 
-  size_t size0 = 69;
-  size_t size1 = 69;
+  size_t size0 = 70;
+  size_t size1 = 70;
   size_t transfer_count = 1;
 
   bool add_item = s.addItem(addr_0_, coin0, 10);
@@ -335,8 +332,8 @@ TEST_F(SummaryTest, addItem_6) {
   uint64_t coin0 = 10;
   uint64_t coin1 = 11;
 
-  size_t size0 = 69;
-  size_t size1 = 85;
+  size_t size0 = 70;
+  size_t size1 = 86;
   size_t transfer_count = 1;
 
   s.addItem(addr_0_, coin0, 10);
@@ -356,11 +353,8 @@ TEST_F(SummaryTest, addItem_6) {
 class TransferTest : public ::testing::Test {
  protected:
   TransferTest() : t1_context_0_(0, 0, Devcash::eAppMode::T1, "", "", "")
-      , addr_0_()
+      , addr_0_(Devcash::Hex2Bin(t1_context_0_.kADDRs[0]))
   {
-    std::vector<Devcash::byte> tmp(Devcash::Hex2Bin(t1_context_0_.kADDRs[0]));
-    std::vector<byte> bin_addr(addr_0_.getCanonical());
-    std::copy_n(tmp.begin(), Devcash::kWALLET_ADDR_SIZE, bin_addr.begin());
   }
 
   // You can do clean-up work that doesn't throw exceptions here.
@@ -419,14 +413,15 @@ TEST_F(TransferTest, getAddress_1) {
 }
 
 // Exception - wrong size input
-TEST_F(TransferTest, getAddress_2) {
+/*
+ * TEST_F(TransferTest, getAddress_2) {
   Devcash::Transfer test0(addr_0_, 0, 1, 0);
   std::vector<Devcash::byte> tmp(Devcash::Hex2Bin(""));
   std::vector<byte> bin_addr(addr_0_.getCanonical());
   std::copy_n(tmp.begin(), Devcash::kWALLET_ADDR_SIZE, bin_addr.begin());
   EXPECT_THROW(Address a(tmp), std::runtime_error);
 }
-
+*/
 
 /**
  *
@@ -439,11 +434,8 @@ class Tier1TransactionTest : public ::testing::Test {
   // is empty.
 
   Tier1TransactionTest() : t1_context_0_(0, 0, Devcash::eAppMode::T1, "", "", "")
-      , addr_0_()
+      , addr_0_(Devcash::Hex2Bin(t1_context_0_.kADDRs[0]))
   {
-    std::vector<Devcash::byte> tmp(Devcash::Hex2Bin(t1_context_0_.kADDRs[0]));
-    std::vector<byte> bin_addr(addr_0_.getCanonical());
-    std::copy_n(tmp.begin(), Devcash::kWALLET_ADDR_SIZE, bin_addr.begin());
   }
 
   // You can do clean-up work that doesn't throw exceptions here.
@@ -517,8 +509,7 @@ class Tier2TransactionTest : public ::testing::Test {
                       Devcash::eAppMode::T1,
                       "", // "../opt/inn.key"
                       "", //"../opt/node.key"
-                      "" //../opt/wallet.key"
-                      )
+                      "password")
       , transfers_()
       , keys_(t1_context_0_)
   {
