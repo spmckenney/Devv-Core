@@ -32,7 +32,6 @@ KeyRing::KeyRing(const DevcashContext& context)
 
     std::vector<byte> msg = {'h', 'e', 'l', 'l', 'o'};
     Hash test_hash;
-    Signature sig;
     test_hash = DevcashHash(msg);
 
     std::string inn_keys;
@@ -50,7 +49,7 @@ KeyRing::KeyRing(const DevcashContext& context)
             counter += kFILE_NODEKEY_SIZE;
 
             EC_KEY* inn_key = LoadEcKey(addr, key, context.get_key_password());
-            SignBinary(inn_key, test_hash, sig);
+            Signature sig = SignBinary(inn_key, test_hash);
 
             if (!VerifyByteSig(inn_key, test_hash, sig)) {
               LOG_FATAL << "Invalid INN key!";
@@ -81,7 +80,7 @@ KeyRing::KeyRing(const DevcashContext& context)
             counter += kFILE_NODEKEY_SIZE;
 
             EC_KEY* node_key = LoadEcKey(addr,key,context.get_key_password());
-            SignBinary(node_key, test_hash, sig);
+            Signature sig = SignBinary(node_key, test_hash);
 
             if (!VerifyByteSig(node_key, test_hash, sig)) {
               LOG_WARNING << "Invalid node["+addr+"] key!";
@@ -114,7 +113,6 @@ bool KeyRing::LoadWallets(const std::string& file_path
 
      std::vector<byte> msg = {'h', 'e', 'l', 'l', 'o'};
      Hash test_hash;
-     Signature sig;
      test_hash = DevcashHash(msg);
 
      std::string wallet_keys;
@@ -133,7 +131,7 @@ bool KeyRing::LoadWallets(const std::string& file_path
              counter += kFILE_KEY_SIZE;
 
              EC_KEY* wallet_key = LoadEcKey(addr, key, file_pass);
-             SignBinary(wallet_key, test_hash, sig);
+             Signature sig = SignBinary(wallet_key, test_hash);
 
              if (!VerifyByteSig(wallet_key, test_hash, sig)) {
                LOG_WARNING << "Invalid address["+addr+"] key!";

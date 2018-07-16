@@ -444,9 +444,9 @@ class UnrecordedTransactionPool {
     for (auto const& item : proposed.getTransactions()) {
       if (txs_.erase(item->getSignature()) == 0) {
         LOG_WARNING << "RemoveTransactions(): ret = 0, transaction not found: "
-                    << ToHex(item->getSignature());
+                    << item->getSignature().getJSON();
       } else {
-        LOG_TRACE << "RemoveTransactions(): erase returned 1: " << ToHex(item->getSignature());
+        LOG_TRACE << "RemoveTransactions(): erase returned 1: " << item->getSignature().getJSON();
       }
     }
     LOG_DEBUG << "RemoveTransactions: (to remove/size pre/size post) ("

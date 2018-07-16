@@ -114,7 +114,7 @@ class InputBuffer {
   {
     size_t t = getNextByte();
     std::vector<byte> bin_sig(buffer_.begin() + offset_, buffer_.begin() + offset_ + t);
-    Address new_sig(bin_sig);
+    Signature new_sig(bin_sig);
     sig = new_sig;
     if (increment_buffer) { offset_ += bin_sig.size(); }
   }

@@ -72,8 +72,7 @@ class Tier2Transaction : public Transaction {
 
     canonical_.insert(std::end(canonical_), std::begin(nonce), std::end(nonce));
     std::vector<byte> msg(getMessageDigest());
-    Signature sig;
-    SignBinary(eckey, DevcashHash(msg), sig);
+    Signature sig = SignBinary(eckey, DevcashHash(msg));
     std::vector<byte> sig_canon(sig.getCanonical());
     canonical_.insert(std::end(canonical_), std::begin(sig_canon), std::end(sig_canon));
     is_sound_ = isSound(keys);

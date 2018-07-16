@@ -199,8 +199,7 @@ class ProposedBlock {
     /// @todo (mckenney) need another solution for node_num with dynamic shards
     size_t node_num = context.get_current_node() % context.get_peer_count();
     Address node_addr = keys.getNodeAddr(node_num);
-    Signature node_sig;
-    SignBinary(keys.getNodeKey(node_num), DevcashHash(md), node_sig);
+    Signature node_sig = SignBinary(keys.getNodeKey(node_num), DevcashHash(md));
     vals_.addValidation(node_addr, node_sig);
     val_count_++;
     num_bytes_ = MinSize() + tx_size_ + sum_size_ + (val_count_ * Validation::pairSize());

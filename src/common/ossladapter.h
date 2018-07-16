@@ -304,7 +304,7 @@ static bool VerifyByteSig(EC_KEY* ecKey, const Devcash::Hash& msg
  *  @param sig target buffer where signature is put, must be allocted
  *  @throws std::exception on error
  */
-static void SignBinary(EC_KEY* ec_key, const Devcash::Hash& msg, Devcash::Signature& sig) {
+static Devcash::Signature SignBinary(EC_KEY* ec_key, const Devcash::Hash& msg) {
   CASH_TRY {
     Devcash::Hash temp = msg;
     ECDSA_SIG *signature = ECDSA_do_sign((const unsigned char*) &temp[0],
@@ -318,11 +318,13 @@ static void SignBinary(EC_KEY* ec_key, const Devcash::Hash& msg, Devcash::Signat
     }
 
     int len = i2d_ECDSA_SIG(signature, NULL);
-    std::vector<unsigned char> temp_sig(len);
+    std::vector<unsigned char> temp_sig;
+    temp_sig.reserve(len);
     unsigned char* ptr = &temp_sig[0];
     memset(&temp_sig[0], 6, len);
     len = i2d_ECDSA_SIG(signature, &ptr);
-    sig(temp_sig);
+    Devcash::Signature sig(temp_sig);
+    return sig;
   } CASH_CATCH (const std::exception& e) {
     LOG_WARNING << Devcash::FormatException(&e, "Crypto.sign");
   }
