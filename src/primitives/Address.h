@@ -22,7 +22,7 @@ static const size_t kNODE_ADDR_SIZE = 50;
 
 class Address {
  public:
-  Address() {}
+  Address() : canonical_(1, 0) {}
   /**
    *
    * @param vec
@@ -128,6 +128,11 @@ class Address {
    */
   bool isNodeAddress() const {
     return (canonical_.at(0) == kNODE_ADDR_SIZE);
+  }
+
+  bool isNull() const {
+    if (canonical_.empty()) return true;
+    return (canonical_.at(0) == 0);
   }
 
   /**
