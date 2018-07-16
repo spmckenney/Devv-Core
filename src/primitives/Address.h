@@ -77,11 +77,15 @@ class Address {
     return *this;
   }
 
+  byte at(size_t loc) const {
+    return canonical_.at(loc);
+  }
+
   /**
    * Return the size of this Address
    * @return size of this Address
    */
-  size_t size() { return canonical_.size(); }
+  size_t size() const { return canonical_.size(); }
 
   /**
    * Gets this address in a canonical form.
