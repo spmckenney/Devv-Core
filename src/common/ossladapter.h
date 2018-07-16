@@ -319,19 +319,19 @@ static Devcash::Signature SignBinary(EC_KEY* ec_key, const Devcash::Hash& msg) {
 
     int len = i2d_ECDSA_SIG(signature, NULL);
     if (len < 80) { //must be 256-bit
-      std::array<unsigned char, kWALLET_SIG_SIZE> a;
+      std::array<unsigned char, Devcash::kWALLET_SIG_SIZE> a;
       unsigned char* ptr = &a[0];
       memset(&a[0], 6, len);
       len = i2d_ECDSA_SIG(signature, &ptr);
-      std::vector<unsigned char> vec_sig(a.begin(),a.end());
+      std::vector<unsigned char> vec_sig(std::begin(a),std::end(a));
       Devcash::Signature sig(vec_sig);
       return sig;
     } else { //otherwise 384-bit
-      std::array<unsigned char, kNODE_SIG_SIZE> a;
+      std::array<unsigned char, Devcash::kNODE_SIG_SIZE> a;
       unsigned char* ptr = &a[0];
       memset(&a[0], 6, len);
       len = i2d_ECDSA_SIG(signature, &ptr);
-      std::vector<unsigned char> vec_sig(a.begin(),a.end());
+      std::vector<unsigned char> vec_sig(std::begin(a),std::end(a));
       Devcash::Signature sig(vec_sig);
       return sig;
     }
