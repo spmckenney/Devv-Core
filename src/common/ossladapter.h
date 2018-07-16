@@ -23,8 +23,15 @@
 /** Gets the EC_GROUP for normal transactions.
  *  @return a pointer to the EC_GROUP
  */
-static EC_GROUP* getEcGroup() {
+static EC_GROUP* getWalletGroup() {
   return(EC_GROUP_new_by_curve_name(NID_secp256k1));
+}
+
+/** Gets the EC_GROUP for internal transactions.
+ *  @return a pointer to the EC_GROUP
+ */
+static EC_GROUP* getNodeGroup() {
+  return(EC_GROUP_new_by_curve_name(NID_secp384r1));
 }
 
 /** Generates a new EC_KEY.
@@ -38,7 +45,7 @@ static EC_GROUP* getEcGroup() {
 static EC_KEY* GenerateEcKey(std::string& publicKey, std::string& pk
                            , const std::string& aes_password) {
   CASH_TRY {
-    EC_GROUP* ecGroup = getEcGroup();
+    EC_GROUP* ecGroup = getWalletGroup();
     if (NULL == ecGroup) {
       LOG_ERROR << "Failed to generate EC group.";
     }
@@ -130,10 +137,17 @@ static bool GenerateAndWriteKeyfile(const std::string& path, size_t num_keys
 static EC_KEY* LoadEcKey(const std::string& publicKey
                        , const std::string& privKey
                        , const std::string& aes_password) {
-  CASH_TRY {
-    EC_GROUP* ecGroup = getEcGroup();
+  try {
+    EC_GROUP* ecGroup;
+    if (publicKey.size() == kWALLET_ADDR_SIZE*2) {
+      ecGroup = getWalletGroup();
+    } else if (publicKey.size() == kNODE_ADDR_SIZE*2) {
+      ecGroup = getNodeGroup();
+    } else {
+      throw std::runtime_error("Invalid public key!");
+	}
     if (NULL == ecGroup) {
-      LOG_ERROR << "Failed to generate EC group.";
+      throw std::runtime_error("Failed to generate EC group.");
     }
 
     EC_KEY *eckey=EC_KEY_new();
@@ -171,7 +185,7 @@ static EC_KEY* LoadEcKey(const std::string& publicKey
       LOG_ERROR << "key is invalid!";
     }
     return(eckey);
-  } CASH_CATCH(const std::exception& e) {
+  } catch(const std::exception& e) {
     LOG_WARNING << Devcash::FormatException(&e, "Crypto");
   }
   return nullptr;
@@ -184,10 +198,17 @@ static EC_KEY* LoadEcKey(const std::string& publicKey
  *  @return if error, a NULLPTR
  */
 static EC_KEY* LoadPublicKey(const Devcash::Address& public_key) {
-  CASH_TRY {
-    EC_GROUP* ecGroup = getEcGroup();
+  try {
+    EC_GROUP* ecGroup;
+    if (public_key.isWalletAddress()) {
+      ecGroup = getWalletGroup();
+    } else if (public_key.isNodeAddress()) {
+      ecGroup = getNodeGroup();
+    } else {
+      throw std::runtime_error("Invalid public key!");
+	}
     if (NULL == ecGroup) {
-      LOG_ERROR << "Failed to generate EC group.";
+      throw std::runtime_error("Failed to generate EC group.");
     }
 
     EC_KEY *eckey=EC_KEY_new();
@@ -218,7 +239,7 @@ static EC_KEY* LoadPublicKey(const Devcash::Address& public_key) {
       LOG_ERROR << "key is invalid!";
     }
     return(eckey);
-  } CASH_CATCH(const std::exception& e) {
+  } catch (const std::exception& e) {
     LOG_WARNING << Devcash::FormatException(&e, "Crypto");
   }
   return nullptr;
