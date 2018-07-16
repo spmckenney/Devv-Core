@@ -54,13 +54,16 @@ class Transfer {
    * @param[in] serial
    * @param[in, out] offset
    */
-  Transfer(InputBuffer& buffer)
-      : canonical_(buffer.getCurrentIterator(), buffer.getCurrentIterator() + Size()) {
-    if (buffer.size() < Size() + buffer.getOffset()) {
-      LOG_WARNING << "Invalid serialized transfer!";
-      return;
-    }
-    buffer.increment(Size());
+  explicit Transfer(InputBuffer& buffer)
+      : canonical_() {
+    /// @todo - check for appropriate buffer size
+    // Get address from buffer
+    Address addr;
+    buffer.copy(addr);
+    canonical_ = addr.getCanonical();
+
+    // Copy out coin, amount, delay
+    buffer.copy(std::back_inserter(canonical_), 8*3);
   }
 
   /**
