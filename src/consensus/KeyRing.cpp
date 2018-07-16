@@ -30,10 +30,6 @@ KeyRing::KeyRing(const DevcashContext& context)
       CASH_THROW("Could not create signature context!");
     }
 
-    std::vector<byte> msg = {'h', 'e', 'l', 'l', 'o'};
-    Hash test_hash;
-    test_hash = DevcashHash(msg);
-
     std::string inn_keys;
     if (context.get_inn_key_path().size() > 0) {
       inn_keys = ReadFile(context.get_inn_key_path());
@@ -42,22 +38,11 @@ KeyRing::KeyRing(const DevcashContext& context)
       size_t size = inn_keys.size();
       if (size%(kFILE_NODEKEY_SIZE+(kNODE_ADDR_SIZE*2)) == 0) {
         size_t counter = 0;
-          while (counter < (size-1)) {
             std::string addr = inn_keys.substr(counter, kNODE_ADDR_SIZE*2);
             counter += (kNODE_ADDR_SIZE*2);
             std::string key = inn_keys.substr(counter, kFILE_NODEKEY_SIZE);
-            counter += kFILE_NODEKEY_SIZE;
 
-            EC_KEY* inn_key = LoadEcKey(addr, key, context.get_key_password());
-            Signature sig = SignBinary(inn_key, test_hash);
-
-            if (!VerifyByteSig(inn_key, test_hash, sig)) {
-              LOG_FATAL << "Invalid INN key!";
-              return;
-            }
-
-            inn_addr_ = InsertAddress(addr, inn_key);
-         }
+            setInnKeyPair(addr, key, context.get_key_password());
       } else {
         LOG_FATAL << "Invalid INN key file size ("+std::to_string(size)+")";
         return;
@@ -79,15 +64,7 @@ KeyRing::KeyRing(const DevcashContext& context)
             std::string key = node_keys.substr(counter, kFILE_NODEKEY_SIZE);
             counter += kFILE_NODEKEY_SIZE;
 
-            EC_KEY* node_key = LoadEcKey(addr,key,context.get_key_password());
-            Signature sig = SignBinary(node_key, test_hash);
-
-            if (!VerifyByteSig(node_key, test_hash, sig)) {
-              LOG_WARNING << "Invalid node["+addr+"] key!";
-            }
-
-            Address node_addr = InsertAddress(addr, node_key);
-            node_list_.push_back(node_addr);
+            addNodeKeyPair(addr,key,context.get_key_password());
          }
        } else {
          LOG_FATAL << "Invalid node key file size ("+std::to_string(size)+")";
@@ -111,10 +88,6 @@ bool KeyRing::LoadWallets(const std::string& file_path
        CASH_THROW("Could not create signature context!");
      }
 
-     std::vector<byte> msg = {'h', 'e', 'l', 'l', 'o'};
-     Hash test_hash;
-     test_hash = DevcashHash(msg);
-
      std::string wallet_keys;
      if (file_path.size() > 0)
      {
@@ -130,16 +103,7 @@ bool KeyRing::LoadWallets(const std::string& file_path
              std::string key = wallet_keys.substr(counter, kFILE_KEY_SIZE);
              counter += kFILE_KEY_SIZE;
 
-             EC_KEY* wallet_key = LoadEcKey(addr, key, file_pass);
-             Signature sig = SignBinary(wallet_key, test_hash);
-
-             if (!VerifyByteSig(wallet_key, test_hash, sig)) {
-               LOG_WARNING << "Invalid address["+addr+"] key!";
-               continue;
-             }
-
-             Address wallet_addr = InsertAddress(addr, wallet_key);
-             wallet_list_.push_back(wallet_addr);
+             addWalletKeyPair(addr, key, file_pass);
           }
         } else {
           LOG_FATAL << "Invalid key file size ("+std::to_string(size)+")";
@@ -165,14 +129,18 @@ bool KeyRing::isINN(const Address& addr) const {
 }
 
 Address KeyRing::getInnAddr() const {
-  return inn_addr_;
+  if (isINN(inn_addr_)) {
+    return inn_addr_;
+  } else {
+    throw std::runtime_error("INN Address is not initialized");
+  }
 }
 
-unsigned int KeyRing::CountNodes() const {
+size_t KeyRing::CountNodes() const {
   return node_list_.size();
 }
 
-unsigned int KeyRing::CountWallets() const {
+size_t KeyRing::CountWallets() const {
   return wallet_list_.size();
 }
 
