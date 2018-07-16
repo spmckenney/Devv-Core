@@ -655,6 +655,28 @@ TEST_F(Tier2TransactionTest, createInnTx_0) {
   std::vector<byte> nonce_bin;
   Uint64ToBin(nonce_num, nonce_bin);
 
+  unsigned int amount = 400000;
+  std::vector<Transfer> xfers;
+  Transfer inn_transfer(inn_addr, 0, -1 * addr_count * amount, 0);
+  xfers.push_back(inn_transfer);
+  for (size_t i = 0; i < addr_count; ++i) {
+    Transfer transfer(keys_.getWalletAddr(i), 0, amount, 0);
+    xfers.push_back(transfer);
+  }
+  Tier2Transaction inn_tx(eOpType::Create, xfers, nonce_bin,
+                          keys_.getKey(inn_addr), keys_);
+
+  EXPECT_EQ(inn_tx.getOperation(), eOpType::Create);
+}
+
+TEST_F(Tier2TransactionTest, createInnTx_1) {
+  size_t addr_count = keys_.CountWallets();
+  Address inn_addr = keys_.getInnAddr();
+
+  uint64_t nonce_num = GetMillisecondsSinceEpoch()/100 + 1000011;
+  std::vector<byte> nonce_bin;
+  Uint64ToBin(nonce_num, nonce_bin);
+
   std::vector<Transfer> xfers;
   Transfer inn_transfer(inn_addr, 0, -1 * addr_count * (addr_count - 1) * nonce_num, 0);
   xfers.push_back(inn_transfer);
