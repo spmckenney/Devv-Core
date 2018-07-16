@@ -38,11 +38,11 @@ class Tier1Transaction : public Transaction {
 
     sum_size_ = buffer.getNextUint64(false);
     buffer.copy(std::back_inserter(canonical_)
-      , sum_size_ + kSIG_SIZE + uint64Size() + kNODE_ADDR_SIZE);
+      , sum_size_ + kNODE_SIG_SIZE + uint64Size() + kNODE_ADDR_SIZE);
 
     MTR_STEP("Transaction", "Transaction", &trace_int, "step2");
     if (buffer.size() < buffer.getOffset() + sum_size_
-                      + kSIG_SIZE + uint64Size() + kNODE_ADDR_SIZE) {
+                      + kNODE_SIG_SIZE + uint64Size() + kNODE_ADDR_SIZE) {
       LOG_WARNING << "Invalid serialized T1 transaction, too small!";
       return;
     }
@@ -73,13 +73,14 @@ class Tier1Transaction : public Transaction {
       LOG_WARNING << "Serialized T1 transaction has bad summary!";
     }
     sum_size_ = summary.getByteSize();
-    canonical_.reserve(sum_size_ + uint64Size() + kSIG_SIZE + kNODE_ADDR_SIZE);
+    canonical_.reserve(sum_size_ + uint64Size() + kNODE_SIG_SIZE + kNODE_ADDR_SIZE);
     Uint64ToBin(sum_size_, canonical_);
     std::vector<byte> sum_canon(summary.getCanonical());
     std::vector<byte> addr(node_addr.getCanonical());
+    std::vector<byte> sig_canon(sig.getCanonical());
     canonical_.insert(std::end(canonical_), std::begin(sum_canon), std::end(sum_canon));
     canonical_.insert(std::end(canonical_), std::begin(addr), std::end(addr));
-    canonical_.insert(std::end(canonical_), std::begin(sig), std::end(sig));
+    canonical_.insert(std::end(canonical_), std::begin(sig_canon), std::end(sig_canon));
     is_sound_ = isSound(keys);
     if (!is_sound_) {
       LOG_WARNING << "Invalid serialized T1 transaction, not sound!";
@@ -163,9 +164,10 @@ class Tier1Transaction : public Transaction {
    */
   Signature do_getSignature() const {
     //Signature should be immutable so copy on request
-    Signature sig;
-    std::copy_n(canonical_.begin() + sum_size_ + uint64Size() + kNODE_ADDR_SIZE
-      , kSIG_SIZE, sig.begin());
+    std::vector<byte> sig_bin(canonical_.begin() + sum_size_ + uint64Size()
+          + kNODE_ADDR_SIZE+1,canonical_.begin() + sum_size_ + uint64Size()
+          + kNODE_ADDR_SIZE + kNODE_SIG_SIZE+2);
+    Signature sig(sig_bin);
     return sig;
   }
 
@@ -203,7 +205,7 @@ class Tier1Transaction : public Transaction {
         LOG_WARNING << "Error: T1 transaction signature did not validate.\n";
         LOG_DEBUG << "Transaction state is: " + getJSON();
         LOG_DEBUG << "Node address is: " + node_addr.getJSON();
-        LOG_DEBUG << "Signature is: " + ToHex(std::vector<byte>(std::begin(sig), std::end(sig)));
+        LOG_DEBUG << "Signature is: " + sig.getJSON();
         return false;
       }
       return true;
@@ -295,7 +297,7 @@ class Tier1Transaction : public Transaction {
     json += "]}";
     json += "],\"" + kVALIDATOR_DEX_TAG + "\":" + getNodeAddress().getJSON() + ",";
     Signature sig = getSignature();
-    json += "\"" + kSIG_TAG + "\":\"" + ToHex(std::vector<byte>(std::begin(sig), std::end(sig))) + "\"}";
+    json += "\"" + kSIG_TAG + "\":\"" + sig.getJSON() + "\"}";
     return json;
   }
 

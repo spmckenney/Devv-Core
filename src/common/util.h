@@ -29,14 +29,13 @@
 #include "common/logger.h"
 #include "common/minitrace.h"
 #include "primitives/Address.h"
+#include "primitives/Signature.h"
 
 namespace Devcash
 {
 
-static const size_t kSIG_SIZE = 72;
-typedef std::array<byte, kSIG_SIZE> Signature;
-
 static const size_t kFILE_KEY_SIZE = 379;
+static const size_t kFILE_NODEKEY_SIZE = 448;
 
 template <typename Container>
 void CheckSizeEqual(const Container& c, size_t size) {

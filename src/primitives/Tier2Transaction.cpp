@@ -36,7 +36,16 @@ void Tier2Transaction::Fill(Tier2Transaction& tx,
     throw DeserializationError(ss.str());
   }
 
+  byte oper = buffer.offsetAt(16);
+  if (oper > 3) {
+    std::stringstream ss;
+    ss << "Invalid serialized T2 transaction, invalid operation! ("
+                << tx.getOperation() << ")";
+    throw DeserializationError(ss.str());
+  }
+
   size_t tx_size = MinSize() + tx.xfer_size_ + tx.nonce_size_;
+  if (oper != 2) tx_size += kNODE_SIG_SIZE-kWALLET_SIG_SIZE;
   if (buffer.size() < buffer.getOffset() + tx_size) {
     std::stringstream ss;
     std::vector<byte> prefix(buffer.getCurrentIterator()
@@ -50,11 +59,6 @@ void Tier2Transaction::Fill(Tier2Transaction& tx,
   MTR_STEP("Transaction", "Transaction", &trace_int, "step2");
   buffer.copy(std::back_inserter(tx.canonical_), tx_size);
 
-  if (tx.getOperation() > 3) {
-    LOG_WARNING << "Invalid serialized T2 transaction, invalid operation! ("
-                << tx.getOperation() << ")";
-    return;
-  }
   MTR_STEP("Transaction", "Transaction", &trace_int, "sound");
 
   if (calculate_soundness) {

@@ -41,13 +41,13 @@ KeyRing::KeyRing(const DevcashContext& context)
     }
     if (!inn_keys.empty()) {
       size_t size = inn_keys.size();
-      if (size%(kFILE_KEY_SIZE+(kNODE_ADDR_SIZE*2)) == 0) {
+      if (size%(kFILE_NODEKEY_SIZE+(kNODE_ADDR_SIZE*2)) == 0) {
         size_t counter = 0;
           while (counter < (size-1)) {
-            std::string addr = inn_keys.substr(counter, (kNODE_ADDR_SIZE*2));
+            std::string addr = inn_keys.substr(counter, kNODE_ADDR_SIZE*2);
             counter += (kNODE_ADDR_SIZE*2);
-            std::string key = inn_keys.substr(counter, kFILE_KEY_SIZE);
-            counter += kFILE_KEY_SIZE;
+            std::string key = inn_keys.substr(counter, kFILE_NODEKEY_SIZE);
+            counter += kFILE_NODEKEY_SIZE;
 
             EC_KEY* inn_key = LoadEcKey(addr, key, context.get_key_password());
             SignBinary(inn_key, test_hash, sig);
@@ -63,18 +63,6 @@ KeyRing::KeyRing(const DevcashContext& context)
         LOG_FATAL << "Invalid INN key file size ("+std::to_string(size)+")";
         return;
       }
-    } else {
-      EC_KEY* inn_key = LoadEcKey(context.kINN_ADDR,
-          context.kINN_KEY, context.get_key_password());
-
-      SignBinary(inn_key, test_hash, sig);
-
-      if (!VerifyByteSig(inn_key, test_hash, sig)) {
-        LOG_FATAL << "Invalid INN key!";
-        return;
-      }
-
-      inn_addr_ = InsertAddress(context.kINN_ADDR, inn_key);
     }
 
     std::string node_keys;
@@ -84,13 +72,13 @@ KeyRing::KeyRing(const DevcashContext& context)
     }
     if (!node_keys.empty()) {
       size_t size = node_keys.size();
-      if (size%(kFILE_KEY_SIZE+(kNODE_ADDR_SIZE*2)) == 0) {
+      if (size%(kFILE_NODEKEY_SIZE+(kNODE_ADDR_SIZE*2)) == 0) {
         size_t counter = 0;
           while (counter < (size-1)) {
             std::string addr = node_keys.substr(counter, (kNODE_ADDR_SIZE*2));
             counter += (kNODE_ADDR_SIZE*2);
-            std::string key = node_keys.substr(counter, kFILE_KEY_SIZE);
-            counter += kFILE_KEY_SIZE;
+            std::string key = node_keys.substr(counter, kFILE_NODEKEY_SIZE);
+            counter += kFILE_NODEKEY_SIZE;
 
             EC_KEY* node_key = LoadEcKey(addr,key,context.get_key_password());
             SignBinary(node_key, test_hash, sig);
@@ -107,20 +95,6 @@ KeyRing::KeyRing(const DevcashContext& context)
          return;
        }
 
-     } else {
-       for (unsigned int i=0; i<context.kNODE_ADDRs.size(); i++) {
-         EC_KEY* addr_key = LoadEcKey(context.kNODE_ADDRs[i],
-             context.kNODE_KEYs[i], context.get_key_password());
-
-         SignBinary(addr_key, test_hash, sig);
-         if (!VerifyByteSig(addr_key, test_hash, sig)) {
-           LOG_WARNING << "Invalid node["+std::to_string(i)+"] key!";
-           CASH_THROW("Invalid node["+std::to_string(i)+"] key!");
-         }
-
-         Address node_addr = InsertAddress(context.kNODE_ADDRs[i], addr_key);
-         node_list_.push_back(node_addr);
-       }
      }
 
      LOG_INFO << "Crypto Keys initialized.";

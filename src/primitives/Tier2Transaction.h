@@ -74,7 +74,8 @@ class Tier2Transaction : public Transaction {
     std::vector<byte> msg(getMessageDigest());
     Signature sig;
     SignBinary(eckey, DevcashHash(msg), sig);
-    canonical_.insert(std::end(canonical_), std::begin(sig), std::end(sig));
+    std::vector<byte> sig_canon(sig.getCanonical());
+    canonical_.insert(std::end(canonical_), std::begin(sig_canon), std::end(sig_canon));
     is_sound_ = isSound(keys);
     if (!is_sound_) {
       LOG_WARNING << "Invalid serialized T2 transaction, not sound!";
@@ -176,11 +177,17 @@ class Tier2Transaction : public Transaction {
    * @return the signature of this transaction
    */
   Signature do_getSignature() const {
-    /// @todo(mckenney) can this be a reference rather than pointer?
-    Signature sig;
-    std::copy_n(canonical_.begin() + (EnvelopeSize() + nonce_size_ + xfer_size_)
-      , kSIG_SIZE, sig.begin());
-    return sig;
+    if (getOperation() == 2) {
+      std::vector<byte> sig_bin(canonical_.begin() + (EnvelopeSize() + nonce_size_ + xfer_size_)
+	      ,canonical_.begin() + (EnvelopeSize() + nonce_size_ + xfer_size_) + kWALLET_SIG_SIZE+1);
+	  Signature sig(sig_bin);
+      return sig;
+	} else {
+      std::vector<byte> sig_bin(canonical_.begin() + (EnvelopeSize() + nonce_size_ + xfer_size_)
+	      ,canonical_.begin() + (EnvelopeSize() + nonce_size_ + xfer_size_) + kNODE_SIG_SIZE+1);
+	  Signature sig(sig_bin);
+      return sig;
+	}
   }
 
   /**
@@ -252,7 +259,7 @@ class Tier2Transaction : public Transaction {
         LOG_WARNING << "Error: transaction signature did not validate.\n";
         LOG_DEBUG << "Transaction state is: " + getJSON();
         LOG_DEBUG << "Sender addr is: " + sender.getJSON();
-        LOG_DEBUG << "Signature is: " + ToHex(std::vector<byte>(std::begin(sig), std::end(sig)));
+        LOG_DEBUG << "Signature is: " + sig.getJSON();
         return false;
       }
       return true;
@@ -316,7 +323,7 @@ class Tier2Transaction : public Transaction {
     }
     json += "],\"" + kNONCE_TAG + "\":\"" + ToHex(getNonce()) + "\",";
     Signature sig = getSignature();
-    json += "\"" + kSIG_TAG + "\":\"" + ToHex(std::vector<byte>(std::begin(sig), std::end(sig))) + "\"}";
+    json += "\"" + kSIG_TAG + "\":\"" + sig.getJSON() + "\"}";
     return json;
   }
 };

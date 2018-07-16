@@ -62,6 +62,16 @@ class InputBuffer {
   }
 
   /**
+   * Returns the byte at the given position with the offset
+   *
+   * @param loc
+   * @return
+   */
+  byte offsetAt(size_t loc) {
+    return buffer_.at(loc+offset_);
+  }
+
+  /**
    * Copies the size length out of the buffer and
    * increment the position by length
    *

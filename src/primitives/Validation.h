@@ -139,7 +139,7 @@ class Validation {
    * Return the size of a pair (Address + Signature)
    * @return
    */
-  static size_t pairSize() { return kNODE_ADDR_SIZE + kSIG_SIZE; }
+  static size_t pairSize() { return kNODE_ADDR_SIZE + kNODE_SIG_SIZE; }
 
   /**
    * Get a reference to the ValidationMap

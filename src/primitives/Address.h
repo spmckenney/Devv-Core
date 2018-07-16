@@ -2,7 +2,7 @@
  * Address.h - structure to represent public keys
  * has a 1 byte prefix indicating the key type.
  * Currently only 33 byte secp256k1 and
- *  50 byte secp384r1 are allowed.
+ *  49 byte secp384r1 are allowed.
  *  Constructor works with or without the 1 byte type prefix.
  *
  *  Created on: July 13, 2018
@@ -18,7 +18,7 @@
 namespace Devcash {
 
 static const size_t kWALLET_ADDR_SIZE = 33;
-static const size_t kNODE_ADDR_SIZE = 50;
+static const size_t kNODE_ADDR_SIZE = 49;
 
 class Address {
  public:
@@ -125,7 +125,7 @@ class Address {
 
   /**
    * Check if Address is a node Address
-   * @return true iff Address is node address (51 bytes)
+   * @return true iff Address is node address (49 bytes)
    * @return false otherwise
    */
   bool isNodeAddress() const {
@@ -154,4 +154,4 @@ class Address {
 
 }  // end namespace Devcash
 
-#endif /* PRIMITIVES_TRANSFER_H_ */
+#endif /* PRIMITIVES_SIGNATURE_H_ */
