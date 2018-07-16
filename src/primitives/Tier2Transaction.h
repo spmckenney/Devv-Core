@@ -43,7 +43,7 @@ class Tier2Transaction : public Transaction {
    * @param keys
    */
   Tier2Transaction(byte oper,
-                   std::vector<Transfer>& xfers,
+                   const std::vector<Transfer>& xfers,
                    std::vector<byte> nonce,
                    EC_KEY* eckey,
                    const KeyRing& keys)
@@ -58,13 +58,12 @@ class Tier2Transaction : public Transaction {
     Uint64ToBin(nonce_size_, canonical_);
     canonical_.push_back(oper);
 
-    size_t xfer_size = 0;
-    for (auto& transfer : xfers) {
-      xfer_size += transfer.Size();
+    xfer_size_ = 0;
+    for (const auto& transfer : xfers) {
+      xfer_size_ += transfer.Size();
       std::vector<byte> xfer_canon(transfer.getCanonical());
       canonical_.insert(std::end(canonical_), std::begin(xfer_canon), std::end(xfer_canon));
     }
-    xfer_size_ = xfer_size;
 
     std::vector<byte> xfer_size_bin;
     Uint64ToBin(xfer_size_, xfer_size_bin);
