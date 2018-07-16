@@ -513,9 +513,15 @@ class Tier2TransactionTest : public ::testing::Test {
       , transfers_()
       , keys_(t1_context_0_)
   {
-    Devcash::Transfer transfer1(keys_.getWalletAddr(0), 0, -10, 0);
+    for (int i = 0; i < 4; ++i) {
+      EC_KEY* wallet_key = LoadEcKey(t1_context_0_.kADDRs[i], t1_context_0_.kADDR_KEYs[i], "password");
+      wallet_keys_.push_back(wallet_key);
+      wallet_list_.push_back(keys_.InsertAddress(t1_context_0_.kADDRs[i], wallet_key));
+    }
+
+    Devcash::Transfer transfer1(wallet_list_.at(0), 0, -10, 0);
     transfers_.push_back(transfer1);
-    Devcash::Transfer transfer2(keys_.getWalletAddr(1), 0, 10, 0);
+    Devcash::Transfer transfer2(wallet_list_.at(1), 0, 10, 0);
     transfers_.push_back(transfer2);
   }
 
@@ -547,10 +553,13 @@ class Tier2TransactionTest : public ::testing::Test {
 
   // keys
   Devcash::KeyRing keys_;
+
+  std::vector<EC_KEY*> wallet_keys_;
+  std::vector<Address> wallet_list_;
 };
 
 TEST_F(Tier2TransactionTest, createInnTx_0) {
-  size_t addr_count = keys_.CountWallets();
+  size_t addr_count = wallet_list_.size();
   Address inn_addr = keys_.getInnAddr();
 
   uint64_t nonce_num = GetMillisecondsSinceEpoch() + 1000011;
@@ -560,8 +569,8 @@ TEST_F(Tier2TransactionTest, createInnTx_0) {
   std::vector<Transfer> xfers;
   Transfer inn_transfer(inn_addr, 0, -1 * addr_count * (addr_count - 1) * nonce_num, 0);
   xfers.push_back(inn_transfer);
-  for (size_t i = 0; i < addr_count; ++i) {
-    Transfer transfer(keys_.getWalletAddr(i), 0, (addr_count - 1) * nonce_num, 0);
+  for (size_t i = 0; i < wallet_list_.size(); ++i) {
+    Transfer transfer(wallet_list_.at(i), 0, (addr_count - 1) * nonce_num, 0);
     xfers.push_back(transfer);
   }
   Tier2Transaction inn_tx(eOpType::Create, xfers, nonce_bin,
@@ -573,9 +582,9 @@ TEST_F(Tier2TransactionTest, createInnTx_0) {
 TEST_F(Tier2TransactionTest, getOperation_0) {
   uint64_t nonce_num = 10;
   std::vector<Transfer> peer_xfers;
-  Transfer sender(keys_.getWalletAddr(0), 0, nonce_num * -1, 0);
+  Transfer sender(wallet_list_.at(0), 0, nonce_num * -1, 0);
   peer_xfers.push_back(sender);
-  Transfer receiver(keys_.getWalletAddr(1), 0, nonce_num, 0);
+  Transfer receiver(wallet_list_.at(1), 0, nonce_num, 0);
   peer_xfers.push_back(receiver);
 
   std::vector<byte> nonce_bin;
@@ -585,7 +594,7 @@ TEST_F(Tier2TransactionTest, getOperation_0) {
       eOpType::Exchange,
       peer_xfers,
       nonce_bin,
-      keys_.getWalletKey(0),
+      wallet_keys_.at(0),
       keys_);
 
   EXPECT_EQ(tx1.getOperation(), eOpType::Exchange);
