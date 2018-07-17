@@ -187,6 +187,16 @@ class Summary {
   }
 
   /**
+   * Adds a transfer
+   * @param[in] transfer the transfer to add
+   * @return true iff the transfer was added
+   */
+  bool addTransfer(const Transfer& transfer) {
+    DelayedItem item(transfer.getDelay(), transfer.getAmount());
+    return addItem(transfer.getAddress(), transfer.getCoin(), item);
+  }
+
+  /**
    * Get the canonical form of this summary.
    * @return a canonical bytestring summarizing these changes.
    */
