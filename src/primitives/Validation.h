@@ -98,6 +98,9 @@ class Validation {
    */
   std::pair<Address, Signature> getFirstValidation() {
     auto x = sigs_.begin();
+    if (x == sigs_.end()) {
+      throw std::range_error("ValidationMap is empty");
+    }
     std::pair<Address, Signature> pair(x->first, x->second);
     return pair;
   }
