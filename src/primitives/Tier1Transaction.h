@@ -117,7 +117,7 @@ class Tier1Transaction : public Transaction {
    */
   Address getNodeAddress() const {
 	std::vector<byte> tmp(canonical_.begin()+sum_size_+uint64Size()
-	     , canonical_.begin()+sum_size_+uint64Size()+kNODE_ADDR_SIZE);
+	     , canonical_.begin()+sum_size_+uint64Size()+kNODE_ADDR_SIZE+1);
     Address node_addr(tmp);
     return node_addr;
   }
