@@ -81,18 +81,19 @@ static std::vector<byte> Uint64ToBin(const uint64_t& source, std::vector<byte>& 
  */
 static int64_t BinToInt64(const std::vector<byte>& bytes, size_t start) {
   // MTR_SCOPE_FUNC();
-  int32_t lsb = BinToInt32(bytes, start);
-  int32_t msb = BinToInt32(bytes, start + kBYTES_PER_INT);
-  int64_t dest = (int64_t(msb) << 32) | int64_t(lsb);
+  uint32_t lsb = BinToUint32(bytes, start);
+  uint32_t msb = BinToUint32(bytes, start + kBYTES_PER_INT);
+  uint64_t d1 = (uint64_t(msb) << 32);
+  int64_t dest = d1 | uint64_t(lsb);
   return dest;
 }
 
 static std::vector<byte> Int64ToBin(const int64_t& source, std::vector<byte>& dest) {
   // MTR_SCOPE_FUNC();
-  int32_t lsb = source & 0xffffffff;
-  int32_t msb = source >> 32;
-  Int32ToBin(lsb, dest);
-  Int32ToBin(msb, dest);
+  uint32_t lsb = source & 0xffffffff;
+  uint32_t msb = source >> 32;
+  Uint32ToBin(lsb, dest);
+  Uint32ToBin(msb, dest);
   return dest;
 }
 
