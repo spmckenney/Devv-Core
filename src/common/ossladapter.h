@@ -305,6 +305,9 @@ static bool VerifyByteSig(EC_KEY* ecKey, const Devcash::Hash& msg
  *  @throws std::exception on error
  */
 static Devcash::Signature SignBinary(EC_KEY* ec_key, const Devcash::Hash& msg) {
+  if (ec_key == nullptr) {
+    throw std::runtime_error("ec_key == nullptr");
+  }
   CASH_TRY {
     Devcash::Hash temp = msg;
     ECDSA_SIG *signature = ECDSA_do_sign((const unsigned char*) &temp[0],
