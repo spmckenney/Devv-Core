@@ -91,4 +91,10 @@ Tier1TransactionPtr CreateTier1Transaction(const FinalBlock& block, const KeyRin
   return tx;
 }
 
+Signature SignSummary(const Summary& summary, const KeyRing& keys) {
+  auto node_sig = SignBinary(keys.getNodeKey(0),
+                             DevcashHash(summary.getCanonical()));
+  return(node_sig);
+}
+
 } // namespace Devcash

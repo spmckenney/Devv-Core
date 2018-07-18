@@ -46,4 +46,14 @@ std::string WriteChainStateMap(const std::map<Address, std::map<uint64_t, int64_
  */
 Tier1TransactionPtr CreateTier1Transaction(const FinalBlock& block, const KeyRing& keys);
 
+/**
+ * Sign the summary. This is a simple helper function to
+ * sign the hash of the Summary.
+ *
+ * @param summary Summary to sign
+ * @param keys Keys to sign with
+ * @return Signature
+ */
+Signature SignSummary(const Summary& summary, const KeyRing& keys);
+
 } // namespace Devcash
