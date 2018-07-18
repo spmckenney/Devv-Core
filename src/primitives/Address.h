@@ -159,7 +159,7 @@ class Address {
   /**
    * @return this address without the type prefix.
    */
-  std::vector<byte> getAddressRaw() {
+  std::vector<byte> getAddressRaw() const {
     if (isNull()) throw std::runtime_error("Address is not initialized!");
 	std::vector<byte> raw(canonical_.begin()+1, canonical_.end());
     return raw;
