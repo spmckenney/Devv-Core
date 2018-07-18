@@ -38,7 +38,7 @@ struct circuit_options {
   std::string wallet_keys;
   std::string key_pass;
   unsigned int generate_count;
-  unsigned int tx_limit;
+  uint64_t tx_amount;
   eDebugMode debug_mode;
 };
 
@@ -80,26 +80,26 @@ int main(int argc, char* argv[]) {
       LOG_WARNING << "For complete circuits generate a perfect square + 1 transactions (ie 2,5,10,17...)";
     }
 
-    size_t addr_count = std::min(keys.CountWallets(), static_cast<unsigned int>(need_addrs));
+    size_t addr_count = std::min(keys.CountWallets(), static_cast<size_t>(need_addrs));
 
     size_t counter = 0;
 
     std::vector<Transfer> xfers;
-    Transfer inn_transfer(inn_addr, 0, -1 * addr_count * (addr_count - 1) * options->tx_limit, 0);
+    Transfer inn_transfer(inn_addr, 0, -1l * addr_count * (addr_count - 1) * options->tx_amount, 0);
     xfers.push_back(inn_transfer);
     for (size_t i = 0; i < addr_count; ++i) {
-      Transfer transfer(keys.getWalletAddr(i), 0, options->tx_limit * (addr_count - 1), 0);
+      Transfer transfer(keys.getWalletAddr(i), 0, options->tx_amount * (addr_count - 1), 0);
       xfers.push_back(transfer);
     }
     uint64_t nonce = GetMillisecondsSinceEpoch() + (1000000
-                     * (options->node_index + 1) * (options->tx_limit + 1));
+                     * (options->node_index + 1) * (options->tx_amount + 1));
 	std::vector<byte> nonce_bin;
     Uint64ToBin(nonce, nonce_bin);
     Tier2Transaction inn_tx(eOpType::Create, xfers, nonce_bin,
                             keys.getKey(inn_addr), keys);
     std::vector<byte> inn_canon(inn_tx.getCanonical());
     out.insert(out.end(), inn_canon.begin(), inn_canon.end());
-    LOG_DEBUG << "Circuit test generated inn_tx with sig: " << ToHex(inn_tx.getSignature());
+    LOG_DEBUG << "Circuit test generated inn_tx with sig: " << inn_tx.getSignature().getJSON();
     counter++;
 
     while (counter < options->generate_count) {
@@ -107,10 +107,11 @@ int main(int argc, char* argv[]) {
         for (size_t j = 0; j < addr_count; ++j) {
           if (i == j) { continue; }
           std::vector<Transfer> peer_xfers;
-          Transfer sender(keys.getWalletAddr(i), 0, -1 * options->tx_limit, 0);
+          Transfer sender(keys.getWalletAddr(i), 0, -1l * options->tx_amount, 0);
           peer_xfers.push_back(sender);
-          Transfer receiver(keys.getWalletAddr(j), 0, options->tx_limit, 0);
+          Transfer receiver(keys.getWalletAddr(j), 0, options->tx_amount, 0);
           peer_xfers.push_back(receiver);
+          nonce_bin.clear();
           nonce = GetMillisecondsSinceEpoch() + (1000000
                      * (options->node_index + 1) * (i + 1) * (j + 1));
           Uint64ToBin(nonce, nonce_bin);
@@ -119,7 +120,7 @@ int main(int argc, char* argv[]) {
               keys.getWalletKey(i), keys);
           std::vector<byte> peer_canon(peer_tx.getCanonical());
           out.insert(out.end(), peer_canon.begin(), peer_canon.end());
-          LOG_TRACE << "Circuit test generated tx with sig: " << ToHex(peer_tx.getSignature());
+          LOG_TRACE << "Circuit test generated tx with sig: " << peer_tx.getSignature().getJSON();
           counter++;
           if (counter >= options->generate_count) { break; }
         }  // end inner for
@@ -128,9 +129,9 @@ int main(int argc, char* argv[]) {
       if (counter >= options->generate_count) { break; }
       for (size_t i = 0; i < addr_count; ++i) {
         std::vector<Transfer> peer_xfers;
-        Transfer sender(keys.getWalletAddr(i), 0, -1 * (addr_count - 1) * options->tx_limit, 0);
+        Transfer sender(keys.getWalletAddr(i), 0, -1l * (addr_count - 1) * options->tx_amount, 0);
         peer_xfers.push_back(sender);
-        Transfer receiver(inn_addr, 0, (addr_count - 1) * options->tx_limit, 0);
+        Transfer receiver(inn_addr, 0, (addr_count - 1) * options->tx_amount, 0);
         peer_xfers.push_back(receiver);
         nonce = GetMillisecondsSinceEpoch() + (1000000
                      * (options->node_index + 1) * (i + 1) * (addr_count + 2));
@@ -140,7 +141,7 @@ int main(int argc, char* argv[]) {
             keys.getWalletKey(i), keys);
         std::vector<byte> peer_canon(peer_tx.getCanonical());
         out.insert(out.end(), peer_canon.begin(), peer_canon.end());
-        LOG_TRACE << "GenerateTransactions(): generated tx with sig: " << ToHex(peer_tx.getSignature());
+        LOG_TRACE << "GenerateTransactions(): generated tx with sig: " << peer_tx.getSignature().getJSON();
         counter++;
         if (counter >= options->generate_count) { break; }
       }  // end outer for
@@ -201,7 +202,7 @@ Required parameters");
         ("wallet-keys", po::value<std::string>(), "Path to Wallet key file")
         ("key-pass", po::value<std::string>(), "Password for private keys")
         ("generate-tx", po::value<unsigned int>(), "Generate at least this many Transactions")
-        ("tx-limit", po::value<unsigned int>(), "Number of transaction to process before shutting down.")
+        ("tx-amount", po::value<uint64_t>(), "Number of coins to transfer in transaction")
         ;
 
     po::options_description d2("Optional parameters");
@@ -309,12 +310,12 @@ Required parameters");
       options->generate_count = 0;
     }
 
-    if (vm.count("tx-limit")) {
-      options->tx_limit = vm["tx-limit"].as<unsigned int>();
-      LOG_INFO << "Transaction limit: " << options->tx_limit;
+    if (vm.count("tx-amount")) {
+      options->tx_amount = vm["tx-amount"].as<uint64_t>();
+      LOG_INFO << "Transaction amount: " << options->tx_amount;
     } else {
-      LOG_INFO << "Transaction limit was not set, defaulting to 0 (unlimited)";
-      options->tx_limit = 100;
+      options->tx_amount = 3210123;
+      LOG_INFO << "Transaction amount was not set, defaulting to " << options->tx_amount;
     }
   }
   catch (std::exception& e) {

@@ -34,6 +34,54 @@ class KeyRing {
    * @return false, if an error occurred or no wallets loaded
    */
   bool LoadWallets(const std::string& file_path, const std::string& file_pass);
+
+  void addWalletKeyPair(const std::string& address, const std::string& key, const std::string& password) {
+    std::vector<byte> msg = {'h', 'e', 'l', 'l', 'o'};
+    Hash test_hash;
+    test_hash = DevcashHash(msg);
+
+    EC_KEY* wallet_key = LoadEcKey(address, key, password);
+    Signature sig = SignBinary(wallet_key, test_hash);
+
+    if (!VerifyByteSig(wallet_key, test_hash, sig)) {
+      throw std::runtime_error("Invalid address[" + address + "] key!");
+    }
+
+    Address wallet_addr = InsertAddress(address, wallet_key);
+    wallet_list_.push_back(wallet_addr);
+  }
+
+  void addNodeKeyPair(const std::string& address, const std::string& key, const std::string& password) {
+    std::vector<byte> msg = {'h', 'e', 'l', 'l', 'o'};
+    Hash test_hash;
+    test_hash = DevcashHash(msg);
+
+    EC_KEY* node_key = LoadEcKey(address, key, password);
+    Signature sig = SignBinary(node_key, test_hash);
+
+    if (!VerifyByteSig(node_key, test_hash, sig)) {
+      throw std::runtime_error("Invalid node[" + address + "] key!");
+    }
+
+    Address wallet_addr = InsertAddress(address, node_key);
+    node_list_.push_back(wallet_addr);
+  }
+
+  void setInnKeyPair(const std::string& address, const std::string& key, const std::string& password) {
+    std::vector<byte> msg = {'h', 'e', 'l', 'l', 'o'};
+    Hash test_hash;
+    test_hash = DevcashHash(msg);
+
+    EC_KEY* inn_key = LoadEcKey(address, key, password);
+    Signature sig = SignBinary(inn_key, test_hash);
+    if (!VerifyByteSig(inn_key, test_hash, sig)) {
+      LOG_FATAL << "Invalid INN key!";
+      return;
+    }
+
+    inn_addr_ = InsertAddress(address, inn_key);
+  }
+
   /**
    * Get a pointer to the EC key corresponding to an address.
    * @param addr - the Address to obtain the key for
@@ -53,11 +101,11 @@ class KeyRing {
   /**
    * @return the number of node keys and addresses in this directory.
    */
-  unsigned int CountNodes() const;
+  size_t CountNodes() const;
   /**
    * @return the number of wallet keys and addresses in this directory.
    */
-  unsigned int CountWallets() const;
+  size_t CountWallets() const;
   /**
    * @param addr - the Address to check
    * @return the index of the provided node address

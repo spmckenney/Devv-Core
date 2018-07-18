@@ -25,6 +25,7 @@
 #include <map>
 #include <vector>
 
+#include "primitives/buffers.h"
 #include "SmartCoin.h"
 
 namespace Devcash {
@@ -77,6 +78,12 @@ class Validation {
    *  @return true iff the validation verified against the node's public key
    */
   bool addValidation(const Address& node, const Signature& sig) {
+    if (node.size() != kNODE_ADDR_BUF_SIZE) {
+      throw std::runtime_error("Address must be a node Address");
+    }
+    if (sig.size() != kNODE_SIG_BUF_SIZE) {
+      throw std::runtime_error("Signature must be a node Signature");
+    }
     sigs_.insert(std::pair<Address, Signature>(node, sig));
     return true;
   }
@@ -98,6 +105,9 @@ class Validation {
    */
   std::pair<Address, Signature> getFirstValidation() {
     auto x = sigs_.begin();
+    if (x == sigs_.end()) {
+      throw std::range_error("ValidationMap is empty");
+    }
     std::pair<Address, Signature> pair(x->first, x->second);
     return pair;
   }
@@ -110,8 +120,10 @@ class Validation {
     MTR_SCOPE_FUNC();
     std::vector<byte> serial;
     for (auto const& item : sigs_) {
-      serial.insert(serial.end(), item.first.begin(), item.first.end());
-      serial.insert(serial.end(), item.second.begin(), item.second.end());
+      std::vector<byte> bin_addr(item.first.getCanonical());
+      serial.insert(serial.end(), bin_addr.begin(), bin_addr.end());
+      std::vector<byte> bin_sig(item.second.getCanonical());
+      serial.insert(serial.end(), bin_sig.begin(), bin_sig.end());
     }
     return serial;
   }
@@ -138,7 +150,7 @@ class Validation {
    * Return the size of a pair (Address + Signature)
    * @return
    */
-  static size_t pairSize() { return kADDR_SIZE + kSIG_SIZE; }
+  static size_t pairSize() { return kNODE_ADDR_BUF_SIZE + kNODE_SIG_BUF_SIZE; }
 
   /**
    * Get a reference to the ValidationMap

@@ -12,8 +12,8 @@
 
 #include "Transaction.h"
 #include "primitives/buffers.h"
-
-using namespace Devcash;
+#include "common/devcash_exceptions.h"
+#include "common/logger.h"
 
 namespace Devcash {
 
@@ -38,11 +38,11 @@ class Tier1Transaction : public Transaction {
 
     sum_size_ = buffer.getNextUint64(false);
     buffer.copy(std::back_inserter(canonical_)
-      , sum_size_ + kSIG_SIZE + uint64Size() + kADDR_SIZE);
+      , sum_size_ + kNODE_SIG_BUF_SIZE + uint64Size() + kNODE_ADDR_BUF_SIZE);
 
     MTR_STEP("Transaction", "Transaction", &trace_int, "step2");
-    if (buffer.size() < buffer.getOffset()
-                        + sum_size_ + kSIG_SIZE + uint64Size() + kADDR_SIZE) {
+    if (buffer.size() < buffer.getOffset() + sum_size_
+                      + kNODE_SIG_BUF_SIZE + uint64Size() + kNODE_ADDR_BUF_SIZE) {
       LOG_WARNING << "Invalid serialized T1 transaction, too small!";
       return;
     }
@@ -51,7 +51,7 @@ class Tier1Transaction : public Transaction {
     if (calculate_soundness) {
       is_sound_ = isSound(keys);
       if (!is_sound_) {
-        LOG_WARNING << "Invalid serialized T1 transaction, not sound!";
+        throw DevcashMessageError("Invalid serialized T1 transaction, not sound!");
       }
     }
     MTR_FINISH("Transaction", "Transaction", &trace_int);
@@ -61,7 +61,7 @@ class Tier1Transaction : public Transaction {
    * Constructor
    * @param[in] summary Transaction summary
    * @param[in] sig Transaction signature
-   * @param[in] nonce nonce
+   * @param[in] node_addr address of T2 validator node
    * @param[in] keys KeyRing to use for soundness
    */
   Tier1Transaction(const Summary& summary,
@@ -69,19 +69,25 @@ class Tier1Transaction : public Transaction {
                    const Address& node_addr,
                    const KeyRing& keys)
       : Transaction(false), sum_size_(summary.getByteSize()) {
+    /// @todo Don't throw from constructor
     if (!summary.isSane()) {
-      LOG_WARNING << "Serialized T1 transaction has bad summary!";
+      throw DevcashMessageError("Serialized T1 transaction has bad summary!");
+    }
+    if (sig.size() != kNODE_SIG_BUF_SIZE) {
+      throw DevcashMessageError("Incorrect signature!");
     }
     sum_size_ = summary.getByteSize();
-    canonical_.reserve(sum_size_ + uint64Size() + kSIG_SIZE + kADDR_SIZE);
+    canonical_.reserve(sum_size_ + uint64Size() + kNODE_SIG_BUF_SIZE + kNODE_ADDR_BUF_SIZE);
     Uint64ToBin(sum_size_, canonical_);
     std::vector<byte> sum_canon(summary.getCanonical());
+    std::vector<byte> addr(node_addr.getCanonical());
+    std::vector<byte> sig_canon(sig.getCanonical());
     canonical_.insert(std::end(canonical_), std::begin(sum_canon), std::end(sum_canon));
-    canonical_.insert(std::end(canonical_), std::begin(node_addr), std::end(node_addr));
-    canonical_.insert(std::end(canonical_), std::begin(sig), std::end(sig));
+    canonical_.insert(std::end(canonical_), std::begin(addr), std::end(addr));
+    canonical_.insert(std::end(canonical_), std::begin(sig_canon), std::end(sig_canon));
     is_sound_ = isSound(keys);
     if (!is_sound_) {
-      LOG_WARNING << "Invalid serialized T1 transaction, not sound!";
+      throw DevcashMessageError("Invalid serialized T1 transaction, not sound!");
     }
   }
 
@@ -114,8 +120,9 @@ class Tier1Transaction : public Transaction {
    * @return node address
    */
   Address getNodeAddress() const {
-    Address node_addr;
-    std::copy_n(canonical_.begin()+sum_size_+uint64Size(), kADDR_SIZE, node_addr.begin());
+	std::vector<byte> tmp(canonical_.begin()+sum_size_+uint64Size()
+	     , canonical_.begin()+sum_size_+uint64Size()+kNODE_ADDR_BUF_SIZE);
+    Address node_addr(tmp);
     return node_addr;
   }
 
@@ -161,9 +168,10 @@ class Tier1Transaction : public Transaction {
    */
   Signature do_getSignature() const {
     //Signature should be immutable so copy on request
-    Signature sig;
-    std::copy_n(canonical_.begin() + sum_size_ + uint64Size() + kADDR_SIZE
-      , kSIG_SIZE, sig.begin());
+    std::vector<byte> sig_bin(canonical_.begin() + sum_size_ + uint64Size()
+          + kNODE_ADDR_BUF_SIZE,canonical_.begin() + sum_size_ + uint64Size()
+          + kNODE_ADDR_BUF_SIZE + kNODE_SIG_BUF_SIZE);
+    Signature sig(sig_bin);
     return sig;
   }
 
@@ -175,7 +183,7 @@ class Tier1Transaction : public Transaction {
   bool do_setIsSound(const KeyRing& keys) {
     is_sound_ = isSound(keys);
     if (!is_sound_) {
-      LOG_WARNING << "Invalid serialized T1 transaction, not sound!";
+      throw DevcashMessageError("Invalid serialized T1 transaction, not sound!");
     }
     return is_sound_;
   }
@@ -189,7 +197,7 @@ class Tier1Transaction : public Transaction {
    */
   bool do_isSound(const KeyRing& keys) const override {
     MTR_SCOPE_FUNC();
-    try {
+    //try {
       if (is_sound_) { return (is_sound_); }
 
       Address node_addr = getNodeAddress();
@@ -200,14 +208,16 @@ class Tier1Transaction : public Transaction {
       if (!VerifyByteSig(eckey, DevcashHash(msg), sig)) {
         LOG_WARNING << "Error: T1 transaction signature did not validate.\n";
         LOG_DEBUG << "Transaction state is: " + getJSON();
-        LOG_DEBUG << "Node address is: " + ToHex(node_addr);
-        LOG_DEBUG << "Signature is: " + ToHex(std::vector<byte>(std::begin(sig), std::end(sig)));
+        LOG_DEBUG << "Node address is: " + node_addr.getJSON();
+        LOG_DEBUG << "Signature is: " + sig.getJSON();
         return false;
       }
       return true;
+      /*
     } catch (const std::exception& e) {
       LOG_WARNING << FormatException(&e, "transaction");
     }
+       */
     return false;
   }
 
@@ -257,8 +267,7 @@ class Tier1Transaction : public Transaction {
     uint64_t addr_size = summary_map.size();
     json += std::to_string(addr_size) + ",\""+kSUMMARY_TAG+"\":[";
     for (auto summary : summary_map) {
-      json += "\"" + ToHex(std::vector<byte>(std::begin(summary.first)
-        , std::end(summary.first))) + "\":[";
+      json += "\"" + summary.first.getJSON() + "\":[";
       SummaryPair top_pair(summary.second);
       DelayedMap delayed(top_pair.first);
       CoinMap coin_map(top_pair.second);
@@ -292,9 +301,9 @@ class Tier1Transaction : public Transaction {
       json += "]";
     }
     json += "]}";
-    json += "],\"" + kVALIDATOR_DEX_TAG + "\":" + ToHex(getNodeAddress()) + ",";
+    json += "],\"" + kVALIDATOR_DEX_TAG + "\":" + getNodeAddress().getJSON() + ",";
     Signature sig = getSignature();
-    json += "\"" + kSIG_TAG + "\":\"" + ToHex(std::vector<byte>(std::begin(sig), std::end(sig))) + "\"}";
+    json += "\"" + kSIG_TAG + "\":\"" + sig.getJSON() + "\"}";
     return json;
   }
 

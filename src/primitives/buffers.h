@@ -62,6 +62,16 @@ class InputBuffer {
   }
 
   /**
+   * Returns the byte at the given position with the offset
+   *
+   * @param loc
+   * @return
+   */
+  byte offsetAt(size_t loc) {
+    return buffer_.at(loc+offset_);
+  }
+
+  /**
    * Copies the size length out of the buffer and
    * increment the position by length
    *
@@ -89,6 +99,24 @@ class InputBuffer {
   {
     std::copy_n(buffer_.begin() + offset_, N, array.begin());
     if (increment_buffer) { offset_ += N; }
+  }
+
+  void copy(Address& addr, bool increment_buffer = true)
+  {
+    size_t t = getNextByte();
+    std::vector<byte> bin_addr(buffer_.begin() + offset_, buffer_.begin() + offset_ + t);
+    Address new_addr(bin_addr);
+    addr = new_addr;
+    if (increment_buffer) { offset_ += bin_addr.size(); }
+  }
+
+  void copy(Signature& sig, bool increment_buffer = true)
+  {
+    size_t t = getNextByte();
+    std::vector<byte> bin_sig(buffer_.begin() + offset_, buffer_.begin() + offset_ + t);
+    Signature new_sig(bin_sig);
+    sig = new_sig;
+    if (increment_buffer) { offset_ += bin_sig.size(); }
   }
 
   /**

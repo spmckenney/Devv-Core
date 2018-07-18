@@ -23,8 +23,15 @@
 /** Gets the EC_GROUP for normal transactions.
  *  @return a pointer to the EC_GROUP
  */
-static EC_GROUP* getEcGroup() {
+static EC_GROUP* getWalletGroup() {
   return(EC_GROUP_new_by_curve_name(NID_secp256k1));
+}
+
+/** Gets the EC_GROUP for internal transactions.
+ *  @return a pointer to the EC_GROUP
+ */
+static EC_GROUP* getNodeGroup() {
+  return(EC_GROUP_new_by_curve_name(NID_secp384r1));
 }
 
 /** Generates a new EC_KEY.
@@ -38,7 +45,7 @@ static EC_GROUP* getEcGroup() {
 static EC_KEY* GenerateEcKey(std::string& publicKey, std::string& pk
                            , const std::string& aes_password) {
   CASH_TRY {
-    EC_GROUP* ecGroup = getEcGroup();
+    EC_GROUP* ecGroup = getWalletGroup();
     if (NULL == ecGroup) {
       LOG_ERROR << "Failed to generate EC group.";
     }
@@ -101,7 +108,7 @@ static EC_KEY* GenerateEcKey(std::string& publicKey, std::string& pk
 static bool GenerateAndWriteKeyfile(const std::string& path, size_t num_keys
                                     , const std::string& aes_password) {
   std::string output;
-  output.reserve(num_keys*(Devcash::kFILE_KEY_SIZE+(Devcash::kADDR_SIZE*2)));
+  output.reserve(num_keys*(Devcash::kFILE_KEY_SIZE+(Devcash::kWALLET_ADDR_BUF_SIZE*2)));
   for (size_t i=0; i<num_keys; ++i) {
     std::string addr;
     std::string key;
@@ -130,10 +137,19 @@ static bool GenerateAndWriteKeyfile(const std::string& path, size_t num_keys
 static EC_KEY* LoadEcKey(const std::string& publicKey
                        , const std::string& privKey
                        , const std::string& aes_password) {
-  CASH_TRY {
-    EC_GROUP* ecGroup = getEcGroup();
+  if (aes_password.size() < 1) {
+    throw std::runtime_error("aes_password cannot be zero-length");
+  }
+    EC_GROUP* ecGroup;
+    if (publicKey.size() == Devcash::kWALLET_ADDR_SIZE*2) {
+      ecGroup = getWalletGroup();
+    } else if (publicKey.size() == Devcash::kNODE_ADDR_SIZE*2) {
+      ecGroup = getNodeGroup();
+    } else {
+      throw std::runtime_error("Invalid public key!");
+	}
     if (NULL == ecGroup) {
-      LOG_ERROR << "Failed to generate EC group.";
+      throw std::runtime_error("Failed to generate EC group.");
     }
 
     EC_KEY *eckey=EC_KEY_new();
@@ -159,7 +175,13 @@ static EC_KEY* LoadEcKey(const std::string& publicKey
     BIO_write(fIn, buffer, privKey.size()+1);
     pkey = PEM_read_bio_PrivateKey(fIn, NULL, NULL
            , const_cast<char*>(aes_password.c_str()));
+    if (pkey == nullptr) {
+      throw std::runtime_error("PEM_read_bio_PrivateKey returned nullptr");
+    }
     eckey = EVP_PKEY_get1_EC_KEY(pkey);
+    if (eckey == nullptr) {
+      throw std::runtime_error("PEM_rPKEY_get_EC_KEY returned nullptr");
+    }
     EC_KEY_set_public_key(eckey, pubKeyPoint);
     EVP_cleanup();
 
@@ -171,10 +193,6 @@ static EC_KEY* LoadEcKey(const std::string& publicKey
       LOG_ERROR << "key is invalid!";
     }
     return(eckey);
-  } CASH_CATCH(const std::exception& e) {
-    LOG_WARNING << Devcash::FormatException(&e, "Crypto");
-  }
-  return nullptr;
 }
 
 /** Loads an existing public EC_KEY based on the provided public key.
@@ -184,10 +202,16 @@ static EC_KEY* LoadEcKey(const std::string& publicKey
  *  @return if error, a NULLPTR
  */
 static EC_KEY* LoadPublicKey(const Devcash::Address& public_key) {
-  CASH_TRY {
-    EC_GROUP* ecGroup = getEcGroup();
+    EC_GROUP* ecGroup;
+    if (public_key.isWalletAddress()) {
+      ecGroup = getWalletGroup();
+    } else if (public_key.isNodeAddress()) {
+      ecGroup = getNodeGroup();
+    } else {
+      throw std::runtime_error("Invalid public key!");
+	}
     if (NULL == ecGroup) {
-      LOG_ERROR << "Failed to generate EC group.";
+      throw std::runtime_error("Failed to generate EC group.");
     }
 
     EC_KEY *eckey=EC_KEY_new();
@@ -200,7 +224,8 @@ static EC_KEY* LoadPublicKey(const Devcash::Address& public_key) {
       LOG_ERROR << "Failed to set EC group status.";
     }
 
-    std::string publicKey(Devcash::ToHex(public_key));
+    std::string publicKey(public_key.getJSON());
+    publicKey.erase(0,1);
     EC_POINT* tempPoint = NULL;
     const char* pubKeyBuffer = &publicKey[0u];
     const EC_POINT* pubKeyPoint = EC_POINT_hex2point(EC_KEY_get0_group(eckey), pubKeyBuffer, tempPoint, NULL);
@@ -215,12 +240,9 @@ static EC_KEY* LoadPublicKey(const Devcash::Address& public_key) {
 
     if (1 != EC_KEY_check_key(eckey)) {
       LOG_ERROR << "key is invalid!";
+      throw std::runtime_error("key is invalid");
     }
     return(eckey);
-  } CASH_CATCH(const std::exception& e) {
-    LOG_WARNING << Devcash::FormatException(&e, "Crypto");
-  }
-  return nullptr;
 }
 
 /** Hashes a bytestring with SHA-256.
@@ -255,13 +277,14 @@ static bool VerifyByteSig(EC_KEY* ecKey, const Devcash::Hash& msg
       LOG_FATAL << "Could not create signature context!";
     }
     Devcash::Hash temp = msg;
-    unsigned char* copy_sig = (unsigned char*) malloc(Devcash::kSIG_SIZE+1);
-    for (size_t i=0; i<Devcash::kSIG_SIZE; ++i) {
-      copy_sig[i] = sig[i];
+    std::vector<unsigned char> raw_sig(sig.getRawSignature());
+    unsigned char* copy_sig = (unsigned char*) malloc(raw_sig.size()+1);
+    for (size_t i=0; i<raw_sig.size(); ++i) {
+      copy_sig[i] = raw_sig[i];
     }
     ECDSA_SIG *signature = d2i_ECDSA_SIG(NULL
         , (const unsigned char**) &copy_sig
-        , Devcash::kSIG_SIZE);
+        , raw_sig.size());
     int state = ECDSA_do_verify((const unsigned char*) &temp[0]
         , SHA256_DIGEST_LENGTH, signature, ecKey);
 
@@ -281,7 +304,10 @@ static bool VerifyByteSig(EC_KEY* ecKey, const Devcash::Hash& msg
  *  @param sig target buffer where signature is put, must be allocted
  *  @throws std::exception on error
  */
-static void SignBinary(EC_KEY* ec_key, const Devcash::Hash& msg, Devcash::Signature& sig) {
+static Devcash::Signature SignBinary(EC_KEY* ec_key, const Devcash::Hash& msg) {
+  if (ec_key == nullptr) {
+    throw std::runtime_error("ec_key == nullptr");
+  }
   CASH_TRY {
     Devcash::Hash temp = msg;
     ECDSA_SIG *signature = ECDSA_do_sign((const unsigned char*) &temp[0],
@@ -295,12 +321,27 @@ static void SignBinary(EC_KEY* ec_key, const Devcash::Hash& msg, Devcash::Signat
     }
 
     int len = i2d_ECDSA_SIG(signature, NULL);
-    unsigned char* ptr = &sig[0];
-    memset(&sig[0], 6, len);
-    len = i2d_ECDSA_SIG(signature, &ptr);
+    if (len < 80) { //must be 256-bit
+      std::array<unsigned char, Devcash::kWALLET_SIG_SIZE> a;
+      unsigned char* ptr = &a[0];
+      memset(&a[0], 6, len);
+      len = i2d_ECDSA_SIG(signature, &ptr);
+      std::vector<unsigned char> vec_sig(std::begin(a),std::end(a));
+      Devcash::Signature sig(vec_sig);
+      return sig;
+    } else { //otherwise 384-bit
+      std::array<unsigned char, Devcash::kNODE_SIG_SIZE> a;
+      unsigned char* ptr = &a[0];
+      memset(&a[0], 6, len);
+      len = i2d_ECDSA_SIG(signature, &ptr);
+      std::vector<unsigned char> vec_sig(std::begin(a),std::end(a));
+      Devcash::Signature sig(vec_sig);
+      return sig;
+    }
   } CASH_CATCH (const std::exception& e) {
     LOG_WARNING << Devcash::FormatException(&e, "Crypto.sign");
   }
+  throw std::runtime_error("Signature procedure failed!");
 }
 
 #endif /* SRC_COMMON_OSSLADAPTER_H_ */

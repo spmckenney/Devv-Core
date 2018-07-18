@@ -38,7 +38,7 @@ using namespace Devcash;
 
 namespace Devcash {
 
-static const std::string kXFER_COUNT_TAG = "xfer_count";
+static const std::string kXFER_SIZE_TAG = "xfer_size";
 static const std::string kSUMMARY_TAG = "summary";
 static const std::string kSUM_SIZE_TAG = "sum_size";
 static const std::string kOPER_TAG = "oper";
@@ -104,7 +104,7 @@ class Transaction {
    * Returns minimum size (hard-coded to 89)
    * @return minimum size (hard-coded to 89)
    */
-  static size_t MinSize() { return 89; }
+  static size_t MinSize() { return (89 + 2); }
 
   /**
    * Returns envelope size (hard-coded to 17)

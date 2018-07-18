@@ -28,7 +28,7 @@ static std::string GetJSON(const Summary& input_summary) {
     } else {
       json += ",";
     }
-    json += "\"" + ToHex(std::vector<byte>(std::begin(summary.first), std::end(summary.first))) + "\":[";
+    json += "\"" + summary.first.getJSON() + "\":[";
     SummaryPair top_pair(summary.second);
     DelayedMap delayed(top_pair.first);
     CoinMap coin_map(top_pair.second);
@@ -81,8 +81,8 @@ static std::string GetJSON(const Validation& validation) {
     } else {
       out += ",";
     }
-    out += "\"" + ToHex(std::vector<byte>(std::begin(item.first), std::end(item.first))) + "\":";
-    out += "\"" + ToHex(std::vector<byte>(std::begin(item.second), std::end(item.second))) + "\"";
+    out += "\"" + item.first.getJSON() + "\":";
+    out += "\"" + item.second.getJSON() + "\"";
   }
   out += "]";
   return out;

@@ -224,8 +224,7 @@ void BlockchainModule::performSanityChecks()
                               app_context_.kADDR_KEYs[1],
                               "password");
 
-  Signature sig;
-  SignBinary(loadkey, test_hash, sig);
+  Signature sig = SignBinary(loadkey, test_hash);
 
   if (!VerifyByteSig(loadkey, test_hash, sig)) {
     throw std::runtime_error("Could not VerifyByteSig!");

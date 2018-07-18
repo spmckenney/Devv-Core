@@ -2,7 +2,7 @@
  * turbulent.cpp
  * Creates generate_count transactions as follows:
  * 1.  INN transactions create coins for every address
- * 2.  Each peer address attempts to send a random number of coins up to tx_limit
+ * 2.  Each peer address attempts to send a random number of coins up to tx_amount
  *     to a random address other than itself
  * 3.  Many transactions will be invalid, but valid transactions should also appear indefinitely
  *
@@ -33,7 +33,7 @@ struct turbulent_options {
   std::string wallet_keys;
   std::string key_pass;
   unsigned int generate_count;
-  unsigned int tx_limit;
+  uint64_t tx_amount;
   eDebugMode debug_mode;
 };
 
@@ -72,34 +72,35 @@ int main(int argc, char* argv[]) {
 
     std::vector<Transfer> xfers;
     Transfer inn_transfer(inn_addr, 0
-      , -1*addr_count*(addr_count-1)*options->tx_limit, 0);
+      , -1l*addr_count*(addr_count-1)*options->tx_amount, 0);
     xfers.push_back(inn_transfer);
     for (size_t i = 0; i < addr_count; ++i) {
       Transfer transfer(keys.getWalletAddr(i), 0
-        , (addr_count-1)*options->tx_limit, 0);
+        , (addr_count-1)*options->tx_amount, 0);
       xfers.push_back(transfer);
     }
     uint64_t nonce = GetMillisecondsSinceEpoch() + (1000000
-                     * (options->node_index + 1) * (options->tx_limit + 1));
+                     * (options->node_index + 1) * (options->tx_amount + 1));
 	std::vector<byte> nonce_bin;
     Uint64ToBin(nonce, nonce_bin);
     Tier2Transaction inn_tx(eOpType::Create, xfers, nonce_bin,
                             keys.getKey(inn_addr), keys);
     std::vector<byte> inn_canon(inn_tx.getCanonical());
     out.insert(out.end(), inn_canon.begin(), inn_canon.end());
-    LOG_DEBUG << "GenerateTransactions(): generated inn_tx with sig: " << ToHex(inn_tx.getSignature());
+    LOG_DEBUG << "GenerateTransactions(): generated inn_tx with sig: " << inn_tx.getSignature().getJSON();
     counter++;
 
     while (counter < options->generate_count) {
         for (size_t i = 0; i < addr_count; ++i) {
           size_t j = std::rand() % addr_count;
-          size_t amount = std::rand() % options->tx_limit;
+          size_t amount = std::rand() % options->tx_amount;
           if (i == j) { continue; }
           std::vector<Transfer> peer_xfers;
-          Transfer sender(keys.getWalletAddr(i), 0, amount * -1, 0);
+          Transfer sender(keys.getWalletAddr(i), 0, -1l * amount, 0);
           peer_xfers.push_back(sender);
           Transfer receiver(keys.getWalletAddr(j), 0, amount, 0);
           peer_xfers.push_back(receiver);
+          nonce_bin.clear();
           nonce = GetMillisecondsSinceEpoch() + (1000000
                      * (options->node_index + 1) * (i + 1) * (j + 1));
           Uint64ToBin(nonce, nonce_bin);
@@ -108,7 +109,7 @@ int main(int argc, char* argv[]) {
               keys.getWalletKey(i), keys);
           std::vector<byte> peer_canon(peer_tx.getCanonical());
           out.insert(out.end(), peer_canon.begin(), peer_canon.end());
-          LOG_TRACE << "GenerateTransactions(): generated tx with sig: " << ToHex(peer_tx.getSignature());
+          LOG_TRACE << "GenerateTransactions(): generated tx with sig: " << peer_tx.getSignature().getJSON();
           counter++;
           if (counter >= options->generate_count) { break; }
         }  // end for loop
@@ -152,7 +153,7 @@ std::unique_ptr<struct turbulent_options> ParseTurbulentOptions(int argc, char**
 \n\
 Creates generate_count transactions as follows:\n\
 1.  INN transactions create coins for every address\n\
-2.  Each peer address attempts to send a random number of coins up to tx_limit\n\
+2.  Each peer address attempts to send a random number of coins up to tx_amount\n\
     to a random address other than itself\n\
 3.  Many transactions will be invalid, but valid transactions should also appear indefinitely\n\
 \n\
@@ -167,7 +168,7 @@ Required parameters");
         ("wallet-keys", po::value<std::string>(), "Path to Wallet key file")
         ("key-pass", po::value<std::string>(), "Password for private keys")
         ("generate-tx", po::value<unsigned int>(), "Generate at least this many Transactions")
-        ("tx-limit", po::value<unsigned int>(), "Number of transaction to process before shutting down.")
+        ("tx-amount", po::value<uint64_t>(), "Number of coins to transfer in transaction")
         ;
 
     po::options_description d2("Optional parameters");
@@ -275,12 +276,12 @@ Required parameters");
       options->generate_count = 0;
     }
 
-    if (vm.count("tx-limit")) {
-      options->tx_limit = vm["tx-limit"].as<unsigned int>();
-      LOG_INFO << "Transaction limit: " << options->tx_limit;
+    if (vm.count("tx-amount")) {
+      options->tx_amount = vm["tx-amount"].as<uint64_t>();
+      LOG_INFO << "Transaction amount: " << options->tx_amount;
     } else {
-      LOG_INFO << "Transaction limit was not set, defaulting to 0 (unlimited)";
-      options->tx_limit = 100;
+      options->tx_amount = 3210123;
+      LOG_INFO << "Transaction amount was not set, defaulting to " << options->tx_amount;
     }
   }
   catch (std::exception& e) {

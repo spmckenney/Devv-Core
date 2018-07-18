@@ -26,6 +26,13 @@ class ChainStateTest : public ::testing::Test {
   ChainStateTest() : t1_context_0_(0, 0, Devcash::eAppMode::T1,
                                    "", "", "")
   , keys_(t1_context_0_) {
+    for (int i = 0; i < 4; ++i) {
+      keys_.addWalletKeyPair(t1_context_0_.kADDRs.at(i), t1_context_0_.kADDR_KEYs.at(i), "password");
+    }
+    keys_.setInnKeyPair(t1_context_0_.kINN_ADDR, t1_context_0_.kINN_KEY, "password");
+    for (int i = 0; i < 3; ++i) {
+      keys_.addNodeKeyPair(t1_context_0_.kNODE_ADDRs.at(i), t1_context_0_.kNODE_KEYs.at(i), "password");
+    }
   }
 
   ~ChainStateTest() override = default;

@@ -19,7 +19,7 @@ void Tier1Transaction::Fill(Tier1Transaction& tx,
   MTR_STEP("Transaction", "Transaction", &trace_int, "step1");
 
   tx.sum_size_ = buffer.getNextUint64(false);
-  size_t tx_size = tx.sum_size_ + kSIG_SIZE + uint64Size() + kADDR_SIZE;
+  size_t tx_size = tx.sum_size_ + kNODE_SIG_BUF_SIZE + uint64Size() + kNODE_ADDR_BUF_SIZE;
   if (buffer.size() < buffer.getOffset() + tx_size) {
     LOG_WARNING << "Invalid serialized T1 transaction, too small!";
     return;
