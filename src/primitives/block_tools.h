@@ -36,4 +36,14 @@ bool CompareChainStateMaps(const std::map<Address, std::map<uint64_t, int64_t>>&
  */
 std::string WriteChainStateMap(const std::map<Address, std::map<uint64_t, int64_t>>& map);
 
+/**
+ * Create a Tier1Transaction from a FinalBlock
+ * Throws on error
+ *
+ * @param block Valid FinalBlock
+ * @param keys KeyRing for new transaction
+ * @return unique_ptr to new Tier1Transaction
+ */
+Tier1TransactionPtr CreateTier1Transaction(const FinalBlock& block, const KeyRing& keys);
+
 } // namespace Devcash

@@ -74,4 +74,12 @@ std::string WriteChainStateMap(const std::map<Address, std::map<uint64_t, int64_
   return out;
 }
 
+Tier1TransactionPtr CreateTier1Transaction(const FinalBlock& block, const KeyRing& keys) {
+  const Summary &sum = block.getSummary();
+  Validation val(block.getValidation());
+  std::pair<Address, Signature> pair(val.getFirstValidation());
+  auto tx = std::make_unique<Tier1Transaction>(sum, pair.second, pair.first, keys);
+  return tx;
+}
+
 } // namespace Devcash
