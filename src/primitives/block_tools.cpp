@@ -24,13 +24,22 @@ bool IsBlockData(const std::vector<byte>& raw) {
 
 bool IsTxData(const std::vector<byte>& raw) {
   // check if big enough
-  if (raw.size() < Transaction::MinSize()) { return false; }
+  if (raw.size() < Transaction::MinSize()) {
+    LOG_WARNING << "raw.size()(" << raw.size() << ") < Transaction::MinSize()(" << Transaction::MinSize() << ")";
+    return false;
+  }
   // check transfer count
   uint64_t xfer_size = BinToUint64(raw, 0);
   size_t tx_size = Transaction::MinSize() + xfer_size;
-  if (raw.size() < tx_size) { return false; }
+  if (raw.size() < tx_size) {
+    LOG_WARNING << "raw.size()(" << raw.size() << ") < tx_size(" << tx_size << ")";
+    return false;
+  }
   // check operation
-  if (raw[8] >= 4) { return false; }
+  if (raw[16] >= 4) {
+    LOG_WARNING << "raw[8](" << int(raw[16]) << ") >= 4";
+    return false;
+  }
   return true;
 }
 
