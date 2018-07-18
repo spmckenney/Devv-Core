@@ -108,7 +108,7 @@ static EC_KEY* GenerateEcKey(std::string& publicKey, std::string& pk
 static bool GenerateAndWriteKeyfile(const std::string& path, size_t num_keys
                                     , const std::string& aes_password) {
   std::string output;
-  output.reserve(num_keys*(Devcash::kFILE_KEY_SIZE+(Devcash::kWALLET_ADDR_SIZE*2)));
+  output.reserve(num_keys*(Devcash::kFILE_KEY_SIZE+(Devcash::kWALLET_ADDR_BUF_SIZE*2)));
   for (size_t i=0; i<num_keys; ++i) {
     std::string addr;
     std::string key;
