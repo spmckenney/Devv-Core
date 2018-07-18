@@ -94,7 +94,7 @@ bool KeyRing::LoadWallets(const std::string& file_path
        wallet_keys = ReadFile(file_path);
      }
      if (!wallet_keys.empty()) {
-       size_t size = wallet_keys.size()/2;
+       size_t size = wallet_keys.size();
        if (size%(kFILE_KEY_SIZE+(kWALLET_ADDR_SIZE*2)) == 0) {
          size_t counter = 0;
            while (counter < (size-1)) {
