@@ -20,6 +20,9 @@ namespace Devcash {
 static const size_t kWALLET_SIG_SIZE = 73;
 static const size_t kNODE_SIG_SIZE = 105;
 
+static const size_t kWALLET_SIG_BUF_SIZE = kWALLET_SIG_SIZE + 1;
+static const size_t kNODE_SIG_BUF_SIZE = kNODE_SIG_SIZE + 1;
+
 class Signature {
  public:
   Signature() : canonical_(1, 0) {}
@@ -32,13 +35,13 @@ class Signature {
     if (vec.size() == kWALLET_SIG_SIZE) {
 	  //prepend type
       canonical_.insert(std::begin(canonical_), kWALLET_SIG_SIZE);
-    } else if (vec.size() == kWALLET_SIG_SIZE+1
+    } else if (vec.size() == kWALLET_SIG_BUF_SIZE
                && vec.at(0) == kWALLET_SIG_SIZE) {
       //already good, copied from argument
 	} else if (vec.size() == kNODE_SIG_SIZE) {
       //prepend type
       canonical_.insert(std::begin(canonical_), kNODE_SIG_SIZE);
-	} else if (vec.size() == kNODE_SIG_SIZE+1
+	} else if (vec.size() == kNODE_SIG_BUF_SIZE
 	           && vec.at(0) == kNODE_SIG_SIZE) {
       //already good, copied from argument
     } else {

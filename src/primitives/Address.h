@@ -20,6 +20,9 @@ namespace Devcash {
 static const size_t kWALLET_ADDR_SIZE = 33;
 static const size_t kNODE_ADDR_SIZE = 49;
 
+static const size_t kWALLET_ADDR_BUF_SIZE = kWALLET_ADDR_SIZE + 1;
+static const size_t kNODE_ADDR_BUF_SIZE = kNODE_ADDR_SIZE + 1;
+
 class Address {
  public:
   Address() : canonical_(1, 0) {}
@@ -32,13 +35,13 @@ class Address {
     if (vec.size() == kWALLET_ADDR_SIZE) {
 	  //prepend type
       canonical_.insert(std::begin(canonical_), kWALLET_ADDR_SIZE);
-    } else if (vec.size() == kWALLET_ADDR_SIZE+1
+    } else if (vec.size() == kWALLET_ADDR_BUF_SIZE
                && vec.at(0) == kWALLET_ADDR_SIZE) {
       //already good, copied from argument
 	} else if (vec.size() == kNODE_ADDR_SIZE) {
       //prepend type
       canonical_.insert(std::begin(canonical_), kNODE_ADDR_SIZE);
-	} else if (vec.size() == kNODE_ADDR_SIZE+1
+	} else if (vec.size() == kNODE_ADDR_BUF_SIZE
 	           && vec.at(0) == kNODE_ADDR_SIZE) {
       //already good, copied from argument
     } else {
