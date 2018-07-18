@@ -180,12 +180,12 @@ class Tier2Transaction : public Transaction {
   Signature do_getSignature() const {
     if (getOperation() == 2) {
       std::vector<byte> sig_bin(canonical_.begin() + (EnvelopeSize() + nonce_size_ + xfer_size_)
-	      ,canonical_.begin() + (EnvelopeSize() + nonce_size_ + xfer_size_) + kWALLET_SIG_SIZE+1);
+	      ,canonical_.begin() + (EnvelopeSize() + nonce_size_ + xfer_size_) + kWALLET_SIG_BUF_SIZE);
 	  Signature sig(sig_bin);
       return sig;
 	} else {
       std::vector<byte> sig_bin(canonical_.begin() + (EnvelopeSize() + nonce_size_ + xfer_size_)
-	      ,canonical_.begin() + (EnvelopeSize() + nonce_size_ + xfer_size_) + kNODE_SIG_SIZE+1);
+	      ,canonical_.begin() + (EnvelopeSize() + nonce_size_ + xfer_size_) + kNODE_SIG_BUF_SIZE);
 	  Signature sig(sig_bin);
       return sig;
 	}

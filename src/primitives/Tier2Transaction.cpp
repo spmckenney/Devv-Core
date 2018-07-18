@@ -45,7 +45,7 @@ void Tier2Transaction::Fill(Tier2Transaction& tx,
   }
 
   size_t tx_size = MinSize() + tx.xfer_size_ + tx.nonce_size_;
-  if (oper != 2) tx_size += kNODE_SIG_SIZE-kWALLET_SIG_SIZE;
+  if (oper != 2) tx_size += kNODE_SIG_BUF_SIZE-kWALLET_SIG_BUF_SIZE;
   if (buffer.size() < buffer.getOffset() + tx_size) {
     std::stringstream ss;
     std::vector<byte> prefix(buffer.getCurrentIterator()

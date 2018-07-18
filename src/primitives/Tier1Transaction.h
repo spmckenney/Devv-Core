@@ -38,11 +38,11 @@ class Tier1Transaction : public Transaction {
 
     sum_size_ = buffer.getNextUint64(false);
     buffer.copy(std::back_inserter(canonical_)
-      , sum_size_ + kNODE_SIG_SIZE + uint64Size() + kNODE_ADDR_SIZE);
+      , sum_size_ + kNODE_SIG_BUF_SIZE + uint64Size() + kNODE_ADDR_BUF_SIZE);
 
     MTR_STEP("Transaction", "Transaction", &trace_int, "step2");
     if (buffer.size() < buffer.getOffset() + sum_size_
-                      + kNODE_SIG_SIZE + uint64Size() + kNODE_ADDR_SIZE) {
+                      + kNODE_SIG_BUF_SIZE + uint64Size() + kNODE_ADDR_BUF_SIZE) {
       LOG_WARNING << "Invalid serialized T1 transaction, too small!";
       return;
     }
@@ -73,11 +73,11 @@ class Tier1Transaction : public Transaction {
     if (!summary.isSane()) {
       throw DevcashMessageError("Serialized T1 transaction has bad summary!");
     }
-    if (sig.size() != kNODE_SIG_SIZE+1) {
+    if (sig.size() != kNODE_SIG_BUF_SIZE) {
       throw DevcashMessageError("Incorrect signature!");
     }
     sum_size_ = summary.getByteSize();
-    canonical_.reserve(sum_size_ + uint64Size() + kNODE_SIG_SIZE + kNODE_ADDR_SIZE);
+    canonical_.reserve(sum_size_ + uint64Size() + kNODE_SIG_BUF_SIZE + kNODE_ADDR_BUF_SIZE);
     Uint64ToBin(sum_size_, canonical_);
     std::vector<byte> sum_canon(summary.getCanonical());
     std::vector<byte> addr(node_addr.getCanonical());
@@ -121,7 +121,7 @@ class Tier1Transaction : public Transaction {
    */
   Address getNodeAddress() const {
 	std::vector<byte> tmp(canonical_.begin()+sum_size_+uint64Size()
-	     , canonical_.begin()+sum_size_+uint64Size()+kNODE_ADDR_SIZE+1);
+	     , canonical_.begin()+sum_size_+uint64Size()+kNODE_ADDR_BUF_SIZE);
     Address node_addr(tmp);
     return node_addr;
   }
@@ -169,8 +169,8 @@ class Tier1Transaction : public Transaction {
   Signature do_getSignature() const {
     //Signature should be immutable so copy on request
     std::vector<byte> sig_bin(canonical_.begin() + sum_size_ + uint64Size()
-          + kNODE_ADDR_SIZE+1,canonical_.begin() + sum_size_ + uint64Size()
-          + kNODE_ADDR_SIZE + kNODE_SIG_SIZE+2);
+          + kNODE_ADDR_BUF_SIZE,canonical_.begin() + sum_size_ + uint64Size()
+          + kNODE_ADDR_BUF_SIZE + kNODE_SIG_BUF_SIZE);
     Signature sig(sig_bin);
     return sig;
   }
@@ -197,7 +197,7 @@ class Tier1Transaction : public Transaction {
    */
   bool do_isSound(const KeyRing& keys) const override {
     MTR_SCOPE_FUNC();
-    try {
+    //try {
       if (is_sound_) { return (is_sound_); }
 
       Address node_addr = getNodeAddress();
@@ -213,9 +213,11 @@ class Tier1Transaction : public Transaction {
         return false;
       }
       return true;
+      /*
     } catch (const std::exception& e) {
       LOG_WARNING << FormatException(&e, "transaction");
     }
+       */
     return false;
   }
 
