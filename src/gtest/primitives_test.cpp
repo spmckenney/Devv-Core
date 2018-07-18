@@ -490,7 +490,7 @@ TEST_F(TransferTest, getAddress_1) {
 
 TEST(ossl, SignBinary_0) {
   // Create a default context
-  Devcash::DevcashContext context(0, 0, Devcash::eAppMode::T1, "", "", "");
+  Devcash::DevcashContext context(0, 0, Devcash::eAppMode::T1, "", "", "password");
 
   // keys
   Devcash::KeyRing keys(context);
@@ -628,11 +628,67 @@ Tier1TransactionPtr CreateTestT1_2(const KeyRing& keys) {
   return d;
 }
 
-TEST_F(Tier1TransactionTest, getJSONIdentity) {
-  //size_t offset = 0;
-  //uint64_t node_index;
-  //bool calculate_soundness = false;
-  //Devcash::KeyRing keys(t1_context_0_);
+Tier1TransactionPtr CreateTestT1_3(const KeyRing& keys) {
+  Hash prev_hash;
+  std::vector<TransactionPtr> txs;
+
+  Transfer receiver(keys.getWalletAddr(0), 0, 1, 0);
+  Transfer sender(keys.getWalletAddr(1), 0, -1, 0);
+
+  std::vector<Transfer> xfers;
+  xfers.push_back(sender);
+  xfers.push_back(receiver);
+
+  uint64_t nonce = 101101101;
+  std::vector<byte> nonce_bin;
+  Uint64ToBin(nonce, nonce_bin);
+  auto t2x = std::make_unique<Tier2Transaction>(
+              eOpType::Exchange, xfers,
+              nonce_bin,
+              keys.getWalletKey(1), keys);
+
+  auto sig = t2x->getSignature();
+  txs.push_back(std::move(t2x));
+
+  Summary sum_test = Summary::Create();
+  sum_test.addTransfer(sender);
+  sum_test.addTransfer(receiver);
+
+  std::vector<byte> md = sum_test.getCanonical();
+  auto node_sig = SignBinary(keys.getNodeKey(0), DevcashHash(md));
+
+  Validation val_test = Validation::Create();
+  val_test.addValidation(keys.getNodeAddr(0), node_sig);
+  ChainState state;
+
+  ProposedBlock proposal_test(prev_hash, txs, sum_test, val_test, state);
+  FinalBlock final_block(proposal_test);
+  //Validation val_test(final_block.getValidation());
+
+  return(CreateTier1Transaction(final_block, keys));
+}
+
+TEST_F(Tier1TransactionTest, serdes_getSignature_0) {
+  auto tx_0 = CreateTestT1_3(keys_);
+  InputBuffer buffer(tx_0->getCanonical());
+  auto tx_1 = Tier1Transaction::CreateUniquePtr(buffer, keys_, true);
+  EXPECT_EQ(tx_0->getSignature(), tx_1->getSignature());
+}
+
+TEST_F(Tier1TransactionTest, serdes_getValidationThrow) {
+  Hash prev_hash;
+  std::vector<TransactionPtr> txs;
+  Summary sum_test = Summary::Create();
+  Validation val_test = Validation::Create();
+  ChainState state;
+
+  ProposedBlock proposal_test(prev_hash, txs, sum_test, val_test, state);
+  FinalBlock final_block(proposal_test);
+
+  EXPECT_THROW(CreateTier1Transaction(final_block, keys_), std::range_error);
+}
+
+TEST_F(Tier1TransactionTest, DISABLED_getJSON_0) {
 
   Transfer sender(keys_.getWalletAddr(1), 0, -1, 0);
   Transfer test_transfer(keys_.getWalletAddr(0), 0, 1, 0);
@@ -664,7 +720,7 @@ TEST_F(Tier1TransactionTest, getJSONIdentity) {
                                      node_index,
                                      keys);
 */
-  std::string stuff;
+  std::string stuff = "{\"sum_size\":152,\"summary\":[{\"addr_size\":2,\"summary\":[\"2102514038DA1905561BF9043269B8515C1E7C4E79B011291B4CBED5B18DAECB71E4\":[\"delay_size\":0,\"coin_size\":1,\"delayed\":[],\"coin_map\":[\"type\":12,\"amount\":47]\"310272B05D9A8CF6E1565B965A5CCE6FF88ABD0C250BC17AB23745D512095C2AFCDB3640A2CBA7665F0FAADC26B96E8B8A9D\":[\"delay_size\":0,\"coin_size\":1,\"delayed\":[],\"coin_map\":[\"type\":12,\"amount\":-47]]}],\"val_dex\":310272B05D9A8CF6E1565B965A5CCE6FF88ABD0C250BC17AB23745D512095C2AFCDB3640A2CBA7665F0FAADC26B96E8B8A9D,\"sig\":\"6930660231009D49464D37C6544EC86D2DF79D6746FD67C64418504CDB9CC571D0CB69FB92B0B97BDF4DA483F192050229EBDF0ED910023100CB5D722C029B4A9AB0FD5C28B0170D130126CE10453319772D31EC8738EB71FBCA977EFBBF0C0A54EC4AFE3105D0FA0000\"}";
   EXPECT_EQ(tx->getJSON(), stuff);
 }
 
@@ -896,6 +952,46 @@ TEST_F(Tier2TransactionTest, checkCanonical) {
   EXPECT_EQ(116, BinToUint64(tx1.getCanonical(), 0));
 }
 
+TEST_F(Tier2TransactionTest, serdes_getJSON_0) {
+  uint64_t nonce = 123456789;
+  std::vector<byte> nonce_bin;
+  Uint64ToBin(nonce, nonce_bin);
+  Tier2Transaction tx1(
+      eOpType::Exchange,
+      transfers_,
+      nonce_bin,
+      keys_.getWalletKey(0),
+      keys_);
+
+  InputBuffer buffer(tx1.getCanonical());
+
+  Tier2Transaction tx2 = Tier2Transaction::Create(buffer, keys_, true);
+  //buffer.reset();
+  //Tier2Transaction tx3 = Tier2Transaction::Create(buffer, keys_, true);
+  EXPECT_EQ(tx1.getJSON(), tx2.getJSON());
+  //EXPECT_EQ(tx1.getSignature(), tx3.getSignature());
+}
+
+TEST_F(Tier2TransactionTest, serdes_getSignature_0) {
+  uint64_t nonce = 123456789;
+  std::vector<byte> nonce_bin;
+  Uint64ToBin(nonce, nonce_bin);
+  Tier2Transaction tx1(
+      eOpType::Exchange,
+      transfers_,
+      nonce_bin,
+      keys_.getWalletKey(0),
+      keys_);
+
+  InputBuffer buffer(tx1.getCanonical());
+
+  Tier2Transaction tx2 = Tier2Transaction::Create(buffer, keys_, true);
+  buffer.reset();
+  Tier2Transaction tx3 = Tier2Transaction::Create(buffer, keys_, true);
+  EXPECT_EQ(tx1.getSignature(), tx2.getSignature());
+  EXPECT_EQ(tx1.getSignature(), tx3.getSignature());
+}
+
 TEST_F(Tier2TransactionTest, serdes_0) {
   uint64_t nonce = 123456789;
   std::vector<byte> nonce_bin;
@@ -934,9 +1030,18 @@ TEST(Primitives, getCanonical0) {
                       Devcash::eAppMode::T1,
                       "",
                       "",
-                      "");
+                      "password");
 
   KeyRing keys(this_context);
+  for (int i = 0; i < 4; ++i) {
+    keys.addWalletKeyPair(this_context.kADDRs[i], this_context.kADDR_KEYs[i], "password");
+  }
+
+  keys.setInnKeyPair(this_context.kINN_ADDR, this_context.kINN_KEY, "password");
+
+  for (int i = 0; i < 3; ++i) {
+    keys.addNodeKeyPair(this_context.kNODE_ADDRs.at(i), this_context.kNODE_KEYs.at(i), "password");
+  }
 
   Transfer test_transfer(keys.getWalletAddr(0), 0, 1, 0);
   InputBuffer buffer(test_transfer.getCanonical());
