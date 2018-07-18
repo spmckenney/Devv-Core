@@ -11,6 +11,8 @@
 #ifndef PRIMITIVES_TIER2TRANSACTION_H_
 #define PRIMITIVES_TIER2TRANSACTION_H_
 
+#include "common/logger.h"
+#include "common/devcash_exceptions.h"
 #include "Transaction.h"
 
 using namespace Devcash;
@@ -77,7 +79,7 @@ class Tier2Transaction : public Transaction {
     canonical_.insert(std::end(canonical_), std::begin(sig_canon), std::end(sig_canon));
     is_sound_ = isSound(keys);
     if (!is_sound_) {
-      LOG_WARNING << "Invalid serialized T2 transaction, not sound!";
+      throw DevcashMessageError("Invalid serialized T2 transaction, not sound!");
     }
   }
 
@@ -276,8 +278,10 @@ class Tier2Transaction : public Transaction {
    * @return
    */
   bool do_isValid(ChainState& state, const KeyRing& keys, Summary& summary) const override {
-    CASH_TRY {
-      if (!isSound(keys)) { return false; }
+    try {
+      if (!isSound(keys)) {
+        return false;
+      }
       byte oper = getOperation();
       std::vector<TransferPtr> xfers = getTransfers();
       for (auto& it : xfers) {
@@ -286,7 +290,8 @@ class Tier2Transaction : public Transaction {
         Address addr = it->getAddress();
         if (amount < 0) {
           if ((oper == Exchange) && (amount > state.getAmount(coin, addr))) {
-            LOG_WARNING << "Coins not available at addr.";
+            LOG_WARNING << "Coins not available at addr: amount(" << amount
+                        << "), state.getAmount()(" << state.getAmount(coin, addr) << ")";
             return false;
           }
         }
@@ -295,8 +300,9 @@ class Tier2Transaction : public Transaction {
         summary.addItem(addr, coin, amount, it->getDelay());
       }
       return true;
+    } catch (const std::exception& e) {
+      LOG_WARNING << FormatException(&e, "transaction");
     }
-    CASH_CATCH(const std::exception& e) { LOG_WARNING << FormatException(&e, "transaction"); }
     return false;
   }
 

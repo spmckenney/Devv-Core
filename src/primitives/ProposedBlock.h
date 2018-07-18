@@ -236,7 +236,7 @@ class ProposedBlock {
       LOG_INFO << out.str();
       /// @todo(mckenney) Up the stack, we need to check that this incoming_hash has already
       /// been added to the chain, or this is a bigger problem
-      //throw std::runtime_error(out.str());
+      throw std::runtime_error(out.str());
     }
     LOG_DEBUG << "checkValidationData: validated incoming(" + ToHex(incoming_hash) + ")";
     return false;

@@ -12,8 +12,8 @@
 
 #include "Transaction.h"
 #include "primitives/buffers.h"
-
-using namespace Devcash;
+#include "common/devcash_exceptions.h"
+#include "common/logger.h"
 
 namespace Devcash {
 
@@ -51,7 +51,7 @@ class Tier1Transaction : public Transaction {
     if (calculate_soundness) {
       is_sound_ = isSound(keys);
       if (!is_sound_) {
-        LOG_WARNING << "Invalid serialized T1 transaction, not sound!";
+        throw DevcashMessageError("Invalid serialized T1 transaction, not sound!");
       }
     }
     MTR_FINISH("Transaction", "Transaction", &trace_int);
@@ -61,7 +61,7 @@ class Tier1Transaction : public Transaction {
    * Constructor
    * @param[in] summary Transaction summary
    * @param[in] sig Transaction signature
-   * @param[in] nonce nonce
+   * @param[in] node_addr address of T2 validator node
    * @param[in] keys KeyRing to use for soundness
    */
   Tier1Transaction(const Summary& summary,
@@ -69,8 +69,12 @@ class Tier1Transaction : public Transaction {
                    const Address& node_addr,
                    const KeyRing& keys)
       : Transaction(false), sum_size_(summary.getByteSize()) {
+    /// @todo Don't throw from constructor
     if (!summary.isSane()) {
-      LOG_WARNING << "Serialized T1 transaction has bad summary!";
+      throw DevcashMessageError("Serialized T1 transaction has bad summary!");
+    }
+    if (sig.size() != kNODE_SIG_SIZE+1) {
+      throw DevcashMessageError("Incorrect signature!");
     }
     sum_size_ = summary.getByteSize();
     canonical_.reserve(sum_size_ + uint64Size() + kNODE_SIG_SIZE + kNODE_ADDR_SIZE);
@@ -83,7 +87,7 @@ class Tier1Transaction : public Transaction {
     canonical_.insert(std::end(canonical_), std::begin(sig_canon), std::end(sig_canon));
     is_sound_ = isSound(keys);
     if (!is_sound_) {
-      LOG_WARNING << "Invalid serialized T1 transaction, not sound!";
+      throw DevcashMessageError("Invalid serialized T1 transaction, not sound!");
     }
   }
 
@@ -179,7 +183,7 @@ class Tier1Transaction : public Transaction {
   bool do_setIsSound(const KeyRing& keys) {
     is_sound_ = isSound(keys);
     if (!is_sound_) {
-      LOG_WARNING << "Invalid serialized T1 transaction, not sound!";
+      throw DevcashMessageError("Invalid serialized T1 transaction, not sound!");
     }
     return is_sound_;
   }

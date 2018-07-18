@@ -42,7 +42,8 @@ class Signature {
 	           && vec.at(0) == kNODE_SIG_SIZE) {
       //already good, copied from argument
     } else {
-	  LOG_ERROR << "Invalid Signature size.";
+      /// @todo (mckenney) Don't throw from constructor
+      throw std::runtime_error("Invalid Signature size.");
     }
   }
 
