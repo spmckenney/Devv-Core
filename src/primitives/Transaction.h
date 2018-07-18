@@ -104,7 +104,7 @@ class Transaction {
    * Returns minimum size (hard-coded to 89)
    * @return minimum size (hard-coded to 89)
    */
-  static size_t MinSize() { return 89; }
+  static size_t MinSize() { return (89 + 2); }
 
   /**
    * Returns envelope size (hard-coded to 17)
