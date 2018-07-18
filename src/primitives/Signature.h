@@ -1,9 +1,18 @@
 /*
  * Signature.h - structure to represent digital signatures
  * has a 1 byte prefix indicating the signature type.
- * Currently only 72 byte secp256k1 and
- *  103 byte secp384r1 are allowed.
- *  Constructor works with or without the 1 byte type prefix.
+ *
+ * Strategy: Twin of Address.h.
+ * If you're changing Signature.h, you likely need to change Address.h too.
+ * Use the prefix byte to enumerate Signature types.
+ * The type prefix is currently equal to the remainder length.
+ *
+ *  The constructor works with or without the 1 byte type prefix.
+ *
+ *  Allowed values in this version:
+ *  0 -> Null address, nothing follows, usually an error state
+ *  73 -> raw Wallet Signature (secp256k1) follows, 73 bytes
+ *  105 -> raw Node Signature (secp384r1) follows, 105 bytes
  *
  *  Created on: July 15, 2018
  *      Author: Nick Williams

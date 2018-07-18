@@ -1,9 +1,20 @@
 /*
  * Address.h - structure to represent public keys
  * has a 1 byte prefix indicating the key type.
- * Currently only 33 byte secp256k1 and
- *  49 byte secp384r1 are allowed.
- *  Constructor works with or without the 1 byte type prefix.
+ *
+ * Strategy: Twin of Signature.h.
+ * If you're changing Address.h, you likely need to change Signature.h too.
+ * Use the prefix byte to enumerate Address types.
+ * The type prefix is currently equal to the remainder length.
+ *
+ *  The constructor works with or without the 1 byte type prefix.
+ *
+ *  Allowed values in this version:
+ *  0 -> Null address, nothing follows, usually an error state
+ *  33 -> raw Wallet Address (secp256k1) follows, 33 bytes
+ *  49 -> raw Node Address (secp384r1) follows, 49 bytes
+ *
+ *
  *
  *  Created on: July 13, 2018
  *      Author: Nick Williams
