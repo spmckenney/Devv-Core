@@ -327,6 +327,12 @@ class FinalBlock {
    */
   const Validation& getValidation() const { return vals_; }
 
+  /**
+   * Return a ref to the validation
+   * @return
+   */
+  Validation& getValidation() { return vals_; }
+
  private:
   /**
    * Constructor
