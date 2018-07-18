@@ -654,11 +654,11 @@ Tier1TransactionPtr CreateTestT1_3(const KeyRing& keys) {
   sum_test.addTransfer(sender);
   sum_test.addTransfer(receiver);
 
-  std::vector<byte> md = sum_test.getCanonical();
-  auto node_sig = SignBinary(keys.getNodeKey(0), DevcashHash(md));
+  auto node_sig = SignBinary(keys.getNodeKey(0),
+      DevcashHash(sum_test.getCanonical()));
 
   Validation val_test = Validation::Create();
-  val_test.addValidation(keys.getNodeAddr(0), node_sig);
+  val_test.addValidation(keys.getNodeAddr(0), SignSummary(sum_test, keys));
   ChainState state;
 
   ProposedBlock proposal_test(prev_hash, txs, sum_test, val_test, state);
@@ -1078,14 +1078,6 @@ TEST(Primitives, getCanonical0) {
   EXPECT_EQ(tx1.getCanonical(), tx2.getCanonical());
   EXPECT_EQ(tx1.getJSON(), tx2.getJSON());
 
-  Validation val_test = Validation::Create();
-  val_test.addValidation(keys.getNodeAddr(0), tx1.getSignature());
-  InputBuffer buffer3(val_test.getCanonical());
-  Validation val_test2 = Validation::Create(buffer3);
-
-  EXPECT_EQ(val_test.getCanonical(), val_test2.getCanonical());
-  EXPECT_EQ(GetJSON(val_test), GetJSON(val_test2));
-
   Summary sum_test = Summary::Create();
   DelayedItem delayed(0, 1);
   sum_test.addItem(keys.getWalletAddr(0), (uint64_t) 0, delayed);
@@ -1094,6 +1086,14 @@ TEST(Primitives, getCanonical0) {
 
   EXPECT_EQ(sum_test.getCanonical(), sum_identity.getCanonical());
   EXPECT_EQ(GetJSON(sum_test), GetJSON(sum_identity));
+
+  Validation val_test = Validation::Create();
+  val_test.addValidation(keys.getNodeAddr(0), SignSummary(sum_test, keys));
+  InputBuffer buffer3(val_test.getCanonical());
+  Validation val_test2 = Validation::Create(buffer3);
+
+  EXPECT_EQ(val_test.getCanonical(), val_test2.getCanonical());
+  EXPECT_EQ(GetJSON(val_test), GetJSON(val_test2));
 
   TransactionCreationManager txm(eAppMode::T2);
   Hash prev_hash;
