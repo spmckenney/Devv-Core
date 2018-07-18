@@ -117,7 +117,7 @@ int main(int argc, char* argv[])
             LOG_WARNING << file_name << " has invalid block!";
             break;
 		  }
-          size_t txs = one_block.getNumTransactions();
+          size_t txs_count = one_block.getNumTransactions();
           size_t tfers = one_block.getNumTransfers();
           priori = one_block.getChainState();
           out += GetJSON(one_block);
@@ -139,10 +139,10 @@ int main(int argc, char* argv[])
             }
           }
 
-          out += std::to_string(txs)+" txs, transfers: "+std::to_string(tfers);
-          LOG_INFO << std::to_string(txs)+" txs, transfers: "+std::to_string(tfers);
+          out += std::to_string(txs_count)+" txs, transfers: "+std::to_string(tfers);
+          LOG_INFO << std::to_string(txs_count)+" txs, transfers: "+std::to_string(tfers);
           file_blocks++;
-          file_txs += txs;
+          file_txs += txs_count;
           file_tfer += tfers;
         } else {
           LOG_WARNING << "!is_block && !is_transaction";
