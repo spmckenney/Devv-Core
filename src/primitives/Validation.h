@@ -25,6 +25,7 @@
 #include <map>
 #include <vector>
 
+#include "primitives/buffers.h"
 #include "SmartCoin.h"
 
 namespace Devcash {
@@ -77,6 +78,12 @@ class Validation {
    *  @return true iff the validation verified against the node's public key
    */
   bool addValidation(const Address& node, const Signature& sig) {
+    if (node.size() != kNODE_ADDR_BUF_SIZE) {
+      throw std::runtime_error("Address must be a node Address");
+    }
+    if (sig.size() != kNODE_SIG_BUF_SIZE) {
+      throw std::runtime_error("Signature must be a node Signature");
+    }
     sigs_.insert(std::pair<Address, Signature>(node, sig));
     return true;
   }
@@ -143,7 +150,7 @@ class Validation {
    * Return the size of a pair (Address + Signature)
    * @return
    */
-  static size_t pairSize() { return kNODE_ADDR_SIZE + kNODE_SIG_SIZE; }
+  static size_t pairSize() { return kNODE_ADDR_BUF_SIZE + kNODE_SIG_BUF_SIZE; }
 
   /**
    * Get a reference to the ValidationMap

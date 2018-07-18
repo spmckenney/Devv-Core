@@ -7,6 +7,8 @@
 #ifndef PRIMITIVES_PROPOSEDBLOCK_H_
 #define PRIMITIVES_PROPOSEDBLOCK_H_
 
+#include "common/logger.h"
+
 #include "primitives/block.h"
 #include "primitives/buffers.h"
 #include "primitives/Summary.h"
@@ -426,7 +428,8 @@ inline ProposedBlock ProposedBlock::Create(InputBuffer &buffer,
   MTR_STEP("proposed_block", "construct", &proposed_block_int, "step1");
   if (buffer.size() != new_block.num_bytes_) {
     MTR_FINISH("proposed_block", "construct", &proposed_block_int);
-    std::string warning = "Invalid serialized ProposedBlock, wrong size!";
+    std::string warning = "Invalid serialized ProposedBlock, wrong size! ("
+                          + std::to_string(buffer.size()) + " != " + std::to_string(new_block.num_bytes_) + ")";
     LOG_WARNING << warning;
     throw std::runtime_error(warning);
   }
