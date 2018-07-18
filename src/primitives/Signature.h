@@ -81,7 +81,7 @@ class Signature {
    * Return the size of this Signature
    * @return size of this Signature
    */
-  size_t size() { return canonical_.size(); }
+  size_t size() const { return canonical_.size(); }
 
   /**
    * Gets this signature in a canonical form.
