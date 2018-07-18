@@ -1,8 +1,10 @@
-
 /*
  * scanner.cpp the main class for a block scanner.
  * @note the mode must be set appropriately
  * Use T1 to scan a tier 1 chain, T2 to scan a T2 chain, and scan to scan raw transactions.
+ *
+ * Scans and checks public keys without using any private keys.
+ * Handles each file independently, so blockchains should be in a single file.
  *
  *  Created on: May 20, 2018
  *  Author: Nick Williams
@@ -57,14 +59,7 @@ int main(int argc, char* argv[])
     size_t tx_counter = 0;
     size_t tfer_count = 0;
 
-    DevcashContext this_context(options->node_index
-      , options->shard_index
-      , options->mode
-      , options->inn_keys
-      , options->node_keys
-      , options->key_pass);
-
-    KeyRing keys(this_context);
+    KeyRing keys;
 
     fs::path p(options->working_dir);
     if (p.empty()) {
@@ -106,6 +101,7 @@ int main(int argc, char* argv[])
       size_t file_tfer = 0;
 
       ChainState priori;
+      ChainState posteri;
 
       InputBuffer buffer(raw);
       while (buffer.getOffset() < static_cast<size_t>(file_size)) {
@@ -126,6 +122,24 @@ int main(int argc, char* argv[])
           priori = one_block.getChainState();
           out += GetJSON(one_block);
 
+          Summary block_summary(Summary::Create());
+          std::vector<TransactionPtr> txs = one_block.CopyTransactions();
+          for (TransactionPtr& item : txs) {
+            if (!item->isValid(posteri, keys, block_summary)) {
+              LOG_WARNING << "A transaction is invalid. TX details: ";
+              LOG_WARNING << item->getJSON();
+            }
+          }
+          if (block_summary.getCanonical() != one_block.getSummary().getCanonical()) {
+            LOG_WARNING << "A final block summary is invalid. Summary datails: ";
+            LOG_WARNING << GetJSON(one_block.getSummary());
+            LOG_WARNING << "Transaction details: ";
+            for (TransactionPtr& item : txs) {
+              LOG_WARNING << item->getJSON();
+            }
+          }
+
+          out += std::to_string(txs)+" txs, transfers: "+std::to_string(tfers);
           LOG_INFO << std::to_string(txs)+" txs, transfers: "+std::to_string(tfers);
           file_blocks++;
           file_txs += txs;
@@ -135,40 +149,20 @@ int main(int argc, char* argv[])
         }
       }
 
-      bool first_addr = true;
-      std::stringstream state_stream;
-      if (priori.getStateMap().empty()) { LOG_INFO << file_name << " END with no state"; }
-      for (auto const& item : priori.getStateMap()) {
-        LOG_INFO << file_name << " END STATE BEGIN: ";
-        state_stream << "{\"Addr\":\"";
-        state_stream << item.first.getJSON();
-        state_stream << "\",\"state\":[";
-        bool first_coin = true;
-        for (auto coin = item.second.begin(); coin != item.second.end(); ++coin) {
-          state_stream << "\""+std::to_string(coin->first)+":"+std::to_string(coin->second);
-          if (first_coin) {
-            first_coin = false;
-          } else {
-            state_stream << ",";
-          }
-        }
-        state_stream << "]";
-        if (first_addr) {
-          first_addr = false;
-        } else {
-          state_stream << ",";
-        }
-        LOG_INFO << state_stream.str();
-        LOG_INFO << file_name << " END STATE END";
-      }
+      out += "End chainstate: " + WriteChainStateMap(posteri.getStateMap());
 
+      out += file_name + " has " + std::to_string(file_txs)
+              + " txs, " +std::to_string(file_tfer)+" tfers in "+std::to_string(file_blocks)+" blocks.";
       LOG_INFO << file_name << " has " << std::to_string(file_txs)
               << " txs, " +std::to_string(file_tfer)+" tfers in "+std::to_string(file_blocks)+" blocks.";
       block_counter += file_blocks;
       tx_counter += file_txs;
       tfer_count += file_tfer;
     }
-    LOG_INFO << "Dir has "+std::to_string(tx_counter)+" txs, "+std::to_string(tfer_count)+" tfers in "+std::to_string(block_counter)+" blocks.";
+    out += "Dir has "+std::to_string(tx_counter)+" txs, "
+      +std::to_string(tfer_count)+" tfers in "+std::to_string(block_counter)+" blocks.";
+    LOG_INFO << "Dir has "+std::to_string(tx_counter)+" txs, "
+      +std::to_string(tfer_count)+" tfers in "+std::to_string(block_counter)+" blocks.";
 
     if (!options->write_file.empty()) {
       std::ofstream out_file(options->write_file, std::ios::out);
@@ -209,15 +203,8 @@ scan raw transactions.\n\
 Required parameters");
     desc.add_options()
         ("mode", po::value<std::string>(), "Devcash mode (T1|T2|scan)")
-        ("node-index", po::value<unsigned int>(), "Index of this node")
-        ("shard-index", po::value<unsigned int>(), "Index of this shard")
         ("working-dir", po::value<std::string>(), "Directory where inputs are read and outputs are written")
         ("output", po::value<std::string>(), "Output path in binary JSON or CBOR")
-        ("inn-keys", po::value<std::string>(), "Path to INN key file")
-        ("node-keys", po::value<std::string>(), "Path to Node key file")
-        ("key-pass", po::value<std::string>(), "Password for private key")
-        ("generate-tx", po::value<unsigned int>(), "Generate at least this many Transactions")
-        ("tx-limit", po::value<unsigned int>(), "Number of transaction to process before shutting down.")
         ;
 
     po::options_description d2("Optional parameters");
@@ -268,20 +255,6 @@ Required parameters");
       LOG_INFO << "debug_mode was not set.";
     }
 
-    if (vm.count("node-index")) {
-      options->node_index = vm["node-index"].as<unsigned int>();
-      LOG_INFO << "Node index: " << options->node_index;
-    } else {
-      LOG_INFO << "Node index was not set.";
-    }
-
-    if (vm.count("shard-index")) {
-      options->shard_index = vm["shard-index"].as<unsigned int>();
-      LOG_INFO << "Shard index: " << options->shard_index;
-    } else {
-      LOG_INFO << "Shard index was not set.";
-    }
-
     if (vm.count("working-dir")) {
       options->working_dir = vm["working-dir"].as<std::string>();
       LOG_INFO << "Working dir: " << options->working_dir;
@@ -294,36 +267,6 @@ Required parameters");
       LOG_INFO << "Output file: " << options->write_file;
     } else {
       LOG_INFO << "Output file was not set.";
-    }
-
-    if (vm.count("inn-keys")) {
-      options->inn_keys = vm["inn-keys"].as<std::string>();
-      LOG_INFO << "INN keys file: " << options->inn_keys;
-    } else {
-      LOG_INFO << "INN keys file was not set.";
-    }
-
-    if (vm.count("node-keys")) {
-      options->node_keys = vm["node-keys"].as<std::string>();
-      LOG_INFO << "Node keys file: " << options->node_keys;
-    } else {
-      LOG_INFO << "Node keys file was not set.";
-    }
-
-    if (vm.count("generate-tx")) {
-      options->generate_count = vm["generate-tx"].as<unsigned int>();
-      LOG_INFO << "Generate Transactions: " << options->generate_count;
-    } else {
-      LOG_INFO << "Generate Transactions was not set, defaulting to 0";
-      options->generate_count = 0;
-    }
-
-    if (vm.count("tx-limit")) {
-      options->tx_limit = vm["tx-limit"].as<unsigned int>();
-      LOG_INFO << "Transaction limit: " << options->tx_limit;
-    } else {
-      LOG_INFO << "Transaction limit was not set, defaulting to 0 (unlimited)";
-      options->tx_limit = 100;
     }
   }
   catch (std::exception& e) {
