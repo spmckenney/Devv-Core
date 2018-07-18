@@ -137,7 +137,9 @@ static bool GenerateAndWriteKeyfile(const std::string& path, size_t num_keys
 static EC_KEY* LoadEcKey(const std::string& publicKey
                        , const std::string& privKey
                        , const std::string& aes_password) {
-  try {
+  if (aes_password.size() < 1) {
+    throw std::runtime_error("aes_password cannot be zero-length");
+  }
     EC_GROUP* ecGroup;
     if (publicKey.size() == Devcash::kWALLET_ADDR_SIZE*2) {
       ecGroup = getWalletGroup();
@@ -173,7 +175,13 @@ static EC_KEY* LoadEcKey(const std::string& publicKey
     BIO_write(fIn, buffer, privKey.size()+1);
     pkey = PEM_read_bio_PrivateKey(fIn, NULL, NULL
            , const_cast<char*>(aes_password.c_str()));
+    if (pkey == nullptr) {
+      throw std::runtime_error("PEM_read_bio_PrivateKey returned nullptr");
+    }
     eckey = EVP_PKEY_get1_EC_KEY(pkey);
+    if (eckey == nullptr) {
+      throw std::runtime_error("PEM_rPKEY_get_EC_KEY returned nullptr");
+    }
     EC_KEY_set_public_key(eckey, pubKeyPoint);
     EVP_cleanup();
 
@@ -185,10 +193,6 @@ static EC_KEY* LoadEcKey(const std::string& publicKey
       LOG_ERROR << "key is invalid!";
     }
     return(eckey);
-  } catch(const std::exception& e) {
-    LOG_WARNING << Devcash::FormatException(&e, "Crypto");
-  }
-  return nullptr;
 }
 
 /** Loads an existing public EC_KEY based on the provided public key.
@@ -198,7 +202,6 @@ static EC_KEY* LoadEcKey(const std::string& publicKey
  *  @return if error, a NULLPTR
  */
 static EC_KEY* LoadPublicKey(const Devcash::Address& public_key) {
-  try {
     EC_GROUP* ecGroup;
     if (public_key.isWalletAddress()) {
       ecGroup = getWalletGroup();
@@ -237,12 +240,9 @@ static EC_KEY* LoadPublicKey(const Devcash::Address& public_key) {
 
     if (1 != EC_KEY_check_key(eckey)) {
       LOG_ERROR << "key is invalid!";
+      throw std::runtime_error("key is invalid");
     }
     return(eckey);
-  } catch (const std::exception& e) {
-    LOG_WARNING << Devcash::FormatException(&e, "Crypto");
-  }
-  return nullptr;
 }
 
 /** Hashes a bytestring with SHA-256.
