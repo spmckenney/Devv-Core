@@ -139,6 +139,7 @@ static bool GenerateAndWriteKeyfile(const std::string& path, size_t num_keys
  *  @param publicKey [in] reference compressed as hex
  *  @param privKey [in] references private key with ASCII armor, pem, aes
  *  @param aes_password [in] the password for aes
+ *  @throw if error, std::runtime_error
  *  @return if success, a pointer to the EC_KEY object
  *  @return if error, a NULLPTR
  */
@@ -192,14 +193,8 @@ static EC_KEY* LoadEcKey(const std::string& publicKey
     }
     EC_KEY_set_public_key(eckey, pubKeyPoint);
 
-    if (1 != EC_GROUP_check(EC_KEY_get0_group(eckey), NULL)) {
-      LOG_ERROR << "group is invalid!";
-    }
-
-    if (1 != EC_KEY_check_key(eckey)) {
-      LOG_ERROR << "key is invalid!";
-    } else {
-      //LOG_INFO << "key check passed";
+    if (!ValidateKey(eckey)) {
+      LOG_WARNING << "LoadEcKey() returns without valid private key.";
     }
     return(eckey);
 }
@@ -207,6 +202,7 @@ static EC_KEY* LoadEcKey(const std::string& publicKey
 /** Loads an existing public EC_KEY based on the provided public key.
  *  @pre an OpenSSL context must have been initialized
  *  @param public_key [in] reference compressed as Address
+ *  @throw if error, std::runtime_error
  *  @return if success, a pointer to the EC_KEY object
  *  @return if error, a NULLPTR
  */
@@ -256,35 +252,47 @@ static EC_KEY* LoadPublicKey(const Devcash::Address& public_key) {
       throw std::runtime_error("set_public_key failed:"+err);
     }
 
-    if (1 != EC_GROUP_check(EC_KEY_get0_group(ec_key), nullptr)) {
-      LOG_ERROR << "group is invalid!";
-    }
-
-    ret = EC_KEY_check_key(ec_key);
-    LOG_INFO << "ossl version: " << OPENSSL_VERSION_NUMBER;
-    if (ret != 1) {
-      auto ossl_ver = OPENSSL_VERSION_NUMBER;
-      auto err = ERR_get_error();
-      /*
-       * EC_KEY_check_key() will fail here because ec_key does
-       * not have a valid private key. The magical numbers below
-       * represent the OpenSSL version and the private key error
-       * code. The error code is version dependent. We check the err or
-       * code and only throw if it not a private key error.
-       *
-       * if ((ossl_ver == 1.0.2) and (err == invalid private key) or
-       *     (ossl_ver == 1.1.0) and (err == invalid private key))
-       */
-      if ((ossl_ver == 268443775 && err == 269160571) ||
-          (ossl_ver == 269484159 && err == 269492347)) {
-        // error because private key is not set - ignore
-      } else {
-        std::string err_str(ERR_error_string(err, NULL));
-        LOG_ERROR << "key is invalid: " << err_str << " : errno " << err;
-        throw std::runtime_error("key is invalid: " + err_str);
-      }
-    }
     return(ec_key);
+}
+
+/** Checks an existing EC_KEY using openssl functions.
+ *  @pre an OpenSSL context must have been initialized
+ *  @param key [in] pointer to the EC key
+ *  @throw if error, std::runtime_error
+ *  @return true if success, this is a completely functional key
+ *  @return false if pointer key only has a public key
+ */
+static bool ValidateKey(EC_KEY* key) {
+  if (1 != EC_GROUP_check(EC_KEY_get0_group(key), nullptr)) {
+	LOG_ERROR << "group is invalid!";
+  }
+
+  ret = EC_KEY_check_key(key);
+  LOG_DEBUG << "ossl version: " << OPENSSL_VERSION_NUMBER;
+  if (ret != 1) {
+	auto ossl_ver = OPENSSL_VERSION_NUMBER;
+	auto err = ERR_get_error();
+	/*
+	 * EC_KEY_check_key() will fail here because ec_key does
+	 * not have a valid private key. The magical numbers below
+	 * represent the OpenSSL version and the private key error
+	 * code. The error code is version dependent. We check the err or
+	 * code and only throw if it not a private key error.
+	 *
+	 * if ((ossl_ver == 1.0.2) and (err == invalid private key) or
+	 *     (ossl_ver == 1.1.0) and (err == invalid private key))
+	 */
+	if ((ossl_ver == 268443775 && err == 269160571) ||
+		(ossl_ver == 269484159 && err == 269492347)) {
+	  // error because private key is not set - ignore
+	  return false;
+	} else {
+	  std::string err_str(ERR_error_string(err, NULL));
+	  LOG_ERROR << "key is invalid: " << err_str << " : errno " << err;
+	  throw std::runtime_error("key is invalid: " + err_str);
+	}
+  }
+  return true;
 }
 
 /** Hashes a bytestring with SHA-256.

@@ -17,11 +17,11 @@ using namespace Devcash;
 
 TEST(ossladapter, VerifyAddressToString_0) {
   std::string str("02957EDD83CCB9AF527F5379FB634835B5A9C265CD7993751E26BAA459C24FBC07");
-  //LOG_INFO << "size: " << str.size() << ":" << kWALLET_ADDR_SIZE;
+  LOG_DEBUG << "size: " << str.size() << ":" << kWALLET_ADDR_SIZE;
   std::string addr = str.substr(0, kWALLET_ADDR_SIZE * 2);
-  //LOG_INFO << "addr size: " << addr.size();
+  LOG_DEBUG << "addr size: " << addr.size();
   std::vector<byte> addrb(Hex2Bin(addr));
-  //LOG_INFO << "addrb size: " << addrb.size();
+  LOG_DEBUG << "addrb size: " << addrb.size();
   Address a(addrb);
   auto string_out = a.getHexString();
   LOG_INFO << str;
@@ -31,11 +31,11 @@ TEST(ossladapter, VerifyAddressToString_0) {
 
 TEST(ossladapter, LoadPublicKey_0) {
   std::string str("02957EDD83CCB9AF527F5379FB634835B5A9C265CD7993751E26BAA459C24FBC07");
-  //LOG_INFO << "size: " << str.size() << ":" << kWALLET_ADDR_SIZE;
+  LOG_DEBUG << "size: " << str.size() << ":" << kWALLET_ADDR_SIZE;
   std::string addr = str.substr(0, kWALLET_ADDR_SIZE * 2);
-  //LOG_INFO << "addr size: " << addr.size();
+  LOG_DEBUG << "addr size: " << addr.size();
   std::vector<byte> addrb(Hex2Bin(addr));
-  //LOG_INFO << "addrb size: " << addrb.size();
+  LOG_DEBUG << "addrb size: " << addrb.size();
   Address a(addrb);
   auto key = LoadPublicKey(a);
   EXPECT_NE(key, nullptr);
@@ -57,8 +57,8 @@ TEST(ossladapter, GenerateEcKey_0) {
   std::string key;
   std::string password("password");
   GenerateEcKey(addr, key, password);
-  //LOG_INFO << "addr: " << addr << " : " << addr.size();
-  //LOG_INFO << "key: " << key << " : " << key.size();
+  LOG_DEBUG << "addr: " << addr << " : " << addr.size();
+  LOG_DEBUG << "key: " << key << " : " << key.size();
 }
 
 TEST(ossladapter, GenerateAndVerify_0) {
@@ -66,8 +66,8 @@ TEST(ossladapter, GenerateAndVerify_0) {
   std::string key;
   std::string password("password");
   GenerateEcKey(addr, key, password);
-  //LOG_INFO << "addr: " << addr << " : " << addr.size();
-  //LOG_INFO << "key: " << key << " : " << key.size();
+  LOG_DEBUG << "addr: " << addr << " : " << addr.size();
+  LOG_DEBUG << "key: " << key << " : " << key.size();
 
   auto eckey = LoadEcKey(addr, key, password);
   EXPECT_NE(eckey, nullptr);
@@ -78,8 +78,8 @@ TEST(ossladapter, GenerateAndVerify_1) {
   std::string key;
   std::string password("password");
   GenerateEcKey(addr, key, password);
-  //LOG_INFO << "addr: " << addr << " : " << addr.size();
-  //LOG_INFO << "key: " << key << " : " << key.size();
+  LOG_DEBUG << "addr: " << addr << " : " << addr.size();
+  LOG_DEBUG << "key: " << key << " : " << key.size();
 
   std::vector<byte> addrb(Hex2Bin(addr));
   //std::vector<byte> bytes(str.begin(), str.end());
