@@ -92,4 +92,4 @@ main(int, char**) {
   LOG_DEBUG << "Done";
 
   return 0;
-};
+}
