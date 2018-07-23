@@ -165,6 +165,15 @@ class Address {
     return raw;
   }
 
+  /**
+   * @return this address without the type prefix.
+   */
+  std::string getHexString() const {
+    if (isNull()) throw std::runtime_error("Address is not initialized!");
+	std::string str = getJSON();
+    return str.erase(0,2);
+  }
+
  private:
   /// The canonical representation of this Address
   std::vector<byte> canonical_;

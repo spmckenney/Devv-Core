@@ -86,4 +86,4 @@ int main(int, char**) {
   LOG_DEBUG << "Done\n";
 
   return 0;
-};
+}

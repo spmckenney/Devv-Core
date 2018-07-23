@@ -33,8 +33,8 @@ struct DelayedItem {
    * @param delay
    * @param delta
    */
-  explicit DelayedItem(uint64_t delay = 0, int64_t delta = 0)
-      : delay(delay), delta(delta) {}
+  explicit DelayedItem(uint64_t delay_val = 0, int64_t delta_val = 0)
+      : delay(delay_val), delta(delta_val) {}
 
   /// The delay of this item
   uint64_t delay = 0;
