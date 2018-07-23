@@ -265,8 +265,16 @@ static EC_KEY* LoadPublicKey(const Devcash::Address& public_key) {
     if (ret != 1) {
       auto ossl_ver = OPENSSL_VERSION_NUMBER;
       auto err = ERR_get_error();
-      // if ((ossl_ver == 1.0.2) and (err == invalid private key) or
-      //     (ossl_ver == 1.1.0) and (err == invalid private key))
+      /*
+       * EC_KEY_check_key() will fail here because ec_key does
+       * not have a valid private key. The magical numbers below
+       * represent the OpenSSL version and the private key error
+       * code. The error code is version dependent. We check the err or
+       * code and only throw if it not a private key error.
+       *
+       * if ((ossl_ver == 1.0.2) and (err == invalid private key) or
+       *     (ossl_ver == 1.1.0) and (err == invalid private key))
+       */
       if ((ossl_ver == 268443775 && err == 269160571) ||
           (ossl_ver == 269484159 && err == 269492347)) {
         // error because private key is not set - ignore
