@@ -32,5 +32,16 @@ target_link_libraries(consensus_test
   ${CMAKE_THREAD_LIBS_INIT}
   ${Boost_LIBRARIES})
 
+# Now simply link against gtest or gtest_main as needed. Eg
+add_executable(ossladapter_test gtest/ossladapter_test.cpp)
+target_link_libraries(ossladapter_test
+  ${GTEST_BOTH_LIBRARIES}
+  ${devcash_core_libs}
+  ${ZMQ}
+  ${OPENSSL_LIBRARIES}
+  ${CMAKE_THREAD_LIBS_INIT}
+  ${Boost_LIBRARIES})
+
 add_test(NAME primitives_test COMMAND primitives_test)
 add_test(NAME consensus_test COMMAND consensus_test)
+add_test(NAME ossladapter_test COMMAND ossladapter_test)
