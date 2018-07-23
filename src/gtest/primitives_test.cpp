@@ -514,8 +514,7 @@ TEST(ossl, SignBinary_0) {
   auto k = keys.getKey(a);
   auto h = DevcashHash(msg);
   auto s1 = SignBinary(k, h);
-  auto s2 = SignBinary(k, h);
-  EXPECT_EQ(s1, s2);
+  EXPECT_EQ(s1.size(), 106);
 }
 
 /**
