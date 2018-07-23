@@ -38,11 +38,17 @@ KeyRing::KeyRing(const DevcashContext& context)
       size_t size = inn_keys.size();
       if (size%(kFILE_NODEKEY_SIZE+(kNODE_ADDR_SIZE*2)) == 0) {
         size_t counter = 0;
-            std::string addr = inn_keys.substr(counter, kNODE_ADDR_SIZE*2);
-            counter += (kNODE_ADDR_SIZE*2);
-            std::string key = inn_keys.substr(counter, kFILE_NODEKEY_SIZE);
+        while (counter < (size-1)) {
+          std::string addr = inn_keys.substr(counter, kNODE_ADDR_SIZE*2);
+          counter += (kNODE_ADDR_SIZE*2);
+          std::string key = inn_keys.substr(counter, kFILE_NODEKEY_SIZE);
 
+          try {
             setInnKeyPair(addr, key, context.get_key_password());
+          } catch (const std::exception& e) {
+            LOG_ERROR << FormatException(&e, "INN Key");
+          }
+        }
       } else {
         LOG_FATAL << "Invalid INN key file size ("+std::to_string(size)+")";
         return;
@@ -59,12 +65,15 @@ KeyRing::KeyRing(const DevcashContext& context)
       if (size%(kFILE_NODEKEY_SIZE+(kNODE_ADDR_SIZE*2)) == 0) {
         size_t counter = 0;
           while (counter < (size-1)) {
-            std::string addr = node_keys.substr(counter, (kNODE_ADDR_SIZE*2));
-            counter += (kNODE_ADDR_SIZE*2);
-            std::string key = node_keys.substr(counter, kFILE_NODEKEY_SIZE);
-            counter += kFILE_NODEKEY_SIZE;
-
+          std::string addr = node_keys.substr(counter, (kNODE_ADDR_SIZE*2));
+          counter += (kNODE_ADDR_SIZE*2);
+          std::string key = node_keys.substr(counter, kFILE_NODEKEY_SIZE);
+          counter += kFILE_NODEKEY_SIZE;
+          try {
             addNodeKeyPair(addr,key,context.get_key_password());
+          } catch (const std::exception& e) {
+            LOG_ERROR << FormatException(&e, "Node Key");
+          }
          }
        } else {
          LOG_FATAL << "Invalid node key file size ("+std::to_string(size)+")";
@@ -97,18 +106,21 @@ bool KeyRing::LoadWallets(const std::string& file_path
        size_t size = wallet_keys.size();
        if (size%(kFILE_KEY_SIZE+(kWALLET_ADDR_SIZE*2)) == 0) {
          size_t counter = 0;
-           while (counter < (size-1)) {
-             std::string addr = wallet_keys.substr(counter, (kWALLET_ADDR_SIZE*2));
-             counter += (kWALLET_ADDR_SIZE*2);
-             std::string key = wallet_keys.substr(counter, kFILE_KEY_SIZE);
-             counter += kFILE_KEY_SIZE;
-
+         while (counter < (size-1)) {
+           std::string addr = wallet_keys.substr(counter, (kWALLET_ADDR_SIZE*2));
+           counter += (kWALLET_ADDR_SIZE*2);
+           std::string key = wallet_keys.substr(counter, kFILE_KEY_SIZE);
+           counter += kFILE_KEY_SIZE;
+           try {
              addWalletKeyPair(addr, key, file_pass);
-          }
-        } else {
-          LOG_FATAL << "Invalid key file size ("+std::to_string(size)+")";
-          return false;
-        }
+           } catch (const std::exception& e) {
+             LOG_ERROR << FormatException(&e, "Wallet Key");
+           }
+         }
+       } else {
+         LOG_FATAL << "Invalid key file size ("+std::to_string(size)+")";
+        return false;
+       }
      } else {
        LOG_INFO << "No wallets found";
        return false;
