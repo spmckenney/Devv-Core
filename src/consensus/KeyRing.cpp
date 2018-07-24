@@ -42,7 +42,7 @@ KeyRing::KeyRing(const DevcashContext& context)
           std::string addr = inn_keys.substr(counter, kNODE_ADDR_SIZE*2);
           counter += (kNODE_ADDR_SIZE*2);
           std::string key = inn_keys.substr(counter, kFILE_NODEKEY_SIZE);
-
+          counter += kFILE_NODEKEY_SIZE;
           try {
             setInnKeyPair(addr, key, context.get_key_password());
           } catch (const std::exception& e) {
