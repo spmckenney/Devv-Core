@@ -115,7 +115,10 @@ int main(int argc, char* argv[]) {
       bool is_transaction = IsTxData(raw);
       if (is_block) { LOG_INFO << files.at(i) << " has blocks."; }
       if (is_transaction) { LOG_INFO << files.at(i) << " has transactions."; }
-      if (!is_block && !is_transaction) { LOG_WARNING << files.at(i) << " contains unknown data."; }
+      if (!is_block && !is_transaction) {
+        LOG_WARNING << files.at(i) << " contains unknown data.";
+        exit(-1);
+      }
 
       InputBuffer buffer(raw);
       while (buffer.getOffset() < static_cast<size_t>(file_size)) {
@@ -150,11 +153,26 @@ int main(int argc, char* argv[]) {
     auto ms = kMAIN_WAIT_INTERVAL;
     unsigned int processed = 0;
 
-    //LOG_NOTICE << "Please press a key to ignore";
-    std::cin.ignore(); //why read something if you need to ignore it? :)
     while (true) {
       LOG_DEBUG << "Sleeping for " << ms << ": processed/batches (" << std::to_string(processed) << "/"
                 << transactions.size() << ")";
+
+      // Give everything time to set up and get the zmq
+      // sockets initialized and connected
+      sleep(1);
+
+      // Either press a key or wait a few seconds to ensure
+      // the zmq sockets are connected.
+      if (options->debug_mode == eDebugMode::on) {
+        LOG_NOTICE << "Please press a key to announce";
+        std::cin.ignore();
+      } else {
+        LOG_INFO << "On your mark!";
+        sleep(1);
+        LOG_INFO << "Get set!!";
+        sleep(1);
+        LOG_INFO << "Go!!!";
+      }
 
       /* Should we announce a transaction? */
       if (processed < transactions.size()) {
@@ -163,7 +181,6 @@ int main(int argc, char* argv[]) {
         server->queueMessage(std::move(announce_msg));
         ++processed;
         LOG_DEBUG << "Sent transaction batch #" << processed;
-        sleep(1);
       } else {
         LOG_INFO << "Finished announcing transactions.";
         break;

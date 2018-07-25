@@ -157,9 +157,6 @@ Listens for FinalBlock messages and saves them to a file\n\
         ("inn-keys", po::value<std::string>(), "Path to INN key file")
         ("node-keys", po::value<std::string>(), "Path to Node key file")
         ("key-pass", po::value<std::string>(), "Password for private keys")
-        ("generate-tx", po::value<unsigned int>(), "Generate at least this many Transactions")
-        ("tx-batch-size", po::value<unsigned int>(), "Target size of transaction batches")
-        ("tx-limit", po::value<unsigned int>(), "Number of transaction to process before shutting down.")
         ("stop-file", po::value<std::string>(), "A file in working-dir indicating that this node should stop.")
         ;
 
