@@ -54,10 +54,36 @@ class Devvnet(object):
 
     def __init__(self, devvnet):
         self._devvnet = devvnet
+        self._base_port = devvnet['base_port']
         self._shards = []
+
         for i in self._devvnet['shards']:
             print("Adding shard {}".format(i['shard_index']))
             self._shards.append(Shard(i))
+
+        self._set_bind_ports()
+
+    def __str__(self):
+        s = "Devvnet\n"
+        for shard in self._shards:
+            s += str(shard)
+        return s
+
+    def _set_bind_ports(self):
+        current_port = self._base_port;
+        for shard in self._shards:
+            for node in shard.get_nodes():
+                node.set_port(current_port)
+                current_port = current_port + 1
+
+    def get_shard(self, index):
+        return self._shards[index]
+
+    def get_num_nodes(self):
+        count = 0
+        for shard in self._shards:
+            count += shard.get_num_nodes()
+        return count
 
 
 class Shard(object):
@@ -70,7 +96,24 @@ class Shard(object):
     def __init__(self, shard):
         self._shard = shard
         self._nodes = get_nodes(shard)
+        self._shard_index = self._shard['shard_index']
 
+        try:
+            self._name = self._shard['t1']
+            self._type = "Tier1Shard"
+        except:
+            try:
+                self._name = self._shard['t2']
+                self._type = 'Tier2Shard'
+            except:
+                print("Error: Shard type neither Tier1 (t1) or Tier2 (t2)")
+
+    def __str__(self):
+        s = "type: " + self._type + "\n"
+        s += "index: " + str(self._shard_index) + "\n"
+        for node in self._nodes:
+            s += "  " + str(node) + "\n"
+        return s
 
     def _connect_shard_nodes(self):
         v_index = [i for i,x in enumerate(self._nodes) if x.is_validator()]
@@ -83,6 +126,12 @@ class Shard(object):
                 if i == j:
                     continue
                 self._nodes[j].add_subscriber(host, port)
+
+    def get_nodes(self):
+        return self._nodes
+
+    def get_num_nodes(self):
+        return len(self._nodes)
 
 
 class Sub():
@@ -109,7 +158,7 @@ class Sub():
 
 
 class Node():
-    def __init__(self, index, name, host, port):
+    def __init__(self, index, name, host, port = 0):
         self._name = name
         self._index = index
         self._host = host
@@ -121,7 +170,7 @@ class Node():
         for sub in self._subscriber_list:
             subs += str(sub)
         subs += "]"
-        s = "node({}:{}:{}:{}) {}".format(self._name, self._index, self._host, self._port, subs)
+        s = "node({}:{}:{}:{}) {}".format(self._name, self._index, self._host, self._bind_port, subs)
         return s
 
     def is_validator(self):
@@ -133,8 +182,14 @@ class Node():
     def get_host(self):
         return self._host
 
+    def set_host(self, host):
+        self._host = host
+
     def get_port(self):
         return self._bind_port
+
+    def set_port(self, port):
+        self._bind_port = port
 
 
 def get_nodes(yml_dict):
