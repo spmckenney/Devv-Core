@@ -57,24 +57,19 @@ class Devvnet(object):
         self._base_port = devvnet['base_port']
         self._shards = []
 
+        current_port = self._base_port
         for i in self._devvnet['shards']:
             print("Adding shard {}".format(i['shard_index']))
-            self._shards.append(Shard(i))
-
-        self._set_bind_ports()
+            s = Shard(i)
+            current_port = s.initialize_bind_ports(current_port)
+            s.connect_shard_nodes()
+            self._shards.append(s)
 
     def __str__(self):
         s = "Devvnet\n"
         for shard in self._shards:
             s += str(shard)
         return s
-
-    def _set_bind_ports(self):
-        current_port = self._base_port;
-        for shard in self._shards:
-            for node in shard.get_nodes():
-                node.set_port(current_port)
-                current_port = current_port + 1
 
     def get_shard(self, index):
         return self._shards[index]
@@ -108,6 +103,8 @@ class Shard(object):
             except:
                 print("Error: Shard type neither Tier1 (t1) or Tier2 (t2)")
 
+        #self._connect_shard_nodes()
+
     def __str__(self):
         s = "type: " + self._type + "\n"
         s += "index: " + str(self._shard_index) + "\n"
@@ -115,8 +112,17 @@ class Shard(object):
             s += "  " + str(node) + "\n"
         return s
 
-    def _connect_shard_nodes(self):
+    def initialize_bind_ports(self, port_num):
+        current_port = port_num
+        for node in self._nodes:
+            node.set_port(current_port)
+            current_port = current_port + 1
+        return current_port
+
+    def connect_shard_nodes(self):
         v_index = [i for i,x in enumerate(self._nodes) if x.is_validator()]
+
+        print(v_index)
 
         for i in v_index:
             host = self._nodes[i].get_host()
