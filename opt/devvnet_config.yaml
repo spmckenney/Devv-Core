@@ -57,8 +57,12 @@ devvnet:
           host: '"dc00{}".format(${node_index} + 1)'
           node_index: 0,1,2,3
 
+        - name: validator
+          host: dc003
+          node_index: 4
+
         - name: announcer
-          host: localhost
+          host: dc002
           node_index: 0,1,2
 
         - name: repeater

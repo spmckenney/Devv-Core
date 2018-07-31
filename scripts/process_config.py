@@ -63,6 +63,7 @@ class Devvnet(object):
             print("Adding shard {}".format(i['shard_index']))
             s = Shard(i)
             current_port = s.initialize_bind_ports(current_port)
+            s.evaluate_hostname()
             s.connect_shard_nodes()
             self._shards.append(s)
 
@@ -76,18 +77,7 @@ class Devvnet(object):
                     n = self.get_shard(rsub.get_shard_index()).get_node(rsub._name, rsub._node_index)
                     node.add_subscriber(n.get_host(), n.get_port())
 
-                '''
-                try:
-                    subs = node.get_raw_subs()
-                    print(subs)
-                    for i3,rawsub in enumerate(subs):
-
-                        #print("Yay!! "+str(n))
-
-                except:
-                    print("No subs for you")
-                    continue
-                '''
+                node.add_working_dir(self._working_dir)
 
     def __str__(self):
         s = "Devvnet\n"
@@ -118,7 +108,6 @@ class Shard(object):
         self._shard = shard
         self._nodes = get_nodes(shard)
         self._shard_index = self._shard['shard_index']
-
 
         try:
             self._name = self._shard['t1']
@@ -174,12 +163,15 @@ class Shard(object):
                 if self._nodes[i].get_index() == self._nodes[l].get_index():
                     self._nodes[l].add_subscriber(host, port)
 
-    '''
-    def connect_intershard_comms(self):
-        self._shar
-        for node in self._nodes():
-            pass
-    '''
+
+    def evaluate_hostname(self):
+        for node in self._nodes:
+            node.set_host(node.get_host().replace("${node_index}", str(node.get_index())))
+            if node.get_host().find("format") > 0:
+                print("formatting")
+                node.set_host(eval(node.get_host()))
+
+            node.evaluate_hostname()
 
     def get_nodes(self):
         return self._nodes
@@ -252,18 +244,26 @@ class Sub():
     def get_host(self):
         return self._host
 
+    def set_host(self, hostname):
+        self._host = hostname
+
     def get_port(self):
         return self._port
 
+    def set_port(self, port):
+        self._port = port
+
 
 class Node():
-    def __init__(self, index, name, host, port = 0):
+    def __init__(self, shard_index, index, name, host, port = 0):
         self._name = name
+        self._shard_index = int(shard_index)
         self._index = int(index)
         self._host = host
         self._bind_port = int(port)
         self._subscriber_list = []
         self._raw_sub_list = []
+        self._working_directory = ""
 
     def __str__(self):
         subs = "s["
@@ -274,8 +274,14 @@ class Node():
         for rawsub in self._raw_sub_list:
             rawsubs += str(rawsub)
         rawsubs += "]"
-        s = "node({}:{}:{}:{}) {} {}".format(self._name, self._index, self._host, self._bind_port, subs, rawsubs)
+        s = "node({}:{}:{}:{}:{}) {} {}".format(self._name, self._index, self._host, self._bind_port, self._working_directory, subs, rawsubs)
         return s
+
+    def add_working_dir(self, directory):
+        wd = directory.replace("${name}", self._name)
+        wd = wd.replace("${shard_index}", str(self._shard_index))
+        wd = wd.replace("${node_index}", str(self.get_index()))
+        self._working_directory = wd
 
     def is_validator(self):
         return(self._name == "validator")
@@ -294,6 +300,13 @@ class Node():
         print("adding rawsub: "+str(rs))
         self._raw_sub_list.append(rs)
 
+    def evaluate_hostname(self):
+        for sub in self._subscriber_list:
+            sub.set_host(sub.get_host().replace("${node_index}", str(self.get_index())))
+            if sub.get_host().find("format") > 0:
+                print("formatting")
+                sub.set_host(eval(sub.get_host()))
+
     def grill_raw_subs(self, shard_index):
         for sub in self._raw_sub_list:
             sub.substitute_node_index(self._index)
@@ -305,6 +318,7 @@ class Node():
 
     def get_name(self):
         return self._name
+
 
     def get_index(self):
         return self._index
@@ -324,6 +338,7 @@ class Node():
 
 def get_nodes(yml_dict):
     nodes = []
+    shard_index = yml_dict['shard_index']
     for proc in yml_dict['process']:
         ind = proc['node_index']
         print(ind)
@@ -333,7 +348,7 @@ def get_nodes(yml_dict):
                 ns = ind.split(',')
                 print("creating {} {} processes".format(len(ns), proc['name']))
                 for n in ns:
-                    node = Node(n, proc['name'], proc['host'], proc['bind_port'])
+                    node = Node(shard_index, n, proc['name'], proc['host'], proc['bind_port'])
                     try:
                         rawsubs = proc['subscribe']
                         for sub in proc['subscribe']:
@@ -348,9 +363,9 @@ def get_nodes(yml_dict):
             #elif ind.find('..') > 0:
             #    n = range(
             else:
-                nodes.append(Node(ind, proc['name'], proc['host'], proc['bind_port']))
+                nodes.append(Node(shard_index, ind, proc['name'], proc['host'], proc['bind_port']))
                 print("creating a "+proc['name']+" process")
         except:
-            nodes.append(Node(ind, proc['name'], proc['host'], proc['bind_port']))
+            nodes.append(Node(shard_index, ind, proc['name'], proc['host'], proc['bind_port']))
             print("creating a "+proc['name']+" process")
     return nodes
