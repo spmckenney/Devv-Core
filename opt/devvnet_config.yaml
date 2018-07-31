@@ -57,12 +57,6 @@ devvnet:
           host: localhost
           node_index: 0,1,2,3
           subscribe:
-            - name: announcer
-              node_index: ${node_index}
-
-            - name: validator
-              shard_index: 0
-              node_index: 0,1,2
 
         - name: announcer
           host: localhost
@@ -71,9 +65,6 @@ devvnet:
         - name: repeater
           host: localhost
           node_index: 0,1,2
-          subscribe:
-            - name: validator
-              node_index: ${node_index}
 
 
     # First Tier2 shard
@@ -85,12 +76,9 @@ devvnet:
           host: localhost
           node_index: 0,1,2
           subscribe:
-            - name: announcer
-              node_index: ${node_index}
-
             - name: validator
               shard_index: 0
-              node_index: 0,1,2
+              node_index: ${node_index}
 
         - name: announcer
           host: localhost
