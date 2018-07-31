@@ -45,7 +45,7 @@
 devvnet:
   base_port: 55100
   password_file: ../opt/default_pass.conf
-  working_dir: ../working/${name}/s${shard_index}_n${index}
+  working_dir: ../working/${name}/s${shard_index}_n${node_index}
 
   shards:
     # Master Tier1 shard
@@ -54,9 +54,8 @@ devvnet:
       config_file: ../opt/t1_config.conf
       process:
         - name: validator
-          host: localhost
+          host: '"dc00{}".format(${node_index} + 1)'
           node_index: 0,1,2,3
-          subscribe:
 
         - name: announcer
           host: localhost

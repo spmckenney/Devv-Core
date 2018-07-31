@@ -56,6 +56,7 @@ class Devvnet(object):
         self._devvnet = devvnet
         self._base_port = devvnet['base_port']
         self._shards = []
+        self._working_dir = devvnet['working_dir']
 
         current_port = self._base_port
         for i in self._devvnet['shards']:
@@ -65,16 +66,33 @@ class Devvnet(object):
             s.connect_shard_nodes()
             self._shards.append(s)
 
-        '''
-        for i,s in enumerate(self._devvnet['shards']):
-            p = s['process']
-            for i2,n in enumerate(p['subscribe']):
-                print("Yay!!")
-        '''
 
+        for i,shard in enumerate(self._shards):
+            print("shard: "+ str(shard))
+            for i2,node in enumerate(shard.get_nodes()):
+                node.grill_raw_subs(shard.get_index())
+
+                for rsub in node.get_raw_subs():
+                    n = self.get_shard(rsub.get_shard_index()).get_node(rsub._name, rsub._node_index)
+                    node.add_subscriber(n.get_host(), n.get_port())
+
+                '''
+                try:
+                    subs = node.get_raw_subs()
+                    print(subs)
+                    for i3,rawsub in enumerate(subs):
+
+                        #print("Yay!! "+str(n))
+
+                except:
+                    print("No subs for you")
+                    continue
+                '''
 
     def __str__(self):
         s = "Devvnet\n"
+        s += "base_port   : "+str(self._base_port)+"\n"
+        s += "working_dir : "+str(self._working_dir)+"\n"
         for shard in self._shards:
             s += str(shard)
         return s
@@ -156,16 +174,33 @@ class Shard(object):
                 if self._nodes[i].get_index() == self._nodes[l].get_index():
                     self._nodes[l].add_subscriber(host, port)
 
+    '''
     def connect_intershard_comms(self):
         self._shar
         for node in self._nodes():
             pass
+    '''
 
     def get_nodes(self):
         return self._nodes
 
     def get_num_nodes(self):
         return len(self._nodes)
+
+    def get_node(self, name, index):
+        node = [x for x in self._nodes if (x.get_name() == name and x.get_index() == index)]
+        if len(node) == 0:
+            return None
+
+        if len(node) != 1:
+            raise("WOOP: identical nodes? ")
+
+        return node[0]
+        #node = [y for y in nodes if y.get_index() == index
+        #shard1_validators = [x for x in conf['devvnet']['shards'][1]['process'] if x['name'] == 'validator']
+
+    def get_index(self):
+        return self._shard_index
 
 class RawSub():
     def __init__(self, name, shard_index, node_index):
@@ -176,6 +211,27 @@ class RawSub():
     def __str__(self):
         sub = "({}:{}:{})".format(self._name, self._shard_index, self._node_index)
         return sub
+
+    def get_shard_index(self):
+        return self._shard_index
+
+    def substitute_node_index(self, node_index):
+        if self._node_index == "${node_index}":
+            self._node_index = int(node_index)
+        else:
+            print("WARNING: not subbing "+str(self._node_index)+" with "+str(node_index))
+        return
+    '''
+        try:
+            print("n: "+str(self._node_index))
+            n = self._node_index.replace('\${node_index}', node_index)
+            print("n2: "+str(n))
+            self._node_index = int(n)
+            print("n: "+str(self._node_index))
+        except:
+            print("nothing to sub")
+            raise
+    '''
 
 class Sub():
     def __init__(self, host, port):
@@ -210,15 +266,15 @@ class Node():
         self._raw_sub_list = []
 
     def __str__(self):
-        subs = "["
+        subs = "s["
         for sub in self._subscriber_list:
             subs += str(sub)
         subs += "]"
-        rawsubs = "["
+        rawsubs = "r["
         for rawsub in self._raw_sub_list:
             rawsubs += str(rawsub)
         rawsubs += "]"
-        s = "node({}:{}:{}:{}) {} {}".format(self._name, self._index, self._host, self._bind_port, subs, raw_subs)
+        s = "node({}:{}:{}:{}) {} {}".format(self._name, self._index, self._host, self._bind_port, subs, rawsubs)
         return s
 
     def is_validator(self):
@@ -237,6 +293,18 @@ class Node():
         rs = RawSub(name,shard_index, node_index)
         print("adding rawsub: "+str(rs))
         self._raw_sub_list.append(rs)
+
+    def grill_raw_subs(self, shard_index):
+        for sub in self._raw_sub_list:
+            sub.substitute_node_index(self._index)
+            #d = subs.replace("${node_index}", str(self._index))
+            print("up "+str(sub))
+
+    def get_raw_subs(self):
+        return self._raw_sub_list
+
+    def get_name(self):
+        return self._name
 
     def get_index(self):
         return self._index
