@@ -151,7 +151,8 @@ int main(int argc, char* argv[]) {
     unsigned int processed = 0;
 
     //LOG_NOTICE << "Please press a key to ignore";
-    std::cin.ignore(); //why read something if you need to ignore it? :)
+    sleep(10);
+    //std::cin.ignore(); //why read something if you need to ignore it? :)
     while (true) {
       LOG_DEBUG << "Sleeping for " << ms << ": processed/batches (" << std::to_string(processed) << "/"
                 << transactions.size() << ")";
