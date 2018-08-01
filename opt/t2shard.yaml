@@ -46,6 +46,7 @@ devvnet:
   base_port: 55100
   password_file: ../opt/default_pass.conf
   working_dir: ../working/${name}/s${shard_index}_n${node_index}
+  host_index_map: {0: dc001, 2: dc005, 3: dc006}
 
   shards:
     # Tier2 shard
@@ -54,20 +55,14 @@ devvnet:
       config_file: ../opt/basic_shard.conf
       process:
         - name: validator
-          host: '"dc00{}".format(${node_index} + 1)'
-          node_index: 0,1,2
           subscribe:
             - name: validator
               shard_index: 0
               node_index: ${node_index}
 
         - name: announcer
-          host: '"dc00{}".format(${node_index} + 1)'
-          node_index: 0,1,2
 
         - name: repeater
-          host: '"dc00{}".format(${node_index} + 1)'
-          node_index: 0,1,2
           subscribe:
             - name: validator
               node_index: ${node_index}

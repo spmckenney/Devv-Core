@@ -24,25 +24,30 @@ class Devvnet(object):
     _password_file = ""
     _working_dir = ""
     _config_file = ""
+    _host = ""
+    _host_index_map = {}
 
     def __init__(self, devvnet):
         self._devvnet = devvnet
         self._shards = []
+
+        self._host_index_map = devvnet['host_index_map']
 
         try:
             self._base_port = devvnet['base_port']
             self._working_dir = devvnet['working_dir']
             self._password_file = devvnet['password_file']
             self._config_file = devvnet['config_file']
+            self._host = devvnet['host']
         except KeyError:
             pass
 
         current_port = self._base_port
         for i in self._devvnet['shards']:
             print("Adding shard {}".format(i['shard_index']))
-            s = Shard(i, self._config_file, self._password_file)
+            s = Shard(i, self._host_index_map, self._config_file, self._password_file)
             current_port = s.initialize_bind_ports(current_port)
-            s.evaluate_hostname()
+            s.evaluate_hostname(self._host)
             s.connect_shard_nodes()
             self._shards.append(s)
 
@@ -84,11 +89,17 @@ class Shard(object):
     _working_dir = ""
     _shard = None
     _nodes = []
+    _host = ""
 
-    def __init__(self, shard, config_file, password_file):
+    def __init__(self, shard, host_index_map, config_file, password_file):
         self._shard = shard
-        self._nodes = get_nodes(shard)
+        self._nodes = get_nodes(shard, host_index_map)
         self._shard_index = self._shard['shard_index']
+
+        try:
+            self._host = self._shard['host']
+        except:
+            pass
 
         try:
             self._config_file = self._shard['config_file']
@@ -157,14 +168,17 @@ class Shard(object):
                     self._nodes[l].add_subscriber(host, port)
 
 
-    def evaluate_hostname(self):
+    def evaluate_hostname(self, host):
+        if self._host == "":
+            self._host = host
+
         for node in self._nodes:
             node.set_host(node.get_host().replace("${node_index}", str(node.get_index())))
             if node.get_host().find("format") > 0:
                 #print("formatting")
                 node.set_host(eval(node.get_host()))
 
-            node.evaluate_hostname()
+            node.evaluate_hostname(self._host)
 
     def get_nodes(self):
         return self._nodes
@@ -285,7 +299,8 @@ class Node():
         #print("adding rawsub: "+str(rs))
         self._raw_sub_list.append(rs)
 
-    def evaluate_hostname(self):
+    def evaluate_hostname(self, host):
+
         for sub in self._subscriber_list:
             sub.set_host(sub.get_host().replace("${node_index}", str(self.get_index())))
             if sub.get_host().find("format") > 0:
@@ -350,35 +365,31 @@ class Node():
         self._working_dir = working_dir
 
 
-def get_nodes(yml_dict):
+def get_nodes(yml_dict, host_index_map):
     nodes = []
     shard_index = yml_dict['shard_index']
-    for proc in yml_dict['process']:
-        ind = proc['node_index']
-        print(ind)
+    try:
+        host_index_map = yml_dict['host_index_map']
+        print("Using shard's {} for shard {}".format(host_index_map, shard_index))
+    except:
+        print("Using devvnet host_index_map ({}) for shard {}".format(host_index_map, shard_index))
 
+    for proc in yml_dict['process']:
         try:
-            if ind.find(',') > 0:
-                ns = ind.split(',')
-                print("creating {} {} processes".format(len(ns), proc['name']))
-                for n in ns:
-                    node = Node(shard_index, n, proc['name'], proc['host'], proc['bind_port'])
-                    try:
-                        rawsubs = proc['subscribe']
-                        for sub in proc['subscribe']:
-                            try:
-                                si = sub['shard_index']
-                            except:
-                                si = yml_dict['shard_index']
-                            node.add_raw_sub(sub['name'], si, sub['node_index'])
-                    except:
-                        pass
-                    nodes.append(node)
-            #elif ind.find('..') > 0:
-            #    n = range(
-            else:
-                nodes.append(Node(shard_index, ind, proc['name'], proc['host'], proc['bind_port']))
-                print("creating a "+proc['name']+" process")
+            print("creating {} {} processes".format(len(host_index_map), proc['name']))
+            for node_index in host_index_map:
+                node = Node(shard_index, node_index, proc['name'], host_index_map[node_index], proc['bind_port'])
+                try:
+                    rawsubs = proc['subscribe']
+                    for sub in proc['subscribe']:
+                        try:
+                            si = sub['shard_index']
+                        except:
+                            si = yml_dict['shard_index']
+                        node.add_raw_sub(sub['name'], si, sub['node_index'])
+                except:
+                    pass
+                nodes.append(node)
         except:
             nodes.append(Node(shard_index, ind, proc['name'], proc['host'], proc['bind_port']))
             print("creating a "+proc['name']+" process")

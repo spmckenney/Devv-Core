@@ -46,28 +46,20 @@ devvnet:
   base_port: 55100
   password_file: ../opt/default_pass.conf
   working_dir: ../working/${name}/s${shard_index}_n${node_index}
+  host_index_map: {0: dc001, 1: dc002, 2: dc003}
 
   shards:
     # Master Tier1 shard
     - t1: t1shard
+      host_index_map: {3: dc001, 4: dc002, 5: dc003, 6: dc000}
       shard_index: 0
       config_file: ../opt/t1_config.conf
       process:
         - name: validator
-          host: '"dc00{}".format(${node_index} + 1)'
-          node_index: 0,1,2,3
-
-        - name: validator
-          host: dc003
-          node_index: 4
 
         - name: announcer
-          host: dc002
-          node_index: 0,1,2
 
         - name: repeater
-          host: localhost
-          node_index: 0,1,2
 
 
     # First Tier2 shard
@@ -76,20 +68,14 @@ devvnet:
       config_file: ../opt/t2_config.conf
       process:
         - name: validator
-          host: localhost
-          node_index: 0,1,2
           subscribe:
             - name: validator
               shard_index: 0
               node_index: ${node_index}
 
         - name: announcer
-          host: localhost
-          node_index: 0,1,2
 
         - name: repeater
-          host: localhost
-          node_index: 0,1,2
           subscribe:
             - name: validator
               node_index: ${node_index}
@@ -101,28 +87,14 @@ devvnet:
       config_file: ../opt/t2_config.conf
       process:
         - name: validator
-          host: localhost
-          node_index: 0
           subscribe:
             - name: announcer
               node_index: ${node_index}
 
             - name: validator
               shard_index: 0
-              node_index: 0,1,2
-
-        - name: validator
-          host: localhost
-          node_index: 1
-
-        - name: validator
-          host: localhost
-          node_index: 2
+              node_index: ${node_index}
 
         - name: announcer
-          host: localhost
-          node_index: 0,1,2
 
         - name: repeater
-          host: localhost
-          node_index: 0,1,2
