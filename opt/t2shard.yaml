@@ -43,10 +43,10 @@
 # Main devvnet
 
 devvnet:
-  base_port: 55100
+  base_port: 55500
   password_file: ../opt/default_pass.conf
-  working_dir: ../working/${name}/s${shard_index}_n${node_index}
-  host_index_map: {0: dc001, 2: dc005, 3: dc006}
+  working_dir: /home/dcrunner/devv/work1/${name}/${node_index}
+  host_index_map: {0: localhost, 1: localhost, 2: localhost}
 
   shards:
     # Tier2 shard

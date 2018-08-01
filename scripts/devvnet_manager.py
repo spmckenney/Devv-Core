@@ -58,6 +58,7 @@ class Devvnet(object):
                 node.grill_raw_subs(shard.get_index())
 
                 for rsub in node.get_raw_subs():
+                    print("Getting for shard/name/node_index {}/{}/{}".format(rsub.get_shard_index(), rsub._name, rsub._node_index))
                     n = self.get_shard(rsub.get_shard_index()).get_node(rsub._name, rsub._node_index)
                     node.add_subscriber(n.get_host(), n.get_port())
 
@@ -403,6 +404,8 @@ def run_validator(node):
     cmd.append("./devcash")
     cmd.extend(["--shard-index", str(node.get_shard_index())])
     cmd.extend(["--node-index", str(node.get_index())])
+    cmd.extend(["--num-consensus-threads", "1"])
+    cmd.extend(["--num-validator-threads", "1"])
     cmd.extend(["--config", node.get_config_file()])
     cmd.extend(["--config", node.get_password_file()])
     cmd.extend(["--bind-endpoint", "tcp://*:" + str(node.get_port())])
@@ -419,6 +422,8 @@ def run_announcer(node):
     cmd.append("./announcer")
     cmd.extend(["--shard-index", str(node.get_shard_index())])
     cmd.extend(["--node-index", str(node.get_index())])
+    cmd.extend(["--num-consensus-threads", "1"])
+    cmd.extend(["--num-validator-threads", "1"])
     cmd.extend(["--config", node.get_config_file()])
     cmd.extend(["--config", node.get_password_file()])
     cmd.extend(["--mode", node.get_type()])
@@ -435,9 +440,14 @@ def run_repeater(node):
     cmd.append("./repeater")
     cmd.extend(["--shard-index", str(node.get_shard_index())])
     cmd.extend(["--node-index", str(node.get_index())])
+    cmd.extend(["--num-consensus-threads", "1"])
+    cmd.extend(["--num-validator-threads", "1"])
     cmd.extend(["--config", node.get_config_file()])
     cmd.extend(["--config", node.get_password_file()])
     cmd.extend(["--mode", node.get_type()])
+    cmd.extend(["--working-dir", node.get_working_dir()])
+    for sub in node.get_subscriber_list():
+        cmd.extend(["--host-list", "tcp://" + sub.get_host() + ":" + str(sub.get_port())])
 
     return cmd
 
