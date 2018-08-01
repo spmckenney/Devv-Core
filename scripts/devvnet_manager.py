@@ -437,6 +437,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Launch a devvnet.')
     parser.add_argument('--logdir', action="store", dest='logdir', help='Directory to log output')
     parser.add_argument('--start-processes', action="store_true", dest='start', default=True, help='Start the processes')
+    parser.add_argument('--hostname', action="store", dest='hostname', default=None, help='Debugging output')
     parser.add_argument('--debug', action="store_true", dest='start', default=False, help='Debugging output')
     parser.add_argument('devvnet', action="store", help='YAML file describing the devvnet')
     args = parser.parse_args()
@@ -445,6 +446,7 @@ if __name__ == '__main__':
 
     print("logdir: " + args.logdir)
     print("start: " + str(args.start))
+    print("hostname: " + str(args.hostname))
     print("devvnet: " + args.devvnet)
 
     devvnet = process_config.get_devvnet(args.devvnet)
@@ -455,6 +457,8 @@ if __name__ == '__main__':
     cmds = []
     for s in d.get_shards():
         for n in s.get_nodes():
+            if args.hostname and (args.hostname != n.get_host()):
+                continue
             if n.get_name() == 'validator':
                 cmds.append(run_validator(n))
             elif n.get_name() == 'repeater':

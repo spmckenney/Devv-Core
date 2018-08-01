@@ -54,7 +54,7 @@ devvnet:
       config_file: ../opt/basic_shard.conf
       process:
         - name: validator
-          host: localhost
+          host: '"dc00{}".format(${node_index} + 1)'
           node_index: 0,1,2
           subscribe:
             - name: validator
@@ -62,11 +62,11 @@ devvnet:
               node_index: ${node_index}
 
         - name: announcer
-          host: localhost
+          host: '"dc00{}".format(${node_index} + 1)'
           node_index: 0,1,2
 
         - name: repeater
-          host: localhost
+          host: '"dc00{}".format(${node_index} + 1)'
           node_index: 0,1,2
           subscribe:
             - name: validator
