@@ -51,17 +51,24 @@ class Devvnet(object):
     _base_port = 0
     _password_file = ""
     _working_dir = ""
+    _config_file = ""
 
     def __init__(self, devvnet):
         self._devvnet = devvnet
-        self._base_port = devvnet['base_port']
         self._shards = []
-        self._working_dir = devvnet['working_dir']
+
+        try:
+            self._base_port = devvnet['base_port']
+            self._working_dir = devvnet['working_dir']
+            self._password_file = devvnet['password_file']
+            self._config_file = devvnet['config_file']
+        except KeyError:
+            pass
 
         current_port = self._base_port
         for i in self._devvnet['shards']:
             print("Adding shard {}".format(i['shard_index']))
-            s = Shard(i)
+            s = Shard(i, self._config_file, self._password_file)
             current_port = s.initialize_bind_ports(current_port)
             s.evaluate_hostname()
             s.connect_shard_nodes()
@@ -99,25 +106,39 @@ class Devvnet(object):
 
 class Shard(object):
     _shard_index = 0;
-    _password_file = ""
     _working_dir = ""
     _shard = None
     _nodes = []
 
-    def __init__(self, shard):
+    def __init__(self, shard, config_file, password_file):
         self._shard = shard
         self._nodes = get_nodes(shard)
         self._shard_index = self._shard['shard_index']
 
         try:
+            self._config_file = self._shard['config_file']
+        except:
+            self._config_file = config_file
+
+        try:
+            self._password_file = self._shard['password_file']
+        except:
+            self._password_file = password_file
+
+        try:
             self._name = self._shard['t1']
-            self._type = "Tier1Shard"
+            self._type = "T1"
         except:
             try:
                 self._name = self._shard['t2']
-                self._type = 'Tier2Shard'
+                self._type = 'T2'
             except:
                 print("Error: Shard type neither Tier1 (t1) or Tier2 (t2)")
+
+        for n in self._nodes:
+            n.set_config_file(self._config_file)
+            n.set_password_file(self._password_file)
+            n.set_type(self._type)
 
         #self._connect_shard_nodes()
 
@@ -194,6 +215,7 @@ class Shard(object):
     def get_index(self):
         return self._shard_index
 
+
 class RawSub():
     def __init__(self, name, shard_index, node_index):
         self._name = name
@@ -257,6 +279,7 @@ class Sub():
 class Node():
     def __init__(self, shard_index, index, name, host, port = 0):
         self._name = name
+        self._type = ""
         self._shard_index = int(shard_index)
         self._index = int(index)
         self._host = host
@@ -316,9 +339,17 @@ class Node():
     def get_raw_subs(self):
         return self._raw_sub_list
 
+    def get_type(self):
+        return self._type
+
+    def set_type(self, type):
+        self._type = type
+
     def get_name(self):
         return self._name
 
+    def get_shard_index(self):
+        return self._shard_index
 
     def get_index(self):
         return self._index
@@ -334,6 +365,21 @@ class Node():
 
     def set_port(self, port):
         self._bind_port = port
+
+    def get_config_file(self):
+        return self._config_file
+
+    def set_config_file(self, config):
+        self._config_file = config
+
+    def get_password_file(self):
+        return self._password_file
+
+    def set_password_file(self, file):
+        self._password_file = file
+
+    def get_subscriber_list(self):
+        return self._subscriber_list
 
 
 def get_nodes(yml_dict):
@@ -369,3 +415,33 @@ def get_nodes(yml_dict):
             nodes.append(Node(shard_index, ind, proc['name'], proc['host'], proc['bind_port']))
             print("creating a "+proc['name']+" process")
     return nodes
+
+
+def run_validator(node):
+    # ./devcash --node-index 0 --config ../opt/basic_shard.conf --config ../opt/default_pass.conf --host-list tcp://localhost:56551 --host-list tcp://localhost:56552 --host-list tcp://localhost:57550 --bind-endpoint tcp://*:56550
+
+    cmd = []
+    cmd.append("./devcash")
+    cmd.extend(["--node-index", str(node.get_index())])
+    cmd.extend(["--config", node.get_config_file()])
+    cmd.extend(["--config", node.get_password_file()])
+    cmd.extend(["--bind-endpoint", "tcp://*:" + str(node.get_port())])
+    for sub in node.get_subscriber_list():
+        cmd.extend(["--host-list", "tcp://" + sub.get_host() + ":" + str(sub.get_port())])
+
+    return cmd
+
+def run_announcer(node):
+    # ./announcer --node-index 0 --shard-index 1 --mode T2 --stop-file /tmp/stop-devcash-announcer.ctl --inn-keys ../opt/inn.key --node-keys ../opt/node.key --bind-endpoint 'tcp://*:50020' --working-dir ../../tmp/working/input/laminar4/ --key-pass password
+
+    cmd = []
+    cmd.append("./announcer")
+    cmd.extend(["--shard-index", str(node.get_shard_index())])
+    cmd.extend(["--node-index", str(node.get_index())])
+    cmd.extend(["--mode", node.get_type()])
+
+    return cmd
+
+def run_repeater():
+    # ./repeater --node-index 0 --shard-index 1 --mode T2 --stop-file /tmp/stop-devcash-repeater.ctl --inn-keys ../opt/inn.key --node-keys ../opt/node.key --working-dir ../../tmp/working/output/repeater --host-list tcp://localhost:56550 --key-pass password
+    pass
