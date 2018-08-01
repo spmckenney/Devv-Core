@@ -139,13 +139,10 @@ class Shard(object):
         a_index = [i for i,x in enumerate(self._nodes) if x.is_announcer()]
         r_index = [i for i,x in enumerate(self._nodes) if x.is_repeater()]
 
-        print(v_index)
-        print(a_index)
-
         for i in v_index:
             host = self._nodes[i].get_host()
             port = self._nodes[i].get_port()
-            print("setting port to {}".format(port))
+            #print("setting port to {}".format(port))
             for j in v_index:
                 if i == j:
                     continue
@@ -158,7 +155,7 @@ class Shard(object):
                     break
 
             for l in r_index:
-                print(type(self._nodes[i].get_index() ))
+                #print(type(self._nodes[i].get_index()))
                 if self._nodes[i].get_index() == self._nodes[l].get_index():
                     self._nodes[l].add_subscriber(host, port)
 
@@ -167,7 +164,7 @@ class Shard(object):
         for node in self._nodes:
             node.set_host(node.get_host().replace("${node_index}", str(node.get_index())))
             if node.get_host().find("format") > 0:
-                print("formatting")
+                #print("formatting")
                 node.set_host(eval(node.get_host()))
 
             node.evaluate_hostname()
@@ -213,17 +210,7 @@ class RawSub():
         else:
             print("WARNING: not subbing "+str(self._node_index)+" with "+str(node_index))
         return
-    '''
-        try:
-            print("n: "+str(self._node_index))
-            n = self._node_index.replace('\${node_index}', node_index)
-            print("n2: "+str(n))
-            self._node_index = int(n)
-            print("n: "+str(self._node_index))
-        except:
-            print("nothing to sub")
-            raise
-    '''
+
 
 class Sub():
     def __init__(self, host, port):
@@ -298,7 +285,7 @@ class Node():
 
     def add_raw_sub(self, name, shard_index, node_index):
         rs = RawSub(name,shard_index, node_index)
-        print("adding rawsub: "+str(rs))
+        #print("adding rawsub: "+str(rs))
         self._raw_sub_list.append(rs)
 
     def evaluate_hostname(self):
@@ -450,6 +437,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Launch a devvnet.')
     parser.add_argument('--logdir', action="store", dest='logdir', help='Directory to log output')
     parser.add_argument('--start-processes', action="store_true", dest='start', default=True, help='Start the processes')
+    parser.add_argument('--debug', action="store_true", dest='start', default=False, help='Debugging output')
     parser.add_argument('devvnet', action="store", help='YAML file describing the devvnet')
     args = parser.parse_args()
 
@@ -487,3 +475,10 @@ if __name__ == '__main__':
             with open(logfiles[index], "w") as outfile:
                 ps.append(subprocess.Popen(cmd, stdout=outfile, stderr=outfile))
                 time.sleep(1.5)
+
+    if args.start:
+        for p in ps:
+            print("Waiting for nodes ... ctl-c to exit.")
+            p.wait()
+
+    print("Goodbye.")
