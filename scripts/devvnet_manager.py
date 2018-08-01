@@ -5,9 +5,6 @@ import os
 import subprocess
 import time
 
-sys.path.append('/home/dcrunner/devcash/devcash-core/scripts')
-import process_config
-
 def get_devvnet(filename):
     with open(filename, "r") as f:
         buf = ''.join(f.readlines())
@@ -415,6 +412,7 @@ def run_announcer(node):
     cmd.extend(["--config", node.get_password_file()])
     cmd.extend(["--mode", node.get_type()])
     cmd.extend(["--working-dir", node.get_working_dir()])
+    cmd.extend(["--bind-endpoint", "tcp://*:" + str(node.get_port())])
 
     return cmd
 
@@ -449,8 +447,8 @@ if __name__ == '__main__':
     print("hostname: " + str(args.hostname))
     print("devvnet: " + args.devvnet)
 
-    devvnet = process_config.get_devvnet(args.devvnet)
-    d = process_config.Devvnet(devvnet)
+    devvnet = get_devvnet(args.devvnet)
+    d = Devvnet(devvnet)
     num_nodes = d.get_num_nodes()
 
     logfiles = []
