@@ -1,37 +1,12 @@
 import yaml
+import argparse
+import sys
+import os
+import subprocess
+import time
 
-# Read in config file
-with open("../opt/devvnet_config.yaml", "r") as f:
-    buf = ''.join(f.readlines())
-    conf = yaml.load(buf, Loader=yaml.Loader)
-
-# Set bind_port values
-port = conf['devvnet']['base_port']
-for a in conf['devvnet']['shards']:
-    for b in a['process']:
-        port = port + 1
-        b['bind_port'] = port
-
-
-shard1_validators = [x for x in conf['devvnet']['shards'][1]['process'] if x['name'] == 'validator']
-
-# Add subscription endpoints
-for v in shard1_validators:
-    try:
-        v['subscribe_endpoint']
-    except:
-        v['subscribe_endpoint'] = []
-
-# Connect the shard nodes
-for i in shard1_validators:
-    cs = dict()
-    cs['host'] = i['host']
-    cs['bind_port'] = i['bind_port']
-    for j in shard1_validators:
-        if i['node_index'] == j['node_index']:
-            continue
-        i['subscribe_endpoint'].append(cs)
-
+sys.path.append('/home/dcrunner/devcash/devcash-core/scripts')
+import process_config
 
 def get_devvnet(filename):
     with open(filename, "r") as f:
@@ -96,6 +71,9 @@ class Devvnet(object):
 
     def get_shard(self, index):
         return self._shards[index]
+
+    def get_shards(self):
+        return self._shards
 
     def get_num_nodes(self):
         count = 0
@@ -286,7 +264,7 @@ class Node():
         self._bind_port = int(port)
         self._subscriber_list = []
         self._raw_sub_list = []
-        self._working_directory = ""
+        self._working_dir = ""
 
     def __str__(self):
         subs = "s["
@@ -297,14 +275,14 @@ class Node():
         for rawsub in self._raw_sub_list:
             rawsubs += str(rawsub)
         rawsubs += "]"
-        s = "node({}:{}:{}:{}:{}) {} {}".format(self._name, self._index, self._host, self._bind_port, self._working_directory, subs, rawsubs)
+        s = "node({}:{}:{}:{}:{}) {} {}".format(self._name, self._index, self._host, self._bind_port, self._working_dir, subs, rawsubs)
         return s
 
     def add_working_dir(self, directory):
         wd = directory.replace("${name}", self._name)
         wd = wd.replace("${shard_index}", str(self._shard_index))
         wd = wd.replace("${node_index}", str(self.get_index()))
-        self._working_directory = wd
+        self._working_dir = wd
 
     def is_validator(self):
         return(self._name == "validator")
@@ -381,6 +359,12 @@ class Node():
     def get_subscriber_list(self):
         return self._subscriber_list
 
+    def get_working_dir(self):
+        return self._working_dir
+
+    def set_working_dir(self, working_dir):
+        self._working_dir = working_dir
+
 
 def get_nodes(yml_dict):
     nodes = []
@@ -422,6 +406,7 @@ def run_validator(node):
 
     cmd = []
     cmd.append("./devcash")
+    cmd.extend(["--shard-index", str(node.get_shard_index())])
     cmd.extend(["--node-index", str(node.get_index())])
     cmd.extend(["--config", node.get_config_file()])
     cmd.extend(["--config", node.get_password_file()])
@@ -431,6 +416,7 @@ def run_validator(node):
 
     return cmd
 
+
 def run_announcer(node):
     # ./announcer --node-index 0 --shard-index 1 --mode T2 --stop-file /tmp/stop-devcash-announcer.ctl --inn-keys ../opt/inn.key --node-keys ../opt/node.key --bind-endpoint 'tcp://*:50020' --working-dir ../../tmp/working/input/laminar4/ --key-pass password
 
@@ -438,10 +424,66 @@ def run_announcer(node):
     cmd.append("./announcer")
     cmd.extend(["--shard-index", str(node.get_shard_index())])
     cmd.extend(["--node-index", str(node.get_index())])
+    cmd.extend(["--config", node.get_config_file()])
+    cmd.extend(["--config", node.get_password_file()])
+    cmd.extend(["--mode", node.get_type()])
+    cmd.extend(["--working-dir", node.get_working_dir()])
+
+    return cmd
+
+
+def run_repeater(node):
+    # ./repeater --node-index 0 --shard-index 1 --mode T2 --stop-file /tmp/stop-devcash-repeater.ctl --inn-keys ../opt/inn.key --node-keys ../opt/node.key --working-dir ../../tmp/working/output/repeater --host-list tcp://localhost:56550 --key-pass password
+
+    cmd = []
+    cmd.append("./repeater")
+    cmd.extend(["--shard-index", str(node.get_shard_index())])
+    cmd.extend(["--node-index", str(node.get_index())])
+    cmd.extend(["--config", node.get_config_file()])
+    cmd.extend(["--config", node.get_password_file()])
     cmd.extend(["--mode", node.get_type()])
 
     return cmd
 
-def run_repeater():
-    # ./repeater --node-index 0 --shard-index 1 --mode T2 --stop-file /tmp/stop-devcash-repeater.ctl --inn-keys ../opt/inn.key --node-keys ../opt/node.key --working-dir ../../tmp/working/output/repeater --host-list tcp://localhost:56550 --key-pass password
-    pass
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Launch a devvnet.')
+    parser.add_argument('--logdir', action="store", dest='logdir', help='Directory to log output')
+    parser.add_argument('--start-processes', action="store_true", dest='start', default=True, help='Start the processes')
+    parser.add_argument('devvnet', action="store", help='YAML file describing the devvnet')
+    args = parser.parse_args()
+
+    print(args)
+
+    print("logdir: " + args.logdir)
+    print("start: " + str(args.start))
+    print("devvnet: " + args.devvnet)
+
+    devvnet = process_config.get_devvnet(args.devvnet)
+    d = process_config.Devvnet(devvnet)
+    num_nodes = d.get_num_nodes()
+
+    logfiles = []
+    cmds = []
+    for s in d.get_shards():
+        for n in s.get_nodes():
+            if n.get_name() == 'validator':
+                cmds.append(run_validator(n))
+            elif n.get_name() == 'repeater':
+                cmds.append(run_repeater(n))
+            elif n.get_name() == 'announcer':
+                cmds.append(run_announcer(n))
+            logfiles.append(os.path.join(args.logdir,
+                                         n.get_name()+"_s"+
+                                         str(n.get_shard_index())+"_n"+
+                                         str(n.get_index())+"_output.log"))
+
+    ps = []
+    for index,cmd in enumerate(cmds):
+        print("Node " + str(index) + ":")
+        print("   Command: ", *cmd)
+        print("   Logfile: ", logfiles[index])
+        if args.start:
+            with open(logfiles[index], "w") as outfile:
+                ps.append(subprocess.Popen(cmd, stdout=outfile, stderr=outfile))
+                time.sleep(1.5)
