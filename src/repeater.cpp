@@ -135,14 +135,21 @@ std::unique_ptr<struct repeater_options> ParseRepeaterOptions(int argc, char** a
   namespace po = boost::program_options;
 
   std::unique_ptr<repeater_options> options(new repeater_options());
+  std::vector<std::string> config_filenames;
 
   try {
-    po::options_description desc("\n\
+    po::options_description general("General Options\n\
 " + std::string(argv[0]) + " [OPTIONS] \n\
 Listens for FinalBlock messages and saves them to a file\n\
 \nAllowed options");
-    desc.add_options()
-        ("help", "produce help message")
+    general.add_options()
+        ("help,h", "produce help message")
+        ("version,v", "print version string")
+        ("config", po::value(&config_filenames), "Config file where options may be specified (can be specified more than once)")
+        ;
+
+    po::options_description behavior("Identity and Behavior Options");
+    behavior.add_options()
         ("debug-mode", po::value<std::string>(), "Debug mode (on|toy|perf) for testing")
         ("mode", po::value<std::string>(), "Devcash mode (T1|T2|scan)")
         ("node-index", po::value<unsigned int>(), "Index of this node")
@@ -163,14 +170,39 @@ Listens for FinalBlock messages and saves them to a file\n\
         ("stop-file", po::value<std::string>(), "A file in working-dir indicating that this node should stop.")
         ;
 
+    po::options_description all_options;
+    all_options.add(general);
+    all_options.add(behavior);
+
     po::variables_map vm;
-    po::store(po::parse_command_line(argc, argv, desc), vm);
-    po::notify(vm);
+    po::store(po::command_line_parser(argc, argv).
+                  options(all_options).
+                  run(),
+              vm);
 
     if (vm.count("help")) {
-      std::cout << desc << "\n";
+      LOG_INFO << all_options;
       return nullptr;
     }
+
+    if(vm.count("config") > 0)
+    {
+      config_filenames = vm["config"].as<std::vector<std::string> >();
+
+      for(size_t i = 0; i < config_filenames.size(); ++i)
+      {
+        std::ifstream ifs(config_filenames[i].c_str());
+        if(ifs.fail())
+        {
+          LOG_ERROR << "Error opening config file: " << config_filenames[i];
+          return nullptr;
+        }
+        po::store(po::parse_config_file(ifs, all_options), vm);
+      }
+    }
+
+    po::store(po::parse_command_line(argc, argv, all_options), vm);
+    po::notify(vm);
 
     if (vm.count("mode")) {
       std::string mode = vm["mode"].as<std::string>();
