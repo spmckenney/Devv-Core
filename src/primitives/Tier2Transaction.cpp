@@ -39,8 +39,7 @@ void Tier2Transaction::Fill(Tier2Transaction& tx,
   byte oper = buffer.offsetAt(16);
   if (oper > 3) {
     std::stringstream ss;
-    ss << "Invalid serialized T2 transaction, invalid operation! ("
-                << tx.getOperation() << ")";
+    ss << "Invalid serialized T2 transaction, invalid operation!";
     throw DeserializationError(ss.str());
   }
 
