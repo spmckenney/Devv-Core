@@ -247,8 +247,6 @@ static EC_KEY* LoadEcKey(const std::string& publicKey
  *  @return if error, a NULLPTR
  */
 static EC_KEY* LoadPublicKey(const Devcash::Address& public_key) {
-    OpenSSL_add_all_algorithms();
-
     EC_GROUP* ec_group;
     EC_KEY* ec_key;
 
