@@ -31,7 +31,7 @@ namespace Devcash {
  * @param[in] context
  * @return
  */
-DevcashMessageUniquePtr CreateNextProposal(const KeyRing& keys,
+std::vector<byte> CreateNextProposal(const KeyRing& keys,
                                            Blockchain& final_chain,
                                            UnrecordedTransactionPool& utx_pool,
                                            const DevcashContext& context);

@@ -21,7 +21,7 @@ namespace fs = boost::filesystem;
 
 namespace Devcash {
 
-DevcashMessageUniquePtr CreateNextProposal(const KeyRing& keys,
+std::vector<byte> CreateNextProposal(const KeyRing& keys,
                         Blockchain& final_chain,
                         UnrecordedTransactionPool& utx_pool,
                         const DevcashContext& context) {
@@ -31,8 +31,6 @@ DevcashMessageUniquePtr CreateNextProposal(const KeyRing& keys,
   if (!(block_height % 100) || !((block_height + 1) % 100)) {
     LOG_NOTICE << "Processing @ final_chain_.size: (" << std::to_string(block_height) << ")";
   }
-
-  while (!utx_pool.HasPendingTransactions()) sleep(10);
 
   if (!utx_pool.HasProposal() && utx_pool.HasPendingTransactions()) {
     if (block_height > 0) {
@@ -46,24 +44,9 @@ DevcashMessageUniquePtr CreateNextProposal(const KeyRing& keys,
     }
   }
 
-  if (!utx_pool.HasProposal()) {
-    LOG_FATAL << "Failed to generate a proposal block.";
-    throw std::runtime_error("Failed to generate a proposal block.");
-  }
-
   LOG_INFO << "Proposal #"+std::to_string(block_height+1)+".";
 
-  std::vector<byte> proposal(utx_pool.getProposal());
-
-  // Create message
-  auto propose_msg = std::make_unique<DevcashMessage>(context.get_shard_uri()
-                                                      , PROPOSAL_BLOCK
-                                                      , proposal
-                                                      , DEBUG_PROPOSAL_INDEX);
-  // FIXME (spm): define index value somewhere
-  LogDevcashMessageSummary(*propose_msg, "CreateNextProposal");
-  return propose_msg;
-
+  return utx_pool.getProposal();
 }
 
 bool HandleFinalBlock(DevcashMessageUniquePtr ptr,
@@ -104,8 +87,18 @@ bool HandleFinalBlock(DevcashMessageUniquePtr ptr,
     LOG_INFO << "All pending transactions processed.";
   } else if (block_height%context.get_peer_count() == context.get_current_node()%context.get_peer_count()) {
     if (!utx_pool.HasProposal()) {
-      callback(std::move(CreateNextProposal(keys,final_chain,utx_pool,context)));
-      sent_message = true;
+      std::vector<byte> proposal = CreateNextProposal(keys,final_chain,utx_pool,context);
+      if (!ProposedBlock::isNullProposal(proposal)) {
+        // Create message
+	    auto propose_msg = std::make_unique<DevcashMessage>(context.get_shard_uri()
+	                                                        , PROPOSAL_BLOCK
+	                                                        , proposal
+	                                                        , DEBUG_PROPOSAL_INDEX);
+	    // FIXME (spm): define index value somewhere
+	    LogDevcashMessageSummary(*propose_msg, "CreateNextProposal");
+        callback(std::move(propose_msg));
+        sent_message = true;
+	  }
     } else {
       LOG_DEBUG << "Already sent a proposal?";
     }
