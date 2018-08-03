@@ -135,7 +135,10 @@ class ProposedBlock {
    */
   ProposedBlock& operator=(const ProposedBlock& other) = delete;
 
-  static bool isNullProposal(std::vector<byte>& vec) {return(vec.size() < MinSize());}
+  static bool isNullProposal(std::vector<byte>& vec) {
+    std::vector<byte> zero(vec.size(), 0);
+    return(vec == zero);
+  }
 
   /**
    *
