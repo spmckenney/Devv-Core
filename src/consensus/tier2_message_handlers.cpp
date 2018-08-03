@@ -32,6 +32,8 @@ DevcashMessageUniquePtr CreateNextProposal(const KeyRing& keys,
     LOG_NOTICE << "Processing @ final_chain_.size: (" << std::to_string(block_height) << ")";
   }
 
+  while (!utx_pool.HasPendingTransactions()) sleep(10);
+
   if (!utx_pool.HasProposal() && utx_pool.HasPendingTransactions()) {
     if (block_height > 0) {
       Hash prev_hash = DevcashHash(final_chain.back()->getCanonical());
@@ -42,6 +44,11 @@ DevcashMessageUniquePtr CreateNextProposal(const KeyRing& keys,
       ChainState prior;
       utx_pool.ProposeBlock(prev_hash, prior, keys, context);
     }
+  }
+
+  if (!utx_pool.HasProposal()) {
+    LOG_FATAL << "Failed to generate a proposal block.";
+    throw std::runtime_error("Failed to generate a proposal block.");
   }
 
   LOG_INFO << "Proposal #"+std::to_string(block_height+1)+".";
