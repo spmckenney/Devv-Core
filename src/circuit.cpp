@@ -40,6 +40,7 @@ struct circuit_options {
   unsigned int generate_count;
   uint64_t tx_amount;
   eDebugMode debug_mode;
+  bool clear_state;
 };
 
 std::unique_ptr<struct circuit_options> ParseCircuitOptions(int argc, char** argv);
@@ -127,24 +128,26 @@ int main(int argc, char* argv[]) {
         if (counter >= options->generate_count) { break; }
       }  // end outer for
       if (counter >= options->generate_count) { break; }
-      for (size_t i = 0; i < addr_count; ++i) {
-        std::vector<Transfer> peer_xfers;
-        Transfer sender(keys.getWalletAddr(i), 0, -1l * (addr_count - 1) * options->tx_amount, 0);
-        peer_xfers.push_back(sender);
-        Transfer receiver(inn_addr, 0, (addr_count - 1) * options->tx_amount, 0);
-        peer_xfers.push_back(receiver);
-        nonce = GetMillisecondsSinceEpoch() + (1000000
-                     * (options->node_index + 1) * (i + 1) * (addr_count + 2));
-        Uint64ToBin(nonce, nonce_bin);
-        Tier2Transaction peer_tx(
-            eOpType::Exchange, peer_xfers, nonce_bin,
-            keys.getWalletKey(i), keys);
-        std::vector<byte> peer_canon(peer_tx.getCanonical());
-        out.insert(out.end(), peer_canon.begin(), peer_canon.end());
-        LOG_TRACE << "GenerateTransactions(): generated tx with sig: " << peer_tx.getSignature().getJSON();
-        counter++;
-        if (counter >= options->generate_count) { break; }
-      }  // end outer for
+      if (options->clear_state) {
+        for (size_t i = 0; i < addr_count; ++i) {
+          std::vector<Transfer> peer_xfers;
+          Transfer sender(keys.getWalletAddr(i), 0, -1l * (addr_count - 1) * options->tx_amount, 0);
+          peer_xfers.push_back(sender);
+          Transfer receiver(inn_addr, 0, (addr_count - 1) * options->tx_amount, 0);
+          peer_xfers.push_back(receiver);
+          nonce = GetMillisecondsSinceEpoch() + (1000000
+                       * (options->node_index + 1) * (i + 1) * (addr_count + 2));
+          Uint64ToBin(nonce, nonce_bin);
+          Tier2Transaction peer_tx(
+              eOpType::Exchange, peer_xfers, nonce_bin,
+              keys.getWalletKey(i), keys);
+          std::vector<byte> peer_canon(peer_tx.getCanonical());
+          out.insert(out.end(), peer_canon.begin(), peer_canon.end());
+          LOG_TRACE << "GenerateTransactions(): generated tx with sig: " << peer_tx.getSignature().getJSON();
+          counter++;
+          if (counter >= options->generate_count) { break; }
+        }  // end outer for
+      }
       if (counter >= options->generate_count) { break; }
     }  // end counter while
 
@@ -208,6 +211,7 @@ Required parameters");
     po::options_description d2("Optional parameters");
     d2.add_options()
         ("help", "produce help message")
+        ("clear-state", po::value<bool>(), "Return coins to INN address?")
         ("debug-mode", po::value<std::string>(), "Debug mode (on|off|perf) for testing")
         ;
     desc.add(d2);
@@ -316,6 +320,14 @@ Required parameters");
     } else {
       options->tx_amount = 3210123;
       LOG_INFO << "Transaction amount was not set, defaulting to " << options->tx_amount;
+    }
+
+    if (vm.count("clear-state")) {
+      options->clear_state = vm["clear-state"].as<bool>();
+      LOG_INFO << "Clear state: " << options->clear_state;
+    } else {
+      options->clear_state = true;
+      LOG_INFO << "Clear state was not set, defaulting to " << options->clear_state;
     }
   }
   catch (std::exception& e) {

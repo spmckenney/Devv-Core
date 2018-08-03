@@ -48,6 +48,10 @@ struct announcer_options {
   std::string key_pass;
   std::string stop_file;
   eDebugMode debug_mode;
+  unsigned int batch_size;
+  unsigned int start_delay;
+  unsigned int sleep_ms;
+  bool distinct_ops;
 };
 
 /**
@@ -116,6 +120,9 @@ int main(int argc, char* argv[]) {
       if (is_block) { LOG_INFO << files.at(i) << " has blocks."; }
       if (is_transaction) { LOG_INFO << files.at(i) << " has transactions."; }
       if (!is_block && !is_transaction) { LOG_WARNING << files.at(i) << " contains unknown data."; }
+      unsigned int batch_blocks = 0;
+      unsigned char last_op;
+      bool first_file_tx = true;
 
       InputBuffer buffer(raw);
       while (buffer.getOffset() < static_cast<size_t>(file_size)) {
@@ -129,11 +136,28 @@ int main(int argc, char* argv[]) {
           std::vector<byte> tx_canon(tx.getCanonical());
           batch.insert(batch.end(), tx_canon.begin(), tx_canon.end());
           input_blocks_++;
-        } else if (is_transaction && options->mode == eAppMode::T2) {
+        } else if (is_transaction && options->mode != eAppMode::T1) {
           Tier2Transaction tx(Tier2Transaction::Create(buffer, keys, true));
           std::vector<byte> tx_canon(tx.getCanonical());
+          if (options->distinct_ops) {
+             if ((!first_file_tx)
+                  && (tx.getOperation() != last_op)) {
+                ParallelPush(tx_lock, transactions, batch);
+                batch.clear();
+                batch_blocks = 0;
+              } else {
+                first_file_tx = false;
+              }
+              last_op = tx.getOperation();
+		  }
+          if (options->batch_size <= batch_blocks) {
+            ParallelPush(tx_lock, transactions, batch);
+            batch.clear();
+            batch_blocks = 0;
+          }
           batch.insert(batch.end(), tx_canon.begin(), tx_canon.end());
           input_blocks_++;
+          batch_blocks++;
         } else {
           LOG_WARNING << "Unsupported configuration: is_transaction: " << is_transaction
                 << " and mode: " << options->mode;
@@ -147,15 +171,17 @@ int main(int argc, char* argv[]) {
 
     auto server = io::CreateTransactionServer(options->bind_endpoint, context);
     server->startServer();
-    auto ms = kMAIN_WAIT_INTERVAL;
+    auto ms = options->sleep_ms;
     unsigned int processed = 0;
 
-    //LOG_NOTICE << "Please press a key to ignore";
-    sleep(10);
-    //std::cin.ignore(); //why read something if you need to ignore it? :)
+    if (options->start_delay > 0) sleep(options->start_delay);
     while (true) {
-      LOG_DEBUG << "Sleeping for " << ms << ": processed/batches (" << std::to_string(processed) << "/"
-                << transactions.size() << ")";
+      if (ms > 0) {
+        LOG_DEBUG << "Sleeping for " << ms << ": processed/batches (" << std::to_string(processed) << "/"
+                  << transactions.size() << ")";
+        sleep(ms);
+      }
+
 
       /* Should we announce a transaction? */
       if (processed < transactions.size()) {
@@ -223,8 +249,10 @@ annouonces them to nodes provided by the host-list arguments.\n\
         ("key-pass", po::value<std::string>(), "Password for private keys")
         ("generate-tx", po::value<unsigned int>(), "Generate at least this many Transactions")
         ("tx-batch-size", po::value<unsigned int>(), "Target size of transaction batches")
-        ("tx-limit", po::value<unsigned int>(), "Number of transaction to process before shutting down.")
         ("stop-file", po::value<std::string>(), "A file in working-dir indicating that this node should stop.")
+        ("start-delay", po::value<unsigned int>(), "Sleep time before starting (millis)")
+        ("sleep-ms", po::value<unsigned int>(), "Sleep time between batches (millis)")
+        ("separate-ops", po::value<bool>(), "Separate transactions with different operations into distinct batches?")
         ;
 
     po::options_description all_options;
@@ -345,6 +373,38 @@ annouonces them to nodes provided by the host-list arguments.\n\
       LOG_INFO << "Stop file: " << options->stop_file;
     } else {
       LOG_INFO << "Stop file was not set. Use a signal to stop the node.";
+    }
+
+    if (vm.count("tx-batch-size")) {
+      options->batch_size = vm["tx-batch-size"].as<unsigned int>();
+      LOG_INFO << "Batch size: " << options->start_delay;
+    } else {
+      LOG_INFO << "Batch size was not set (default to no restrictions).";
+      options->batch_size = 0;
+    }
+
+    if (vm.count("start-delay")) {
+      options->start_delay = vm["start-delay"].as<unsigned int>();
+      LOG_INFO << "Start delay: " << options->start_delay;
+    } else {
+      LOG_INFO << "Start delay was not set (default to no delay).";
+      options->start_delay = 0;
+    }
+
+    if (vm.count("sleep-ms")) {
+      options->sleep_ms = vm["sleep-ms"].as<unsigned int>();
+      LOG_INFO << "Sleep millis: " << options->sleep_ms;
+    } else {
+      LOG_INFO << "Sleep millis was not set (default to no waiting).";
+      options->sleep_ms = 0;
+    }
+
+    if (vm.count("separate-ops")) {
+      options->distinct_ops = vm["separate-ops"].as<bool>();
+      LOG_INFO << "Separate admin ops: " << options->distinct_ops;
+    } else {
+      LOG_INFO << "Separate ops was not set (default to no separation).";
+      options->distinct_ops = false;
     }
 
   }
