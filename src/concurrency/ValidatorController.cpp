@@ -70,10 +70,10 @@ void ValidatorController::validatorCallback(DevcashMessageUniquePtr ptr) {
     if (block_height%context_.get_peer_count() == context_.get_current_node()%context_.get_peer_count()) {
       LOG_INFO << "Received txs: CreateNextProposal? utx_pool.HasProposal(): " << utx_pool_.HasProposal();
       if (!utx_pool_.HasProposal()) {
-        std::vector<byte> proposal = CreateNextProposal(keys,final_chain,utx_pool,context);
+        std::vector<byte> proposal = CreateNextProposal(keys_,final_chain_,utx_pool_,context_);
         if (!ProposedBlock::isNullProposal(proposal)) {
           // Create message
-           auto propose_msg = std::make_unique<DevcashMessage>(context.get_shard_uri()
+           auto propose_msg = std::make_unique<DevcashMessage>(context_.get_shard_uri()
 	                                                        , PROPOSAL_BLOCK
 	                                                        , proposal
 	                                                        , DEBUG_PROPOSAL_INDEX);
