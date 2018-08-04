@@ -74,9 +74,10 @@ void ValidatorController::validatorCallback(DevcashMessageUniquePtr ptr) {
         if (!ProposedBlock::isNullProposal(proposal)) {
           // Create message
            auto propose_msg = std::make_unique<DevcashMessage>(context_.get_shard_uri()
-	                                                        , PROPOSAL_BLOCK
-	                                                        , proposal
-	                                                        , DEBUG_PROPOSAL_INDEX);
+	                                        , PROPOSAL_BLOCK
+	                                        , proposal
+	                                        , ((block_height+1)
+	                                        + (context_.get_current_node()+1)*1000000)));
           // FIXME (spm): define index value somewhere
           LogDevcashMessageSummary(*propose_msg, "CreateNextProposal");
           outgoing_callback_(std::move(propose_msg));
