@@ -89,17 +89,20 @@ int main(int argc, char* argv[]) {
         fs::path dir_path(shard_dir);
         if (is_directory(dir_path)) {
           std::string block_height(std::to_string(chain_height));
-          std::ofstream block_file(block_height
+          std::string out_file(shard_dir + "/" + block_height + ".dat");
+          std::ofstream block_file(out_file
             , std::ios::out | std::ios::binary);
           if (block_file.is_open()) {
             block_file.write((const char*) &p->data[0], p->data.size());
             block_file.close();
+            LOG_DEBUG << "Wrote to " << out_file << "'.";
           } else {
-            LOG_ERROR << "Failed to open output file '" << shard_dir+"/"+block_height << "'.";
+            LOG_ERROR << "Failed to open output file '" << out_file << "'.";
           }
         } else {
           LOG_ERROR << "Error opening dir: " << shard_dir << " is not a directory";
         }
+        chain_height++;
       }
     });
     peer_listener->listenTo(this_context.get_shard_uri());
