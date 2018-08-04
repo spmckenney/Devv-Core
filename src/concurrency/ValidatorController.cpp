@@ -77,7 +77,7 @@ void ValidatorController::validatorCallback(DevcashMessageUniquePtr ptr) {
 	                                        , PROPOSAL_BLOCK
 	                                        , proposal
 	                                        , ((block_height+1)
-	                                        + (context_.get_current_node()+1)*1000000)));
+	                                        + (context_.get_current_node()+1)*1000000));
           // FIXME (spm): define index value somewhere
           LogDevcashMessageSummary(*propose_msg, "CreateNextProposal");
           outgoing_callback_(std::move(propose_msg));
