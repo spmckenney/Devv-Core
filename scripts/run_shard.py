@@ -31,6 +31,7 @@ announcer_base_port = 57550
 
 config_file = sys.argv[1]
 log_dir = sys.argv[2]
+pass_file = sys.argv[3]
 
 if num_nodes < 3:
     print("Error, number of nodes must be >= 3")
@@ -67,6 +68,8 @@ for i in range(len(nodes)):
     cmd.extend(["--node-index", str(i)])
     # add config file
     cmd.extend(["--config", config_file])
+    # add config file
+    cmd.extend(["--config", pass_file])
     # connect to each node
     for host in host_list[i]:
         cmd.extend(["--host-list", host])

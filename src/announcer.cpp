@@ -45,9 +45,13 @@ struct announcer_options {
   std::string working_dir;
   std::string inn_keys;
   std::string node_keys;
-  std::string wallet_keys;
+  std::string key_pass;
   std::string stop_file;
   eDebugMode debug_mode;
+  unsigned int batch_size;
+  unsigned int start_delay;
+  unsigned int sleep_ms;
+  bool distinct_ops;
 };
 
 /**
@@ -73,7 +77,7 @@ int main(int argc, char* argv[]) {
     zmq::context_t context(1);
 
     DevcashContext this_context(options->node_index, options->shard_index, options->mode, options->inn_keys,
-                                options->node_keys, options->wallet_keys);
+                                options->node_keys, options->key_pass);
     KeyRing keys(this_context);
 
     LOG_DEBUG << "Loading transactions from " << options->working_dir;
@@ -116,6 +120,9 @@ int main(int argc, char* argv[]) {
       if (is_block) { LOG_INFO << files.at(i) << " has blocks."; }
       if (is_transaction) { LOG_INFO << files.at(i) << " has transactions."; }
       if (!is_block && !is_transaction) { LOG_WARNING << files.at(i) << " contains unknown data."; }
+      unsigned int batch_blocks = 0;
+      unsigned char last_op = 99;
+      bool first_file_tx = true;
 
       InputBuffer buffer(raw);
       while (buffer.getOffset() < static_cast<size_t>(file_size)) {
@@ -129,14 +136,34 @@ int main(int argc, char* argv[]) {
           std::vector<byte> tx_canon(tx.getCanonical());
           batch.insert(batch.end(), tx_canon.begin(), tx_canon.end());
           input_blocks_++;
-        } else if (is_transaction && options->mode == eAppMode::T2) {
+        } else if (is_transaction && options->mode != eAppMode::T1) {
           Tier2Transaction tx(Tier2Transaction::Create(buffer, keys, true));
           std::vector<byte> tx_canon(tx.getCanonical());
+          if (options->distinct_ops) {
+             if ((!first_file_tx)
+                  && (tx.getOperation() != last_op)) {
+                LOG_DEBUG << "(!first_file_tx) && (tx.getOperation() != last_op): batch size: " << batch.size();
+                ParallelPush(tx_lock, transactions, batch);
+                batch.clear();
+                batch_blocks = 0;
+             } else {
+               LOG_DEBUG << "Setting first_file_tx to false";
+               first_file_tx = false;
+             }
+              last_op = tx.getOperation();
+          }
+          if (options->batch_size <= batch_blocks) {
+            ParallelPush(tx_lock, transactions, batch);
+            batch.clear();
+            batch_blocks = 0;
+          }
           batch.insert(batch.end(), tx_canon.begin(), tx_canon.end());
           input_blocks_++;
+          batch_blocks++;
         } else {
           LOG_WARNING << "Unsupported configuration: is_transaction: " << is_transaction
                 << " and mode: " << options->mode;
+          throw std::runtime_error("Unsupported configuration: is_transaction");
         }
       }
 
@@ -147,22 +174,25 @@ int main(int argc, char* argv[]) {
 
     auto server = io::CreateTransactionServer(options->bind_endpoint, context);
     server->startServer();
-    auto ms = kMAIN_WAIT_INTERVAL;
+    auto ms = options->sleep_ms;
     unsigned int processed = 0;
 
-    //LOG_NOTICE << "Please press a key to ignore";
-    std::cin.ignore(); //why read something if you need to ignore it? :)
+    if (options->start_delay > 0) sleep(options->start_delay);
     while (true) {
-      LOG_DEBUG << "Sleeping for " << ms << ": processed/batches (" << std::to_string(processed) << "/"
-                << transactions.size() << ")";
+      if (ms > 0) {
+        LOG_DEBUG << "Sleeping for " << ms << ": processed/batches (" << std::to_string(processed) << "/"
+                  << transactions.size() << ")";
+        sleep(ms);
+      }
+
 
       /* Should we announce a transaction? */
       if (processed < transactions.size()) {
         auto announce_msg = std::make_unique<DevcashMessage>(this_context.get_uri(), TRANSACTION_ANNOUNCEMENT, transactions.at(processed),
                                                                DEBUG_TRANSACTION_INDEX);
         server->queueMessage(std::move(announce_msg));
+        LOG_DEBUG << "Sent transaction batch #" << processed << ", size(" << transactions.at(processed).size() << ")";
         ++processed;
-        LOG_DEBUG << "Sent transaction batch #" << processed;
         sleep(1);
       } else {
         LOG_INFO << "Finished announcing transactions.";
@@ -190,16 +220,23 @@ std::unique_ptr<struct announcer_options> ParseAnnouncerOptions(int argc, char**
   namespace po = boost::program_options;
 
   std::unique_ptr<announcer_options> options(new announcer_options());
+  std::vector<std::string> config_filenames;
 
   try {
-    po::options_description desc("\n\
+    po::options_description general("General Options\n\
 " + std::string(argv[0]) + " [OPTIONS] \n\
 \n\
 Reads Devcash transaction files from a directory and \n\
 annouonces them to nodes provided by the host-list arguments.\n\
 \nAllowed options");
-    desc.add_options()
-        ("help", "produce help message")
+    general.add_options()
+        ("help,h", "produce help message")
+        ("version,v", "print version string")
+        ("config", po::value(&config_filenames), "Config file where options may be specified (can be specified more than once)")
+        ;
+
+    po::options_description behavior("Identity and Behavior Options");
+    behavior.add_options()
         ("debug-mode", po::value<std::string>(), "Debug mode (on|toy|perf) for testing")
         ("mode", po::value<std::string>(), "Devcash mode (T1|T2|scan)")
         ("node-index", po::value<unsigned int>(), "Index of this node")
@@ -212,21 +249,48 @@ annouonces them to nodes provided by the host-list arguments.\n\
         ("trace-output", po::value<std::string>(), "Output path to JSON trace file (Chrome)")
         ("inn-keys", po::value<std::string>(), "Path to INN key file")
         ("node-keys", po::value<std::string>(), "Path to Node key file")
-        ("wallet-keys", po::value<std::string>(), "Path to Wallet key file")
+        ("key-pass", po::value<std::string>(), "Password for private keys")
         ("generate-tx", po::value<unsigned int>(), "Generate at least this many Transactions")
         ("tx-batch-size", po::value<unsigned int>(), "Target size of transaction batches")
-        ("tx-limit", po::value<unsigned int>(), "Number of transaction to process before shutting down.")
         ("stop-file", po::value<std::string>(), "A file in working-dir indicating that this node should stop.")
+        ("start-delay", po::value<unsigned int>(), "Sleep time before starting (millis)")
+        ("sleep-ms", po::value<unsigned int>(), "Sleep time between batches (millis)")
+        ("separate-ops", po::value<bool>(), "Separate transactions with different operations into distinct batches?")
         ;
 
+    po::options_description all_options;
+    all_options.add(general);
+    all_options.add(behavior);
+
     po::variables_map vm;
-    po::store(po::parse_command_line(argc, argv, desc), vm);
-    po::notify(vm);
+    po::store(po::command_line_parser(argc, argv).
+                  options(all_options).
+                  run(),
+              vm);
 
     if (vm.count("help")) {
-      std::cout << desc << "\n";
+      LOG_INFO << all_options;
       return nullptr;
     }
+
+    if(vm.count("config") > 0)
+    {
+      config_filenames = vm["config"].as<std::vector<std::string> >();
+
+      for(size_t i = 0; i < config_filenames.size(); ++i)
+      {
+        std::ifstream ifs(config_filenames[i].c_str());
+        if(ifs.fail())
+        {
+          LOG_ERROR << "Error opening config file: " << config_filenames[i];
+          return nullptr;
+        }
+        po::store(po::parse_config_file(ifs, all_options), vm);
+      }
+    }
+
+    po::store(po::parse_command_line(argc, argv, all_options), vm);
+    po::notify(vm);
 
     if (vm.count("mode")) {
       std::string mode = vm["mode"].as<std::string>();
@@ -300,11 +364,11 @@ annouonces them to nodes provided by the host-list arguments.\n\
       LOG_INFO << "Node keys file was not set.";
     }
 
-    if (vm.count("wallet-keys")) {
-      options->wallet_keys = vm["wallet-keys"].as<std::string>();
-      LOG_INFO << "Wallet keys file: " << options->wallet_keys;
+    if (vm.count("key-pass")) {
+      options->key_pass = vm["key-pass"].as<std::string>();
+      LOG_INFO << "Key pass: " << options->key_pass;
     } else {
-      LOG_INFO << "Wallet keys file was not set.";
+      LOG_INFO << "Key pass was not set.";
     }
 
     if (vm.count("stop-file")) {
@@ -312,6 +376,38 @@ annouonces them to nodes provided by the host-list arguments.\n\
       LOG_INFO << "Stop file: " << options->stop_file;
     } else {
       LOG_INFO << "Stop file was not set. Use a signal to stop the node.";
+    }
+
+    if (vm.count("tx-batch-size")) {
+      options->batch_size = vm["tx-batch-size"].as<unsigned int>();
+      LOG_INFO << "Batch size: " << options->start_delay;
+    } else {
+      LOG_INFO << "Batch size was not set (default to no restrictions).";
+      options->batch_size = 0;
+    }
+
+    if (vm.count("start-delay")) {
+      options->start_delay = vm["start-delay"].as<unsigned int>();
+      LOG_INFO << "Start delay: " << options->start_delay;
+    } else {
+      LOG_INFO << "Start delay was not set (default to no delay).";
+      options->start_delay = 0;
+    }
+
+    if (vm.count("sleep-ms")) {
+      options->sleep_ms = vm["sleep-ms"].as<unsigned int>();
+      LOG_INFO << "Sleep millis: " << options->sleep_ms;
+    } else {
+      LOG_INFO << "Sleep millis was not set (default to no waiting).";
+      options->sleep_ms = 0;
+    }
+
+    if (vm.count("separate-ops")) {
+      options->distinct_ops = vm["separate-ops"].as<bool>();
+      LOG_INFO << "Separate admin ops: " << options->distinct_ops;
+    } else {
+      LOG_INFO << "Separate ops was not set (default to no separation).";
+      options->distinct_ops = false;
     }
 
   }

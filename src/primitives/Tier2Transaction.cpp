@@ -22,7 +22,7 @@ void Tier2Transaction::Fill(Tier2Transaction& tx,
     throw DeserializationError("Invalid serialized T2 transaction, too small!");
   }
   /// Don't increment the buffer, we want to copy it all to canonical_
-  tx.xfer_count_ = buffer.getNextUint64(false);
+  tx.xfer_size_ = buffer.getNextUint64(false);
   tx.nonce_size_ = buffer.getSecondUint64(false);
 
   if (tx.nonce_size_ < minNonceSize()) {
@@ -36,8 +36,15 @@ void Tier2Transaction::Fill(Tier2Transaction& tx,
     throw DeserializationError(ss.str());
   }
 
-  size_t tx_size = MinSize() + (Transfer::Size() * tx.xfer_count_)
-                             + tx.nonce_size_;
+  byte oper = buffer.offsetAt(16);
+  if (oper >= eOpType::NumOperations) {
+    std::stringstream ss;
+    ss << "Invalid serialized T2 transaction, invalid operation!";
+    throw DeserializationError(ss.str());
+  }
+
+  size_t tx_size = MinSize() + tx.xfer_size_ + tx.nonce_size_;
+  if (oper != eOpType::Exchange) tx_size += kNODE_SIG_BUF_SIZE - kWALLET_SIG_BUF_SIZE;
   if (buffer.size() < buffer.getOffset() + tx_size) {
     std::stringstream ss;
     std::vector<byte> prefix(buffer.getCurrentIterator()
@@ -51,11 +58,6 @@ void Tier2Transaction::Fill(Tier2Transaction& tx,
   MTR_STEP("Transaction", "Transaction", &trace_int, "step2");
   buffer.copy(std::back_inserter(tx.canonical_), tx_size);
 
-  if (tx.getOperation() > 3) {
-    LOG_WARNING << "Invalid serialized T2 transaction, invalid operation! ("
-                << tx.getOperation() << ")";
-    return;
-  }
   MTR_STEP("Transaction", "Transaction", &trace_int, "sound");
 
   if (calculate_soundness) {

@@ -28,8 +28,8 @@ bool ProposedBlock::validate(const KeyRing& keys) const {
     if (!VerifyByteSig(keys.getKey(sig.first), DevcashHash(md), sig.second)) {
       LOG_WARNING << "Invalid block signature";
       LOG_DEBUG << "Block state: " + GetJSON(*this);
-      LOG_DEBUG << "Block Node Addr: " + ToHex(std::vector<byte>(std::begin(sig.first), std::end(sig.first)));
-      LOG_DEBUG << "Block Node Sig: " + ToHex(std::vector<byte>(std::begin(sig.second), std::end(sig.second)));
+      LOG_DEBUG << "Block Node Addr: " + sig.first.getJSON();
+      LOG_DEBUG << "Block Node Sig: " + sig.second.getJSON();
       return false;
     }
   }

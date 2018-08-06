@@ -43,7 +43,7 @@ class Transfer {
            uint64_t coin,
            int64_t amount,
            uint64_t delay)
-      : canonical_(std::begin(addr), std::end(addr)) {
+      : canonical_(addr.getCanonical()) {
     Uint64ToBin(coin, canonical_);
     Int64ToBin(amount, canonical_);
     Uint64ToBin(delay, canonical_);
@@ -54,13 +54,16 @@ class Transfer {
    * @param[in] serial
    * @param[in, out] offset
    */
-  Transfer(InputBuffer& buffer)
-      : canonical_(buffer.getCurrentIterator(), buffer.getCurrentIterator() + Size()) {
-    if (buffer.size() < Size() + buffer.getOffset()) {
-      LOG_WARNING << "Invalid serialized transfer!";
-      return;
-    }
-    buffer.increment(Size());
+  explicit Transfer(InputBuffer& buffer)
+      : canonical_() {
+    /// @todo - check for appropriate buffer size
+    // Get address from buffer
+    Address addr;
+    buffer.copy(addr);
+    canonical_ = addr.getCanonical();
+
+    // Copy out coin, amount, delay
+    buffer.copy(std::back_inserter(canonical_), 8*3);
   }
 
   /**
@@ -93,9 +96,11 @@ class Transfer {
   /**
    * Return the size of this Transfer
    * @return size of this Transfer
-   * @todo (mckenney) move to constants
    */
-  static size_t Size() { return kADDR_SIZE + 24; }
+  size_t Size() const { return canonical_.size(); }
+
+  static size_t MinSize() { return kWALLET_ADDR_BUF_SIZE + 24; }
+  static size_t MaxSize() { return kNODE_ADDR_BUF_SIZE + 24; }
 
   /**
    * Gets this transfer in a canonical form.
@@ -110,7 +115,7 @@ class Transfer {
   std::string getJSON() const {
     std::string json("{\"" + kADDR_TAG + "\":\"");
     Address addr = getAddress();
-    json += ToHex(std::vector<byte>(std::begin(addr), std::end(addr)));
+    json += addr.getJSON();
     json += "\",\"" + kTYPE_TAG + "\":" + std::to_string(getCoin());
     json += ",\"" + kAMOUNT_TAG + "\":" + std::to_string(getAmount());
     json += ",\"" + kDELAY_TAG + "\":" + std::to_string(getDelay());
@@ -123,28 +128,60 @@ class Transfer {
    * @return
    */
   Address getAddress() const {
-    Address addr;
-    std::copy_n(canonical_.begin(), kADDR_SIZE, addr.begin());
-    return addr;
+	if (canonical_.at(0) == kWALLET_ADDR_SIZE) {
+      std::vector<byte> addr(canonical_.begin()
+                            , canonical_.begin()+kWALLET_ADDR_BUF_SIZE);
+      return addr;
+	} else if (canonical_.at(0) == kNODE_ADDR_SIZE) {
+      std::vector<byte> addr(canonical_.begin()
+                            , canonical_.begin()+kNODE_ADDR_BUF_SIZE);
+      return addr;
+	}
+	std::string err = "Transfer Address has invalid type prefix.";
+	throw std::runtime_error(err);
   }
 
   /**
    * Return the coin
    * @return
    */
-  uint64_t getCoin() const { return BinToUint64(canonical_, kADDR_SIZE); }
+  uint64_t getCoin() const {
+	if (canonical_.at(0) == kWALLET_ADDR_SIZE) {
+      return BinToUint64(canonical_, kWALLET_ADDR_BUF_SIZE);
+	} else if (canonical_.at(0) == kNODE_ADDR_SIZE) {
+      return BinToUint64(canonical_, kNODE_ADDR_BUF_SIZE);
+	}
+	std::string err = "Transfer has invalid type prefix.";
+	throw std::runtime_error(err);
+  }
 
   /**
    * Return the amount of this Transfer
    * @return
    */
-  int64_t getAmount() const { return BinToInt64(canonical_, kADDR_SIZE + 8); }
+  int64_t getAmount() const {
+	if (canonical_.at(0) == kWALLET_ADDR_SIZE) {
+      return BinToInt64(canonical_, kWALLET_ADDR_BUF_SIZE + 8);
+	} else if (canonical_.at(0) == kNODE_ADDR_SIZE) {
+      return BinToInt64(canonical_, kNODE_ADDR_BUF_SIZE + 8);
+	}
+	std::string err = "Transfer has invalid type prefix.";
+	throw std::runtime_error(err);
+  }
 
   /**
    * Returns the delay in seconds until this transfer is final.
    * @return the delay in seconds until this transfer is final.
    */
-  uint64_t getDelay() const { return BinToUint64(canonical_, kADDR_SIZE + 16); }
+  uint64_t getDelay() const {
+	if (canonical_.at(0) == kWALLET_ADDR_SIZE) {
+      return BinToUint64(canonical_, kWALLET_ADDR_BUF_SIZE + 16);
+	} else if (canonical_.at(0) == kNODE_ADDR_SIZE) {
+      return BinToUint64(canonical_, kNODE_ADDR_BUF_SIZE + 16);
+	}
+	std::string err = "Transfer has invalid type prefix.";
+	throw std::runtime_error(err);
+  }
 
  private:
   /// The canonical representation of this Transfer
@@ -152,18 +189,6 @@ class Transfer {
 };
 
 typedef std::unique_ptr<Transfer> TransferPtr;
-
-/**
- * Converts the vector of bytes to an array of bytes (Devcash::Address)
- * @param[in] vec input address as vector of bytes
- * @return The resulting Devcash::Address created from the input vector
- */
-static Devcash::Address ConvertToAddress(const std::vector<byte>& vec) {
-  CheckSizeEqual(vec, Devcash::kADDR_SIZE);
-  Devcash::Address addr;
-  std::copy_n(vec.begin(), Devcash::kADDR_SIZE, addr.begin());
-  return(addr);
-}
 
 }  // end namespace Devcash
 

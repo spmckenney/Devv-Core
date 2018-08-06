@@ -11,6 +11,8 @@
 #ifndef PRIMITIVES_TIER2TRANSACTION_H_
 #define PRIMITIVES_TIER2TRANSACTION_H_
 
+#include "common/logger.h"
+#include "common/devcash_exceptions.h"
 #include "Transaction.h"
 
 using namespace Devcash;
@@ -48,7 +50,6 @@ class Tier2Transaction : public Transaction {
                    EC_KEY* eckey,
                    const KeyRing& keys)
       : Transaction(false) {
-    xfer_count_ = xfers.size();
     nonce_size_ = nonce.size();
 
     if (nonce_size_ < minNonceSize()) {
@@ -56,24 +57,29 @@ class Tier2Transaction : public Transaction {
         +std::to_string(nonce_size_)+").";
     }
 
-    canonical_.reserve(MinSize() +
-      (Transfer::Size() * xfer_count_) + nonce_size_);
-
-    Uint64ToBin(xfer_count_, canonical_);
     Uint64ToBin(nonce_size_, canonical_);
     canonical_.push_back(oper);
-    for (auto& transfer : xfers) {
+
+    xfer_size_ = 0;
+    for (const auto& transfer : xfers) {
+      xfer_size_ += transfer.Size();
       std::vector<byte> xfer_canon(transfer.getCanonical());
       canonical_.insert(std::end(canonical_), std::begin(xfer_canon), std::end(xfer_canon));
     }
+
+    std::vector<byte> xfer_size_bin;
+    Uint64ToBin(xfer_size_, xfer_size_bin);
+    //Note that xfer size goes on the beginning
+    canonical_.insert(std::begin(canonical_), std::begin(xfer_size_bin), std::end(xfer_size_bin));
+
     canonical_.insert(std::end(canonical_), std::begin(nonce), std::end(nonce));
     std::vector<byte> msg(getMessageDigest());
-    Signature sig;
-    SignBinary(eckey, DevcashHash(msg), sig);
-    canonical_.insert(std::end(canonical_), std::begin(sig), std::end(sig));
+    Signature sig = SignBinary(eckey, DevcashHash(msg));
+    std::vector<byte> sig_canon(sig.getCanonical());
+    canonical_.insert(std::end(canonical_), std::begin(sig_canon), std::end(sig_canon));
     is_sound_ = isSound(keys);
     if (!is_sound_) {
-      LOG_WARNING << "Invalid serialized T2 transaction, not sound!";
+      throw DevcashMessageError("Invalid serialized T2 transaction, not sound!");
     }
   }
 
@@ -96,10 +102,8 @@ class Tier2Transaction : public Transaction {
    * @return
    */
   std::vector<byte> getNonce() const {
-	std::vector<byte> nonce(canonical_.begin()
-	    + (EnvelopeSize() + xfer_count_ * Transfer::Size())
-	  , canonical_.begin()
-	    + (EnvelopeSize() + xfer_count_ * Transfer::Size() + nonce_size_));
+	std::vector<byte> nonce(canonical_.begin() + (EnvelopeSize() + xfer_size_)
+	  , canonical_.begin() + (EnvelopeSize() + xfer_size_ + nonce_size_));
     return nonce;
   }
 
@@ -115,8 +119,8 @@ class Tier2Transaction : public Transaction {
   friend std::unique_ptr<Tier2Transaction> std::make_unique<Tier2Transaction>();
 
  private:
-  // The number of Transfers in this Transaction
-  uint64_t xfer_count_ = 0;
+  // The bytesize of Transfers in this Transaction
+  uint64_t xfer_size_ = 0;
   // The size of this Transaction's nonce
   uint64_t nonce_size_ = 0;
 
@@ -149,7 +153,7 @@ class Tier2Transaction : public Transaction {
   std::vector<byte> do_getMessageDigest() const override {
     /// @todo(mckenney) can this be a reference?
     std::vector<byte> md(canonical_.begin(), canonical_.begin()
-      + (EnvelopeSize() + nonce_size_ + Transfer::Size() * xfer_count_));
+      + (EnvelopeSize() + nonce_size_ + xfer_size_));
     return md;
   }
 
@@ -159,9 +163,11 @@ class Tier2Transaction : public Transaction {
    */
   std::vector<TransferPtr> do_getTransfers() const {
     std::vector<TransferPtr> out;
-    for (size_t i = 0; i < xfer_count_; ++i) {
-      InputBuffer buffer(canonical_, transferOffset() + (Transfer::Size()*i));
+    size_t offset = 0;
+    while (offset < xfer_size_) {
+      InputBuffer buffer(canonical_, transferOffset() + offset);
       TransferPtr t = std::make_unique<Transfer>(buffer);
+      offset += t->Size();
       out.push_back(std::move(t));
     }
     return out;
@@ -172,12 +178,17 @@ class Tier2Transaction : public Transaction {
    * @return the signature of this transaction
    */
   Signature do_getSignature() const {
-    /// @todo(mckenney) can this be a reference rather than pointer?
-    Signature sig;
-    std::copy_n(canonical_.begin()
-      + (EnvelopeSize() + nonce_size_ + (Transfer::Size() * xfer_count_))
-      , kSIG_SIZE, sig.begin());
-    return sig;
+    if (getOperation() == eOpType::Exchange) {
+      std::vector<byte> sig_bin(canonical_.begin() + (EnvelopeSize() + nonce_size_ + xfer_size_)
+	      ,canonical_.begin() + (EnvelopeSize() + nonce_size_ + xfer_size_) + kWALLET_SIG_BUF_SIZE);
+	  Signature sig(sig_bin);
+      return sig;
+	} else {
+      std::vector<byte> sig_bin(canonical_.begin() + (EnvelopeSize() + nonce_size_ + xfer_size_)
+	      ,canonical_.begin() + (EnvelopeSize() + nonce_size_ + xfer_size_) + kNODE_SIG_BUF_SIZE);
+	  Signature sig(sig_bin);
+      return sig;
+	}
   }
 
   /**
@@ -214,16 +225,20 @@ class Tier2Transaction : public Transaction {
         total += amount;
         if (amount < 0) {
           if (sender_set) {
-            LOG_WARNING << "Multiple senders in transaction!";
-            return false;
+            if (sender != it->getAddress()) {
+              LOG_WARNING << "Multiple senders in transaction!";
+              return false;
+            } else {
+              LOG_INFO << "Sending multiple distinct transfers at once.";
+            }
           }
           sender = it->getAddress();
           sender_set = true;
         }
       }
-      if (oper == eOpType::Delete || oper == eOpType::Modify) {
+      if (oper == eOpType::Create || oper == eOpType::Delete || oper == eOpType::Modify) {
         if (!keys.isINN(sender)) {
-          LOG_WARNING << "Invalid operation, non-INN address deleting or modifying coins.";
+          LOG_WARNING << "Invalid operation, non-INN address performing priviledged operation.";
           return false;
         }
       }
@@ -232,7 +247,7 @@ class Tier2Transaction : public Transaction {
         return false;
       }
 
-      if ((oper != Exchange) && (!keys.isINN(sender))) {
+      if ((oper != eOpType::Exchange) && (!keys.isINN(sender))) {
         LOG_WARNING << "INN transaction not performed by INN!";
         return false;
       }
@@ -244,8 +259,8 @@ class Tier2Transaction : public Transaction {
       if (!VerifyByteSig(eckey, DevcashHash(msg), sig)) {
         LOG_WARNING << "Error: transaction signature did not validate.\n";
         LOG_DEBUG << "Transaction state is: " + getJSON();
-        LOG_DEBUG << "Sender addr is: " + ToHex(std::vector<byte>(std::begin(sender), std::end(sender)));
-        LOG_DEBUG << "Signature is: " + ToHex(std::vector<byte>(std::begin(sig), std::end(sig)));
+        LOG_DEBUG << "Sender addr is: " + sender.getJSON();
+        LOG_DEBUG << "Signature is: " + sig.getJSON();
         return false;
       }
       return true;
@@ -263,8 +278,10 @@ class Tier2Transaction : public Transaction {
    * @return
    */
   bool do_isValid(ChainState& state, const KeyRing& keys, Summary& summary) const override {
-    CASH_TRY {
-      if (!isSound(keys)) { return false; }
+    try {
+      if (!isSound(keys)) {
+        return false;
+      }
       byte oper = getOperation();
       std::vector<TransferPtr> xfers = getTransfers();
       for (auto& it : xfers) {
@@ -272,8 +289,9 @@ class Tier2Transaction : public Transaction {
         uint64_t coin = it->getCoin();
         Address addr = it->getAddress();
         if (amount < 0) {
-          if ((oper == Exchange) && (amount > state.getAmount(coin, addr))) {
-            LOG_WARNING << "Coins not available at addr.";
+          if ((oper == eOpType::Exchange) && ((amount) > state.getAmount(coin, addr))) {
+            LOG_WARNING << "Coins not available at addr: amount(" << amount
+                        << "), state.getAmount()(" << state.getAmount(coin, addr) << ")";
             return false;
           }
         }
@@ -282,8 +300,69 @@ class Tier2Transaction : public Transaction {
         summary.addItem(addr, coin, amount, it->getDelay());
       }
       return true;
+    } catch (const std::exception& e) {
+      LOG_WARNING << FormatException(&e, "transaction");
     }
-    CASH_CATCH(const std::exception& e) { LOG_WARNING << FormatException(&e, "transaction"); }
+    return false;
+  }
+
+  /**
+   * Checks if this transaction is valid with respect to a chain state and other transactions.
+   * Transactions are atomic, so if any portion of the transaction is invalid,
+   * the entire transaction is also invalid.
+   * If this transaction is invalid given the transfers implied by the aggregate map,
+   * then this function returns false.
+   * @note if this transaction is valid based on the chainstate, aggregate is updated
+   *       based on the signer of this transaction.
+   * @param state the chain state to validate against
+   * @param keys a KeyRing that provides keys for signature verification
+   * @param summary the Summary to update
+   * @param aggregate, coin sending information about parallel transactions
+   * @param prior, the chainstate before adding any new transactions
+   * @return true iff the transaction is valid in this context, false otherwise
+   */
+  bool do_isValidInAggregate(ChainState& state, const KeyRing& keys
+       , Summary& summary, std::map<Address, SmartCoin>& aggregate
+       , const ChainState& prior) const override {
+    try {
+      if (!isSound(keys)) {
+        return false;
+      }
+      byte oper = getOperation();
+      std::vector<TransferPtr> xfers = getTransfers();
+      bool no_error = true;
+      for (auto& it : xfers) {
+        int64_t amount = it->getAmount();
+        uint64_t coin = it->getCoin();
+        Address addr = it->getAddress();
+        if (amount < 0) {
+          if ((oper == eOpType::Exchange) && (amount > state.getAmount(coin, addr))) {
+            LOG_WARNING << "Coins not available at addr: amount(" << amount
+                        << "), state.getAmount()(" << state.getAmount(coin, addr) << ")";
+            return false;
+          }
+          auto it = aggregate.find(addr);
+          if (it != aggregate.end()) {
+            int64_t historic = prior.getAmount(coin, addr);
+            int64_t committed = it->second.getAmount();
+            //if sum of negative transfers < 0 a bad ordering is possible
+            if ((historic+committed+amount) < 0) return false;
+            SmartCoin sc(addr, coin, amount+committed);
+            it->second = sc;
+          } else {
+            SmartCoin sc(addr, coin, amount);
+            auto result = aggregate.insert(std::make_pair(addr, sc));
+            no_error = result.second && no_error;
+		  }
+        }
+        SmartCoin next_flow(addr, coin, amount);
+        state.addCoin(next_flow);
+        summary.addItem(addr, coin, amount, it->getDelay());
+      }
+      return no_error;
+    } catch (const std::exception& e) {
+      LOG_WARNING << FormatException(&e, "transaction");
+    }
     return false;
   }
 
@@ -292,9 +371,9 @@ class Tier2Transaction : public Transaction {
    * @return a JSON string representing this transaction.
    */
   std::string do_getJSON() const {
-    std::string json("{\"" + kXFER_COUNT_TAG + "\":");
-    json += std::to_string(xfer_count_) + ",";
-    json += "\"" + kNONCE_SIZE_TAG + "\":"+std::to_string(nonce_size_);
+    std::string json("{\"" + kXFER_SIZE_TAG + "\":");
+    json += std::to_string(xfer_size_) + ",";
+    json += "\"" + kNONCE_SIZE_TAG + "\":"+std::to_string(nonce_size_)+",";
     json += "\"" + kOPER_TAG + "\":" + std::to_string(getOperation()) + ",";
     json += "\"" + kXFER_TAG + "\":[";
     bool isFirst = true;
@@ -309,7 +388,7 @@ class Tier2Transaction : public Transaction {
     }
     json += "],\"" + kNONCE_TAG + "\":\"" + ToHex(getNonce()) + "\",";
     Signature sig = getSignature();
-    json += "\"" + kSIG_TAG + "\":\"" + ToHex(std::vector<byte>(std::begin(sig), std::end(sig))) + "\"}";
+    json += "\"" + kSIG_TAG + "\":\"" + sig.getJSON() + "\"}";
     return json;
   }
 };

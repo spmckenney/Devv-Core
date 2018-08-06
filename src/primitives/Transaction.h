@@ -38,7 +38,7 @@ using namespace Devcash;
 
 namespace Devcash {
 
-static const std::string kXFER_COUNT_TAG = "xfer_count";
+static const std::string kXFER_SIZE_TAG = "xfer_size";
 static const std::string kSUMMARY_TAG = "summary";
 static const std::string kSUM_SIZE_TAG = "sum_size";
 static const std::string kOPER_TAG = "oper";
@@ -104,7 +104,7 @@ class Transaction {
    * Returns minimum size (hard-coded to 89)
    * @return minimum size (hard-coded to 89)
    */
-  static size_t MinSize() { return 89; }
+  static size_t MinSize() { return (89 + 2); }
 
   /**
    * Returns envelope size (hard-coded to 17)
@@ -196,6 +196,27 @@ class Transaction {
   }
 
   /**
+   * Checks if this transaction is valid with respect to a chain state and other transactions.
+   * Transactions are atomic, so if any portion of the transaction is invalid,
+   * the entire transaction is also invalid.
+   * If this transaction is invalid given the transfers implied by the aggregate map,
+   * then this function returns false.
+   * @note if this transaction is valid based on the chainstate, aggregate is updated
+   *       based on the signer of this transaction.
+   * @param state the chain state to validate against
+   * @param keys a KeyRing that provides keys for signature verification
+   * @param summary the Summary to update
+   * @param aggregate, coin sending information about parallel transactions
+   * @param prior, the chainstate before adding any new transactions
+   * @return true iff the transaction is valid in this context, false otherwise
+   */
+  virtual bool isValidInAggregate(ChainState& state, const KeyRing& keys
+               , Summary& summary, std::map<Address, SmartCoin>& aggregate
+               , const ChainState& prior) const {
+    return do_isValidInAggregate(state, keys, summary, aggregate, prior);
+  }
+
+  /**
    * Returns a JSON string representing this transaction.
    * @return a JSON string representing this transaction.
    */
@@ -224,7 +245,12 @@ class Transaction {
 
   virtual bool do_isSound(const KeyRing& keys) const = 0;
 
-  virtual bool do_isValid(ChainState& state, const KeyRing& keys, Summary& summary) const = 0;
+  virtual bool do_isValid(ChainState& state, const KeyRing& keys
+                         , Summary& summary) const = 0;
+
+  virtual bool do_isValidInAggregate(ChainState& state, const KeyRing& keys
+      , Summary& summary, std::map<Address, SmartCoin>& aggregate
+      , const ChainState& prior) const = 0;
 
   virtual std::string do_getJSON() const = 0;
 };

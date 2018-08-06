@@ -19,7 +19,7 @@
 namespace Devcash {
 
 class ValidatorController {
-  typedef std::function<DevcashMessageUniquePtr(const KeyRing &keys,
+  typedef std::function<std::vector<byte>(const KeyRing &keys,
                                                 Blockchain &final_chain,
                                                 UnrecordedTransactionPool &utx_pool,
                                                 const DevcashContext &context)> TransactionAnnouncementCallback;

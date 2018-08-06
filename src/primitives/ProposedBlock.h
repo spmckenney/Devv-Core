@@ -7,6 +7,8 @@
 #ifndef PRIMITIVES_PROPOSEDBLOCK_H_
 #define PRIMITIVES_PROPOSEDBLOCK_H_
 
+#include "common/logger.h"
+
 #include "primitives/block.h"
 #include "primitives/buffers.h"
 #include "primitives/Summary.h"
@@ -133,6 +135,11 @@ class ProposedBlock {
    */
   ProposedBlock& operator=(const ProposedBlock& other) = delete;
 
+  static bool isNullProposal(std::vector<byte>& vec) {
+    std::vector<byte> zero(vec.size(), 0);
+    return(vec == zero);
+  }
+
   /**
    *
    * @return
@@ -199,8 +206,7 @@ class ProposedBlock {
     /// @todo (mckenney) need another solution for node_num with dynamic shards
     size_t node_num = context.get_current_node() % context.get_peer_count();
     Address node_addr = keys.getNodeAddr(node_num);
-    Signature node_sig;
-    SignBinary(keys.getNodeKey(node_num), DevcashHash(md), node_sig);
+    Signature node_sig = SignBinary(keys.getNodeKey(node_num), DevcashHash(md));
     vals_.addValidation(node_addr, node_sig);
     val_count_++;
     num_bytes_ = MinSize() + tx_size_ + sum_size_ + (val_count_ * Validation::pairSize());
@@ -237,7 +243,7 @@ class ProposedBlock {
       LOG_INFO << out.str();
       /// @todo(mckenney) Up the stack, we need to check that this incoming_hash has already
       /// been added to the chain, or this is a bigger problem
-      //throw std::runtime_error(out.str());
+      throw std::runtime_error(out.str());
     }
     LOG_DEBUG << "checkValidationData: validated incoming(" + ToHex(incoming_hash) + ")";
     return false;
@@ -427,7 +433,8 @@ inline ProposedBlock ProposedBlock::Create(InputBuffer &buffer,
   MTR_STEP("proposed_block", "construct", &proposed_block_int, "step1");
   if (buffer.size() != new_block.num_bytes_) {
     MTR_FINISH("proposed_block", "construct", &proposed_block_int);
-    std::string warning = "Invalid serialized ProposedBlock, wrong size!";
+    std::string warning = "Invalid serialized ProposedBlock, wrong size! ("
+                          + std::to_string(buffer.size()) + " != " + std::to_string(new_block.num_bytes_) + ")";
     LOG_WARNING << warning;
     throw std::runtime_error(warning);
   }

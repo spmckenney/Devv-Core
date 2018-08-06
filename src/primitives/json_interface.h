@@ -20,9 +20,16 @@ static std::string GetJSON(const Summary& input_summary) {
   std::string json("{\"" + kADDR_SIZE_TAG + "\":");
   auto summary_map = input_summary.getSummaryMap();
   uint64_t addr_size = summary_map.size();
-  json += std::to_string(addr_size) + ",summary:[";
+  json += std::to_string(addr_size) + ",\"summary\":[";
+  bool first_addr = true;
   for (auto summary : summary_map) {
-    json += "\"" + ToHex(std::vector<byte>(std::begin(summary.first), std::end(summary.first))) + "\":[";
+    if (first_addr) {
+      first_addr = false;
+    } else {
+      json += ",";
+    }
+    json += "{";
+    json += "\"" + kADDR_TAG + "\":" + "\"" + summary.first.getJSON() + "\"" + ",";
     SummaryPair top_pair(summary.second);
     DelayedMap delayed(top_pair.first);
     CoinMap coin_map(top_pair.second);
@@ -38,9 +45,11 @@ static std::string GetJSON(const Summary& input_summary) {
       } else {
         json += ",";
       }
+      json += "{";
       json += "\"" + kTYPE_TAG + "\":" + std::to_string(delayed_item.first) + ",";
       json += "\"" + kDELAY_TAG + "\":" + std::to_string(delayed_item.second.delay) + ",";
       json += "\"" + kAMOUNT_TAG + "\":" + std::to_string(delayed_item.second.delta);
+      json += "}";
     }
     json += "],\"coin_map\":[";
     is_first = true;
@@ -50,10 +59,12 @@ static std::string GetJSON(const Summary& input_summary) {
       } else {
         json += ",";
       }
+      json += "{";
       json += "\"" + kTYPE_TAG + "\":" + std::to_string(coin.first) + ",";
       json += "\"" + kAMOUNT_TAG + "\":" + std::to_string(coin.second);
+      json += "}";
     }
-    json += "]";
+    json += "]}";
   }
   json += "]}";
   return json;
@@ -75,8 +86,10 @@ static std::string GetJSON(const Validation& validation) {
     } else {
       out += ",";
     }
-    out += "\"" + ToHex(std::vector<byte>(std::begin(item.first), std::end(item.first))) + "\":";
-    out += "\"" + ToHex(std::vector<byte>(std::begin(item.second), std::end(item.second))) + "\"";
+    out += "{";
+    out += "\"" + item.first.getJSON() + "\":";
+    out += "\"" + item.second.getJSON() + "\"";
+    out += "}";
   }
   out += "]";
   return out;
@@ -94,7 +107,7 @@ static std::string GetJSON(const ProposedBlock& block) {
   json += std::to_string(block.getVersion()) + ",";
   json += "\"" + kBYTES_TAG + "\":" + std::to_string(block.getNumBytes()) + ",";
   std::vector<byte> prev_hash(std::begin(block.getPrevHash()), std::end(block.getPrevHash()));
-  json += "\"" + kPREV_HASH_TAG + "\":" + ToHex(prev_hash) + ",";
+  json += "\"" + kPREV_HASH_TAG + "\":\"" + ToHex(prev_hash) + "\",";
   json += "\"" + kTX_SIZE_TAG + "\":" + std::to_string(block.getSizeofTransactions()) + ",";
   json += "\"" + kSUM_SIZE_TAG + "\":" + std::to_string(block.getSummarySize()) + ",";
   json += "\"" + kVAL_COUNT_TAG + "\":" + std::to_string(block.getNumValidations()) + ",";
@@ -119,9 +132,9 @@ static std::string GetJSON(const FinalBlock& block) {
   json += "\"" + kBYTES_TAG + "\":" + std::to_string(block.getNumBytes()) + ",";
   json += "\"" + kTIME_TAG + "\":" + std::to_string(block.getBlockTime()) + ",";
   std::vector<byte> prev_hash(std::begin(block.getPreviousHash()), std::end(block.getPreviousHash()));
-  json += "\"" + kPREV_HASH_TAG + "\":" + ToHex(prev_hash) + ",";
+  json += "\"" + kPREV_HASH_TAG + "\":\"" + ToHex(prev_hash) + "\",";
   std::vector<byte> merkle(std::begin(block.getMerkleRoot()), std::end(block.getMerkleRoot()));
-  json += "\"" + kMERKLE_TAG + "\":" + ToHex(merkle) + ",";
+  json += "\"" + kMERKLE_TAG + "\":\"" + ToHex(merkle) + "\",";
   json += "\"" + kTX_SIZE_TAG + "\":" + std::to_string(block.getSizeofTransactions()) + ",";
   json += "\"" + kSUM_SIZE_TAG + "\":" + std::to_string(block.getSummarySize()) + ",";
   json += "\"" + kVAL_COUNT_TAG + "\":" + std::to_string(block.getNumValidations()) + ",";

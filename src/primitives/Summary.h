@@ -33,8 +33,8 @@ struct DelayedItem {
    * @param delay
    * @param delta
    */
-  explicit DelayedItem(uint64_t delay = 0, int64_t delta = 0)
-      : delay(delay), delta(delta) {}
+  explicit DelayedItem(uint64_t delay_val = 0, int64_t delta_val = 0)
+      : delay(delay_val), delta(delta_val) {}
 
   /// The delay of this item
   uint64_t delay = 0;
@@ -187,6 +187,16 @@ class Summary {
   }
 
   /**
+   * Adds a transfer
+   * @param[in] transfer the transfer to add
+   * @return true iff the transfer was added
+   */
+  bool addTransfer(const Transfer& transfer) {
+    DelayedItem item(transfer.getDelay(), transfer.getAmount());
+    return addItem(transfer.getAddress(), transfer.getCoin(), item);
+  }
+
+  /**
    * Get the canonical form of this summary.
    * @return a canonical bytestring summarizing these changes.
    */
@@ -196,7 +206,8 @@ class Summary {
     auto addr_count = static_cast<uint32_t>(summary_.size());
     Uint32ToBin(addr_count, out);
     for (auto summary : summary_) {
-      out.insert(out.end(), summary.first.begin(), summary.first.end());
+      std::vector<byte> bin_addr(summary.first.getCanonical());
+      out.insert(out.end(), bin_addr.begin(), bin_addr.end());
 
       SummaryPair top_pair(summary.second);
       DelayedMap delayed(top_pair.first);

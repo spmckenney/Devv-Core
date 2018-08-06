@@ -1,0 +1,100 @@
+# Devvnet configuration
+#
+# This config has sufficient information to create a full Devvnet.
+# All dictionary keys are inherited and can be overridden and have variable
+# substitution. For example, a validator will look for working_dir in its
+# configuration and if not found, will look in the 'process', 'shards' and
+# 'devvnet' configurations respectively. The first instance found will be used.
+# Variable substitution will happen at the location where the key is being
+# processed.
+#
+# devvnet:
+#   working_dir: devvnet/working/s${shard_index}_n${node_index}
+#
+#  shards:
+#    process:
+#      - t2:
+#        shard_index: 2
+#        - name: announcer
+#          node_index: 0
+#        - name: repeater
+#          node_index: 1
+#          working_dir: repeater/working/n${node_index}/dir
+#
+#
+# In this above example, the working_dir variable for the announcer will resolve to
+# working_dir: devvnet/working/s2_n0
+# and for the repeater:
+# working_dir: repeater/working/n1/dir
+#
+# Any ranges identified by square brackets will cause one process for each value
+# in the range to be created. For example, the following will define 3 validators
+# on hosts dc001, dc002 and dc003 respectively:
+#
+#  - name: validator
+#    host: "dc00{}".format(${node_index} + 1)
+#    node_index: [0..2]
+#
+# Variables available for substitution:
+#
+#  node_index - the index of the current node - currently 0-9 supported
+#  shard_index - the index of the current shard - currently 0-9 supported
+#
+# Main devvnet
+
+devvnet:
+  base_port: 55100
+  password_file: ../opt/default_pass.conf
+  working_dir: ../working/${name}/s${shard_index}_n${node_index}
+  host_index_map: {0: dc001, 1: dc002, 2: dc003}
+
+  shards:
+    # Master Tier1 shard
+    - t1: t1shard
+      host_index_map: {3: dc001, 4: dc002, 5: dc003, 6: dc000}
+      shard_index: 0
+      config_file: ../opt/t1_config.conf
+      process:
+        - name: validator
+
+        - name: announcer
+
+        - name: repeater
+
+
+    # First Tier2 shard
+    - t2: t2shard1
+      shard_index: 1
+      config_file: ../opt/t2_config.conf
+      process:
+        - name: validator
+          subscribe:
+            - name: validator
+              shard_index: 0
+              node_index: ${node_index}
+
+        - name: announcer
+
+        - name: repeater
+          subscribe:
+            - name: validator
+              node_index: ${node_index}
+
+
+    # Second Tier2 shard
+    - t2: t2shard2
+      shard_index: 2
+      config_file: ../opt/t2_config.conf
+      process:
+        - name: validator
+          subscribe:
+            - name: announcer
+              node_index: ${node_index}
+
+            - name: validator
+              shard_index: 0
+              node_index: ${node_index}
+
+        - name: announcer
+
+        - name: repeater
