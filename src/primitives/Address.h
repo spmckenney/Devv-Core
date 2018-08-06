@@ -44,19 +44,19 @@ class Address {
   Address(const std::vector<byte>& vec)
       : canonical_(vec) {
     if (vec.size() == kWALLET_ADDR_SIZE) {
-	  //prepend type
+      //prepend type
       canonical_.insert(std::begin(canonical_), kWALLET_ADDR_SIZE);
     } else if (vec.size() == kWALLET_ADDR_BUF_SIZE
-               && vec.at(0) == kWALLET_ADDR_SIZE) {
+        && vec.at(0) == kWALLET_ADDR_SIZE) {
       //already good, copied from argument
-	} else if (vec.size() == kNODE_ADDR_SIZE) {
+    } else if (vec.size() == kNODE_ADDR_SIZE) {
       //prepend type
       canonical_.insert(std::begin(canonical_), kNODE_ADDR_SIZE);
-	} else if (vec.size() == kNODE_ADDR_BUF_SIZE
-	           && vec.at(0) == kNODE_ADDR_SIZE) {
+    } else if (vec.size() == kNODE_ADDR_BUF_SIZE
+        && vec.at(0) == kNODE_ADDR_SIZE) {
       //already good, copied from argument
     } else {
-	  LOG_ERROR << "Invalid Address size.";
+      LOG_ERROR << "Invalid Address size.";
     }
   }
 

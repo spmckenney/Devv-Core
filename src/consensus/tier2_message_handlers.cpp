@@ -42,6 +42,8 @@ std::vector<byte> CreateNextProposal(const KeyRing& keys,
       ChainState prior;
       utx_pool.ProposeBlock(prev_hash, prior, keys, context);
     }
+  } else {
+    LOG_ERROR << "Creating a proposal with no pending transactions!!";
   }
 
   LOG_INFO << "Proposal #"+std::to_string(block_height+1)+".";
@@ -85,21 +87,21 @@ bool HandleFinalBlock(DevcashMessageUniquePtr ptr,
 
   if (!utx_pool.HasPendingTransactions()) {
     LOG_INFO << "All pending transactions processed.";
-  } else if (block_height%context.get_peer_count() == context.get_current_node()%context.get_peer_count()) {
+  } else if (block_height % context.get_peer_count() == context.get_current_node() % context.get_peer_count()) {
     if (!utx_pool.HasProposal()) {
-      std::vector<byte> proposal = CreateNextProposal(keys,final_chain,utx_pool,context);
+      std::vector<byte> proposal = CreateNextProposal(keys, final_chain, utx_pool, context);
       if (!ProposedBlock::isNullProposal(proposal)) {
         // Create message
-	    auto propose_msg = std::make_unique<DevcashMessage>(context.get_shard_uri()
-	                                        , PROPOSAL_BLOCK
-	                                        , proposal
-	                                        , ((block_height+1)
-	                                        + (context.get_current_node()+1)*1000000));
-	    // FIXME (spm): define index value somewhere
-	    LogDevcashMessageSummary(*propose_msg, "CreateNextProposal");
+        auto propose_msg =
+            std::make_unique<DevcashMessage>(context.get_shard_uri(),
+                                             PROPOSAL_BLOCK,
+                                             proposal,
+                                             ((block_height + 1) + (context.get_current_node() + 1) * 1000000));
+        // FIXME (spm): define index value somewhere
+        LogDevcashMessageSummary(*propose_msg, "CreateNextProposal");
         callback(std::move(propose_msg));
         sent_message = true;
-	  }
+      }
     } else {
       LOG_DEBUG << "Already sent a proposal?";
     }

@@ -42,16 +42,16 @@ class Signature {
   Signature(const std::vector<byte>& vec)
       : canonical_(vec) {
     if (vec.size() == kWALLET_SIG_SIZE) {
-	  //prepend type
+      //prepend type
       canonical_.insert(std::begin(canonical_), kWALLET_SIG_SIZE);
     } else if (vec.size() == kWALLET_SIG_BUF_SIZE
-               && vec.at(0) == kWALLET_SIG_SIZE) {
+        && vec.at(0) == kWALLET_SIG_SIZE) {
       //already good, copied from argument
-	} else if (vec.size() == kNODE_SIG_SIZE) {
+    } else if (vec.size() == kNODE_SIG_SIZE) {
       //prepend type
       canonical_.insert(std::begin(canonical_), kNODE_SIG_SIZE);
-	} else if (vec.size() == kNODE_SIG_BUF_SIZE
-	           && vec.at(0) == kNODE_SIG_SIZE) {
+    } else if (vec.size() == kNODE_SIG_BUF_SIZE
+        && vec.at(0) == kNODE_SIG_SIZE) {
       //already good, copied from argument
     } else {
       /// @todo (mckenney) Don't throw from constructor
