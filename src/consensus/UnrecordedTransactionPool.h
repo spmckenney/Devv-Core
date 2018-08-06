@@ -412,8 +412,7 @@ class UnrecordedTransactionPool {
     Summary summary = Summary::Create();
     std::map<Address, SmartCoin> aggregate;
     ChainState state(prior);
-    std::vector<TransactionPtr> existing = pending_proposal_.getTransactions();
-    for (auto const& tx : existing) {
+    for (auto const& tx : pending_proposal_.getTransactions()) {
       if (!tx->isValidInAggregate(state, keys, summary, aggregate, prior)) {
         return false;
       }
