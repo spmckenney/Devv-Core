@@ -8,11 +8,9 @@
 #ifndef SRC_COMMON_OSSLADAPTER_H_
 #define SRC_COMMON_OSSLADAPTER_H_
 
-#include <string.h>
 #include <openssl/err.h>
 #include <openssl/pem.h>
 #include <openssl/crypto.h>
-#include <stdio.h>
 #include <iostream>
 #include <sstream>
 #include <iomanip>
@@ -196,12 +194,12 @@ static EC_KEY* LoadEcKey(const std::string& publicKey
       ecGroup = GetNodeGroup();
     } else {
       throw std::runtime_error("Invalid public key!");
-	}
+    }
     if (NULL == ecGroup) {
       throw std::runtime_error("Failed to generate EC group.");
     }
 
-    EC_KEY *eckey=EC_KEY_new();
+    EC_KEY *eckey = EC_KEY_new();
     if (NULL == eckey) {
       LOG_ERROR << "Failed to allocate EC key.";
     }
@@ -225,7 +223,8 @@ static EC_KEY* LoadEcKey(const std::string& publicKey
     pkey = PEM_read_bio_PrivateKey(fIn, NULL, NULL
            , const_cast<char*>(aes_password.c_str()));
     if (pkey == nullptr) {
-      throw std::runtime_error("PEM_read_bio_PrivateKey returned nullptr");
+      std::string err(ERR_error_string(ERR_get_error(),NULL));
+      throw std::runtime_error("PEM_read_bio_PrivateKey returned nullptr: " + err);
     }
     eckey = EVP_PKEY_get1_EC_KEY(pkey);
     if (eckey == nullptr) {
