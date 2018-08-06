@@ -12,13 +12,19 @@ enable_testing()
 
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" OR
     "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-set(warnings "-Wall -Wextra -std=gnu++11 -Wno-unused-function")
+    set(warnings "-Wall -Wextra \
+                  -pedantic \
+                  -Wlogical-op \
+                  -Wno-unused-function \
+                  -Wno-unused-parameter \
+                  -Wno-vla \
+                  -fdiagnostics-show-option")
 elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
     set(warnings "/W4 /WX /EHsc")
 endif()
 
 if (NOT CONFIGURED_ONCE)
-    set(CMAKE_CXX_FLAGS "${warnings}"
+    set(CMAKE_CXX_FLAGS "${warnings} -Woverloaded-virtual -Werror -std=gnu++11"
         CACHE STRING "Flags used by the compiler during all build types." FORCE)
     set(CMAKE_C_FLAGS   "${warnings}"
         CACHE STRING "Flags used by the compiler during all build types." FORCE)
@@ -116,6 +122,16 @@ set(CONFIGURED_ONCE TRUE CACHE INTERNAL
 
 install (TARGETS devcash DESTINATION bin)
 
+### protobuf defs ###
+find_package(Protobuf REQUIRED)
+include_directories(${Protobuf_INCLUDE_DIRS})
+include_directories(${CMAKE_CURRENT_BINARY_DIR})
+protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS pbuf/devv.proto)
+#protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS EXPORT_MACRO DLL_EXPORT foo.proto)
+protobuf_generate_python(PROTO_PY pbuf/devv.proto)
+#add_executable(bar bar.cc ${PROTO_SRCS} ${PROTO_HDRS})
+#target_link_libraries(bar ${Protobuf_LIBRARIES})
+
 #
 # Scanner
 #
@@ -146,10 +162,11 @@ install (TARGETS scanner DESTINATION bin)
 # Annnouncer
 #
 
-add_executable(announcer announcer.cpp ${dcInclude})
+add_executable(announcer announcer.cpp ${dcInclude} ${PROTO_SRCS} ${PROTO_HDRS})
 target_link_libraries (announcer
   ${devcash_core_libs}
   ${ZMQ}
+  ${Protobuf_LIBRARIES}
   )
 
 if (OPENSSL_FOUND)

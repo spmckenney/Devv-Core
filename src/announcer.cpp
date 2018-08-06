@@ -22,6 +22,8 @@
 #include "modules/BlockchainModule.h"
 #include "primitives/block_tools.h"
 
+#include "pbuf/devv_pbuf.h"
+
 using namespace Devcash;
 
 namespace fs = boost::filesystem;
