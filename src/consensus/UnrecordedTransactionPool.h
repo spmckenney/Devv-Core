@@ -265,8 +265,10 @@ class UnrecordedTransactionPool {
    *  @return true, iff this pool updated its ProposedBlock
    *  @return false, if anything went wrong
    */
-  bool ReverifyProposal(const Hash& prev_hash, const ChainState& prior
-                       , const KeyRing& keys, const DevcashContext& context) {
+  bool ReverifyProposal(const Hash& prev_hash,
+                        const ChainState& prior,
+                        const KeyRing& keys,
+                        const DevcashContext& context) {
     LOG_DEBUG << "ReverifyProposal()";
     MTR_SCOPE_FUNC();
     std::lock_guard<std::mutex> proposal_guard(pending_proposal_mutex_);
@@ -277,7 +279,7 @@ class UnrecordedTransactionPool {
     } else {
       ProposeBlock(prev_hash, prior, keys, context);
       return false;
-	}
+    }
   }
 
   /**
