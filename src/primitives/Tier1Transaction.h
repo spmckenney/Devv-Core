@@ -197,28 +197,21 @@ class Tier1Transaction : public Transaction {
    */
   bool do_isSound(const KeyRing& keys) const override {
     MTR_SCOPE_FUNC();
-    //try {
-      if (is_sound_) { return (is_sound_); }
+    if (is_sound_) { return (is_sound_); }
 
-      Address node_addr = getNodeAddress();
-      EC_KEY* eckey(keys.getKey(node_addr));
-      std::vector<byte> msg(getMessageDigest());
-      Signature sig = getSignature();
+    Address node_addr = getNodeAddress();
+    EC_KEY* eckey(keys.getKey(node_addr));
+    std::vector<byte> msg(getMessageDigest());
+    Signature sig = getSignature();
 
-      if (!VerifyByteSig(eckey, DevcashHash(msg), sig)) {
-        LOG_WARNING << "Error: T1 transaction signature did not validate.\n";
-        LOG_DEBUG << "Transaction state is: " + getJSON();
-        LOG_DEBUG << "Node address is: " + node_addr.getJSON();
-        LOG_DEBUG << "Signature is: " + sig.getJSON();
-        return false;
-      }
-      return true;
-      /*
-    } catch (const std::exception& e) {
-      LOG_WARNING << FormatException(&e, "transaction");
+    if (!VerifyByteSig(eckey, DevcashHash(msg), sig)) {
+      LOG_WARNING << "Error: T1 transaction signature did not validate.\n";
+      LOG_DEBUG << "Transaction state is: " + getJSON();
+      LOG_DEBUG << "Node address is: " + node_addr.getJSON();
+      LOG_DEBUG << "Signature is: " + sig.getJSON();
+      return false;
     }
-       */
-    return false;
+    return true;
   }
 
   /** Checks if this transaction is valid with respect to a chain state.
