@@ -121,7 +121,7 @@ int main(int argc, char* argv[]) {
       if (is_transaction) { LOG_INFO << files.at(i) << " has transactions."; }
       if (!is_block && !is_transaction) { LOG_WARNING << files.at(i) << " contains unknown data."; }
       unsigned int batch_blocks = 0;
-      unsigned char last_op;
+      unsigned char last_op = 99;
       bool first_file_tx = true;
 
       InputBuffer buffer(raw);
@@ -142,14 +142,16 @@ int main(int argc, char* argv[]) {
           if (options->distinct_ops) {
              if ((!first_file_tx)
                   && (tx.getOperation() != last_op)) {
+                LOG_DEBUG << "(!first_file_tx) && (tx.getOperation() != last_op): batch size: " << batch.size();
                 ParallelPush(tx_lock, transactions, batch);
                 batch.clear();
                 batch_blocks = 0;
-              } else {
-                first_file_tx = false;
-              }
+             } else {
+               LOG_DEBUG << "Setting first_file_tx to false";
+               first_file_tx = false;
+             }
               last_op = tx.getOperation();
-		  }
+          }
           if (options->batch_size <= batch_blocks) {
             ParallelPush(tx_lock, transactions, batch);
             batch.clear();
@@ -161,6 +163,7 @@ int main(int argc, char* argv[]) {
         } else {
           LOG_WARNING << "Unsupported configuration: is_transaction: " << is_transaction
                 << " and mode: " << options->mode;
+          throw std::runtime_error("Unsupported configuration: is_transaction");
         }
       }
 
@@ -188,8 +191,8 @@ int main(int argc, char* argv[]) {
         auto announce_msg = std::make_unique<DevcashMessage>(this_context.get_uri(), TRANSACTION_ANNOUNCEMENT, transactions.at(processed),
                                                                DEBUG_TRANSACTION_INDEX);
         server->queueMessage(std::move(announce_msg));
+        LOG_DEBUG << "Sent transaction batch #" << processed << ", size(" << transactions.at(processed).size() << ")";
         ++processed;
-        LOG_DEBUG << "Sent transaction batch #" << processed;
         sleep(1);
       } else {
         LOG_INFO << "Finished announcing transactions.";
