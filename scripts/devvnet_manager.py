@@ -429,6 +429,10 @@ def run_announcer(node):
     cmd.extend(["--mode", node.get_type()])
     cmd.extend(["--working-dir", node.get_working_dir()])
     cmd.extend(["--bind-endpoint", "tcp://*:" + str(node.get_port())])
+    cmd.extend(["--tx-batch-size", str(90)])
+    cmd.extend(["--separate-ops", "true"])
+    cmd.extend(["--start-delay", str(30)])
+    cmd.extend(["--sleep-ms", str(1)])
 
     return cmd
 
