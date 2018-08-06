@@ -178,7 +178,7 @@ class Tier2Transaction : public Transaction {
    * @return the signature of this transaction
    */
   Signature do_getSignature() const {
-    if (getOperation() == 2) {
+    if (getOperation() == eOpType::Exchange) {
       std::vector<byte> sig_bin(canonical_.begin() + (EnvelopeSize() + nonce_size_ + xfer_size_)
 	      ,canonical_.begin() + (EnvelopeSize() + nonce_size_ + xfer_size_) + kWALLET_SIG_BUF_SIZE);
 	  Signature sig(sig_bin);
@@ -247,7 +247,7 @@ class Tier2Transaction : public Transaction {
         return false;
       }
 
-      if ((oper != Exchange) && (!keys.isINN(sender))) {
+      if ((oper != eOpType::Exchange) && (!keys.isINN(sender))) {
         LOG_WARNING << "INN transaction not performed by INN!";
         return false;
       }
@@ -289,7 +289,7 @@ class Tier2Transaction : public Transaction {
         uint64_t coin = it->getCoin();
         Address addr = it->getAddress();
         if (amount < 0) {
-          if ((oper == Exchange) && (amount > state.getAmount(coin, addr))) {
+          if ((oper == eOpType::Exchange) && ((amount) > state.getAmount(coin, addr))) {
             LOG_WARNING << "Coins not available at addr: amount(" << amount
                         << "), state.getAmount()(" << state.getAmount(coin, addr) << ")";
             return false;
@@ -336,7 +336,7 @@ class Tier2Transaction : public Transaction {
         uint64_t coin = it->getCoin();
         Address addr = it->getAddress();
         if (amount < 0) {
-          if ((oper == Exchange) && (amount > state.getAmount(coin, addr))) {
+          if ((oper == eOpType::Exchange) && (amount > state.getAmount(coin, addr))) {
             LOG_WARNING << "Coins not available at addr: amount(" << amount
                         << "), state.getAmount()(" << state.getAmount(coin, addr) << ")";
             return false;

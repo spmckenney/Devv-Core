@@ -37,14 +37,14 @@ void Tier2Transaction::Fill(Tier2Transaction& tx,
   }
 
   byte oper = buffer.offsetAt(16);
-  if (oper > 3) {
+  if (oper >= eOpType::NumOperations) {
     std::stringstream ss;
     ss << "Invalid serialized T2 transaction, invalid operation!";
     throw DeserializationError(ss.str());
   }
 
   size_t tx_size = MinSize() + tx.xfer_size_ + tx.nonce_size_;
-  if (oper != 2) tx_size += kNODE_SIG_BUF_SIZE-kWALLET_SIG_BUF_SIZE;
+  if (oper != eOpType::Exchange) tx_size += kNODE_SIG_BUF_SIZE - kWALLET_SIG_BUF_SIZE;
   if (buffer.size() < buffer.getOffset() + tx_size) {
     std::stringstream ss;
     std::vector<byte> prefix(buffer.getCurrentIterator()
