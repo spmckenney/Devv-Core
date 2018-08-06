@@ -89,43 +89,41 @@ KeyRing::KeyRing(const DevcashContext& context)
 
 }
 
-bool KeyRing::LoadWallets(const std::string& file_path
-                          , const std::string& file_pass) {
-     EVP_MD_CTX* ctx;
-     if (!(ctx = EVP_MD_CTX_create())) {
-       LOG_FATAL << "Could not create signature context!";
-       CASH_THROW("Could not create signature context!");
-     }
+bool KeyRing::LoadWallets(const std::string& file_path, const std::string& file_pass) {
+  EVP_MD_CTX* ctx;
+  if (!(ctx = EVP_MD_CTX_create())) {
+    LOG_FATAL << "Could not create signature context!";
+    CASH_THROW("Could not create signature context!");
+  }
 
-     std::string wallet_keys;
-     if (file_path.size() > 0)
-     {
-       wallet_keys = ReadFile(file_path);
-     }
-     if (!wallet_keys.empty()) {
-       size_t size = wallet_keys.size();
-       if (size%(kFILE_KEY_SIZE+(kWALLET_ADDR_SIZE*2)) == 0) {
-         size_t counter = 0;
-         while (counter < (size-1)) {
-           std::string addr = wallet_keys.substr(counter, (kWALLET_ADDR_SIZE*2));
-           counter += (kWALLET_ADDR_SIZE*2);
-           std::string key = wallet_keys.substr(counter, kFILE_KEY_SIZE);
-           counter += kFILE_KEY_SIZE;
-           try {
-             addWalletKeyPair(addr, key, file_pass);
-           } catch (const std::exception& e) {
-             LOG_ERROR << FormatException(&e, "Wallet Key");
-           }
-         }
-       } else {
-         LOG_FATAL << "Invalid key file size ("+std::to_string(size)+")";
-        return false;
-       }
-     } else {
-       LOG_INFO << "No wallets found";
-       return false;
-	 }
-     return true;
+  std::string wallet_keys;
+  if (file_path.size() > 0) {
+    wallet_keys = ReadFile(file_path);
+  }
+  if (!wallet_keys.empty()) {
+    size_t size = wallet_keys.size();
+    if (size % (kFILE_KEY_SIZE + (kWALLET_ADDR_SIZE * 2)) == 0) {
+      size_t counter = 0;
+      while (counter < (size - 1)) {
+        std::string addr = wallet_keys.substr(counter, (kWALLET_ADDR_SIZE * 2));
+        counter += (kWALLET_ADDR_SIZE * 2);
+        std::string key = wallet_keys.substr(counter, kFILE_KEY_SIZE);
+        counter += kFILE_KEY_SIZE;
+        try {
+          addWalletKeyPair(addr, key, file_pass);
+        } catch (const std::exception& e) {
+          LOG_ERROR << FormatException(&e, "Wallet Key");
+        }
+      }
+    } else {
+      LOG_FATAL << "Invalid key file size (" + std::to_string(size) + ")";
+      return false;
+    }
+  } else {
+    LOG_INFO << "No wallets found";
+    return false;
+  }
+  return true;
 }
 
 EC_KEY* KeyRing::getKey(const Address& addr) const {
