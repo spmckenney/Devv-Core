@@ -280,7 +280,7 @@ class Tier1Transaction : public Transaction {
         int64_t amount = transfer->getAmount();
         if (amount < 0) {
           auto it = aggregate.find(addr);
-          if (it != state_map_.end()) {
+          if (it != aggregate.end()) {
             int64_t historic = prior.getAmount(coin, addr);
             int64_t committed = it->second.getAmount();
             //if sum of negative transfers < 0 a bad ordering is possible

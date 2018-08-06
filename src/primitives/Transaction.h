@@ -249,7 +249,7 @@ class Transaction {
                          , Summary& summary) const = 0;
 
   virtual bool do_isValidInAggregate(ChainState& state, const KeyRing& keys
-      , Summary& summary, std::map<Addrees, SmartCoin>& aggregate
+      , Summary& summary, std::map<Address, SmartCoin>& aggregate
       , const ChainState& prior) const = 0;
 
   virtual std::string do_getJSON() const = 0;

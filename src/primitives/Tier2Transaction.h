@@ -330,6 +330,7 @@ class Tier2Transaction : public Transaction {
       }
       byte oper = getOperation();
       std::vector<TransferPtr> xfers = getTransfers();
+      bool no_error = true;
       for (auto& it : xfers) {
         int64_t amount = it->getAmount();
         uint64_t coin = it->getCoin();
@@ -341,7 +342,7 @@ class Tier2Transaction : public Transaction {
             return false;
           }
           auto it = aggregate.find(addr);
-          if (it != state_map_.end()) {
+          if (it != aggregate.end()) {
             int64_t historic = prior.getAmount(coin, addr);
             int64_t committed = it->second.getAmount();
             //if sum of negative transfers < 0 a bad ordering is possible
@@ -358,7 +359,7 @@ class Tier2Transaction : public Transaction {
         state.addCoin(next_flow);
         summary.addItem(addr, coin, amount, it->getDelay());
       }
-      return true;
+      return no_error;
     } catch (const std::exception& e) {
       LOG_WARNING << FormatException(&e, "transaction");
     }
