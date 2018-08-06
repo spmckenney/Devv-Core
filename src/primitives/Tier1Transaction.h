@@ -252,6 +252,62 @@ class Tier1Transaction : public Transaction {
   }
 
   /**
+   * Checks if this transaction is valid with respect to a chain state and other transactions.
+   * Transactions are atomic, so if any portion of the transaction is invalid,
+   * the entire transaction is also invalid.
+   * If this transaction is invalid given the transfers implied by the aggregate map,
+   * then this function returns false.
+   * @note if this transaction is valid based on the chainstate, aggregate is updated
+   *       based on the signer of this transaction.
+   * @param state the chain state to validate against
+   * @param keys a KeyRing that provides keys for signature verification
+   * @param summary the Summary to update
+   * @param aggregate, coin sending information about parallel transactions
+   * @param prior, the chainstate before adding any new transactions
+   * @return true iff the transaction is valid in this context, false otherwise
+   */
+  bool do_isValidInAggregate(ChainState& state, const KeyRing& keys
+       , Summary& summary, std::map<Address, SmartCoin>& aggregate
+       , const ChainState& prior) const override {
+    try {
+      if (!isSound(keys)) { return false; }
+
+      std::vector<TransferPtr> xfers = getTransfers();
+      bool no_error = true;
+      for (auto& transfer : xfers) {
+		uint64_t coin = transfer->getCoin();
+        Address addr = transfer->getAddress();
+        int64_t amount = transfer->getAmount();
+        if (amount < 0) {
+          auto it = aggregate.find(addr);
+          if (it != state_map_.end()) {
+            int64_t historic = prior.getAmount(coin, addr);
+            int64_t committed = it->second.getAmount();
+            //if sum of negative transfers < 0 a bad ordering is possible
+            if ((historic+committed+amount) < 0) return false;
+            SmartCoin sc(addr, coin, amount+committed);
+            it->second = sc;
+          } else {
+            SmartCoin sc(addr, coin, amount);
+            auto result = aggregate.insert(std::make_pair(addr, sc));
+            no_error = result.second && no_error;
+		  }
+		}
+
+		//update internal state
+        SmartCoin next_flow(addr, coin, amount);
+        state.addCoin(next_flow);
+        summary.addItem(addr, coin, amount, transfer->getDelay());
+      }
+      return no_error;
+    }
+    catch (const std::exception& e) {
+      LOG_WARNING << FormatException(&e, "transaction");
+    }
+    return false;
+  }
+
+  /**
    * Returns a JSON string representing this transaction.
    * @return a JSON string representing this transaction.
    */

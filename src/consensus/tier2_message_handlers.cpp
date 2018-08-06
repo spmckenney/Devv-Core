@@ -78,7 +78,7 @@ bool HandleFinalBlock(DevcashMessageUniquePtr ptr,
   if (utx_pool.HasProposal()) {
     ChainState current = top_block->getChainState();
     Hash prev_hash = DevcashHash(top_block->getCanonical());
-    utx_pool.ReverifyProposal(prev_hash, current, keys);
+    utx_pool.ReverifyProposal(prev_hash, current, keys, context);
   }
 
   size_t block_height = final_chain.size();

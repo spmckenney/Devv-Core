@@ -256,21 +256,28 @@ class UnrecordedTransactionPool {
 
   /**
    *  Update this pool's ProposedBlock based on a new FinalBlock.
-   *  @note some Transactions in the proposal may be removed if they are
-   *        no longer valid
+   *  @note a new proposal may be generated
+   *        if proposed transactions are now invalid
    *  @param prev_hash - the hash of the highest FinalBlock
-   *  @param prior_state - the chainstate of the highest FinalBlock
+   *  @param prior - the chainstate of the highest FinalBlock
    *  @param keys - the directory of Addresses and EC keys
+   *  @param context - the context for this node/shard
    *  @return true, iff this pool updated its ProposedBlock
    *  @return false, if anything went wrong
    */
-  bool ReverifyProposal(const Hash& prev_hash, const ChainState&, const KeyRing&) {
+  bool ReverifyProposal(const Hash& prev_hash, const ChainState& prior
+                       , const KeyRing& keys, const DevcashContext& context) {
     LOG_DEBUG << "ReverifyProposal()";
     MTR_SCOPE_FUNC();
     std::lock_guard<std::mutex> proposal_guard(pending_proposal_mutex_);
     if (pending_proposal_.isNull()) { return false; }
-    pending_proposal_.setPrevHash(prev_hash);
-    return true;
+    if (ReverifyTransactions(prior, keys)) {
+      pending_proposal_.setPrevHash(prev_hash);
+      return true;
+    } else {
+      ProposeBlock(prev_hash, prior, keys, context);
+      return false;
+	}
   }
 
   /**
@@ -362,27 +369,6 @@ class UnrecordedTransactionPool {
   TransactionCreationManager tcm_;
   eAppMode mode_;
 
-  /**
-   *  Compose transition states into a map of SmartCoin transitions by Address
-   *  @param first - one set of transitions, the merge target
-   *  @param second - another set of transitions, to merge into first
-   *  @return a combined set of SmartCoin transitions mapped to a set of Addresses
-   */
-  std::map<Address, SmartCoin> MergeStates(std::map<Address, SmartCoin>& first
-      , const std::map<Address, SmartCoin>& second) {
-    for (const auto& item : second) {
-      auto loc = first.find(item.first);
-      if (loc == first.end()) {
-        std::pair<Address, SmartCoin> pair(item.first, item.second);
-        first.insert(pair);
-      } else {
-        //loc->second.amount_ += item.second.amount_;
-        loc->second.setAmount(loc->second.getAmount() + item.second.getAmount());
-      }
-    }
-    return first;
-  }
-
   /** Verifies Transactions for this pool.
    *  @note this implementation is greedy in selecting Transactions
    *  @params state the chain state to validate against
@@ -398,10 +384,10 @@ class UnrecordedTransactionPool {
     std::lock_guard<std::mutex> guard(txs_mutex_);
     unsigned int num_txs = 0;
     std::map<Address, SmartCoin> aggregate;
+    ChainState prior(state);
     for (auto iter = txs_.begin(); iter != txs_.end(); ++iter) {
-      /*aggregate = iter->second.second->aggregateState(aggregate
-                                        , state, keys, summary);*/
-      if (iter->second.second->isValid(state, keys, summary)) {
+      if (iter->second.second->isValidInAggregate(state, keys, summary
+                                                  , aggregate, prior)) {
         valid.push_back(std::move(iter->second.second->clone()));
         iter->second.first++;
         num_txs++;
@@ -412,21 +398,22 @@ class UnrecordedTransactionPool {
   }
 
   /** Reverifies Transactions for this pool.
-   *  @note this function does *not* increment Transaction pointers
-   *  @param txs a vector of Transactions to verify
+   *  @note this function modifies pending_proposal_
+   *  @note if this returns false, a new proposal must be created
    *  @params state the chain state to validate against
    *  @params keys a KeyRing that provides keys for signature verification
-   *  @params summary the Summary to update
    *  @return true iff, all transactions are valid wrt provided chainstate
-   *  @return false otherwise
+   *  @return false otherwise, a new proposal must be created
    */
-  bool ReverifyTransactions(std::vector<Transaction> txs, ChainState& state
-      , const KeyRing& keys, Summary& summary) {
+  bool ReverifyTransactions(const ChainState& prior, const KeyRing& keys) {
     LOG_DEBUG << "ReverifyTransactions()";
     MTR_SCOPE_FUNC();
     std::lock_guard<std::mutex> guard(txs_mutex_);
-    for (auto const& item : txs) {
-      if (!item.isValid(state, keys, summary)) {
+    Summary summary = Summary::Create();
+    std::map<Address, SmartCoin> aggregate;
+    ChainState state(prior);
+    for (auto item : pending_proposal_.getTransactions()) {
+      if (!item->isValidInAggregate(state, keys, summary, aggregate, prior)) {
         return false;
       }
     }
