@@ -51,7 +51,7 @@ static const std::string kVALIDATOR_DEX_TAG = "val_dex";
 /**
  * Types of operations performed by transactions
  */
-enum eOpType : byte { Create = 0, Modify = 1, Exchange = 2, Delete = 3 };
+enum eOpType : byte { Create = 0, Modify = 1, Exchange = 2, Delete = 3, NumOperations = 4 };
 
 /**
  * The Transaction Abstract Base Class
