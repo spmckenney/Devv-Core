@@ -1,0 +1,33 @@
+syntax = "proto3";
+
+package Devcash;
+
+message Transfer {
+  required bytes address = 0;
+  required fixed64 coin = 1;
+  required sfixed64 amount = 2;
+  required fixed64 delay = 3;
+}
+
+//Tier2Transaction, assumed to be an Exchange TX (oper=2)
+message Transaction {
+  required fixed64 nonce_size = 0;
+  required fixed64 xfer_size = 1;
+  repeated Transfer xfers = 2;
+  required bytes nonce = 3;
+  required bytes sig = 4;
+}
+
+message FinalBlock {
+  required uint32 version = 0;
+  required fixed64 num_bytes = 1;
+  required fixed64 block_time = 2;
+  required bytes prev_hash = 3;
+  required bytes merkle_root = 4;
+  required fixed64 tx_size = 5;
+  required fixed64 sum_size = 6;
+  required uint32 val_count = 7;
+  repeated Transaction txs = 8;
+  required bytes summary = 9;
+  required bytes vals = 10;
+}

@@ -130,11 +130,11 @@ class Transfer {
   Address getAddress() const {
 	if (canonical_.at(0) == kWALLET_ADDR_SIZE) {
       std::vector<byte> addr(canonical_.begin()
-                            , canonical_.begin()+kWALLET_ADDR_SIZE + 1);
+                            , canonical_.begin()+kWALLET_ADDR_BUF_SIZE);
       return addr;
 	} else if (canonical_.at(0) == kNODE_ADDR_SIZE) {
       std::vector<byte> addr(canonical_.begin()
-                            , canonical_.begin()+kNODE_ADDR_SIZE + 1);
+                            , canonical_.begin()+kNODE_ADDR_BUF_SIZE);
       return addr;
 	}
 	std::string err = "Transfer Address has invalid type prefix.";
