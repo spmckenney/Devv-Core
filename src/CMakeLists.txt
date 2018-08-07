@@ -132,6 +132,8 @@ protobuf_generate_python(PROTO_PY pbuf/devv.proto)
 #add_executable(bar bar.cc ${PROTO_SRCS} ${PROTO_HDRS})
 #target_link_libraries(bar ${Protobuf_LIBRARIES})
 
+add_custom_target(myTarget ALL
+                  DEPENDS ${PROTO_PY})
 #
 # Scanner
 #
@@ -184,6 +186,24 @@ endif(Boost_FOUND)
 target_include_directories(announcer PRIVATE ${dcInclude})
 
 install (TARGETS announcer DESTINATION bin)
+
+#
+# pb_annnouncer
+#
+
+add_executable(pb_announcer pb_announcer.cpp ${dcInclude} ${PROTO_SRCS} ${PROTO_HDRS})
+target_link_libraries (pb_announcer
+        ${devcash_core_libs}
+        ${ZMQ}
+        ${Protobuf_LIBRARIES}
+        ${CMAKE_THREAD_LIBS_INIT}
+        ${OPENSSL_LIBRARIES}
+        ${Boost_LIBRARIES}
+  )
+
+target_include_directories(pb_announcer PRIVATE ${dcInclude})
+
+install (TARGETS pb_announcer DESTINATION bin)
 
 #
 # Repeater
