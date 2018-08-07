@@ -112,37 +112,38 @@ int main(int argc, char* argv[]) {
 
       InputBuffer buffer(raw);
       while (buffer.getOffset() < static_cast<size_t>(file_size)) {
-        if (is_block) {
-          size_t span = buffer.getOffset();
-          FinalBlock one_block(buffer, posteri, keys, options->mode);
-          if (buffer.getOffset() == span) {
-            LOG_WARNING << file_name << " has invalid block!";
-            break;
-          }
-          Summary block_summary(Summary::Create());
-          std::vector<TransactionPtr> txs = one_block.CopyTransactions();
-          for (TransactionPtr& item : txs) {
-            if (!item->isValid(posteri, keys, block_summary)) {
-              LOG_WARNING << "A transaction is invalid. TX details: ";
-              LOG_WARNING << item->getJSON();
-            }
-          }
-          if (block_summary.getCanonical() != one_block.getSummary().getCanonical()) {
-            LOG_WARNING << "A final block summary is invalid. Summary datails: ";
-            LOG_WARNING << GetJSON(one_block.getSummary());
-            LOG_WARNING << "Transaction details: ";
+		try {
+          if (is_block) {
+            FinalBlock one_block(buffer, posteri, keys, options->mode);
+            Summary block_summary(Summary::Create());
+            std::vector<TransactionPtr> txs = one_block.CopyTransactions();
             for (TransactionPtr& item : txs) {
-              LOG_WARNING << item->getJSON();
+              if (!item->isValid(posteri, keys, block_summary)) {
+                LOG_WARNING << "A transaction is invalid. TX details: ";
+                LOG_WARNING << item->getJSON();
+              }
             }
+            if (block_summary.getCanonical() != one_block.getSummary().getCanonical()) {
+              LOG_WARNING << "A final block summary is invalid. Summary datails: ";
+              LOG_WARNING << GetJSON(one_block.getSummary());
+              LOG_WARNING << "Transaction details: ";
+              for (TransactionPtr& item : txs) {
+                LOG_WARNING << item->getJSON();
+              }
+            }
+          } else if (is_transaction) {
+            Tier2Transaction tx(Tier2Transaction::Create(buffer, keys, true));
+            if (!tx.isValid(priori, keys, summary)) {
+              LOG_WARNING << "A transaction is invalid. TX details: ";
+              LOG_WARNING << tx.getJSON();
+            }
+          } else {
+            LOG_WARNING << "!is_block && !is_transaction";
           }
-        } else if (is_transaction) {
-          Tier2Transaction tx(Tier2Transaction::Create(buffer, keys, true));
-          if (!tx.isValid(priori, keys, summary)) {
-            LOG_WARNING << "A transaction is invalid. TX details: ";
-            LOG_WARNING << tx.getJSON();
-          }
-        } else {
-          LOG_WARNING << "!is_block && !is_transaction";
+        } catch (const std::exception& e) {
+          LOG_ERROR << "Error in " << file_name << " skipping to next file.  Error details: "+FormatException(&e, "scanner");
+          LOG_ERROR << "Offset/Size: "+std::to_string(buffer.getOffset())+"/"+std::to_string(file_size);
+          break;
         }
       }
     }

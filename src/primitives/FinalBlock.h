@@ -93,19 +93,16 @@ class FinalBlock {
              eAppMode mode)
       : block_state_(prior) {
     if (buffer.size() < MinSize()) {
-      LOG_WARNING << "Invalid serialized FinalBlock, too small!";
-      return;
+      throw std::runtime_error("Invalid serialized FinalBlock, too small!");
     }
     version_ |= buffer.getNextByte();
     if (version_ != 0) {
-      LOG_WARNING << "Invalid FinalBlock.version: " + std::to_string(version_);
-      return;
+      throw std::runtime_error("Invalid FinalBlock.version: " + std::to_string(version_));
     }
 
     num_bytes_ = buffer.getNextUint64();
-    if (buffer.size() != num_bytes_) {
-      LOG_WARNING << "Invalid serialized FinalBlock, wrong size!";
-      return;
+    if (buffer.size() < num_bytes_) {
+      throw std::runtime_error("Invalid serialized FinalBlock, wrong size!");
     }
     block_time_ = buffer.getNextUint64();
     buffer.copy(prev_hash_);
@@ -123,7 +120,7 @@ class FinalBlock {
         Tier2TransactionPtr one_tx = Tier2Transaction::CreateUniquePtr(buffer, keys);
         transaction_vector_.push_back(std::move(one_tx));
       } else {
-        LOG_WARNING << "Unsupported mode: " << mode;
+        throw std::runtime_error("Unsupported mode: "+std::to_string(mode));
       }
     }
 
@@ -332,6 +329,18 @@ class FinalBlock {
    * @return
    */
   Validation& getValidation() { return vals_; }
+
+  /**
+   * @return the volume of coins moved in this block.
+   */
+  uint64_t getVolume() const {
+    uint64_t volume = 0;
+    for (auto const& item : transaction_vector_) {
+      for (auto const& xfer : item->getTransfers()) {
+        volume += llabs(xfer.getAmount());
+      }
+    }
+  }
 
  private:
   /**
