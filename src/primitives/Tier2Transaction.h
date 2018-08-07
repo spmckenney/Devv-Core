@@ -83,6 +83,54 @@ class Tier2Transaction : public Transaction {
     }
   }
 
+  /**
+   * Constructor
+   * @param oper Operation of this transaction
+   * @param xfers
+   * @param nonce
+   * @param eckey
+   * @param keys
+   */
+  Tier2Transaction(byte oper,
+                   const std::vector<Transfer>& xfers,
+                   std::vector<byte> nonce,
+                   EC_KEY* eckey,
+                   const KeyRing& keys,
+                   const Signature& signature)
+      : Transaction(false) {
+    nonce_size_ = nonce.size();
+
+    if (nonce_size_ < minNonceSize()) {
+      LOG_WARNING << "Invalid serialized T2 transaction, nonce is too small ("
+        +std::to_string(nonce_size_)+").";
+    }
+
+    Uint64ToBin(nonce_size_, canonical_);
+    canonical_.push_back(oper);
+
+    xfer_size_ = 0;
+    for (const auto& transfer : xfers) {
+      xfer_size_ += transfer.Size();
+      std::vector<byte> xfer_canon(transfer.getCanonical());
+      canonical_.insert(std::end(canonical_), std::begin(xfer_canon), std::end(xfer_canon));
+    }
+
+    std::vector<byte> xfer_size_bin;
+    Uint64ToBin(xfer_size_, xfer_size_bin);
+    //Note that xfer size goes on the beginning
+    canonical_.insert(std::begin(canonical_), std::begin(xfer_size_bin), std::end(xfer_size_bin));
+
+    canonical_.insert(std::end(canonical_), std::begin(nonce), std::end(nonce));
+    std::vector<byte> msg(getMessageDigest());
+    LOG_DEBUG << signature.getJSON();
+    std::vector<byte> sig_canon(signature.getCanonical());
+    canonical_.insert(std::end(canonical_), std::begin(sig_canon), std::end(sig_canon));
+    is_sound_ = isSound(keys);
+    if (!is_sound_) {
+      throw DevcashMessageError("Invalid serialized T2 transaction, not sound!");
+    }
+  }
+
   static Tier2Transaction Create(InputBuffer& buffer,
                                  const KeyRing& keys,
                                  bool calculate_soundness = true);
@@ -211,7 +259,7 @@ class Tier2Transaction : public Transaction {
    */
   bool do_isSound(const KeyRing& keys) const {
     MTR_SCOPE_FUNC();
-    try {
+    //try {
       if (is_sound_) { return (is_sound_); }
       long total = 0;
       byte oper = getOperation();
@@ -264,9 +312,11 @@ class Tier2Transaction : public Transaction {
         return false;
       }
       return true;
-    } catch (const std::exception& e) {
+    /*
+     * } catch (const std::exception& e) {
       LOG_WARNING << FormatException(&e, "transaction");
     }
+     */
     return false;
   }
 
@@ -288,6 +338,7 @@ class Tier2Transaction : public Transaction {
         int64_t amount = it->getAmount();
         uint64_t coin = it->getCoin();
         Address addr = it->getAddress();
+        //LOG_DEBUG << "STATE (amt/coin/tot/address): " << amount << "/" << coin << "/" << state.getAmount(coin, addr)<< "/"<< addr.getHexString();
         if (amount < 0) {
           if ((oper == eOpType::Exchange) && ((amount) > state.getAmount(coin, addr))) {
             LOG_WARNING << "Coins not available at addr: amount(" << amount

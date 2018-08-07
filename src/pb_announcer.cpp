@@ -79,13 +79,17 @@ int main(int argc, char* argv[]) {
 
     zmq::context_t context(1);
 
-    DevcashContext this_context(options->node_index, options->shard_index, options->mode, options->inn_keys,
-                                options->node_keys, options->key_pass);
+    DevcashContext this_context(options->node_index,
+                                options->shard_index,
+                                options->mode,
+                                options->inn_keys,
+                                options->node_keys,
+                                options->key_pass);
+
     KeyRing keys(this_context);
 
     MTR_SCOPE_FUNC();
     std::vector<std::vector<byte>> transactions;
-    std::mutex tx_lock;
 
     auto server = io::CreateTransactionServer(options->bind_endpoint, context);
     server->startServer();
@@ -96,42 +100,48 @@ int main(int argc, char* argv[]) {
 
     if (options->start_delay > 0) sleep(options->start_delay);
 
-    while (true) {
+    bool keep_running = true;
+    while (keep_running) {
       zmq::message_t transaction_message;
       //  Wait for next request from client
-      socket.recv (&transaction_message);
+
+      std::cout << "Waiting for tx" << std::endl;
+      auto res = socket.recv(&transaction_message);
+      if (!res) {
+        LOG_ERROR << "socket.recv != true - exiting";
+        keep_running = false;
+      }
       std::cout << "Received transaction" << std::endl;
 
       std::string tx_string = std::string(static_cast<char*>(transaction_message.data()),
           transaction_message.size());
 
-      auto t2tx = GetT2TxFromProtobufString(tx_string, keys);
+      //try {
+        auto t2tx = GetT2TxFromProtobufString(tx_string, keys);
 
-      /* Should we announce a transaction? */
-      if (processed < transactions.size()) {
-        auto announce_msg = std::make_unique<DevcashMessage>(
-            this_context.get_uri(),
-            TRANSACTION_ANNOUNCEMENT,
-            t2tx->getCanonical(),
-            DEBUG_TRANSACTION_INDEX);
+      auto announce_msg = std::make_unique<DevcashMessage>(
+          this_context.get_uri(),
+          TRANSACTION_ANNOUNCEMENT,
+          t2tx->getCanonical(),
+          DEBUG_TRANSACTION_INDEX);
 
-        server->queueMessage(std::move(announce_msg));
-        LOG_DEBUG << "Sent transaction batch #" << processed << ", size(" << transactions.at(processed).size() << ")";
-        ++processed;
-        sleep(1);
-      } else {
-        LOG_INFO << "Finished announcing transactions.";
-        break;
-      }
+      std::cout << "Going to queue" << std::endl;
+      server->queueMessage(std::move(announce_msg));
+      LOG_DEBUG << "Sent transaction batch #" << processed;
+      ++processed;
       LOG_INFO << "Finished 0";
+
+      zmq::message_t reply (7);
+      memcpy (reply.data (), "SUCCESS", 7);
+      socket.send (reply);
     }
+
     LOG_INFO << "Finished 1";
     sleep(5);
     server->stopServer();
     LOG_WARNING << "All done.";
     return (true);
-  }
-  catch (const std::exception& e) {
+  } catch (const std::exception& e) {
     std::exception_ptr p = std::current_exception();
     std::string err("");
     err += (p ? p.__cxa_exception_type()->name() : "null");

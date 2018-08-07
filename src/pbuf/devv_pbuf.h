@@ -18,9 +18,10 @@ namespace Devcash {
 
 Tier2TransactionPtr GetT2TxFromProtobufString(const std::string& pb_tx, const KeyRing& keys) {
 
-  proto::Transaction tx;
+  Devv::proto::Transaction tx;
   tx.ParseFromString(pb_tx);
 
+  auto operation = tx.operation();
   auto pb_xfers = tx.xfers();
 
   std::vector<Transfer> transfers;
@@ -42,13 +43,16 @@ Tier2TransactionPtr GetT2TxFromProtobufString(const std::string& pb_tx, const Ke
   }
 
   std::vector<byte> nonce(tx.nonce().begin(), tx.nonce().end());
+  std::vector<byte> sig(tx.sig().begin(), tx.sig().end());
+  Signature signature(sig);
 
   Tier2TransactionPtr t2tx_ptr = std::make_unique<Tier2Transaction>(
-      eOpType::Exchange,
+      operation,
       transfers,
       nonce,
       key,
-      keys);
+      keys,
+      signature);
 
   return(t2tx_ptr);
 }
