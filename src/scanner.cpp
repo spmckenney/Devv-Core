@@ -128,7 +128,7 @@ int main(int argc, char* argv[])
             out += "Duration: "+std::to_string(duration)+" ms.\n";
             LOG_INFO << "Duration: "+std::to_string(duration)+" ms.";
             if (duration != 0 && previous_time != 0) {
-              out += LOG_INFO << "Rate: "+std::to_string(txs_count*1000/duration)+" txs/sec\n";
+              out += "Rate: "+std::to_string(txs_count*1000/duration)+" txs/sec\n";
               LOG_INFO << "Rate: "+std::to_string(txs_count*1000/duration)+" txs/sec";
             } else if (previous_time == 0) {
               start_time = blocktime;
@@ -244,7 +244,7 @@ Required parameters");
 
     po::options_description d2("Optional parameters");
     d2.add_options()
-        ("expect-version", "look for this block version while scanning"
+        ("expect-version", "look for this block version while scanning")
         ("help", "produce help message")
         ("debug-mode", po::value<std::string>(), "Debug mode (on|off|perf) for testing")
         ;
