@@ -1,33 +1,33 @@
 syntax = "proto3";
 
-package Devcash;
+package Devcash.proto;
 
 message Transfer {
-  required bytes address = 0;
-  required fixed64 coin = 1;
-  required sfixed64 amount = 2;
-  required fixed64 delay = 3;
+  bytes address = 1;
+  fixed64 coin = 2;
+  sfixed64 amount = 3;
+  fixed64 delay = 4;
 }
 
-//Tier2Transaction, assumed to be an Exchange TX (oper=2)
+// Tier2Transaction, assumed to be an Exchange TX (oper=2)
 message Transaction {
-  required fixed64 nonce_size = 0;
-  required fixed64 xfer_size = 1;
-  repeated Transfer xfers = 2;
-  required bytes nonce = 3;
-  required bytes sig = 4;
+  fixed64 nonce_size = 1;
+  fixed64 xfer_size = 2;
+  repeated Devcash.proto.Transfer xfers = 3;
+  bytes nonce = 4;
+  bytes sig = 5;
 }
 
 message FinalBlock {
-  required uint32 version = 0;
-  required fixed64 num_bytes = 1;
-  required fixed64 block_time = 2;
-  required bytes prev_hash = 3;
-  required bytes merkle_root = 4;
-  required fixed64 tx_size = 5;
-  required fixed64 sum_size = 6;
-  required uint32 val_count = 7;
-  repeated Transaction txs = 8;
-  required bytes summary = 9;
-  required bytes vals = 10;
+  uint32 version = 1;
+  fixed64 num_bytes = 2;
+  fixed64 block_time = 3;
+  bytes prev_hash = 4;
+  bytes merkle_root = 5;
+  fixed64 tx_size = 6;
+  fixed64 sum_size = 7;
+  uint32 val_count = 8;
+  repeated Devcash.proto.Transaction txs = 9;
+  bytes summary = 10;
+  bytes vals = 11;
 }
