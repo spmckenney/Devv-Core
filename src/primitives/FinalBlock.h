@@ -337,7 +337,7 @@ class FinalBlock {
     uint64_t volume = 0;
     for (auto const& item : transaction_vector_) {
       for (auto const& xfer : item->getTransfers()) {
-        volume += llabs(xfer.getAmount());
+        volume += llabs(xfer->getAmount());
       }
     }
   }
