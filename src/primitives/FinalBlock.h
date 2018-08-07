@@ -340,6 +340,7 @@ class FinalBlock {
         volume += llabs(xfer->getAmount());
       }
     }
+    return volume;
   }
 
  private:
