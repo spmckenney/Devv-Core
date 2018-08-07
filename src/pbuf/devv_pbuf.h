@@ -8,6 +8,7 @@
 #define DEVCASH_DEVV_PBUF_H
 
 #include <vector>
+#include <exception>
 
 #include "primitives/Tier2Transaction.h"
 
@@ -30,14 +31,14 @@ Tier2TransactionPtr GetT2TxFromProtobufString(const std::string& pb_tx, const Ke
     transfers.emplace_back(address, xfer.coin(), xfer.amount(), xfer.delay());
     if (xfer.amount() < 0) {
       if (key != nullptr) {
-        // WOOP WOOP
+        throw std::runtime_error("More than one send transfer not supported.");
       }
       key = keys.getKey(address);
     }
   }
 
   if (key == nullptr) {
-    // WOOP WOOP
+    throw std::runtime_error("EC_KEY from sender not set (key == null)");
   }
 
   std::vector<byte> nonce(tx.nonce().begin(), tx.nonce().end());
