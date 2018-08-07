@@ -29,16 +29,10 @@ namespace fs = boost::filesystem;
 
 struct scanner_options {
   eAppMode mode  = eAppMode::T1;
-  unsigned int node_index = 0;
-  unsigned int shard_index = 0;
   std::string working_dir;
   std::string write_file;
-  std::string inn_keys;
-  std::string node_keys;
-  std::string key_pass;
-  unsigned int generate_count;
-  unsigned int tx_limit;
   eDebugMode debug_mode;
+  unsigned int version;
 };
 
 std::unique_ptr<struct scanner_options> ParseScannerOptions(int argc, char** argv);
@@ -58,6 +52,7 @@ int main(int argc, char* argv[])
     size_t block_counter = 0;
     size_t tx_counter = 0;
     size_t tfer_count = 0;
+    size_t total_volume = 0;
 
     KeyRing keys;
 
@@ -99,70 +94,110 @@ int main(int argc, char* argv[])
       size_t file_blocks = 0;
       size_t file_txs = 0;
       size_t file_tfer = 0;
+      uint64_t start_time = 0;
+      uint64_t blocktime = 0;
+      uint64_t volume = 0;
 
       ChainState priori;
       ChainState posteri;
 
       InputBuffer buffer(raw);
       while (buffer.getOffset() < static_cast<size_t>(file_size)) {
-        if (is_transaction) {
-          Tier2Transaction tx(Tier2Transaction::Create(buffer, keys, true));
-          file_txs++;
-          file_tfer += tx.getTransfers().size();
-          out += tx.getJSON();
-        } else if (is_block) {
-          size_t span = buffer.getOffset();
-          FinalBlock one_block(buffer, priori, keys, options->mode);
-          if (buffer.getOffset() == span) {
-            LOG_WARNING << file_name << " has invalid block!";
-            break;
-		  }
-          size_t txs_count = one_block.getNumTransactions();
-          size_t tfers = one_block.getNumTransfers();
-          priori = one_block.getChainState();
-          out += GetJSON(one_block);
+        try {
+          if (is_transaction) {
+            Tier2Transaction tx(Tier2Transaction::Create(buffer, keys, true));
+            file_txs++;
+            file_tfer += tx.getTransfers().size();
+            out += tx.getJSON();
+          } else if (is_block) {
+            FinalBlock one_block(buffer, priori, keys, options->mode);
 
-          Summary block_summary(Summary::Create());
-          std::vector<TransactionPtr> txs = one_block.CopyTransactions();
-          for (TransactionPtr& item : txs) {
-            if (!item->isValid(posteri, keys, block_summary)) {
-              LOG_WARNING << "A transaction is invalid. TX details: ";
-              LOG_WARNING << item->getJSON();
+            if (one_block.getVersion() != options->version) {
+              LOG_WARNING << "Unexpected block version ("+std::to_string(one_block.getVersion())+") in " << file_name;
             }
-          }
-          if (block_summary.getCanonical() != one_block.getSummary().getCanonical()) {
-            LOG_WARNING << "A final block summary is invalid. Summary datails: ";
-            LOG_WARNING << GetJSON(one_block.getSummary());
-            LOG_WARNING << "Transaction details: ";
+            size_t txs_count = one_block.getNumTransactions();
+            size_t tfers = one_block.getNumTransfers();
+            uint64_t previous_time = blocktime;
+            blocktime = one_block.getBlockTime();
+            uint64_t duration = blocktime-previous_time;
+            priori = one_block.getChainState();
+            out += GetJSON(one_block);
+
+            out += std::to_string(txs_count)+" txs, transfers: "+std::to_string(tfers)+"\n";
+            LOG_INFO << std::to_string(txs_count)+" txs, transfers: "+std::to_string(tfers);
+            out += "Duration: "+std::to_string(duration)+" ms.\n";
+            LOG_INFO << "Duration: "+std::to_string(duration)+" ms.";
+            if (duration != 0 && previous_time != 0) {
+              out += "Rate: "+std::to_string(txs_count*1000/duration)+" txs/sec\n";
+              LOG_INFO << "Rate: "+std::to_string(txs_count*1000/duration)+" txs/sec";
+            } else if (previous_time == 0) {
+              start_time = blocktime;
+            }
+            uint64_t block_volume = one_block.getVolume();
+            volume += block_volume;
+            out += "Volume: "+std::to_string(block_volume)+"\n";
+            LOG_INFO << "Volume: "+std::to_string(block_volume);
+
+            Summary block_summary(Summary::Create());
+            std::vector<TransactionPtr> txs = one_block.CopyTransactions();
             for (TransactionPtr& item : txs) {
-              LOG_WARNING << item->getJSON();
+              if (!item->isValid(posteri, keys, block_summary)) {
+                LOG_WARNING << "A transaction is invalid. TX details: ";
+                LOG_WARNING << item->getJSON();
+              }
             }
-          }
+            if (block_summary.getCanonical() != one_block.getSummary().getCanonical()) {
+              LOG_WARNING << "A final block summary is invalid. Summary datails: ";
+              LOG_WARNING << GetJSON(one_block.getSummary());
+              LOG_WARNING << "Transaction details: ";
+              for (TransactionPtr& item : txs) {
+                LOG_WARNING << item->getJSON();
+              }
+            }
 
-          out += std::to_string(txs_count)+" txs, transfers: "+std::to_string(tfers);
-          LOG_INFO << std::to_string(txs_count)+" txs, transfers: "+std::to_string(tfers);
-          file_blocks++;
-          file_txs += txs_count;
-          file_tfer += tfers;
-        } else {
-          LOG_WARNING << "!is_block && !is_transaction";
+            file_blocks++;
+            file_txs += txs_count;
+            file_tfer += tfers;
+          } else {
+            LOG_WARNING << "!is_block && !is_transaction";
+          }
+        } catch (const std::exception& e) {
+          LOG_ERROR << "Error scanning " << file_name << " skipping to next file.  Error details: "+FormatException(&e, "scanner");
+          LOG_ERROR << "Offset/Size: "+std::to_string(buffer.getOffset())+"/"+std::to_string(file_size);
+          break;
         }
       }
 
-      out += "End chainstate: " + WriteChainStateMap(posteri.getStateMap());
+      if (posteri.getStateMap().empty()) {
+        out += "End with no chainstate.";
+	  } else {
+        out += "End chainstate: " + WriteChainStateMap(posteri.getStateMap());
+	  }
+
 
       out += file_name + " has " + std::to_string(file_txs)
-              + " txs, " +std::to_string(file_tfer)+" tfers in "+std::to_string(file_blocks)+" blocks.";
+              + " txs, " +std::to_string(file_tfer)+" tfers in "+std::to_string(file_blocks)+" blocks.\n";
+      out += file_name + " coin volume is "+std::to_string(volume)+"\n";
+      uint64_t duration = blocktime-start_time;
+      if (duration != 0 && start_time != 0) {
+        out += file_name+" overall rate: "+std::to_string(file_txs*1000/duration)+" txs/sec\n";
+        LOG_INFO << file_name << " overall rate: "+std::to_string(file_txs*1000/duration)+" txs/sec";
+      }
       LOG_INFO << file_name << " has " << std::to_string(file_txs)
               << " txs, " +std::to_string(file_tfer)+" tfers in "+std::to_string(file_blocks)+" blocks.";
+      LOG_INFO << file_name + " coin volume is "+std::to_string(volume);
+
       block_counter += file_blocks;
       tx_counter += file_txs;
       tfer_count += file_tfer;
+      total_volume += volume;
     }
     out += "Dir has "+std::to_string(tx_counter)+" txs, "
       +std::to_string(tfer_count)+" tfers in "+std::to_string(block_counter)+" blocks.";
+    out += "Grand total coin volume is "+std::to_string(total_volume)+"\n";
     LOG_INFO << "Dir has "+std::to_string(tx_counter)+" txs, "
       +std::to_string(tfer_count)+" tfers in "+std::to_string(block_counter)+" blocks.";
+    LOG_INFO << "Grand total coin volume is "+std::to_string(total_volume);
 
     if (!options->write_file.empty()) {
       std::ofstream out_file(options->write_file, std::ios::out);
@@ -209,6 +244,7 @@ Required parameters");
 
     po::options_description d2("Optional parameters");
     d2.add_options()
+        ("expect-version", "look for this block version while scanning")
         ("help", "produce help message")
         ("debug-mode", po::value<std::string>(), "Debug mode (on|off|perf) for testing")
         ;
@@ -267,6 +303,14 @@ Required parameters");
       LOG_INFO << "Output file: " << options->write_file;
     } else {
       LOG_INFO << "Output file was not set.";
+    }
+
+    if (vm.count("expect-version")) {
+      options->version = vm["expect-version"].as<unsigned int>();
+      LOG_INFO << "Expect Block Version: " << options->version;
+    } else {
+      LOG_INFO << "Expect Block Version was not set, defaulting to 0";
+      options->version = 0;
     }
   }
   catch (std::exception& e) {
