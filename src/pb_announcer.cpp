@@ -83,116 +83,38 @@ int main(int argc, char* argv[]) {
                                 options->node_keys, options->key_pass);
     KeyRing keys(this_context);
 
-    LOG_DEBUG << "Loading transactions from " << options->working_dir;
     MTR_SCOPE_FUNC();
     std::vector<std::vector<byte>> transactions;
     std::mutex tx_lock;
 
-    ChainState priori;
-
-    fs::path p(options->working_dir);
-
-    if (!is_directory(p)) {
-      LOG_ERROR << "Error opening dir: " << options->working_dir << " is not a directory";
-      return false;
-    }
-
-    std::vector<std::string> files;
-
-    unsigned int input_blocks_ = 0;
-    for (auto &entry : boost::make_iterator_range(fs::directory_iterator(p), {})) {
-      files.push_back(entry.path().string());
-    }
-
-    ThreadPool::SequentialFor(0, (int) files.size(), [&](int i) {
-      LOG_INFO << "Reading " << files.at(i);
-      std::ifstream file(files.at(i), std::ios::binary);
-      file.unsetf(std::ios::skipws);
-      std::streampos file_size;
-      file.seekg(0, std::ios::end);
-      file_size = file.tellg();
-      file.seekg(0, std::ios::beg);
-
-      std::vector<byte> raw;
-      raw.reserve(file_size);
-      raw.insert(raw.begin(), std::istream_iterator<byte>(file), std::istream_iterator<byte>());
-      std::vector<byte> batch;
-      assert(file_size > 0);
-      bool is_block = IsBlockData(raw);
-      bool is_transaction = IsTxData(raw);
-      if (is_block) { LOG_INFO << files.at(i) << " has blocks."; }
-      if (is_transaction) { LOG_INFO << files.at(i) << " has transactions."; }
-      if (!is_block && !is_transaction) { LOG_WARNING << files.at(i) << " contains unknown data."; }
-      unsigned int batch_blocks = 0;
-      unsigned char last_op = 99;
-      bool first_file_tx = true;
-
-      InputBuffer buffer(raw);
-      while (buffer.getOffset() < static_cast<size_t>(file_size)) {
-        //constructor increments offset by reference
-        if (is_block && options->mode == eAppMode::T1) {
-          FinalBlock one_block(FinalBlock::Create(buffer, priori));
-          const Summary &sum = one_block.getSummary();
-          Validation val(one_block.getValidation());
-          std::pair<Address, Signature> pair(val.getFirstValidation());
-          Tier1Transaction tx(sum, pair.second, pair.first, keys);
-          std::vector<byte> tx_canon(tx.getCanonical());
-          batch.insert(batch.end(), tx_canon.begin(), tx_canon.end());
-          input_blocks_++;
-        } else if (is_transaction && options->mode != eAppMode::T1) {
-          Tier2Transaction tx(Tier2Transaction::Create(buffer, keys, true));
-          std::vector<byte> tx_canon(tx.getCanonical());
-          if (options->distinct_ops) {
-             if ((!first_file_tx)
-                  && (tx.getOperation() != last_op)) {
-                LOG_DEBUG << "(!first_file_tx) && (tx.getOperation() != last_op): batch size: " << batch.size();
-                ParallelPush(tx_lock, transactions, batch);
-                batch.clear();
-                batch_blocks = 0;
-             } else {
-               LOG_DEBUG << "Setting first_file_tx to false";
-               first_file_tx = false;
-             }
-              last_op = tx.getOperation();
-          }
-          if (options->batch_size <= batch_blocks) {
-            ParallelPush(tx_lock, transactions, batch);
-            batch.clear();
-            batch_blocks = 0;
-          }
-          batch.insert(batch.end(), tx_canon.begin(), tx_canon.end());
-          input_blocks_++;
-          batch_blocks++;
-        } else {
-          LOG_WARNING << "Unsupported configuration: is_transaction: " << is_transaction
-                << " and mode: " << options->mode;
-          throw std::runtime_error("Unsupported configuration: is_transaction");
-        }
-      }
-
-      ParallelPush(tx_lock, transactions, batch);
-    });
-
-    LOG_INFO << "Loaded " << std::to_string(input_blocks_) << " transactions in " << transactions.size() << " batches.";
-
     auto server = io::CreateTransactionServer(options->bind_endpoint, context);
     server->startServer();
-    auto ms = options->sleep_ms;
     unsigned int processed = 0;
 
-    if (options->start_delay > 0) sleep(options->start_delay);
-    while (true) {
-      if (ms > 0) {
-        LOG_DEBUG << "Sleeping for " << ms << ": processed/batches (" << std::to_string(processed) << "/"
-                  << transactions.size() << ")";
-        sleep(ms);
-      }
+    zmq::socket_t socket (context, ZMQ_REP);
+    socket.bind ("tcp://*:5555");
 
+    if (options->start_delay > 0) sleep(options->start_delay);
+
+    while (true) {
+      zmq::message_t transaction_message;
+      //  Wait for next request from client
+      socket.recv (&transaction_message);
+      std::cout << "Received transaction" << std::endl;
+
+      std::string tx_string = std::string(static_cast<char*>(transaction_message.data()),
+          transaction_message.size());
+
+      auto t2tx = GetT2TxFromProtobufString(tx_string, keys);
 
       /* Should we announce a transaction? */
       if (processed < transactions.size()) {
-        auto announce_msg = std::make_unique<DevcashMessage>(this_context.get_uri(), TRANSACTION_ANNOUNCEMENT, transactions.at(processed),
-                                                               DEBUG_TRANSACTION_INDEX);
+        auto announce_msg = std::make_unique<DevcashMessage>(
+            this_context.get_uri(),
+            TRANSACTION_ANNOUNCEMENT,
+            t2tx->getCanonical(),
+            DEBUG_TRANSACTION_INDEX);
+
         server->queueMessage(std::move(announce_msg));
         LOG_DEBUG << "Sent transaction batch #" << processed << ", size(" << transactions.at(processed).size() << ")";
         ++processed;
