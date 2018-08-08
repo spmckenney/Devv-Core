@@ -51,7 +51,10 @@ socket.connect("tcp://localhost:5555")
 print("Sending message in 3")
 time.sleep(3)
 
-socket.send(tx.SerializeToString())
+env = devv_pb2.Envelope()
+env.txs.extend([tx])
+
+socket.send(env.SerializeToString())
 
 print("Done")
 

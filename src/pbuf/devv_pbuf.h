@@ -16,13 +16,21 @@
 
 namespace Devcash {
 
-Tier2TransactionPtr GetT2TxFromProtobufString(const std::string& pb_tx, const KeyRing& keys) {
+struct Proposal {
+  std::string oracle_name;
+  std::string data;
+};
+typedef std::unique_ptr<Proposal> ProposalPtr;
 
-  Devv::proto::Transaction tx;
-  tx.ParseFromString(pb_tx);
+struct Envelope {
+  std::vector<Tier2TransactionPtr> transactions;
+  std::vector<ProposalPtr> proposals;
+};
+typedef std::unique_ptr<Envelope> EnvelopePtr;
 
-  auto operation = tx.operation();
-  auto pb_xfers = tx.xfers();
+Tier2TransactionPtr CreateTransaction(Devv::proto::Transaction& transaction, const KeyRing& keys) {
+  auto operation = transaction.operation();
+  auto pb_xfers = transaction.xfers();
 
   std::vector<Transfer> transfers;
   EC_KEY* key = nullptr;
@@ -42,8 +50,8 @@ Tier2TransactionPtr GetT2TxFromProtobufString(const std::string& pb_tx, const Ke
     throw std::runtime_error("EC_KEY from sender not set (key == null)");
   }
 
-  std::vector<byte> nonce(tx.nonce().begin(), tx.nonce().end());
-  std::vector<byte> sig(tx.sig().begin(), tx.sig().end());
+  std::vector<byte> nonce(transaction.nonce().begin(), transaction.nonce().end());
+  std::vector<byte> sig(transaction.sig().begin(), transaction.sig().end());
   Signature signature(sig);
 
   Tier2TransactionPtr t2tx_ptr = std::make_unique<Tier2Transaction>(
@@ -53,6 +61,24 @@ Tier2TransactionPtr GetT2TxFromProtobufString(const std::string& pb_tx, const Ke
       key,
       keys,
       signature);
+
+  return t2tx_ptr;
+}
+
+EnvelopePtr DeserializeEnvelopeProtobufString(const std::string& pb_envelope, const KeyRing& keys) {
+  Devv::proto::Envelope envelope;
+  envelope.ParseFromString(pb_envelope);
+
+  EnvelopePtr env_ptr = std::make_unique<Envelope>();
+  return env_ptr;
+}
+
+Tier2TransactionPtr GetT2TxFromProtobufString(const std::string& pb_tx, const KeyRing& keys) {
+
+  Devv::proto::Transaction tx;
+  tx.ParseFromString(pb_tx);
+
+  auto t2tx_ptr = CreateTransaction(tx, keys);
 
   return(t2tx_ptr);
 }

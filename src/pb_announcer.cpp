@@ -65,7 +65,6 @@ struct announcer_options {
  */
 std::unique_ptr<struct announcer_options> ParseAnnouncerOptions(int argc, char** argv);
 
-
 int main(int argc, char* argv[]) {
   init_log();
 
@@ -105,30 +104,32 @@ int main(int argc, char* argv[]) {
       zmq::message_t transaction_message;
       //  Wait for next request from client
 
-      std::cout << "Waiting for tx" << std::endl;
+      std::cout << "Waiting for envelope" << std::endl;
       auto res = socket.recv(&transaction_message);
       if (!res) {
         LOG_ERROR << "socket.recv != true - exiting";
         keep_running = false;
       }
-      std::cout << "Received transaction" << std::endl;
+      LOG_INFO << "Received envelope";
 
       std::string tx_string = std::string(static_cast<char*>(transaction_message.data()),
           transaction_message.size());
 
-      //try {
-        auto t2tx = GetT2TxFromProtobufString(tx_string, keys);
+      auto env_ptr = DeserializeEnvelopeProtobufString(tx_string, keys);
 
-      auto announce_msg = std::make_unique<DevcashMessage>(
-          this_context.get_uri(),
-          TRANSACTION_ANNOUNCEMENT,
-          t2tx->getCanonical(),
-          DEBUG_TRANSACTION_INDEX);
+      for (auto const& t2tx : env_ptr->transactions) {
+        auto announce_msg = std::make_unique<DevcashMessage>(
+            this_context.get_uri(),
+            TRANSACTION_ANNOUNCEMENT,
+            t2tx->getCanonical(),
+            DEBUG_TRANSACTION_INDEX);
 
-      std::cout << "Going to queue" << std::endl;
-      server->queueMessage(std::move(announce_msg));
-      LOG_DEBUG << "Sent transaction batch #" << processed;
-      ++processed;
+        std::cout << "Going to queue" << std::endl;
+        server->queueMessage(std::move(announce_msg));
+        LOG_DEBUG << "Sent transaction batch #" << processed;
+        ++processed;
+      }
+
       LOG_INFO << "Finished 0";
 
       zmq::message_t reply (7);
