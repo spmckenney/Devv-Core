@@ -28,7 +28,7 @@ struct Envelope {
 };
 typedef std::unique_ptr<Envelope> EnvelopePtr;
 
-Tier2TransactionPtr CreateTransaction(Devv::proto::Transaction& transaction, const KeyRing& keys) {
+Tier2TransactionPtr CreateTransaction(const Devv::proto::Transaction& transaction, const KeyRing& keys) {
   auto operation = transaction.operation();
   auto pb_xfers = transaction.xfers();
 
@@ -70,6 +70,11 @@ EnvelopePtr DeserializeEnvelopeProtobufString(const std::string& pb_envelope, co
   envelope.ParseFromString(pb_envelope);
 
   EnvelopePtr env_ptr = std::make_unique<Envelope>();
+
+  auto pb_transactions = envelope.txs();
+  for (auto const& transaction : pb_transactions) {
+    env_ptr->transactions.push_back(CreateTransaction(transaction, keys));
+  }
   return env_ptr;
 }
 
