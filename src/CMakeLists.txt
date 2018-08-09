@@ -135,9 +135,11 @@ protobuf_generate_python(PROTO_PY pbuf/devv.proto)
 # Dummy target that triggers python protobuf generation
 add_custom_target(myTarget ALL DEPENDS ${PROTO_PY})
 
+# Convenience variable containing all linker libs
 set(devv_all_libs
         ${devcash_core_libs}
         ${ZMQ}
+        ${Protobuf_LIBRARIES}
         ${OPENSSL_LIBRARIES}
         ${CMAKE_THREAD_LIBS_INIT}
         ${Boost_LIBRARIES}
@@ -151,31 +153,18 @@ target_include_directories(scanner PRIVATE ${dcInclude})
 install (TARGETS scanner DESTINATION bin)
 
 #
-# devvsign
+# devv-sign
 #
-add_executable(devvsign devvsign.cpp ${dcInclude})
-target_link_libraries (devvsign
-        ${devcash_core_libs}
-        ${ZMQ}
-        ${OPENSSL_LIBRARIES}
-        ${CMAKE_THREAD_LIBS_INIT}
-        ${Boost_LIBRARIES}
-        )
-target_include_directories(devvsign PRIVATE ${dcInclude})
-install (TARGETS devvsign DESTINATION bin)
+add_executable(devv-sign devv-sign.cpp ${dcInclude} ${PROTO_SRCS} ${PROTO_HDRS})
+target_link_libraries (devv-sign ${devv_all_libs})
+target_include_directories(devv-sign PRIVATE ${dcInclude})
+install (TARGETS devv-sign DESTINATION bin)
 
 #
 # annnouncer
 #
 add_executable(announcer announcer.cpp ${dcInclude} ${PROTO_SRCS} ${PROTO_HDRS})
-target_link_libraries (announcer
-        ${devcash_core_libs}
-        ${ZMQ}
-        ${Protobuf_LIBRARIES}
-        ${OPENSSL_LIBRARIES}
-        ${CMAKE_THREAD_LIBS_INIT}
-        ${Boost_LIBRARIES}
-        )
+target_link_libraries (announcer ${devv_all_libs})
 target_include_directories(announcer PRIVATE ${dcInclude})
 install (TARGETS announcer DESTINATION bin)
 

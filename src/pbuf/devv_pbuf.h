@@ -28,7 +28,7 @@ struct Envelope {
 };
 typedef std::unique_ptr<Envelope> EnvelopePtr;
 
-Tier2TransactionPtr CreateTransaction(const Devv::proto::Transaction& transaction, const KeyRing& keys) {
+Tier2TransactionPtr CreateTransaction(const Devv::proto::Transaction& transaction, const KeyRing& keys, bool do_sign = false) {
   auto operation = transaction.operation();
   auto pb_xfers = transaction.xfers();
 
@@ -51,17 +51,28 @@ Tier2TransactionPtr CreateTransaction(const Devv::proto::Transaction& transactio
   }
 
   std::vector<byte> nonce(transaction.nonce().begin(), transaction.nonce().end());
-  std::vector<byte> sig(transaction.sig().begin(), transaction.sig().end());
-  Signature signature(sig);
 
-  Tier2TransactionPtr t2tx_ptr = std::make_unique<Tier2Transaction>(
-      operation,
-      transfers,
-      nonce,
-      key,
-      keys,
-      signature);
+  Tier2TransactionPtr t2tx_ptr = nullptr;
 
+  if (do_sign) {
+    t2tx_ptr = std::make_unique<Tier2Transaction>(
+        operation,
+        transfers,
+        nonce,
+        key,
+        keys);
+  } else {
+    std::vector<byte> sig(transaction.sig().begin(), transaction.sig().end());
+    Signature signature(sig);
+
+    t2tx_ptr = std::make_unique<Tier2Transaction>(
+        operation,
+        transfers,
+        nonce,
+        key,
+        keys,
+        signature);
+  }
   return t2tx_ptr;
 }
 
@@ -78,12 +89,12 @@ EnvelopePtr DeserializeEnvelopeProtobufString(const std::string& pb_envelope, co
   return env_ptr;
 }
 
-Tier2TransactionPtr GetT2TxFromProtobufString(const std::string& pb_tx, const KeyRing& keys) {
+Tier2TransactionPtr DeserializeTxProtobufString(const std::string& pb_tx, const KeyRing& keys, bool do_sign = false) {
 
   Devv::proto::Transaction tx;
   tx.ParseFromString(pb_tx);
 
-  auto t2tx_ptr = CreateTransaction(tx, keys);
+  auto t2tx_ptr = CreateTransaction(tx, keys, do_sign);
 
   return(t2tx_ptr);
 }

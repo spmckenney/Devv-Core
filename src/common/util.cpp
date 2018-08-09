@@ -73,16 +73,16 @@
 namespace Devcash
 {
 
-std::string ReadFile(const std::string& filePath)
+std::string ReadFile(const std::string& file_path)
 {
   MTR_SCOPE_FUNC();
-  std::ifstream file(filePath);
+  std::ifstream file(file_path);
   if (!file.good()) {
-    LOG_ERROR << "File "+filePath+" could not be found";
+    LOG_ERROR << "File "+file_path+" could not be found";
   }
 
   if (!file.is_open()) {
-    LOG_ERROR << "File "+filePath+" could not be opened, check permissions";
+    LOG_ERROR << "File "+file_path+" could not be opened, check permissions";
   }
 
   std::string output("");

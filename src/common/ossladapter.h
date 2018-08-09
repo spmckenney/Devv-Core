@@ -342,14 +342,13 @@ static bool VerifyByteSig(EC_KEY* ecKey, const Devcash::Hash& msg
   return(false);
 }
 
-/** Generates the signature for a given string and key pair
- *  @pre the EC_KEY must include a private key
- *  @pre the OpenSSL context must be intialized
- *  @param ec_key pointer to the public key that will check this signature
- *  @param msg pointer to the message digest to sign
- *  @param len length of binary message to sign
- *  @param sig target buffer where signature is put, must be allocted
- *  @throws std::exception on error
+/**
+ * Generates the signature for a given string and key pair
+ * @pre the EC_KEY must include a private key
+ * @pre the OpenSSL context must be intialized
+ * @param ec_key pointer to the public key that will check this signature
+ * @param msg pointer to the message digest to sign
+ * @return Resulting signature
  */
 static Devcash::Signature SignBinary(EC_KEY* ec_key, const Devcash::Hash& msg) {
   if (ec_key == nullptr) {

@@ -26,13 +26,9 @@
 #include <stdint.h>
 #include <algorithm>
 
+#include "common/devcash_constants.h"
+
 namespace Devcash {
-
-static const size_t kWALLET_ADDR_SIZE = 33;
-static const size_t kNODE_ADDR_SIZE = 49;
-
-static const size_t kWALLET_ADDR_BUF_SIZE = kWALLET_ADDR_SIZE + 1;
-static const size_t kNODE_ADDR_BUF_SIZE = kNODE_ADDR_SIZE + 1;
 
 class Address {
  public:

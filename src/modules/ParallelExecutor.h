@@ -85,7 +85,7 @@ class ParallelExecutor {
    * @param message
    */
   void pushMessage(DevcashMessageUniquePtr message) {
-    LOG_DEBUG << "pushMessage(), do not segfault";
+    LOG_DEBUG << "pushMessage()";
     if (message == nullptr) {
       LOG_ERROR << "pushMessage() attempting to push a nullptr";
       throw std::runtime_error("pushMessage() attempting to push a nullptr");
