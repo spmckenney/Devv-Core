@@ -132,65 +132,56 @@ protobuf_generate_python(PROTO_PY pbuf/devv.proto)
 #add_executable(bar bar.cc ${PROTO_SRCS} ${PROTO_HDRS})
 #target_link_libraries(bar ${Protobuf_LIBRARIES})
 
-add_custom_target(myTarget ALL
-                  DEPENDS ${PROTO_PY})
+# Dummy target that triggers python protobuf generation
+add_custom_target(myTarget ALL DEPENDS ${PROTO_PY})
+
+set(devv_all_libs
+        ${devcash_core_libs}
+        ${ZMQ}
+        ${OPENSSL_LIBRARIES}
+        ${CMAKE_THREAD_LIBS_INIT}
+        ${Boost_LIBRARIES}
+        )
 #
 # Scanner
 #
-
 add_executable(scanner scanner.cpp ${dcInclude})
-target_link_libraries (scanner
-  ${devcash_core_libs}
-  ${ZMQ}
-  )
-
-if (OPENSSL_FOUND)
-  include_directories(${OPENSSL_INCLUDE_DIR})
-  target_link_libraries (scanner ${OPENSSL_LIBRARIES})
-endif (OPENSSL_FOUND)
-
-target_link_libraries(scanner ${CMAKE_THREAD_LIBS_INIT})
-
-if(Boost_FOUND)
-  include_directories(${Boost_INCLUDE_DIRS})
-  target_link_libraries(scanner ${Boost_LIBRARIES})
-endif(Boost_FOUND)
-
+target_link_libraries (scanner ${devv_all_libs})
 target_include_directories(scanner PRIVATE ${dcInclude})
-
 install (TARGETS scanner DESTINATION bin)
 
 #
-# Annnouncer
+# devvsign
 #
+add_executable(devvsign devvsign.cpp ${dcInclude})
+target_link_libraries (devvsign
+        ${devcash_core_libs}
+        ${ZMQ}
+        ${OPENSSL_LIBRARIES}
+        ${CMAKE_THREAD_LIBS_INIT}
+        ${Boost_LIBRARIES}
+        )
+target_include_directories(devvsign PRIVATE ${dcInclude})
+install (TARGETS devvsign DESTINATION bin)
 
+#
+# annnouncer
+#
 add_executable(announcer announcer.cpp ${dcInclude} ${PROTO_SRCS} ${PROTO_HDRS})
 target_link_libraries (announcer
-  ${devcash_core_libs}
-  ${ZMQ}
-  ${Protobuf_LIBRARIES}
-  )
-
-if (OPENSSL_FOUND)
-  include_directories(${OPENSSL_INCLUDE_DIR})
-  target_link_libraries (announcer ${OPENSSL_LIBRARIES})
-endif (OPENSSL_FOUND)
-
-target_link_libraries(announcer ${CMAKE_THREAD_LIBS_INIT})
-
-if(Boost_FOUND)
-  include_directories(${Boost_INCLUDE_DIRS})
-  target_link_libraries(announcer ${Boost_LIBRARIES})
-endif(Boost_FOUND)
-
+        ${devcash_core_libs}
+        ${ZMQ}
+        ${Protobuf_LIBRARIES}
+        ${OPENSSL_LIBRARIES}
+        ${CMAKE_THREAD_LIBS_INIT}
+        ${Boost_LIBRARIES}
+        )
 target_include_directories(announcer PRIVATE ${dcInclude})
-
 install (TARGETS announcer DESTINATION bin)
 
 #
 # pb_annnouncer
 #
-
 add_executable(pb_announcer pb_announcer.cpp ${dcInclude} ${PROTO_SRCS} ${PROTO_HDRS})
 target_link_libraries (pb_announcer
         ${devcash_core_libs}
@@ -199,62 +190,37 @@ target_link_libraries (pb_announcer
         ${CMAKE_THREAD_LIBS_INIT}
         ${OPENSSL_LIBRARIES}
         ${Boost_LIBRARIES}
-  )
-
+        )
 target_include_directories(pb_announcer PRIVATE ${dcInclude})
-
 install (TARGETS pb_announcer DESTINATION bin)
 
 #
 # Repeater
 #
-
 add_executable(repeater repeater.cpp ${dcInclude})
 target_link_libraries (repeater
-  ${devcash_core_libs}
-  ${ZMQ}
-  )
-
-if (OPENSSL_FOUND)
-  include_directories(${OPENSSL_INCLUDE_DIR})
-  target_link_libraries (repeater ${OPENSSL_LIBRARIES})
-endif (OPENSSL_FOUND)
-
-target_link_libraries(repeater ${CMAKE_THREAD_LIBS_INIT})
-
-if(Boost_FOUND)
-  include_directories(${Boost_INCLUDE_DIRS})
-  target_link_libraries(repeater ${Boost_LIBRARIES})
-endif(Boost_FOUND)
-
+        ${devcash_core_libs}
+        ${ZMQ}
+        ${Protobuf_LIBRARIES}
+        ${CMAKE_THREAD_LIBS_INIT}
+        ${OPENSSL_LIBRARIES}
+        ${Boost_LIBRARIES}
+        )
 target_include_directories(repeater PRIVATE ${dcInclude})
-
 install (TARGETS repeater DESTINATION bin)
 
 #
 # Chain state Tests
 #
-
 add_executable(circuit circuit.cpp ${dcInclude})
 target_link_libraries (circuit
-  ${devcash_core_libs}
-  ${ZMQ}
-  )
-
-if (OPENSSL_FOUND)
-  include_directories(${OPENSSL_INCLUDE_DIR})
-  target_link_libraries (circuit ${OPENSSL_LIBRARIES})
-endif (OPENSSL_FOUND)
-
-target_link_libraries(circuit ${CMAKE_THREAD_LIBS_INIT})
-
-if(Boost_FOUND)
-  include_directories(${Boost_INCLUDE_DIRS})
-  target_link_libraries(circuit ${Boost_LIBRARIES})
-endif(Boost_FOUND)
-
+        ${devcash_core_libs}
+        ${ZMQ}
+        ${CMAKE_THREAD_LIBS_INIT}
+        ${OPENSSL_LIBRARIES}
+        ${Boost_LIBRARIES}
+        )
 target_include_directories(circuit PRIVATE ${dcInclude})
-
 install (TARGETS circuit DESTINATION bin)
 
 add_executable(laminar laminar.cpp ${dcInclude})
