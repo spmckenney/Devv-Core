@@ -136,15 +136,17 @@ int main(int argc, char* argv[]) {
           FinalBlock one_block(buffer, priori, keys, options->mode);
           std::vector<TransactionPtr> txs = one_block.CopyTransactions();
           for (TransactionPtr& one_tx : txs) {
-			pqxx::work stmt(db_link);
-			std::vector<TransferPtr> xfers = one_tx->getTransfers();
-			std::string sig_str(txs->getSignature().begin(), txs->getSignature().end());
-			std::string sender_str;
-			uint64_t coin_id = 0;
-			int64_t send_amount = 0;
+            pqxx::work stmt(db_link);
+            std::vector<TransferPtr> xfers = one_tx->getTransfers();
+            std::string sig_str(one_tx->getSignature().getCanonical().begin()
+                              , one_tx->getSignature().getCanonical().end());
+            std::string sender_str;
+            uint64_t coin_id = 0;
+            int64_t send_amount = 0;
             for (TransferPtr& one_xfer : xfers) {
               if (one_xfer->getAmount() < 0) {
-                std::string temp(one_xfer->getAddress().begin(), one_xfer->getAddress().end());
+                std::string temp(one_xfer->getAddress().getCanonical().begin()
+                               , one_xfer->getAddress().getCanonical().end());
                 sender_str = temp;
                 coin_id = one_xfer->getCoin();
                 send_amount = one_xfer->getAmount();
@@ -165,7 +167,8 @@ int main(int argc, char* argv[]) {
 			  int64_t amount = one_xfer->getAmount();
               if (amount < 0) continue;
               //update receiver
-              std::string receiver_str(one_xfer->getAddress().begin(), one_xfer->getAddress().end());
+              std::string receiver_str(one_xfer->getAddress().getCanonical().begin()
+                                     , one_xfer->getAddress().getCanonical().end());
               pqxx::work rx_stmt(db_link);
               pqxx::result rx_balance = stmt.prepared(kBALANCE_SELECT)(receiver_str)(coin_id).exec();
               if (rx_balance.empty()) {
