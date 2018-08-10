@@ -103,26 +103,23 @@ int main(int argc, char* argv[]) {
 
     std::string shard_name = "Shard-"+std::to_string(options->shard_index);
     bool db_connected = false;
-    if (!options->db_user.empty() && !options->db_host.empty()
-       && !options->db_name.empty() && !options->db_pass.empty()) {
-      pqxx::connection db_link(
-        "username="+options->db_user+
-        " host="+options->db_host+
-        " password="+options->db_pass+
-        " dbname="+options->db_name+
-        " port="+std::to_string(options->db_port));
-      if (db_link.is_open()) {
-        LOG_INFO << "Successfully connected to database.";
-        db_connected = true;
-        db_link.prepare(kTX_INSERT, kTX_INSERT_STATEMENT);
-        db_link.prepare(kRX_INSERT, kRX_INSERT_STATEMENT);
-        db_link.prepare(kWALLET_INSERT, kWALLET_INSERT_STATEMENT);
-        db_link.prepare(kBALANCE_SELECT, kBALANCE_SELECT_STATEMENT);
-        db_link.prepare(kBALANCE_INSERT, kBALANCE_INSERT_STATEMENT);
-        db_link.prepare(kBALANCE_UPDATE, kBALANCE_UPDATE_STATEMENT);
-	  } else {
-        LOG_INFO << "Database connection failed.";
-	  }
+    pqxx::connection db_link(
+      "username="+options->db_user+
+      " host="+options->db_host+
+      " password="+options->db_pass+
+      " dbname="+options->db_name+
+      " port="+std::to_string(options->db_port));
+    if (db_link.is_open()) {
+      LOG_INFO << "Successfully connected to database.";
+      db_connected = true;
+      db_link.prepare(kTX_INSERT, kTX_INSERT_STATEMENT);
+      db_link.prepare(kRX_INSERT, kRX_INSERT_STATEMENT);
+      db_link.prepare(kWALLET_INSERT, kWALLET_INSERT_STATEMENT);
+      db_link.prepare(kBALANCE_SELECT, kBALANCE_SELECT_STATEMENT);
+      db_link.prepare(kBALANCE_INSERT, kBALANCE_INSERT_STATEMENT);
+      db_link.prepare(kBALANCE_UPDATE, kBALANCE_UPDATE_STATEMENT);
+    } else {
+      LOG_INFO << "Database connection failed.";
     }
 
     //@todo(nick@cloudsolar.co): read pre-existing chain
@@ -133,46 +130,51 @@ int main(int argc, char* argv[]) {
       if (p->message_type == eMessageType::FINAL_BLOCK) {
         //update database
         if (db_connected) {
-          std::vector<TransactionPtr> txs = p->CopyTransactions();
+          InputBuffer buffer(p->data);
+          ChainState priori;
+          KeyRing keys;
+          FinalBlock one_block(buffer, priori, keys, options->mode);
+          std::vector<TransactionPtr> txs = one_block.CopyTransactions();
           for (TransactionPtr& one_tx : txs) {
 			pqxx::work stmt(db_link);
-			std::vector<TransferPtr> xfers = txs->getTransfers();
-			Siganture sig = txs->getSignature();
-			Address sender;
+			std::vector<TransferPtr> xfers = one_tx->getTransfers();
+			std::string sig_str(txs->getSignature().begin(), txs->getSignature().end());
+			std::string sender_str;
 			uint64_t coin_id = 0;
 			int64_t send_amount = 0;
             for (TransferPtr& one_xfer : xfers) {
               if (one_xfer->getAmount() < 0) {
-                sender = one_xfer.getAddress();
-                coin_id = one_xfer.getCoin();
-                send_amount = one_xfer.getAmount();
+                std::string temp(one_xfer->getAddress().begin(), one_xfer->getAddress().end());
+                sender_str = temp;
+                coin_id = one_xfer->getCoin();
+                send_amount = one_xfer->getAmount();
                 break;
 			  }
 			} //end sender search loop
 
 			//update sender
-			pqxx::result balance_result = stmt.prepared(kBALANCE_SELECT)(sender.getCanonical())(coin_id).exec();
+			pqxx::result balance_result = stmt.prepared(kBALANCE_SELECT)(sender_str)(coin_id).exec();
 			if (balance_result.empty()) {
-              stmt.prepared(kBALANCE_INSERT)(sender.getCanonical())(coin_id)(kNIL_UUID_PSQL)(send_amount).exec();
+              stmt.prepared(kBALANCE_INSERT)(sender_str)(coin_id)(kNIL_UUID_PSQL)(send_amount).exec();
 			} else {
               int64_t new_balance = balance_result[0][0].as<int64_t>()-send_amount;
-              stmt.prepared(kBALANCE_UPDATE)(new_balance)(sender.getCanonical())(coin_id).exec();
+              stmt.prepared(kBALANCE_UPDATE)(new_balance)(sender_str)(coin_id).exec();
 			}
-			stmt.prepared(kTX_INSERT)(sig.getCanonical())(shard_name)(chain_height)(sender.getCanonical())(coin_id)(send_amount).exec();
+			stmt.prepared(kTX_INSERT)(sig_str)(shard_name)(chain_height)(sender_str)(coin_id)(send_amount).exec();
             for (TransferPtr& one_xfer : xfers) {
 			  int64_t amount = one_xfer->getAmount();
               if (amount < 0) continue;
               //update receiver
-              Address receiver = one_xfer->getAddress();
+              std::string receiver_str(one_xfer->getAddress().begin(), one_xfer->getAddress().end());
               pqxx::work rx_stmt(db_link);
-              pqxx::result rx_balance = stmt.prepared(kBALANCE_SELECT)(receiver.getCanonical())(coin_id).exec();
+              pqxx::result rx_balance = stmt.prepared(kBALANCE_SELECT)(receiver_str)(coin_id).exec();
               if (rx_balance.empty()) {
-                stmt.prepared(kBALANCE_INSERT)(receiver.getCanonical())(coin_id)(kNIL_UUID_PSQL)(amount).exec();
+                stmt.prepared(kBALANCE_INSERT)(receiver_str)(coin_id)(kNIL_UUID_PSQL)(amount).exec();
               } else {
                 int64_t new_balance = balance_result[0][0].as<int64_t>()+amount;
-                stmt.prepared(kBALANCE_UPDATE)(new_balance)(reciever.getCanonical())(coin_id).exec();
+                stmt.prepared(kBALANCE_UPDATE)(new_balance)(receiver_str)(coin_id).exec();
 			  }
-			  stmt.prepared(kRX_INSERT)(shard_name)(chain_height)(receiver.getCanonical())(coin_id)(send_amount)(sig.getCanonical()).exec();
+			  stmt.prepared(kRX_INSERT)(shard_name)(chain_height)(receiver_str)(coin_id)(send_amount)(sig_str).exec();
 			} //end transfer loop
 			stmt.commit();
           } //end transaction loop
