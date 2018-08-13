@@ -47,6 +47,7 @@ list(REMOVE_DUPLICATES dcInclude)
 
 # External third-party libraries
 find_library(ZMQ zmq)
+find_library(PQXX pqxx)
 
 # Build the common module objects
 file(GLOB common_SRC
@@ -191,6 +192,7 @@ target_link_libraries (repeater
         ${devcash_core_libs}
         ${ZMQ}
         ${Protobuf_LIBRARIES}
+        ${PQXX}
         ${CMAKE_THREAD_LIBS_INIT}
         ${OPENSSL_LIBRARIES}
         ${Boost_LIBRARIES}
