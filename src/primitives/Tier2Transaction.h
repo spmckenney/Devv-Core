@@ -259,7 +259,7 @@ class Tier2Transaction : public Transaction {
    */
   bool do_isSound(const KeyRing& keys) const {
     MTR_SCOPE_FUNC();
-    //try {
+    try {
       if (is_sound_) { return (is_sound_); }
       long total = 0;
       byte oper = getOperation();
@@ -312,12 +312,10 @@ class Tier2Transaction : public Transaction {
         return false;
       }
       return true;
-    /*
-     * } catch (const std::exception& e) {
+    } catch (const std::exception& e) {
       LOG_WARNING << FormatException(&e, "transaction");
+      throw;
     }
-     */
-    return false;
   }
 
   /**
