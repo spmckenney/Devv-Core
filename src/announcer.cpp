@@ -33,7 +33,6 @@ namespace fs = boost::filesystem;
 void ParallelPush(std::mutex& m, std::vector<std::vector<byte>>& array
     , const std::vector<byte>& elt) {
   std::lock_guard<std::mutex> guard(m);
-  LOG_DEBUG << "ParallelPush: Pushing size " << elt.size();
   array.push_back(elt);
 }
 
@@ -104,7 +103,7 @@ int main(int argc, char* argv[]) {
       files.push_back(entry.path().string());
     }
 
-    ThreadPool::SequentialFor(0, (int) files.size(), [&](int i) {
+    ThreadPool::ParallelFor(0, (int) files.size(), [&](int i) {
       LOG_INFO << "Reading " << files.at(i);
       std::ifstream file(files.at(i), std::ios::binary);
       file.unsetf(std::ios::skipws);
@@ -171,7 +170,7 @@ int main(int argc, char* argv[]) {
       }
 
       ParallelPush(tx_lock, transactions, batch);
-    });
+    }, 3);
 
     LOG_INFO << "Loaded " << std::to_string(input_blocks_) << " transactions in " << transactions.size() << " batches.";
 
@@ -204,7 +203,6 @@ int main(int argc, char* argv[]) {
       LOG_INFO << "Finished 0";
     }
     LOG_INFO << "Finished 1";
-    sleep(5);
     server->stopServer();
     LOG_WARNING << "All done.";
     return (true);
