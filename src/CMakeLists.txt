@@ -125,13 +125,12 @@ install (TARGETS devcash DESTINATION bin)
 
 ### protobuf defs ###
 find_package(Protobuf REQUIRED)
-include_directories(${Protobuf_INCLUDE_DIRS})
+include_directories(${PROTOBUF_INCLUDE_DIR})
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS pbuf/devv.proto)
 #protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS EXPORT_MACRO DLL_EXPORT foo.proto)
 protobuf_generate_python(PROTO_PY pbuf/devv.proto)
 #add_executable(bar bar.cc ${PROTO_SRCS} ${PROTO_HDRS})
-#target_link_libraries(bar ${Protobuf_LIBRARIES})
 
 # Dummy target that triggers python protobuf generation
 add_custom_target(myTarget ALL DEPENDS ${PROTO_PY})
@@ -140,7 +139,7 @@ add_custom_target(myTarget ALL DEPENDS ${PROTO_PY})
 set(devv_all_libs
         ${devcash_core_libs}
         ${ZMQ}
-        ${Protobuf_LIBRARIES}
+        ${PROTOBUF_LIBRARY}
         ${OPENSSL_LIBRARIES}
         ${CMAKE_THREAD_LIBS_INIT}
         ${Boost_LIBRARIES}
@@ -173,14 +172,7 @@ install (TARGETS announcer DESTINATION bin)
 # pb_annnouncer
 #
 add_executable(pb_announcer pb_announcer.cpp ${dcInclude} ${PROTO_SRCS} ${PROTO_HDRS})
-target_link_libraries (pb_announcer
-        ${devcash_core_libs}
-        ${ZMQ}
-        ${Protobuf_LIBRARIES}
-        ${CMAKE_THREAD_LIBS_INIT}
-        ${OPENSSL_LIBRARIES}
-        ${Boost_LIBRARIES}
-        )
+target_link_libraries (pb_announcer ${devv_all_libs})
 target_include_directories(pb_announcer PRIVATE ${dcInclude})
 install (TARGETS pb_announcer DESTINATION bin)
 
@@ -188,15 +180,7 @@ install (TARGETS pb_announcer DESTINATION bin)
 # Repeater
 #
 add_executable(repeater repeater.cpp ${dcInclude})
-target_link_libraries (repeater
-        ${devcash_core_libs}
-        ${ZMQ}
-        ${Protobuf_LIBRARIES}
-        ${PQXX}
-        ${CMAKE_THREAD_LIBS_INIT}
-        ${OPENSSL_LIBRARIES}
-        ${Boost_LIBRARIES}
-        )
+target_link_libraries (repeater ${devv_all_libs} ${PQXX})
 target_include_directories(repeater PRIVATE ${dcInclude})
 install (TARGETS repeater DESTINATION bin)
 
