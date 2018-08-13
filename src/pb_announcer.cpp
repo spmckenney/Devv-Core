@@ -41,10 +41,10 @@ void ParallelPush(std::mutex& m, std::vector<std::vector<byte>>& array
  */
 struct announcer_options {
   std::string bind_endpoint;
+  std::string protobuf_endpoint;
   eAppMode mode;
   unsigned int node_index;
   unsigned int shard_index;
-  std::string working_dir;
   std::string inn_keys;
   std::string node_keys;
   std::string key_pass;
@@ -52,7 +52,6 @@ struct announcer_options {
   eDebugMode debug_mode;
   unsigned int batch_size;
   unsigned int start_delay;
-  unsigned int sleep_ms;
   bool distinct_ops;
 };
 
@@ -94,7 +93,7 @@ int main(int argc, char* argv[]) {
     unsigned int processed = 0;
 
     zmq::socket_t socket (context, ZMQ_REP);
-    socket.bind ("tcp://*:5555");
+    socket.bind (options->protobuf_endpoint);
 
     if (options->start_delay > 0) sleep(options->start_delay);
 
@@ -127,13 +126,18 @@ int main(int argc, char* argv[]) {
         server->queueMessage(std::move(announce_msg));
         LOG_DEBUG << "Sent transaction batch #" << processed;
         ++processed;
+
+        if (fs::exists(options->stop_file)) {
+          LOG_INFO << "Shutdown file exists. Stopping pb_announcer...";
+          keep_running = false;
+        }
       }
 
       LOG_INFO << "Finished 0";
 
-      zmq::message_t reply (7);
-      memcpy (reply.data (), "SUCCESS", 7);
-      socket.send (reply);
+      zmq::message_t reply(7);
+      memcpy(reply.data(), "SUCCESS", 7);
+      socket.send(reply);
     }
 
     LOG_INFO << "Finished 1";
@@ -177,20 +181,13 @@ annouonces them to nodes provided by the host-list arguments.\n\
         ("mode", po::value<std::string>(), "Devcash mode (T1|T2|scan)")
         ("node-index", po::value<unsigned int>(), "Index of this node")
         ("shard-index", po::value<unsigned int>(), "Index of this shard")
-        ("num-consensus-threads", po::value<unsigned int>(), "Number of consensus threads")
-        ("num-validator-threads", po::value<unsigned int>(), "Number of validation threads")
-        ("bind-endpoint", po::value<std::string>(), "Endpoint for server (i.e. tcp://*:5556)")
-        ("working-dir", po::value<std::string>(), "Directory where inputs are read and outputs are written")
-        ("output", po::value<std::string>(), "Output path in binary JSON or CBOR")
-        ("trace-output", po::value<std::string>(), "Output path to JSON trace file (Chrome)")
+        ("bind-endpoint", po::value<std::string>(), "Endpoint for validator server (i.e. tcp://*:5556)")
+        ("protobuf-endpoint", po::value<std::string>(), "Endpoint for protobuf server (i.e. tcp://*:5557)")
         ("inn-keys", po::value<std::string>(), "Path to INN key file")
         ("node-keys", po::value<std::string>(), "Path to Node key file")
         ("key-pass", po::value<std::string>(), "Password for private keys")
-        ("generate-tx", po::value<unsigned int>(), "Generate at least this many Transactions")
-        ("tx-batch-size", po::value<unsigned int>(), "Target size of transaction batches")
-        ("stop-file", po::value<std::string>(), "A file in working-dir indicating that this node should stop.")
+        ("stop-file", po::value<std::string>(), "When this file exists it indicates that this announcer should stop.")
         ("start-delay", po::value<unsigned int>(), "Sleep time before starting (millis)")
-        ("sleep-ms", po::value<unsigned int>(), "Sleep time between batches (millis)")
         ("separate-ops", po::value<bool>(), "Separate transactions with different operations into distinct batches?")
         ;
 
@@ -279,11 +276,11 @@ annouonces them to nodes provided by the host-list arguments.\n\
       LOG_INFO << "Bind URI was not set";
     }
 
-    if (vm.count("working-dir")) {
-      options->working_dir = vm["working-dir"].as<std::string>();
-      LOG_INFO << "Working dir: " << options->working_dir;
+    if (vm.count("protobuf-endpoint")) {
+      options->protobuf_endpoint = vm["protobuf-endpoint"].as<std::string>();
+      LOG_INFO << "Bind URI: " << options->protobuf_endpoint;
     } else {
-      LOG_INFO << "Working dir was not set.";
+      LOG_INFO << "Bind URI was not set";
     }
 
     if (vm.count("inn-keys")) {
@@ -314,28 +311,12 @@ annouonces them to nodes provided by the host-list arguments.\n\
       LOG_INFO << "Stop file was not set. Use a signal to stop the node.";
     }
 
-    if (vm.count("tx-batch-size")) {
-      options->batch_size = vm["tx-batch-size"].as<unsigned int>();
-      LOG_INFO << "Batch size: " << options->start_delay;
-    } else {
-      LOG_INFO << "Batch size was not set (default to no restrictions).";
-      options->batch_size = 0;
-    }
-
     if (vm.count("start-delay")) {
       options->start_delay = vm["start-delay"].as<unsigned int>();
       LOG_INFO << "Start delay: " << options->start_delay;
     } else {
       LOG_INFO << "Start delay was not set (default to no delay).";
       options->start_delay = 0;
-    }
-
-    if (vm.count("sleep-ms")) {
-      options->sleep_ms = vm["sleep-ms"].as<unsigned int>();
-      LOG_INFO << "Sleep millis: " << options->sleep_ms;
-    } else {
-      LOG_INFO << "Sleep millis was not set (default to no waiting).";
-      options->sleep_ms = 0;
     }
 
     if (vm.count("separate-ops")) {
