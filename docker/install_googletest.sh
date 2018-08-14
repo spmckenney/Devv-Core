@@ -1,7 +1,7 @@
 #!/bin/bash -ex
 
 cd ${HOME}
-mkdir src
+mkdir -p src
 cd src
 
 git clone https://github.com/google/googletest.git

@@ -75,4 +75,4 @@ TEST_F(ChainStateTest, addCoin_0) {
   EXPECT_EQ(chain_state.getStateMap().size(), 1);
 }
 
-} // namespace Devcash
+} // namespace

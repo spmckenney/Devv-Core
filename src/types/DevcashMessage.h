@@ -40,9 +40,20 @@ struct DevcashMessage {
   std::vector<uint8_t> data;
   uint32_t index;
 
-  explicit DevcashMessage(uint32_t message_index) : uri(""), message_type(eMessageType::VALID), data(), index(message_index) {}
-  DevcashMessage(URI message_uri, eMessageType msgType, std::vector<uint8_t>& message_data, uint32_t message_index) :
-    uri(message_uri), message_type(msgType), data(message_data), index(message_index) {}
+  explicit DevcashMessage(uint32_t message_index)
+      : uri("")
+      , message_type(eMessageType::VALID)
+      , data()
+      , index(message_index) {}
+
+  DevcashMessage(URI message_uri,
+                 eMessageType msgType,
+                 const std::vector<uint8_t>& message_data,
+                 uint32_t message_index)
+      : uri(message_uri)
+      , message_type(msgType)
+      , data(message_data)
+      , index(message_index) {}
 
   /**
    * Constructor. Takes a string to initialize data vector

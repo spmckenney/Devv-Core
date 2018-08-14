@@ -26,6 +26,7 @@
 #include <thread>
 
 #include "common/devcash_types.h"
+#include "common/devcash_constants.h"
 #include "common/logger.h"
 #include "common/minitrace.h"
 #include "primitives/Address.h"
@@ -33,9 +34,6 @@
 
 namespace Devcash
 {
-
-static const size_t kFILE_KEY_SIZE = 379;
-static const size_t kFILE_NODEKEY_SIZE = 448;
 
 template <typename Container>
 void CheckSizeEqual(const Container& c, size_t size) {
@@ -137,11 +135,11 @@ int StreamWriteStr(const std::string& str, std::ostream* fout);
 
 /**
  * Reads a file into a string
- * @param filePath the path of the file
+ * @param file_path the path of the file
  * @return if the file is readable, returns a string of its contents
  * @return if file is not readable, returns an empty string
  */
-std::string ReadFile(const std::string& filePath);
+std::string ReadFile(const std::string& file_path);
 
 /**
  * Reacts to an OS signal.

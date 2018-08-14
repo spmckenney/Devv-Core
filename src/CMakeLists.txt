@@ -12,13 +12,19 @@ enable_testing()
 
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" OR
     "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-set(warnings "-Wall -Wextra -std=gnu++11 -Wno-unused-function")
+    set(warnings "-Wall -Wextra \
+                  -pedantic \
+                  -Wlogical-op \
+                  -Wno-unused-function \
+                  -Wno-unused-parameter \
+                  -Wno-vla \
+                  -fdiagnostics-show-option")
 elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
     set(warnings "/W4 /WX /EHsc")
 endif()
 
 if (NOT CONFIGURED_ONCE)
-    set(CMAKE_CXX_FLAGS "${warnings}"
+    set(CMAKE_CXX_FLAGS "${warnings} -Woverloaded-virtual -Werror -std=gnu++11"
         CACHE STRING "Flags used by the compiler during all build types." FORCE)
     set(CMAKE_C_FLAGS   "${warnings}"
         CACHE STRING "Flags used by the compiler during all build types." FORCE)
@@ -41,6 +47,7 @@ list(REMOVE_DUPLICATES dcInclude)
 
 # External third-party libraries
 find_library(ZMQ zmq)
+find_library(PQXX pqxx)
 
 # Build the common module objects
 file(GLOB common_SRC
@@ -116,108 +123,79 @@ set(CONFIGURED_ONCE TRUE CACHE INTERNAL
 
 install (TARGETS devcash DESTINATION bin)
 
+### protobuf defs ###
+find_package(Protobuf REQUIRED)
+include_directories(${PROTOBUF_INCLUDE_DIR})
+include_directories(${CMAKE_CURRENT_BINARY_DIR})
+protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS pbuf/devv.proto)
+#protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS EXPORT_MACRO DLL_EXPORT foo.proto)
+protobuf_generate_python(PROTO_PY pbuf/devv.proto)
+#add_executable(bar bar.cc ${PROTO_SRCS} ${PROTO_HDRS})
+
+# Dummy target that triggers python protobuf generation
+add_custom_target(myTarget ALL DEPENDS ${PROTO_PY})
+
+# Convenience variable containing all linker libs
+set(devv_all_libs
+        ${devcash_core_libs}
+        ${ZMQ}
+        ${PROTOBUF_LIBRARY}
+        ${OPENSSL_LIBRARIES}
+        ${CMAKE_THREAD_LIBS_INIT}
+        ${Boost_LIBRARIES}
+        )
 #
 # Scanner
 #
-
 add_executable(scanner scanner.cpp ${dcInclude})
-target_link_libraries (scanner
-  ${devcash_core_libs}
-  ${ZMQ}
-  )
-
-if (OPENSSL_FOUND)
-  include_directories(${OPENSSL_INCLUDE_DIR})
-  target_link_libraries (scanner ${OPENSSL_LIBRARIES})
-endif (OPENSSL_FOUND)
-
-target_link_libraries(scanner ${CMAKE_THREAD_LIBS_INIT})
-
-if(Boost_FOUND)
-  include_directories(${Boost_INCLUDE_DIRS})
-  target_link_libraries(scanner ${Boost_LIBRARIES})
-endif(Boost_FOUND)
-
+target_link_libraries (scanner ${devv_all_libs})
 target_include_directories(scanner PRIVATE ${dcInclude})
-
 install (TARGETS scanner DESTINATION bin)
 
 #
-# Annnouncer
+# devv-sign
 #
+add_executable(devv-sign devv-sign.cpp ${dcInclude} ${PROTO_SRCS} ${PROTO_HDRS})
+target_link_libraries (devv-sign ${devv_all_libs})
+target_include_directories(devv-sign PRIVATE ${dcInclude})
+install (TARGETS devv-sign DESTINATION bin)
 
-add_executable(announcer announcer.cpp ${dcInclude})
-target_link_libraries (announcer
-  ${devcash_core_libs}
-  ${ZMQ}
-  )
-
-if (OPENSSL_FOUND)
-  include_directories(${OPENSSL_INCLUDE_DIR})
-  target_link_libraries (announcer ${OPENSSL_LIBRARIES})
-endif (OPENSSL_FOUND)
-
-target_link_libraries(announcer ${CMAKE_THREAD_LIBS_INIT})
-
-if(Boost_FOUND)
-  include_directories(${Boost_INCLUDE_DIRS})
-  target_link_libraries(announcer ${Boost_LIBRARIES})
-endif(Boost_FOUND)
-
+#
+# annnouncer
+#
+add_executable(announcer announcer.cpp ${dcInclude} ${PROTO_SRCS} ${PROTO_HDRS})
+target_link_libraries (announcer ${devv_all_libs})
 target_include_directories(announcer PRIVATE ${dcInclude})
-
 install (TARGETS announcer DESTINATION bin)
+
+#
+# pb_annnouncer
+#
+add_executable(pb_announcer pb_announcer.cpp ${dcInclude} ${PROTO_SRCS} ${PROTO_HDRS})
+target_link_libraries (pb_announcer ${devv_all_libs})
+target_include_directories(pb_announcer PRIVATE ${dcInclude})
+install (TARGETS pb_announcer DESTINATION bin)
 
 #
 # Repeater
 #
-
 add_executable(repeater repeater.cpp ${dcInclude})
-target_link_libraries (repeater
-  ${devcash_core_libs}
-  ${ZMQ}
-  )
-
-if (OPENSSL_FOUND)
-  include_directories(${OPENSSL_INCLUDE_DIR})
-  target_link_libraries (repeater ${OPENSSL_LIBRARIES})
-endif (OPENSSL_FOUND)
-
-target_link_libraries(repeater ${CMAKE_THREAD_LIBS_INIT})
-
-if(Boost_FOUND)
-  include_directories(${Boost_INCLUDE_DIRS})
-  target_link_libraries(repeater ${Boost_LIBRARIES})
-endif(Boost_FOUND)
-
+target_link_libraries (repeater ${devv_all_libs} ${PQXX})
 target_include_directories(repeater PRIVATE ${dcInclude})
-
 install (TARGETS repeater DESTINATION bin)
 
 #
 # Chain state Tests
 #
-
 add_executable(circuit circuit.cpp ${dcInclude})
 target_link_libraries (circuit
-  ${devcash_core_libs}
-  ${ZMQ}
-  )
-
-if (OPENSSL_FOUND)
-  include_directories(${OPENSSL_INCLUDE_DIR})
-  target_link_libraries (circuit ${OPENSSL_LIBRARIES})
-endif (OPENSSL_FOUND)
-
-target_link_libraries(circuit ${CMAKE_THREAD_LIBS_INIT})
-
-if(Boost_FOUND)
-  include_directories(${Boost_INCLUDE_DIRS})
-  target_link_libraries(circuit ${Boost_LIBRARIES})
-endif(Boost_FOUND)
-
+        ${devcash_core_libs}
+        ${ZMQ}
+        ${CMAKE_THREAD_LIBS_INIT}
+        ${OPENSSL_LIBRARIES}
+        ${Boost_LIBRARIES}
+        )
 target_include_directories(circuit PRIVATE ${dcInclude})
-
 install (TARGETS circuit DESTINATION bin)
 
 add_executable(laminar laminar.cpp ${dcInclude})
