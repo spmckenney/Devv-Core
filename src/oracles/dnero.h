@@ -25,97 +25,138 @@ class dnero : public oracleInterface {
 
   const long kDEFAULT_DELAY = 604800; //1 week in seconds
 
-  /**
-   *  @return string that invokes this oracle in a T2 transaction
-  */
-  static std::string getCoinType() {
-    return("dnero");
-  }
-
-  /**
-   *  @return int internal index of this coin type
-  */
-  static int getCoinIndex() {
-    return(0);
-  }
-
-  /** Checks if a transaction is objectively valid according to this oracle.
-   *  When this function returns false, a transaction is syntactically invalid
-   *  and will be invalid for all chain states.
-   *  Transactions are atomic, so if any portion of the transaction is invalid,
-   *  the entire transaction is also invalid.
-   * @params checkTx the transaction to (in)validate
-   * @return true iff the transaction can be valid according to this oracle
-   * @return false otherwise
-   */
-  bool isSound(Tier2Transaction&) override {
-    return true;
-  }
-
-  /** Checks if a transaction is valid according to this oracle
-   *  given a specific chain state.
-   *  Transactions are atomic, so if any portion of the transaction is invalid,
-   *  the entire transaction is also invalid.
-   *
-   *  A dnero sender must have a dnerowallet or dneroavailable token.
-   *
-   * @params checkTx the transaction to (in)validate
-   * @params context the chain state to check against
-   * @return true iff the transaction is valid according to this oracle
-   * @return false otherwise
-   */
-  bool isValid(Tier2Transaction& checkTx, const ChainState& context) override {
-    if (!isSound(checkTx)) { return false; }
-    std::vector<TransferPtr> xfers = checkTx.getTransfers();
-    for (auto& it : xfers) {
-      if (it->getAmount() < 0) {
-        Address addr = it->getAddress();
-        if ((context.getAmount(dnerowallet::getCoinIndex(), addr) < 1) &&
-            (context.getAmount(dneroavailable::getCoinIndex(), addr) < 1)) {
-          LOG_WARNING << "Error: Addr has no dnerowallet or dneroavailable.";
-          return false;
-        } //endif has dnerowallet or dneroavailable
-      } //endif sender
-    } //end transfer loop
-    return true;
-  }
-
-/** Generate a tier 1 smartcoin transaction based on this tier 2 transaction.
- *
- * @note if delay is zero, sets to default delay as side-effect.
- *
- * @pre This transaction must be valid.
- * @params checkTx the transaction to (in)validate
- * @return a tier 1 transaction to implement this tier 2 logic.
+/**
+ *  @return the string name that invokes this oracle
  */
-  Tier1TransactionPtr getT1Syntax(Tier2TransactionPtr) override {
-    // TODO(spm)
-    Tier1TransactionPtr out = std::make_unique<Tier1Transaction>();
-    //if (out.delay_ == 0) out.delay_ = kDEFAULT_DELAY;
-    //out.type_ = dcash::getCoinType();
-    return(out);
+  static std::string getOracleName() {
+    return("io.devv.dnero");
   }
 
 /**
- * End-to-end tier2 process that takes a string, parses it into a transaction,
- * validates it against the provided chain state,
- * and returns a tier 1 transaction if it is valid.
- * Returns null if the transaction is invalid.
- *
- * @params input_buffer the raw transaction to process
- * @params context the chain state to check against
- * @return a tier 1 transaction to implement this tier 2 logic.
- * @return empty/null transaction if the transaction is invalid
+ *  @return the shard used by this oracle
  */
-  Tier2TransactionPtr tier2Process(InputBuffer &input_buffer,
-                                   const ChainState &context,
-                                   const KeyRing &keys) override {
-    Tier2TransactionPtr tx = Tier2Transaction::CreateUniquePtr(input_buffer, keys);
-    if (!isValid(*tx, context)) {
-      return std::move(tx);
-    }
-    return nullptr;
+  static uint64_t getShardIndex() {
+    return(0);
   }
+
+/**
+ *  @return the coin type used by this oracle
+ */
+  static uint64_t getCoinIndex() {
+    return(0);
+  }
+
+/** Checks if this proposal is objectively sound according to this oracle.
+ *  When this function returns false, the proposal is syntactically unsound
+ *  and will be invalid for all chain states.
+ * @return true iff the proposal can be valid according to this oracle
+ * @return false otherwise
+ */
+  bool isSound() override {
+    InputBuffer buffer(raw_data_);
+    Tier2Transaction tx = Tier2Transaction::QuickCreate(buffer);
+    for (const Transfer& xfer : tx->getTransfers()) {
+      if (xfer.getDelay() < 1) {
+        error_msg_ = "Dnero transactions must have a delay.";
+        return false;
+      }
+	}
+    return true;
+  }
+
+/** Checks if this proposal is valid according to this oracle
+ *  given a specific blockchain.
+ * @params context the blockchain to check against
+ * @return true iff the proposal is valid according to this oracle
+ * @return false otherwise
+ */
+  bool isValid(const Blockchain& context) override {
+    if (!isSound()) return false;
+    InputBuffer buffer(raw_data_);
+    Tier2Transaction tx = Tier2Transaction::QuickCreate(buffer);
+    Chainstate last_state = context.getHighestChainState();
+    for (const Transfer& xfer : tx->getTransfers()) {
+      if (xfer.getAmount() < 0) {
+        int64_t available = last_state.getAmount(getCoinIndex(), client);
+        Address addr = xfer.getAddress();
+        if (last_state.getAmount(dnerowallet::getCoinIndex(), addr) < 1)
+            && (last_state.getAmount(dneroavailable::getCoinIndex(), addr) < 1) {
+          error_msg_ =  "Error: Dnerowallets or dneroavailable required.";
+          return false;
+        }
+        break;
+      }
+	}
+    return true;
+  }
+
+/**
+ *  @return if not valid or not sound, return an error message
+ */
+  std::string getErrorMessage() override {
+    return(error_msg_);
+  }
+
+/** Generate the transactions to encode the effect of this propsal on chain.
+ *
+ * @pre This transaction must be valid.
+ * @params context the blockchain of the shard that provides context for this oracle
+ * @return a map of shard indicies to transactions to encode in each shard
+ */
+  std::map<uint64_t, std::vector<Tier2Transaction>>
+      getTransactions(const Blockchain& context) override {
+    std::map<uint64_t, std::vector<Tier2Transaction>> out;
+    if (!isValid(context)) return out;
+    InputBuffer buffer(raw_data_);
+    Tier2Transaction tx = Tier2Transaction::QuickCreate(buffer);
+    std::vector<Tier2Transaction> txs;
+    txs.push_back(tx);
+    std::pair<uint64_t, std::vector<Tier2Transaction>> p(getShardIndex(), txs);
+    out.insert(p);
+    return out;
+  }
+
+/** Recursively generate the state of this oracle and all dependent oracles.
+ *
+ * @pre This transaction must be valid.
+ * @params context the blockchain of the shard that provides context for this oracle
+ * @return a map of oracles to data
+ */
+  std::map<std::string, std::vector<byte>>
+      getDecompositionMap(const Blockchain& context) override {
+    std::map<std::string, std::vector<byte>> out;
+    std::vector<byte> data(Str2Bin(raw_data_));
+    std::pair<std::string, std::vector<byte>> p(getOracleName(), data);
+    out.insert(p);
+    return out;
+  }
+
+/** Recursively generate the state of this oracle and all dependent oracles.
+ *
+ * @pre This transaction must be valid.
+ * @params context the blockchain of the shard that provides context for this oracle
+ * @return a map of oracles to data encoded in JSON
+ */
+  virtual std::map<std::string, std::string>
+      getDecompositionMapJSON(const Blockchain& context) override {
+    std::map<std::string, std::vector<byte>> out;
+    std::pair<std::string, std::string> p(getOracleName(), getJSON());
+    out.insert(p);
+    return out;
+  }
+
+/**
+ * @return the internal state of this oracle in JSON.
+ */
+  std::string getJSON() override {
+    if (!isValid(context)) return "{\""dcash+"\":\"ERROR\"}";
+    InputBuffer buffer(raw_data_);
+    Tier2Transaction tx = Tier2Transaction::QuickCreate(buffer);
+    return tx.getJSON();
+  }
+
+private:
+ std::string error_msg_("");
 
 };
 

@@ -1,6 +1,8 @@
 /*
  * data.h is an oracle to handle data storage on chain.
  *
+ * Internal format is addr|signature|data
+ *
  *  Created on: Mar 1, 2018
  *  Author: Nick Williams
  *
@@ -12,103 +14,176 @@
 #include <string>
 
 #include "oracleInterface.h"
-#include "common/logger.h"
 #include "consensus/chainstate.h"
+#include "consensus/KeyRing.h"
 
 using namespace Devcash;
 
-class DCdata : public oracleInterface {
+class data : public oracleInterface {
 
  public:
 
-  const int kBYTES_PER_COIN = 10240; //1 year in seconds
+  const int kBYTES_PER_COIN = 10240;
 
-  /**
-   *  @return string that invokes this oracle in a T2 transaction
-  */
-  static std::string getCoinType() {
-    return("data");
-  }
-
-  /**
-   *  @return int internal index of this coin type
-  */
-  static int getCoinIndex() {
-    return(6);
-  }
-
-  /** Checks if a transaction is objectively valid according to this oracle.
-   *  When this function returns false, a transaction is syntactically invalid
-   *  and will be invalid for all chain states.
-   *  Transactions are atomic, so if any portion of the transaction is invalid,
-   *  the entire transaction is also invalid.
-   *
-   *  A data transaction can only store 10 kB per data token on chain.
-   *
-   * @params checkTx the transaction to (in)validate
-   * @return true iff the transaction can be valid according to this oracle
-   * @return false otherwise
-   */
-  bool isSound(Tier2Transaction& checkTx) override {
-    if (checkTx.getOperation() == eOpType::Exchange) {
-      //TODO: check that exchange is to an INN data collection address
-      //TODO: check that nonce size is valid for coins expended
-      /*if (checkTx.getValueOut() < int(checkTx.nonce_.size()/kBYTES_PER_COIN)) {
-        LOG_WARNING << "Error: Data are too large for tokens provided.";
-        return false;
-      }*/
-    }
-    /// @todo implement me
-    return false;
-  }
-
-  /** Checks if a transaction is valid according to this oracle
-   *  given a specific chain state.
-   *  Transactions are atomic, so if any portion of the transaction is invalid,
-   *  the entire transaction is also invalid.
-   *
-   * @params checkTx the transaction to (in)validate
-   * @params context the chain state to check against
-   * @return true iff the transaction is valid according to this oracle
-   * @return false otherwise
-   */
-  bool isValid(Tier2Transaction& checkTx, const ChainState&) override {
-    if (!isSound(checkTx)) { return false; }
-    return true;
-  }
-
-/** Generate a tier 1 smartcoin transaction based on this tier 2 transaction.
- *
- * @pre This transaction must be valid.
- * @params checkTx the transaction to (in)validate
- * @return a tier 1 transaction to implement this tier 2 logic.
- */
-  Tier1TransactionPtr getT1Syntax(Tier2TransactionPtr) override {
-    /// @todo fixme
-    Tier1TransactionPtr t1 = std::make_unique<Tier1Transaction>();
-    return(t1);
+  static Address getDataSinkAddress() {
+    std::vector<byte> bin(kNODE_ADDR_SIZE, 0);
+    Address sink(bin);
+    return sink;
   }
 
 /**
- * End-to-end tier2 process that takes a string, parses it into a transaction,
- * validates it against the provided chain state,
- * and returns a tier 1 transaction if it is valid.
- * Returns null if the transaction is invalid.
- *
- * @params input_buffer the raw transaction to process
- * @params context the chain state to check against
- * @return a tier 1 transaction to implement this tier 2 logic.
- * @return empty/null transaction if the transaction is invalid
+ *  @return the string name that invokes this oracle
  */
-  Tier2TransactionPtr tier2Process(InputBuffer &input_buffer,
-                                   const ChainState &context,
-                                   const KeyRing &keys) override {
-    Tier2TransactionPtr tx = Tier2Transaction::CreateUniquePtr(input_buffer, keys);
-    if (!isValid(*tx, context)) {
-      return std::move(tx);
-    }
-    return nullptr;
+  static std::string getOracleName() {
+    return("io.devv.data");
   }
+
+/**
+ *  @return the shard used by this oracle
+ */
+  static uint64_t getShardIndex() {
+    return(6);
+  }
+
+/**
+ *  @return the coin type used by this oracle
+ */
+  static uint64_t getCoinIndex() {
+    return(6);
+  }
+
+/** Checks if this proposal is objectively sound according to this oracle.
+ *  When this function returns false, the proposal is syntactically unsound
+ *  and will be invalid for all chain states.
+ * @return true iff the proposal can be valid according to this oracle
+ * @return false otherwise
+ */
+  bool isSound() override {
+    size_t addr_size = Address::getSizeByType(raw_data_.at(0));
+    if (addr_size < 1) {
+      error_msg_ = "Bad address size.";
+      return false;
+	}
+	size_t sig_size = Signature::getSizeByType(raw_data_.at(addr_size+1));
+	if sig_size < 1) {
+      error_msg_ = "Bad signature size.";
+      return false;
+	}
+	size_t data_size = raw_data_.size()-addr_size-sig_size-2;
+    if (data_size <= 0) {
+      error_msg_ = "Bad data size.";
+      return false;
+    }
+    return true;
+  }
+
+/** Checks if this proposal is valid according to this oracle
+ *  given a specific blockchain.
+ * @params context the blockchain to check against
+ * @return true iff the proposal is valid according to this oracle
+ * @return false otherwise
+ */
+  bool isValid(const Blockchain& context) override {
+    if (!isSound()) return false;
+    size_t addr_size = Address::getSizeByType(raw_data_.at(0));
+    Address client(Str2Bin(raw_data_.substr(0, addr_size+1)));
+	size_t sig_size = Signature::getSizeByType(raw_data_.at(addr_size+1));
+	size_t data_size = raw_data_.size()-addr_size-sig_size-2;
+    int64_t coins_needed = ceil(data_size/kBYTES_PER_COIN);
+    Chainstate last_state = context.getHighestChainState();
+    int64_t available = last_state.getAmount(getCoinIndex(), client);
+    if (available < coins_needed) {
+      error_msg_ = "Data too large for coins provided";
+      return false;
+	}
+	return true;
+  }
+
+/**
+ *  @return if not valid or not sound, return an error message
+ */
+  std::string getErrorMessage() override {
+    return(error_msg_);
+  }
+
+/** Generate the transactions to encode the effect of this propsal on chain.
+ *
+ * @pre This transaction must be valid.
+ * @params context the blockchain of the shard that provides context for this oracle
+ * @return a map of shard indicies to transactions to encode in each shard
+ */
+  std::map<uint64_t, std::vector<Tier2Transaction>>
+      getTransactions(const Blockchain& context) override {
+    std::map<uint64_t, std::vector<Tier2Transaction>> out;
+    if (!isValid(context)) return out;
+    size_t addr_size = Address::getSizeByType(raw_data_.at(0));
+    Address client(Str2Bin(raw_data_.substr(0, addr_size+1)));
+	size_t sig_size = Signature::getSizeByType(raw_data_.at(addr_size+1));
+	Signature sig(Str2Bin(raw_data_.substr(addr_size+1, sig_size+1));
+	size_t data_size = raw_data_.size()-addr_size-sig_size-2;
+    int64_t coins_needed = ceil(data_size/kBYTES_PER_COIN);
+    std::vector<Transfer> xfers;
+    Transfer pay(client, getCoinIndex(), -1*coins_needed, 0;
+    Transfer settle(getDataSinkAddress(), getCoinIndex(), coins_needed, 0);
+    xfers.push_back(pay);
+    xfers.push_back(settle);
+    std::vector<byte> nonce(Str2Bin(raw_data_.substr(raw_data_.size()-data_size)));
+    Tier2Transaction the_tx(eOpType::Exchange, xfers, nonce, sig);
+    std::vector<Tier2Transaction> txs;
+    txs.push_back(the_tx);
+    std::pair<uint64_t, std::vector<Tier2Transaction>> p(getShardIndex(), txs);
+    out.insert(p);
+    return out;
+  }
+
+/** Recursively generate the state of this oracle and all dependent oracles.
+ *
+ * @pre This transaction must be valid.
+ * @params context the blockchain of the shard that provides context for this oracle
+ * @return a map of oracles to data
+ */
+  std::map<std::string, std::vector<byte>>
+      getDecompositionMap(const Blockchain& context) override {
+    std::map<std::string, std::vector<byte>> out;
+    std::vector<byte> data(Str2Bin(raw_data_));
+    std::pair<std::string, std::vector<byte>> p(getOracleName(), data);
+    out.insert(p);
+    return out;
+  }
+
+/** Recursively generate the state of this oracle and all dependent oracles.
+ *
+ * @pre This transaction must be valid.
+ * @params context the blockchain of the shard that provides context for this oracle
+ * @return a map of oracles to data encoded in JSON
+ */
+  virtual std::map<std::string, std::string>
+      getDecompositionMapJSON(const Blockchain& context) override {
+    std::map<std::string, std::vector<byte>> out;
+    std::pair<std::string, std::string> p(getOracleName(), getJSON());
+    out.insert(p);
+    return out;
+  }
+
+/**
+ * @return the internal state of this oracle in JSON.
+ */
+  std::string getJSON() override {
+    size_t addr_size = Address::getSizeByType(raw_data_.at(0));
+    if (addr_size < 1) "{\"data\":\"ADDR_ERROR\"}";
+    Address client(Str2Bin(raw_data_.substr(0, addr_size+1)));
+	size_t sig_size = Signature::getSizeByType(raw_data_.at(addr_size+1));
+	if (sig_size < 1) "{\"data\":\"SIG_ERROR\"}";
+	Signature sig(Str2Bin(raw_data_.substr(addr_size+1, sig_size+1));
+	size_t data_size = raw_data_.size()-addr_size-sig_size-2;
+    std::string json("{\"addr\":\""+client.getHexString+"\",");
+    json += "\"sig\":\""+sig.getHexString()+"\",";
+    json += "\"data\":\""+ToHex(raw_data_.substr(raw_data_.size()-data_size))+"\"}";
+    return json;
+  }
+
+private:
+ std::string error_msg_("");
 
 };
 
