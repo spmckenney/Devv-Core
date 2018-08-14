@@ -1,0 +1,209 @@
+#!/usr/bin/python3
+
+import sys
+sys.path.append(".")
+
+import zmq
+import argparse
+import devv_pb2 as dpb
+from subprocess import check_output
+import time
+
+class DevvTransfer(object):
+    _address = bytes()
+    _coin = 0
+    _amount = 0
+    _delay = 0
+
+    def __init__(self, address=None, coin=None, amount=None, delay=None):
+        print("Transfer: {}:{}:{}:{}".format(address, coin, amount, delay))
+
+        if not coin:
+            raise Exception("Coin type must be set")
+        if not amount:
+            raise Exception("Transfer amount must be set")
+
+        self._address = bytes.fromhex(address)
+        self._coin = int(coin)
+        self._amount = int(amount)
+        self._delay = int(delay)
+
+    def get_pbuf(self):
+        pb_tx = dpb.Transfer()
+        pb_tx.address = self._address
+        pb_tx.coin = self._coin
+        pb_tx.amount = self._amount
+        pb_tx.delay = self._delay
+        return pb_tx
+
+    
+class DevvTransaction(object):
+    _operation = dpb.UNKNOWN
+    _nonce = bytes()
+    _sig = bytes()
+    _transfers = []
+
+    def __init__(self, operation, nonce):
+        self.set_operation(operation)
+        self.set_nonce(nonce)
+
+    def set_nonce(self, nonce):
+        self._nonce = bytes.fromhex(nonce)
+        
+    def set_operation(self, operation):
+        op = operation.upper()
+        if (op.find("CREATE") >= 0):
+            self._operation = dpb.OP_CREATE
+        elif(op.find("MODIFY") >= 0):
+            self._operation = dpb.OP_MODIFY
+        elif(op.find("EXCHANGE") >= 0):
+            self._operation = dpb.OP_EXCHANGE
+        elif(op.find("DELETE") >= 0):
+            self._operation = dpb.OP_DELETE
+        else:
+            raise("Unknown operation")
+        
+    def add_transfer(self, address=None, coin=None, amount=None, delay=0, transfer_string=None):
+        if (transfer_string):
+            print("Adding transfer string")
+            self.add_transfer_string(transfer_string)
+
+        if (address):
+            print("Adding transfer: {}:{}:{}:{}".format(address, coin, amount, delay))
+            self._transfers.append(DevvTransfer(address=address, coin=coin, amount=amount, delay=delay))
+
+    def add_transfer_string(self, transfer_string):
+        p = transfer_string.split(":")
+        if len(p) < 3:
+            raise ValueError('Transfer string must contain "address:coin_type:amount[:delay]"')
+        t = DevvTransfer(address=p[0], coin=p[1], amount=p[2], delay=p[3] if len(p) == 4 else 0)
+        self._transfers.append(t)
+
+    def get_pbuf(self):
+        pb_tx = dpb.Transaction()
+
+        pb_transfers = []
+        for transfer in self._transfers:
+            pb_transfers.append(transfer.get_pbuf())
+        pb_tx.xfers.extend(pb_transfers)
+
+        pb_tx.operation = self._operation
+        pb_tx.nonce = self._nonce
+        pb_tx.sig = self._sig
+
+        return pb_tx
+
+def create_transaction():
+    pass
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='devv command-line utility')
+    parser.add_argument('--from', action='store', dest='source_address',
+                        help='Wallet to transfer coins from',
+                        default=None, required=False)
+    parser.add_argument('--to', action='store', dest='dest_address',
+                        help='Address to transfer coins to',
+                        default=None, required=False)
+    parser.add_argument('--coin-index', action='store', dest='coin_index', default=1,
+                        help='Index of coin type to transfer', type=int)
+    parser.add_argument('--transfer-delay', action='store', dest='transfer_delay', default=0,
+                        help='Transfer delay time in milliseconds', type=int)
+    parser.add_argument('--amount', action='store', dest='amount',
+                        help='Amount of coins to transfer', type=int)
+    parser.add_argument('--transfer', action='append', dest='transfer',
+                        help='A transfer string in the form of "address:coin:amount:delay"')
+    parser.add_argument('--operation', action='store', dest='operation',
+                        help='The type of transaction: CREATE, MODIFY, EXCHANGE, DELETE',
+                        required=True)
+    parser.add_argument('--private-keyfile', action='store', dest='private_keyfile',
+                        help='Location of private key for source address')
+    parser.add_argument('--tmp-dir', action='store', dest='tmp_dir', default='/tmp',
+                        help='Directory to hold the temporary transaction protobuf file')
+    parser.add_argument('--key-pass', action='store', dest='key_pass',
+                        help='NOTE: password for key - TEST ONLY - DO NOT USE REAL PASSWORDS')
+    '''
+    source_address = "310272B05D9A8CF6E1565B965A5CCE6FF88ABD0C250BC17AB23745D512095C2AFCDB3640A2CBA7665F0FAADC26B96E8B8A9D"
+    dest_address = "2102E14466DC0E5A3E6EBBEAB5DD24ABE950E44EF2BEB509A5FD113460414A6EFAB4"
+    coin_type = 1
+    transfer_delay = 0
+    amount = 10
+
+    private_keyfile = ../opt/inn.key
+    '''
+
+    args = parser.parse_args()
+
+    print("")
+    print("-- devv : {}".format(0.1))
+    print("tx_type : {}".format(args.operation.upper() if args.operation != None else args.operation))
+    print("from    : {}".format(args.source_address))
+    print("to      : {}".format(args.dest_address))
+    print("amount  : {}".format(args.amount))
+    print("coin_id : {}".format(args.coin_index))
+    print("delay   : {}".format(args.transfer_delay))
+    print("p_key   : {}".format(args.private_keyfile))
+    print("tmpdir  : {}".format(args.tmp_dir))
+    print("keypass : {}".format(args.key_pass))
+    print("transfer: {}".format(args.transfer))
+    print("")
+    #print("len(from) : {}".format(len(args.source_address)))
+    #print("len(to)   : {}".format(len(args.dest_address)))
+
+    if (args.source_address):
+        if (args.amount < 1):
+            raise ValueError("Transfer amount must be greater than zero.")
+    
+    tx = DevvTransaction(args.operation, "86525F0665010000")
+    if (args.source_address):
+        tx.add_transfer(args.source_address, args.coin_index, -args.amount, args.transfer_delay)
+        tx.add_transfer(args.dest_address, args.coin_index, args.amount, args.transfer_delay)
+
+    if (args.transfer):
+        for transfer in args.transfer:
+            tx.add_transfer(transfer_string=transfer)
+    
+
+    pbtx = tx.get_pbuf()
+
+    print("pbuf")
+    print(pbtx)
+
+    env = dpb.Envelope()
+    env.txs.extend([pbtx])
+
+    env_file = "/tmp/devv-envelope.pbuf"
+    f = open(env_file, "wb")
+    f.write(env.SerializeToString())
+    f.close()
+
+    cmd = ["./devv-sign"]
+    cmd.extend(["./devv-sign"])
+    cmd.extend(["--quiet-mode"])
+    cmd.extend(["--envelope-file", env_file])
+    cmd.extend(["--private-key", args.private_keyfile])
+    cmd.extend(["--key-pass", args.key_pass])
+    
+    print(cmd)
+
+    out = check_output(cmd)
+
+    sig = out.decode("utf-8").rstrip()
+    
+    print("sig: "+sig)
+
+    env.txs[0].sig = bytes.fromhex(sig)
+
+    print(env)
+
+    context = zmq.Context()
+    socket = context.socket(zmq.REQ)
+    socket.connect("tcp://localhost:5555")
+
+    print("Sending message in 3")
+    time.sleep(3)
+
+    socket.send(env.SerializeToString())
+
+    print("Done")
+
+    time.sleep(1)

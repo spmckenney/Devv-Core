@@ -30,9 +30,10 @@ struct devvsign_options {
     UNKNOWN = 3
   };
 
-  fs::path tx_file = "";
+  fs::path envelope_file = "";
   fs::path key_file = "";
   std::string key_pass;
+  bool quiet_mode = false;
   eTxFileType file_type = eTxFileType::UNKNOWN;
 };
 
@@ -65,18 +66,19 @@ int main(int argc, char* argv[]) {
       exit(-1);
     }
   } catch (std::exception& e) {
-    std::cerr << "Error parsing options: " << e.what();
+    std::cerr << "Error parsing options: " << e.what() << std::endl;
     exit(-1);
   }
 
-  auto env = ReadBinaryFile(options->tx_file);
+  auto& out_stream = options->quiet_mode ? std::cerr : std::cout;
+
+  auto env = ReadBinaryFile(options->envelope_file);
 
   std::string env_str(env.begin(), env.end());
 
-
   auto tup = ReadKeyFile(options->key_file);
-  std::cout << tup.address;
-  std::cout << tup.key;
+  out_stream << tup.address;
+  out_stream << tup.key;
 
   options->file_type = devvsign_options::eTxFileType::PROTOBUF;
 
@@ -94,17 +96,17 @@ int main(int argc, char* argv[]) {
   KeyRing keys;
   keys.addNodeKeyPair(tup.address, tup.key, options->key_pass);
 
-
-  std::cout << "made it: " << tup.address.size() << std::endl;
+  out_stream << "made it: " << tup.address.size() << std::endl;
 
   Devv::proto::Envelope envelope;
   envelope.ParseFromString(env_str);
 
   auto pb_transactions = envelope.txs();
-  std::cout << "num tx: " << pb_transactions.size();
+  out_stream << "num tx: " << pb_transactions.size() << std::endl;
   for (auto const& transaction : pb_transactions) {
     auto tx = CreateTransaction(transaction, keys, true);
-    std::cout << "Sig: " << tx->getSignature().getJSON();
+    out_stream << "Sig:" << std::endl;
+    std::cout << tx->getSignature().getJSON() << std::endl;
   }
 }
 
@@ -126,9 +128,10 @@ a value of 0 and print the signature in hex format to stdout\n\
       ("help,h", "produce help message")
       ("version,v", "print version string")
       ("config", po::value(&config_filenames), "Config file where options may be specified (can be specified more than once)")
-      ("tx-file,f", po::value<fs::path>(), "Transaction file")
+      ("envelope-file,e", po::value<fs::path>(), "Envelope file")
       ("private-key,k", po::value<fs::path>(), "File containing private key to use in signing")
       ("key-pass", po::value<std::string>(), "Password for private keys")
+      ("quiet-mode,q", "Runs in quiet mode: the signature is printed to stdout, all other output is directed to stderr")
       ;
 
   po::options_description all_options;
@@ -145,10 +148,10 @@ a value of 0 and print the signature in hex format to stdout\n\
     return nullptr;
   }
 
-  if (vm.count("tx-file")) {
-    options->tx_file = vm["tx-file"].as<fs::path>();
+  if (vm.count("envelope-file")) {
+    options->envelope_file = vm["envelope-file"].as<fs::path>();
   } else {
-    throw std::runtime_error("A transaction file must be specified.");
+    throw std::runtime_error("An Envelope file must be specified.");
   }
 
   if (vm.count("private-key")) {
@@ -161,6 +164,12 @@ a value of 0 and print the signature in hex format to stdout\n\
     options->key_pass = vm["key-pass"].as<std::string>();
   } else {
     throw std::runtime_error("Key pass was not set.");
+  }
+
+  if (vm.count("quiet-mode")) {
+    options->quiet_mode = true;
+  } else {
+    options->quiet_mode = false;
   }
 
   return options;
