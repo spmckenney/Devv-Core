@@ -35,6 +35,8 @@ struct DevcashContext {
     , const std::string& inn_key_path
     , const std::string& node_key_path
     , const std::string& key_pass)
+    , unsigned int batch_size
+    , unsigned int max_wait
     : current_node_(current_node)
     , current_shard_(current_shard)
     , app_mode_(mode)
@@ -42,6 +44,8 @@ struct DevcashContext {
     , inn_keys_(inn_key_path)
     , node_keys_(node_key_path)
     , key_pass_(key_pass)
+    , batch_size_(batch_size)
+    , max_wait_(max_wait)
   {
   }
 
@@ -96,6 +100,8 @@ struct DevcashContext {
   std::string get_inn_key_path() const { return inn_keys_; }
   std::string get_node_key_path() const { return node_keys_; }
   std::string get_key_password() const { return key_pass_; }
+  unsigned int get_batch_size() const {return batch_size_; }
+  unsigned int get_max_wait() const {return max_wait_; }
 
 private:
   /** Number of connected peers */
@@ -106,6 +112,9 @@ private:
 
   // Shard Index of this process
   unsigned int current_shard_;
+
+  unsigned int batch_size_;
+  unsigned int max_wait_;
 
   // Process mode
   eAppMode app_mode_ = scan;

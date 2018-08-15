@@ -382,7 +382,7 @@ annouonces them to nodes provided by the host-list arguments.\n\
 
     if (vm.count("tx-batch-size")) {
       options->batch_size = vm["tx-batch-size"].as<unsigned int>();
-      LOG_INFO << "Batch size: " << options->start_delay;
+      LOG_INFO << "Batch size: " << options->batch_size;
     } else {
       LOG_INFO << "Batch size was not set (default to no restrictions).";
       options->batch_size = 0;

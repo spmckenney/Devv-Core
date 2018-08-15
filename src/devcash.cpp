@@ -41,7 +41,9 @@ int main(int argc, char* argv[])
                                 , options->mode
                                 , options->inn_keys
                                 , options->node_keys
-                                , options->key_pass);
+                                , options->key_pass
+                                , options->batch_size
+                                , options->max_wait);
     KeyRing keys(devcash_context);
     ChainState prior;
 
@@ -78,7 +80,7 @@ int main(int argc, char* argv[])
 
     {
       LOG_NOTICE << "Creating the BlockchainModule";
-      auto bcm = BlockchainModule::Create(*server, *peer_client, *loopback_client, keys, prior, options->mode, devcash_context, 1000);
+      auto bcm = BlockchainModule::Create(*server, *peer_client, *loopback_client, keys, prior, options->mode, devcash_context, options->batch_size);
       LOG_NOTICE << "Starting the BlockchainModule";
 
       bcm->start();
