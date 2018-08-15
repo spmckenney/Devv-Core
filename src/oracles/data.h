@@ -65,7 +65,7 @@ class data : public oracleInterface {
       return false;
 	}
 	size_t sig_size = Signature::getSizeByType(raw_data_.at(addr_size+1));
-	if sig_size < 1) {
+	if (sig_size < 1) {
       error_msg_ = "Bad signature size.";
       return false;
 	}
@@ -90,7 +90,7 @@ class data : public oracleInterface {
 	size_t sig_size = Signature::getSizeByType(raw_data_.at(addr_size+1));
 	size_t data_size = raw_data_.size()-addr_size-sig_size-2;
     int64_t coins_needed = ceil(data_size/kBYTES_PER_COIN);
-    Chainstate last_state = context.getHighestChainState();
+    ChainState last_state = context.getHighestChainState();
     int64_t available = last_state.getAmount(getCoinIndex(), client);
     if (available < coins_needed) {
       error_msg_ = "Data too large for coins provided";
@@ -118,21 +118,21 @@ class data : public oracleInterface {
     if (!isValid(context)) return out;
     size_t addr_size = Address::getSizeByType(raw_data_.at(0));
     Address client(Str2Bin(raw_data_.substr(0, addr_size+1)));
-	size_t sig_size = Signature::getSizeByType(raw_data_.at(addr_size+1));
-	Signature sig(Str2Bin(raw_data_.substr(addr_size+1, sig_size+1));
-	size_t data_size = raw_data_.size()-addr_size-sig_size-2;
+    size_t sig_size = Signature::getSizeByType(raw_data_.at(addr_size+1)));
+    Signature sig(Str2Bin(raw_data_.substr(addr_size+1, sig_size+1));
+    size_t data_size = raw_data_.size()-addr_size-sig_size-2;
     int64_t coins_needed = ceil(data_size/kBYTES_PER_COIN);
     std::vector<Transfer> xfers;
-    Transfer pay(client, getCoinIndex(), -1*coins_needed, 0;
+    Transfer pay(client, getCoinIndex(), -1*coins_needed, 0);
     Transfer settle(getDataSinkAddress(), getCoinIndex(), coins_needed, 0);
     xfers.push_back(pay);
     xfers.push_back(settle);
     std::vector<byte> nonce(Str2Bin(raw_data_.substr(raw_data_.size()-data_size)));
     Tier2Transaction the_tx(eOpType::Exchange, xfers, nonce, sig);
     std::vector<Tier2Transaction> txs;
-    txs.push_back(the_tx);
-    std::pair<uint64_t, std::vector<Tier2Transaction>> p(getShardIndex(), txs);
-    out.insert(p);
+    txs.push_back(std::move(the_tx));
+    std::pair<uint64_t, std::vector<Tier2Transaction>> p(getShardIndex(), std::move(txs));
+    out.insert(std::move(p));
     return out;
   }
 
@@ -159,7 +159,7 @@ class data : public oracleInterface {
  */
   virtual std::map<std::string, std::string>
       getDecompositionMapJSON(const Blockchain& context) override {
-    std::map<std::string, std::vector<byte>> out;
+    std::map<std::string, std::string> out;
     std::pair<std::string, std::string> p(getOracleName(), getJSON());
     out.insert(p);
     return out;
@@ -170,20 +170,20 @@ class data : public oracleInterface {
  */
   std::string getJSON() override {
     size_t addr_size = Address::getSizeByType(raw_data_.at(0));
-    if (addr_size < 1) "{\"data\":\"ADDR_ERROR\"}";
+    if (addr_size < 1) return "{\"data\":\"ADDR_ERROR\"}";
     Address client(Str2Bin(raw_data_.substr(0, addr_size+1)));
-	size_t sig_size = Signature::getSizeByType(raw_data_.at(addr_size+1));
-	if (sig_size < 1) "{\"data\":\"SIG_ERROR\"}";
-	Signature sig(Str2Bin(raw_data_.substr(addr_size+1, sig_size+1));
-	size_t data_size = raw_data_.size()-addr_size-sig_size-2;
-    std::string json("{\"addr\":\""+client.getHexString+"\",");
-    json += "\"sig\":\""+sig.getHexString()+"\",";
+    size_t sig_size = Signature::getSizeByType(raw_data_.at(addr_size+1));
+    if (sig_size < 1) return "{\"data\":\"SIG_ERROR\"}";
+    Signature sig(Str2Bin(raw_data_.substr(addr_size+1, sig_size+1)));
+    size_t data_size = raw_data_.size()-addr_size-sig_size-2;
+    std::string json("{\"addr\":\""+client.getHexString()+"\",");
+    json += "\"sig\":\""+sig.getJSON()+"\",";
     json += "\"data\":\""+ToHex(raw_data_.substr(raw_data_.size()-data_size))+"\"}";
     return json;
   }
 
 private:
- std::string error_msg_("");
+ std::string error_msg_;
 
 };
 

@@ -50,10 +50,10 @@ class dcash : public oracleInterface {
  * @return false otherwise
  */
   bool isSound() override {
-    InputBuffer buffer(raw_data_);
+    InputBuffer buffer(Str2Bin(raw_data_));
     Tier2Transaction tx = Tier2Transaction::QuickCreate(buffer);
-    for (const Transfer& xfer : tx->getTransfers()) {
-      if (xfer.getDelay() != 0) {
+    for (const TransferPtr& xfer : tx.getTransfers()) {
+      if (xfer->getDelay() != 0) {
         error_msg_ = "Dcash transactions may not have a delay.";
         return false;
       }
@@ -69,13 +69,12 @@ class dcash : public oracleInterface {
  */
   bool isValid(const Blockchain& context) override {
     if (!isSound()) return false;
-    InputBuffer buffer(raw_data_);
+    InputBuffer buffer(Str2Bin(raw_data_));
     Tier2Transaction tx = Tier2Transaction::QuickCreate(buffer);
-    Chainstate last_state = context.getHighestChainState();
-    for (const Transfer& xfer : tx->getTransfers()) {
-      if (xfer.getAmount() < 0) {
-        int64_t available = last_state.getAmount(getCoinIndex(), client);
-        Address addr = xfer.getAddress();
+    ChainState last_state = context.getHighestChainState();
+    for (const TransferPtr& xfer : tx.getTransfers()) {
+      if (xfer->getAmount() < 0) {
+        Address addr = xfer->getAddress();
         if (last_state.getAmount(dnerowallet::getCoinIndex(), addr) > 0) {
           error_msg_ =  "Error: Dnerowallets may not send dcash.";
           return false;
@@ -103,12 +102,12 @@ class dcash : public oracleInterface {
       getTransactions(const Blockchain& context) override {
     std::map<uint64_t, std::vector<Tier2Transaction>> out;
     if (!isValid(context)) return out;
-    InputBuffer buffer(raw_data_);
+    InputBuffer buffer(Str2Bin(raw_data_));
     Tier2Transaction tx = Tier2Transaction::QuickCreate(buffer);
     std::vector<Tier2Transaction> txs;
-    txs.push_back(tx);
-    std::pair<uint64_t, std::vector<Tier2Transaction>> p(getShardIndex(), txs);
-    out.insert(p);
+    txs.push_back(std::move(tx));
+    std::pair<uint64_t, std::vector<Tier2Transaction>> p(getShardIndex(), std::move(txs));
+    out.insert(std::move(p));
     return out;
   }
 
@@ -135,7 +134,7 @@ class dcash : public oracleInterface {
  */
   virtual std::map<std::string, std::string>
       getDecompositionMapJSON(const Blockchain& context) override {
-    std::map<std::string, std::vector<byte>> out;
+    std::map<std::string, std::string> out;
     std::pair<std::string, std::string> p(getOracleName(), getJSON());
     out.insert(p);
     return out;
@@ -145,14 +144,13 @@ class dcash : public oracleInterface {
  * @return the internal state of this oracle in JSON.
  */
   std::string getJSON() override {
-    if (!isValid(context)) return "{\""dcash+"\":\"ERROR\"}";
-    InputBuffer buffer(raw_data_);
+    InputBuffer buffer(Str2Bin(raw_data_));
     Tier2Transaction tx = Tier2Transaction::QuickCreate(buffer);
     return tx.getJSON();
   }
 
 private:
- std::string error_msg_("");
+ std::string error_msg_;
 
 };
 

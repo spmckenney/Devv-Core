@@ -13,7 +13,6 @@
 
 #include "oracleInterface.h"
 #include "common/logger.h"
-#include "consensus/chainstate.h"
 #include "primitives/Transaction.h"
 
 //TODO: the election creates the vote tokens by giving them to the voters
@@ -71,7 +70,7 @@ class vote : public oracleInterface {
  * @return true iff the proposal is valid according to this oracle
  * @return false otherwise
  */
-  bool isValid(const ChainState& context) override {
+  bool isValid(const Blockchain& context) override {
     return isSound();
   }
 
@@ -117,7 +116,7 @@ class vote : public oracleInterface {
  */
   virtual std::map<std::string, std::string>
       getDecompositionMapJSON(const Blockchain& context) override {
-    std::map<std::string, std::vector<byte>> out;
+    std::map<std::string, std::string> out;
     std::pair<std::string, std::string> p(getOracleName(), getJSON());
     out.insert(p);
     return out;
@@ -132,7 +131,7 @@ class vote : public oracleInterface {
   }
 
 private:
- std::string error_msg_("");
+ std::string error_msg_;
 
 };
 

@@ -106,7 +106,7 @@ class oracleInterface {
 /**
  * @return the internal state of this oracle in JSON.
  */
-  std::string getJSON() = 0;
+  virtual std::string getJSON() = 0;
 
  protected:
   /**

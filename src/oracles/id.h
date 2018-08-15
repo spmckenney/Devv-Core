@@ -62,7 +62,7 @@ class id : public oracleInterface {
  * @return true iff the proposal is valid according to this oracle
  * @return false otherwise
  */
-  bool isValid(const ChainState& context) override {
+  bool isValid(const Blockchain& context) override {
     return isSound();
   }
 
@@ -108,7 +108,7 @@ class id : public oracleInterface {
  */
   virtual std::map<std::string, std::string>
       getDecompositionMapJSON(const Blockchain& context) override {
-    std::map<std::string, std::vector<byte>> out;
+    std::map<std::string, std::string> out;
     std::pair<std::string, std::string> p(getOracleName(), getJSON());
     out.insert(p);
     return out;
