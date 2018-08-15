@@ -118,8 +118,8 @@ class data : public oracleInterface {
     if (!isValid(context)) return out;
     size_t addr_size = Address::getSizeByType(raw_data_.at(0));
     Address client(Str2Bin(raw_data_.substr(0, addr_size+1)));
-    size_t sig_size = Signature::getSizeByType(raw_data_.at(addr_size+1)));
-    Signature sig(Str2Bin(raw_data_.substr(addr_size+1, sig_size+1));
+    size_t sig_size = Signature::getSizeByType(raw_data_.at(addr_size+1));
+    Signature sig(Str2Bin(raw_data_.substr(addr_size+1, sig_size+1)));
     size_t data_size = raw_data_.size()-addr_size-sig_size-2;
     int64_t coins_needed = ceil(data_size/kBYTES_PER_COIN);
     std::vector<Transfer> xfers;

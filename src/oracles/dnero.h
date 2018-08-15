@@ -55,7 +55,7 @@ class dnero : public oracleInterface {
   bool isSound() override {
     InputBuffer buffer(Str2Bin(raw_data_));
     Tier2Transaction tx = Tier2Transaction::QuickCreate(buffer);
-    for (auto xfer : tx.getTransfers()) {
+    for (const TransferPtr& xfer : tx.getTransfers()) {
       if (xfer->getDelay() < 1) {
         error_msg_ = "Dnero transactions must have a delay.";
         return false;
@@ -75,7 +75,7 @@ class dnero : public oracleInterface {
     InputBuffer buffer(Str2Bin(raw_data_));
     Tier2Transaction tx = Tier2Transaction::QuickCreate(buffer);
     ChainState last_state = context.getHighestChainState();
-    for (auto xfer : tx.getTransfers()) {
+    for (const TransferPtr& xfer : tx.getTransfers()) {
       if (xfer->getAmount() < 0) {
         Address addr = xfer->getAddress();
         if (last_state.getAmount(dnerowallet::getCoinIndex(), addr) < 1
@@ -111,7 +111,7 @@ class dnero : public oracleInterface {
     std::vector<Tier2Transaction> txs;
     txs.push_back(std::move(tx));
     std::pair<uint64_t, std::vector<Tier2Transaction>> p(getShardIndex(), std::move(txs));
-    out.insert(st::move(p));
+    out.insert(std::move(p));
     return out;
   }
 
