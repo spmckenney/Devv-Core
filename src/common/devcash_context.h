@@ -34,9 +34,9 @@ struct DevcashContext {
     , eAppMode mode
     , const std::string& inn_key_path
     , const std::string& node_key_path
-    , const std::string& key_pass)
-    , unsigned int batch_size
-    , unsigned int max_wait
+    , const std::string& key_pass
+    , unsigned int batch_size=10000
+    , unsigned int max_wait=0)
     : current_node_(current_node)
     , current_shard_(current_shard)
     , app_mode_(mode)
@@ -113,9 +113,6 @@ private:
   // Shard Index of this process
   unsigned int current_shard_;
 
-  unsigned int batch_size_;
-  unsigned int max_wait_;
-
   // Process mode
   eAppMode app_mode_ = scan;
 
@@ -131,6 +128,9 @@ private:
 
   //AES private key password
   std::string key_pass_;
+
+  unsigned int batch_size_;
+  unsigned int max_wait_;
 };
 
 } /* namespace Devcash */
