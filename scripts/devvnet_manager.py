@@ -419,20 +419,16 @@ def run_announcer(node):
     # ./announcer --node-index 0 --shard-index 1 --mode T2 --stop-file /tmp/stop-devcash-announcer.ctl --inn-keys ../opt/inn.key --node-keys ../opt/node.key --bind-endpoint 'tcp://*:50020' --working-dir ../../tmp/working/input/laminar4/ --key-pass password --separate-ops true
 
     cmd = []
-    cmd.append("./announcer")
+    cmd.append("./pb_announcer")
     cmd.extend(["--shard-index", str(node.get_shard_index())])
     cmd.extend(["--node-index", str(node.get_index())])
-    cmd.extend(["--num-consensus-threads", "1"])
-    cmd.extend(["--num-validator-threads", "1"])
     cmd.extend(["--config", node.get_config_file()])
     cmd.extend(["--config", node.get_password_file()])
     cmd.extend(["--mode", node.get_type()])
-    cmd.extend(["--working-dir", node.get_working_dir()])
     cmd.extend(["--bind-endpoint", "tcp://*:" + str(node.get_port())])
-    cmd.extend(["--tx-batch-size", str(90)])
     cmd.extend(["--separate-ops", "true"])
     cmd.extend(["--start-delay", str(30)])
-    cmd.extend(["--sleep-ms", str(1)])
+    cmd.extend(["--protobuf-endpoint", "tcp://*:" + str(node.get_port() + 100)])
 
     return cmd
 

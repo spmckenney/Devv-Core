@@ -10,6 +10,16 @@ import subprocess
 import time
 import tempfile
 
+def create_devvsign_command(env_file, private_keyfile, key_pass):
+    cmd = ["./devv-sign"]
+    cmd.extend(["./devv-sign"])
+    cmd.extend(["--quiet-mode"])
+    cmd.extend(["--envelope-file", env_file])
+    cmd.extend(["--private-key", private_keyfile])
+    cmd.extend(["--key-pass", key_pass])
+    print(cmd)
+    return cmd
+
 class DevvTransfer(object):
     _address = bytes()
     _coin = 0
@@ -99,8 +109,122 @@ class DevvTransaction(object):
 
         return pb_tx
 
-def create_transaction():
+
+def get_envelope(tx):
+    pbtx = tx.get_pbuf()
+
+    print("pbuf")
+    print(pbtx)
+
+    env = dpb.Envelope()
+    env.txs.extend([pbtx])
+    return env
+
+
+def send_envelope(env, uri):
+    context = zmq.Context()
+    socket = context.socket(zmq.REQ)
+    socket.connect(uri)
+
+    print("Sending message in 1")
+    time.sleep(1)
+    socket.send(env.SerializeToString())
+    time.sleep(1)
+    x = socket.recv()
+    print("Sent message")
+
+
+def get_sig(env, args):
+    print('size txs', str(len(env.txs)))
+    #f = open(env_file, "wb")
+    env_file = tempfile.NamedTemporaryFile(dir=args.tmp_dir, suffix="_env.pbuf")
+
+    estr = env.SerializeToString()
+    print("estr: ", len(estr))
+    env_file.write(env.SerializeToString())
+    env_file.flush()
+    env_filename = env_file.name
+
+    print("env filename: ", env_filename)
+
+    cmd = create_devvsign_command(env_filename, args.private_keyfile, args.key_pass)
+    out = subprocess.check_output(cmd)
+    sig = out.decode("utf-8").rstrip()
+
+    print("sleeping 1 again")
+    time.sleep(1)
+    env_file.close()
+
+    print("sig: "+sig)
+
+    return sig
+
+
+def handle_pbuf_file(args):
     pass
+
+
+def handle_transfer_string(args):
+    env_file = tempfile.NamedTemporaryFile(dir=args.tmp_dir, suffix="_env.pbuf")
+    env_filename = env_file.name
+
+    print("")
+    print("-- devv   : {}".format(0.1))
+    print("transfer  : {}".format(args.transfer))
+    print("tmpfile   : {}".format(env_filename))
+    print("")
+
+    tx = DevvTransaction(args.operation, args.nonce)
+
+    if (args.transfer):
+        for transfer in args.transfer:
+            tx.add_transfer(transfer_string=transfer)
+
+    env = get_envelope(tx)
+    sig = get_sig(env, env_file, args)
+    env.txs[0].sig = bytes.fromhex(sig)
+    print(env)
+
+    send_envelope(env, args.announcer_uri)
+
+    print("Done")
+
+
+def handle_transaction(args):
+    print("")
+    print("-- devv   : {}".format(0.1))
+    print("action    : {}".format(args.devv_action))
+    print("tx_type   : {}".format(args.operation.upper() if args.operation != None else args.operation))
+    print("pbuf_file : {}".format(args.pbuf_file))
+    print("from      : {}".format(args.source_address))
+    print("to        : {}".format(args.dest_address))
+    print("amount    : {}".format(args.amount))
+    print("coin_id   : {}".format(args.coin_index))
+    print("delay     : {}".format(args.transfer_delay))
+    print("p_key     : {}".format(args.private_keyfile))
+    print("keypass   : {}".format(args.key_pass))
+    print("transfer  : {}".format(args.transfer))
+    print("")
+
+    if (args.source_address):
+        if (args.amount < 1):
+            raise ValueError("Transfer amount must be greater than zero.")
+
+    tx = DevvTransaction(args.operation, args.nonce)
+    if (args.source_address):
+        tx.add_transfer(args.source_address, args.coin_index, -args.amount, args.transfer_delay)
+        tx.add_transfer(args.dest_address, args.coin_index, args.amount, args.transfer_delay)
+
+    env = get_envelope(tx)
+    sig = get_sig(env, args)
+    env.txs[0].sig = bytes.fromhex(sig)
+    print(env)
+
+    send_envelope(env, args.announcer_uri)
+
+    print("Done")
+
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='devv command-line utility',
@@ -151,80 +275,20 @@ Exit status:\n\
 
     args = parser.parse_args()
 
-    env_file = tempfile.NamedTemporaryFile(dir=args.tmp_dir, suffix="_env.pbuf")
-    env_filename = env_file.name
+    functions = []
+    if args.pbuf_file:
+        functions.append(handle_pbuf_file)
+    if args.transfer:
+        functions.append(handle_transfer_string)
+    if args.source_address:
+        functions.append(handle_transaction)
 
-    print("")
-    print("-- devv   : {}".format(0.1))
-    print("action    : {}".format(args.devv_action))
-    print("tx_type   : {}".format(args.operation.upper() if args.operation != None else args.operation))
-    print("pbuf_file : {}".format(args.pbuf_file))
-    print("from      : {}".format(args.source_address))
-    print("to        : {}".format(args.dest_address))
-    print("amount    : {}".format(args.amount))
-    print("coin_id   : {}".format(args.coin_index))
-    print("delay     : {}".format(args.transfer_delay))
-    print("p_key     : {}".format(args.private_keyfile))
-    print("tmpfile   : {}".format(env_filename))
-    print("keypass   : {}".format(args.key_pass))
-    print("transfer  : {}".format(args.transfer))
-    print("")
 
-    if (args.source_address):
-        if (args.amount < 1):
-            raise ValueError("Transfer amount must be greater than zero.")
-    
-    tx = DevvTransaction(args.operation, args.nonce)
-    if (args.source_address):
-        tx.add_transfer(args.source_address, args.coin_index, -args.amount, args.transfer_delay)
-        tx.add_transfer(args.dest_address, args.coin_index, args.amount, args.transfer_delay)
+    print("n_functions: {}".format(len(functions)))
 
-    if (args.transfer):
-        for transfer in args.transfer:
-            tx.add_transfer(transfer_string=transfer)
-    
+    for func in functions:
+        func(args)
 
-    pbtx = tx.get_pbuf()
+time.sleep(1)
 
-    print("pbuf")
-    print(pbtx)
-
-    env = dpb.Envelope()
-    env.txs.extend([pbtx])
-
-    #f = open(env_file, "wb")
-    env_file.write(env.SerializeToString())
-
-    cmd = ["./devv-sign"]
-    cmd.extend(["./devv-sign"])
-    cmd.extend(["--quiet-mode"])
-    cmd.extend(["--envelope-file", env_filename])
-    cmd.extend(["--private-key", args.private_keyfile])
-    cmd.extend(["--key-pass", args.key_pass])
-    
-    print(cmd)
-
-    out = subprocess.check_output(cmd, stderr=subprocess.PIPE)
-
-    sig = out.decode("utf-8").rstrip()
-
-    env_file.close()
-
-    print("sig: "+sig)
-
-    env.txs[0].sig = bytes.fromhex(sig)
-
-    print(env)
-
-    context = zmq.Context()
-    socket = context.socket(zmq.REQ)
-    socket.connect("tcp://localhost:5555")
-
-    print("Sending message in 3")
-    time.sleep(3)
-
-    socket.send(env.SerializeToString())
-
-    print("Done")
-
-    time.sleep(1)
+print("Done.")
