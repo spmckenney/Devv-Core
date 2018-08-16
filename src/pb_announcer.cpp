@@ -197,7 +197,7 @@ annouonces them to nodes provided by the host-list arguments.\n\
 
     po::variables_map vm;
     po::store(po::command_line_parser(argc, argv).
-                  options(all_options).
+                  options(all_options).allow_unregistered().
                   run(),
               vm);
 
@@ -218,11 +218,14 @@ annouonces them to nodes provided by the host-list arguments.\n\
           LOG_ERROR << "Error opening config file: " << config_filenames[i];
           return nullptr;
         }
-        po::store(po::parse_config_file(ifs, all_options), vm);
+        po::store(po::parse_config_file(ifs, all_options, true), vm);
       }
     }
 
-    po::store(po::parse_command_line(argc, argv, all_options), vm);
+   po::store(po::command_line_parser(argc, argv).
+                  options(all_options).allow_unregistered().
+                  run(),
+              vm);
     po::notify(vm);
 
     if (vm.count("mode")) {
