@@ -134,26 +134,30 @@ def send_envelope(env, uri):
     print("Sent message")
 
 
-def get_sig(env, args):
+def get_sig(env, args, filename=None):
     print('size txs', str(len(env.txs)))
-    #f = open(env_file, "wb")
-    env_file = tempfile.NamedTemporaryFile(dir=args.tmp_dir, suffix="_env.pbuf")
 
-    estr = env.SerializeToString()
-    print("estr: ", len(estr))
-    env_file.write(env.SerializeToString())
-    env_file.flush()
-    env_filename = env_file.name
+    env_file = None
+    if not filename:
+        env_file = tempfile.NamedTemporaryFile(dir=args.tmp_dir, suffix="_env.pbuf")
 
-    print("env filename: ", env_filename)
+        estr = env.SerializeToString()
+        print("estr: ", len(estr))
+        env_file.write(env.SerializeToString())
+        env_file.flush()
+        filename = env_file.name
 
-    cmd = create_devvsign_command(env_filename, args.private_keyfile, args.key_pass)
+    print("env filename: ", filename)
+
+    cmd = create_devvsign_command(filename, args.private_keyfile, args.key_pass)
     out = subprocess.check_output(cmd)
     sig = out.decode("utf-8").rstrip()
 
     print("sleeping 1 again")
     time.sleep(1)
-    env_file.close()
+
+    if env_file:
+        env_file.close()
 
     print("sig: "+sig)
 
@@ -161,6 +165,16 @@ def get_sig(env, args):
 
 
 def handle_pbuf_file(args):
+    tx = DevvTransaction(args.operation, args.nonce)
+    env = get_envelope(tx)
+    sig = get_sig(env, args, args.pbuf_file)
+    env.txs[0].sig = bytes.fromhex(sig)
+    print(env)
+
+    send_envelope(env, args.announcer_uri)
+
+    print("Done")
+
     pass
 
 
