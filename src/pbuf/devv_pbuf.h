@@ -37,7 +37,7 @@ struct Envelope {
 };
 typedef std::unique_ptr<Envelope> EnvelopePtr;
 
-Tier2TransactionPtr CreateTransaction(const Devv::proto::Transaction& transaction, const KeyRing& keys, bool do_sign = false) {
+TransactionPtr CreateTransaction(const Devv::proto::Transaction& transaction, const KeyRing& keys, bool do_sign = false) {
   auto operation = transaction.operation();
   auto pb_xfers = transaction.xfers();
 
@@ -61,28 +61,27 @@ Tier2TransactionPtr CreateTransaction(const Devv::proto::Transaction& transactio
 
   std::vector<byte> nonce(transaction.nonce().begin(), transaction.nonce().end());
 
-  Tier2TransactionPtr t2tx_ptr = nullptr;
-
   if (do_sign) {
-    t2tx_ptr = std::make_unique<Tier2Transaction>(
+    Tier2Transaction t2tx(
         operation,
         transfers,
         nonce,
         key,
         keys);
+    return t2tx.clone();
   } else {
     std::vector<byte> sig(transaction.sig().begin(), transaction.sig().end());
     Signature signature(sig);
 
-    t2tx_ptr = std::make_unique<Tier2Transaction>(
+    Tier2Transaction t2tx(
         operation,
         transfers,
         nonce,
         key,
         keys,
         signature);
+    return t2tx.clone();
   }
-  return t2tx_ptr;
 }
 
 Tier2TransactionPtr CreateTransaction(const Devv::proto::Transaction& transaction, std::string pk) {
@@ -120,15 +119,15 @@ Tier2TransactionPtr CreateTransaction(const Devv::proto::Transaction& transactio
   return t2tx_ptr;
 }
 
-std::vector<Tier2TransactionPtr> validateOracle(oracleInterface& oracle
+std::vector<TransactionPtr> validateOracle(oracleInterface& oracle
                                               , const Blockchain& chain) {
-  std::vector<Tier2TransactionPtr> out;
+  std::vector<TransactionPtr> out;
   if (oracle.isValid(chain)) {
     std::map<uint64_t, std::vector<Tier2Transaction>> oracle_actions = oracle.getTransactions(chain);
     for (auto& it : oracle_actions) {
       //TODO (nick) forward transactions for other shards to those shards
       for (auto& tx : it.second) {
-        Tier2TransactionPtr t2tx_ptr = tx.clone();
+        TransactionPtr t2tx_ptr = tx.clone();
         out.push_back(std::move(t2tx_ptr));
       }
     }
@@ -136,11 +135,11 @@ std::vector<Tier2TransactionPtr> validateOracle(oracleInterface& oracle
   return out;
 }
 
-std::vector<Tier2TransactionPtr> DeserializeEnvelopeProtobufString(const std::string& pb_envelope, const KeyRing& keys) {
+std::vector<TransactionPtr> DeserializeEnvelopeProtobufString(const std::string& pb_envelope, const KeyRing& keys) {
   Devv::proto::Envelope envelope;
   envelope.ParseFromString(pb_envelope);
 
-  std::vector<Tier2TransactionPtr> ptrs;
+  std::vector<TransactionPtr> ptrs;
 
   auto pb_transactions = envelope.txs();
   for (auto const& transaction : pb_transactions) {
@@ -154,36 +153,36 @@ std::vector<Tier2TransactionPtr> DeserializeEnvelopeProtobufString(const std::st
     std::string oracle_name = proposal.oraclename();
     if (oracle_name == api::getOracleName()) {
       api oracle(proposal.data());
-      std::vector<Tier2TransactionPtr> actions = validateOracle(oracle, chain);
+      std::vector<TransactionPtr> actions = validateOracle(oracle, chain);
       ptrs.insert(ptrs.end(), std::make_move_iterator(actions.begin())
                             , std::make_move_iterator(actions.end()));
 	} else if (oracle_name == data::getOracleName()) {
       data oracle(proposal.data());
-      std::vector<Tier2TransactionPtr> actions = validateOracle(oracle, chain);
+      std::vector<TransactionPtr> actions = validateOracle(oracle, chain);
       ptrs.insert(ptrs.end(), actions.begin(), actions.end());
 	} else if (oracle_name == dcash::getOracleName()) {
       dcash oracle(proposal.data());
-      std::vector<Tier2TransactionPtr> actions = validateOracle(oracle, chain);
+      std::vector<TransactionPtr> actions = validateOracle(oracle, chain);
       ptrs.insert(ptrs.end(), actions.begin(), actions.end());
 	} else if (oracle_name == dnero::getOracleName()) {
       dnero oracle(proposal.data());
-      std::vector<Tier2TransactionPtr> actions = validateOracle(oracle, chain);
+      std::vector<TransactionPtr> actions = validateOracle(oracle, chain);
       ptrs.insert(ptrs.end(), actions.begin(), actions.end());
 	} else if (oracle_name == dneroavailable::getOracleName()) {
       dneroavailable oracle(proposal.data());
-      std::vector<Tier2TransactionPtr> actions = validateOracle(oracle, chain);
+      std::vector<TransactionPtr> actions = validateOracle(oracle, chain);
       ptrs.insert(ptrs.end(), actions.begin(), actions.end());
 	} else if (oracle_name == dnerowallet::getOracleName()) {
       dnerowallet oracle(proposal.data());
-      std::vector<Tier2TransactionPtr> actions = validateOracle(oracle, chain);
+      std::vector<TransactionPtr> actions = validateOracle(oracle, chain);
       ptrs.insert(ptrs.end(), actions.begin(), actions.end());
 	} else if (oracle_name == id::getOracleName()) {
       id oracle(proposal.data());
-      std::vector<Tier2TransactionPtr> actions = validateOracle(oracle, chain);
+      std::vector<TransactionPtr> actions = validateOracle(oracle, chain);
       ptrs.insert(ptrs.end(), actions.begin(), actions.end());
 	} else if (oracle_name == vote::getOracleName()) {
       vote oracle(proposal.data());
-      std::vector<Tier2TransactionPtr> actions = validateOracle(oracle, chain);
+      std::vector<TransactionPtr> actions = validateOracle(oracle, chain);
       ptrs.insert(ptrs.end(), actions.begin(), actions.end());
 	} else {
       LOG_ERROR << "Unknown oracle: "+oracle_name;
