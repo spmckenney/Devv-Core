@@ -343,6 +343,19 @@ class FinalBlock {
     return volume;
   }
 
+  /**
+   * @return the summed value of coins moved in this block.
+   */
+  int64_t getValue() const {
+    int64_t value = 0;
+    for (auto const& item : transaction_vector_) {
+      for (auto const& xfer : item->getTransfers()) {
+        value += xfer->getAmount();
+      }
+    }
+    return value;
+  }
+
  private:
   /**
    * Constructor
