@@ -113,9 +113,9 @@ int main(int argc, char* argv[]) {
       std::string tx_string = std::string(static_cast<char*>(transaction_message.data()),
           transaction_message.size());
 
-      auto env_ptr = DeserializeEnvelopeProtobufString(tx_string, keys);
+      auto ptrs = DeserializeEnvelopeProtobufString(tx_string, keys);
 
-      for (auto const& t2tx : env_ptr->transactions) {
+      for (auto const& t2tx : ptrs) {
         auto announce_msg = std::make_unique<DevcashMessage>(
             this_context.get_uri(),
             TRANSACTION_ANNOUNCEMENT,

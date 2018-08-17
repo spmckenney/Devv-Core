@@ -1,11 +1,15 @@
 /*
- * validation.h defines an interface for primitize Devcash oracles.
+ * oracleInterface.h defines an interface for primitize Devcash oracles.
  * Devcash oracles further specify validation logic for particular
  * transaction types beyond the 'abstract' smartcoin transactions.
+ * Oracles form a Directed Acyclic Graph (DAG) that decomposes abstract
+ * functions into a set of clear Tier2Transactions. Oracles can be written
+ * externally by 3rd parties and announce transactions to the Devv.io system
+ * in the form of composed oracle transactions or simple Tier2Transactions.
  * Note that smartcoin is not abstract as a C++ class,
  * rather it is a logical abstraction for all tokenized transactions.
  *
- *  Created on: Feb 23, 2018
+ *  Updated: Aug 13, 2018
  *  Author: Nick Williams
  *
  */
@@ -14,9 +18,10 @@
 #define ORACLE_INTERFACE_H_
 
 #include <string>
-#include "consensus/chainstate.h"
-#include "primitives/Tier1Transaction.h"
+#include "common/binary_converters.h"
+#include "consensus/blockchain.h"
 #include "primitives/Tier2Transaction.h"
+#include "devv.pb.h"
 
 namespace Devcash
 {
@@ -26,100 +31,91 @@ class oracleInterface {
  public:
 
   /** Constructor/Destructor */
-  oracleInterface() {};
+  oracleInterface(std::vector<byte> data) : raw_data_(Bin2Str(data)) {};
+  oracleInterface(std::string data) : raw_data_(data) {};
   virtual ~oracleInterface() {};
 
 /**
- *  @return string that invokes this oracle in a T2 transaction
+ *  @return the string name that invokes this oracle
  */
-  static std::string getCoinType() {
-    return("SmartCoin");
-  };
-
-  static int getCoinIndexByType(std::string coinType) {
-    if (coinType == "dcash" || coinType == "dnero" || coinType == "0") {
-      return(0);
-    } else if (coinType == "dneroavailable"  || coinType == "1") {
-      return(1);
-    } else if (coinType == "dnerowallet" || coinType == "2") {
-      return(2);
-    } else if (coinType == "id" || coinType == "3") {
-      return(3);
-    } else if (coinType == "vote" || coinType == "4") {
-      return(4);
-    } else if (coinType == "api" || coinType == "5") {
-      return(5);
-    } else if (coinType == "data" || coinType == "6") {
-      return(6);
-    } else { //invalid/unknown type
-      return(-1);
-    }
-  }
-
-  static std::string getCoinTypeByIndex(int coinIndex) {
-    switch (coinIndex) {
-      case 0: return "dnero";
-      case 1: return "dneroavailable";
-      case 2: return "dnerowallet";
-      case 3: return "id";
-      case 4: return "vote";
-      case 5: return "api";
-      case 6: return "data";
-    }
-    return "invalid";
-  }
+  static std::string getOracleName();
 
 /**
- *  @note external coin types do not have an index and must be decomposed
- *  into a set of internal types by the oracle
- *  @return the index of this coin type
+ *  @return the shard used by this oracle
+ */
+  static uint64_t getShardIndex();
+
+/**
+ *  @return the coin type used by this oracle
  */
   static uint64_t getCoinIndex();
 
-/** Checks if a transaction is objectively sound according to this oracle.
- *  When this function returns false, a transaction is syntactically unsound
+/** Checks if this proposal is objectively sound according to this oracle.
+ *  When this function returns false, the proposal is syntactically unsound
  *  and will be invalid for all chain states.
- *  Transactions are atomic, so if any portion of the transaction is invalid,
- *  the entire transaction is also invalid.
- * @params checkTx the transaction to (in)validate
- * @return true iff the transaction can be valid according to this oracle
+ * @return true iff the proposal can be valid according to this oracle
  * @return false otherwise
  */
-  virtual bool isSound(Tier2Transaction& checkTx) = 0;
+  virtual bool isSound() = 0;
 
-/** Checks if a transaction is valid according to this oracle
- *  given a specific chain state.
- *  Transactions are atomic, so if any portion of the transaction is invalid,
- *  the entire transaction is also invalid.
- * @params checkTx the transaction to (in)validate
- * @params context the chain state to check against
- * @return true iff the transaction is valid according to this oracle
+/** Checks if this proposal is valid according to this oracle
+ *  given a specific blockchain.
+ * @params context the blockchain to check against
+ * @return true iff the proposal is valid according to this oracle
  * @return false otherwise
  */
-  virtual bool isValid(Tier2Transaction& checkTx, const ChainState& context) = 0;
-
-/** Generate a tier 1 smartcoin transaction based on this tier 2 transaction.
- *
- * @pre This transaction must be valid.
- * @params checkTx the transaction to (in)validate
- * @return a tier 1 transaction to implement this tier 2 logic.
- */
-  virtual Tier1TransactionPtr getT1Syntax(Tier2TransactionPtr) = 0;
+  virtual bool isValid(const Blockchain& context) = 0;
 
 /**
- * End-to-end tier2 process that takes a string, parses it into a transaction,
- * validates it against the provided chain state,
- * and returns a tier 1 transaction if it is valid.
- * Returns null if the transaction is invalid.
- *
- * @params input_buffer the raw transaction to process
- * @params context the chain state to check against
- * @return a tier 1 transaction to implement this tier 2 logic
- * @return nullptr if the transaction is invalid
+ *  @return if not valid or not sound, return an error message
  */
-  virtual Tier2TransactionPtr tier2Process(InputBuffer &input_buffer,
-                                           const ChainState &context,
-                                           const KeyRing &keys) = 0;
+  virtual std::string getErrorMessage() = 0;
+
+/** Generate the transactions to encode the effect of this propsal on chain.
+ *
+ * @pre This transaction must be valid.
+ * @params context the blockchain of the shard that provides context for this oracle
+ * @return a map of shard indicies to transactions to encode in each shard
+ */
+  virtual std::map<uint64_t, std::vector<Tier2Transaction>>
+    getTransactions(const Blockchain& context) = 0;
+
+/** Recursively generate the state of this oracle and all dependent oracles.
+ *
+ * @pre This transaction must be valid.
+ * @params context the blockchain of the shard that provides context for this oracle
+ * @return a map of oracles to data
+ */
+  virtual std::map<std::string, std::vector<byte>>
+    getDecompositionMap(const Blockchain& context) = 0;
+
+/** Recursively generate the state of this oracle and all dependent oracles.
+ *
+ * @pre This transaction must be valid.
+ * @params context the blockchain of the shard that provides context for this oracle
+ * @return a map of oracles to data encoded in JSON
+ */
+  virtual std::map<std::string, std::string>
+    getDecompositionMapJSON(const Blockchain& context) = 0;
+
+/**
+ * @return the internal state of this oracle
+ */
+  std::vector<byte> getCanonical() { return Str2Bin(raw_data_); }
+
+/**
+ * @return the internal state of this oracle in JSON.
+ */
+  virtual std::string getJSON() = 0;
+
+ protected:
+  /**
+   * Default Constructor
+   */
+  oracleInterface() = default;
+
+  //using string to align with protobuf type
+  std::string raw_data_;
 
 };
 

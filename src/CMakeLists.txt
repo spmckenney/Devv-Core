@@ -36,6 +36,22 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 include_directories(${CMAKE_SOURCE_DIR})
 include_directories(${CMAKE_BINARY_DIR})
 
+# External third-party libraries
+find_library(ZMQ zmq)
+find_library(PQXX pqxx)
+
+### protobuf defs ###
+find_package(Protobuf REQUIRED)
+include_directories(${PROTOBUF_INCLUDE_DIR})
+include_directories(${CMAKE_CURRENT_BINARY_DIR})
+protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS pbuf/devv.proto)
+#protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS EXPORT_MACRO DLL_EXPORT foo.proto)
+protobuf_generate_python(PROTO_PY pbuf/devv.proto)
+#add_executable(bar bar.cc ${PROTO_SRCS} ${PROTO_HDRS})
+
+# Dummy target that triggers python protobuf generation
+add_custom_target(myTarget ALL DEPENDS ${PROTO_PY})
+
 file(GLOB_RECURSE dcSources "*.cpp")
 file(GLOB_RECURSE dcHeaders "*.h*")
 set (dcInclude "")
@@ -45,9 +61,9 @@ foreach (_headerFile ${dcHeaders})
 endforeach()
 list(REMOVE_DUPLICATES dcInclude)
 
-# External third-party libraries
-find_library(ZMQ zmq)
-find_library(PQXX pqxx)
+#Protobuf generated library
+ADD_LIBRARY(devvpbuf devv.pb.h devv.pb.cc)
+set_source_files_properties(devv.pb.h devv.pb.cc PROPERTIES GENERATED TRUE)
 
 # Build the common module objects
 file(GLOB common_SRC
@@ -83,10 +99,10 @@ add_library(primitives
   ${primitives_SRC}
   )
 
-set(devcash_core_libs devcash_node common concurrency consensus io primitives)
-
 # Add BlockchainModule.cpp
 add_library(devcash_node modules/BlockchainModule.cpp)
+
+set(devcash_core_libs devcash_node common concurrency consensus io primitives devvpbuf)
 
 option(WITH_THREAD_TESTING "Enable thread testing" OFF)
 
@@ -95,10 +111,6 @@ if(WITH_THREAD_TESTING)
 endif()
 
 add_executable(devcash devcash.cpp ${dcInclude})
-target_link_libraries (devcash
-  ${devcash_core_libs}
-  ${ZMQ}
-  )
 
 find_package (OpenSSL REQUIRED)
 if (OPENSSL_FOUND)
@@ -116,25 +128,6 @@ if(Boost_FOUND)
   target_link_libraries(devcash ${Boost_LIBRARIES})
 endif(Boost_FOUND)
 
-target_include_directories(devcash PRIVATE ${dcInclude})
-
-set(CONFIGURED_ONCE TRUE CACHE INTERNAL
-    "A flag showing that CMake has configured at least once.")
-
-install (TARGETS devcash DESTINATION bin)
-
-### protobuf defs ###
-find_package(Protobuf REQUIRED)
-include_directories(${PROTOBUF_INCLUDE_DIR})
-include_directories(${CMAKE_CURRENT_BINARY_DIR})
-protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS pbuf/devv.proto)
-#protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS EXPORT_MACRO DLL_EXPORT foo.proto)
-protobuf_generate_python(PROTO_PY pbuf/devv.proto)
-#add_executable(bar bar.cc ${PROTO_SRCS} ${PROTO_HDRS})
-
-# Dummy target that triggers python protobuf generation
-add_custom_target(myTarget ALL DEPENDS ${PROTO_PY})
-
 # Convenience variable containing all linker libs
 set(devv_all_libs
         ${devcash_core_libs}
@@ -144,6 +137,18 @@ set(devv_all_libs
         ${CMAKE_THREAD_LIBS_INIT}
         ${Boost_LIBRARIES}
         )
+
+target_link_libraries (devcash
+  ${devv_all_libs}
+  )
+
+target_include_directories(devcash PRIVATE ${dcInclude})
+
+set(CONFIGURED_ONCE TRUE CACHE INTERNAL
+    "A flag showing that CMake has configured at least once.")
+
+install (TARGETS devcash DESTINATION bin)
+
 #
 # Scanner
 #

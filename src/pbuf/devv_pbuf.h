@@ -10,7 +10,16 @@
 #include <vector>
 #include <exception>
 
+#include "consensus/blockchain.h"
 #include "primitives/Tier2Transaction.h"
+#include "oracles/api.h"
+#include "oracles/data.h"
+#include "oracles/dcash.h"
+#include "oracles/dnero.h"
+#include "oracles/dneroavailable.h"
+#include "oracles/dnerowallet.h"
+#include "oracles/id.h"
+#include "oracles/vote.h"
 
 #include "devv.pb.h"
 
@@ -28,7 +37,7 @@ struct Envelope {
 };
 typedef std::unique_ptr<Envelope> EnvelopePtr;
 
-Tier2TransactionPtr CreateTransaction(const Devv::proto::Transaction& transaction, const KeyRing& keys, bool do_sign = false) {
+TransactionPtr CreateTransaction(const Devv::proto::Transaction& transaction, const KeyRing& keys, bool do_sign = false) {
   auto operation = transaction.operation();
   auto pb_xfers = transaction.xfers();
 
@@ -47,49 +56,150 @@ Tier2TransactionPtr CreateTransaction(const Devv::proto::Transaction& transactio
   }
 
   if (key == nullptr) {
-    throw std::runtime_error("EC_KEY from sender not set (key == null)");
+    throw std::runtime_error("Sender key not set (key == null)");
   }
 
   std::vector<byte> nonce(transaction.nonce().begin(), transaction.nonce().end());
 
-  Tier2TransactionPtr t2tx_ptr = nullptr;
-
   if (do_sign) {
-    t2tx_ptr = std::make_unique<Tier2Transaction>(
+    Tier2Transaction t2tx(
         operation,
         transfers,
         nonce,
         key,
         keys);
+    return t2tx.clone();
   } else {
     std::vector<byte> sig(transaction.sig().begin(), transaction.sig().end());
     Signature signature(sig);
 
-    t2tx_ptr = std::make_unique<Tier2Transaction>(
+    Tier2Transaction t2tx(
         operation,
         transfers,
         nonce,
         key,
         keys,
         signature);
+    return t2tx.clone();
   }
+}
+
+Tier2TransactionPtr CreateTransaction(const Devv::proto::Transaction& transaction, std::string pk) {
+  auto operation = transaction.operation();
+  auto pb_xfers = transaction.xfers();
+  std::string aes_password = "password";
+
+  std::vector<Transfer> transfers;
+  EC_KEY* key = nullptr;
+  std::string pub_key;
+  for (auto const& xfer : pb_xfers) {
+    std::vector<byte> bytes(xfer.address().begin(), xfer.address().end());
+    auto address = Address(bytes);
+    transfers.emplace_back(address, xfer.coin(), xfer.amount(), xfer.delay());
+    if (xfer.amount() < 0) {
+      if (!pub_key.empty()) {
+        throw std::runtime_error("More than one send transfer not supported.");
+      }
+      key = LoadEcKey(pub_key, pk, aes_password);
+    }
+  }
+
+  if (key == nullptr) {
+    throw std::runtime_error("Sender key not set (key == null)");
+  }
+
+  std::vector<byte> nonce(transaction.nonce().begin(), transaction.nonce().end());
+
+  Tier2TransactionPtr t2tx_ptr = std::make_unique<Tier2Transaction>(
+        operation,
+        transfers,
+        nonce,
+        key);
+
   return t2tx_ptr;
 }
 
-EnvelopePtr DeserializeEnvelopeProtobufString(const std::string& pb_envelope, const KeyRing& keys) {
+std::vector<TransactionPtr> validateOracle(oracleInterface& oracle
+                                              , const Blockchain& chain) {
+  std::vector<TransactionPtr> out;
+  if (oracle.isValid(chain)) {
+    std::map<uint64_t, std::vector<Tier2Transaction>> oracle_actions = oracle.getTransactions(chain);
+    for (auto& it : oracle_actions) {
+      //TODO (nick) forward transactions for other shards to those shards
+      for (auto& tx : it.second) {
+        TransactionPtr t2tx_ptr = tx.clone();
+        out.push_back(std::move(t2tx_ptr));
+      }
+    }
+  }
+  return out;
+}
+
+std::vector<TransactionPtr> DeserializeEnvelopeProtobufString(const std::string& pb_envelope, const KeyRing& keys) {
   Devv::proto::Envelope envelope;
   envelope.ParseFromString(pb_envelope);
 
-  EnvelopePtr env_ptr = std::make_unique<Envelope>();
+  std::vector<TransactionPtr> ptrs;
 
   auto pb_transactions = envelope.txs();
   for (auto const& transaction : pb_transactions) {
-    env_ptr->transactions.push_back(CreateTransaction(transaction, keys));
+    ptrs.push_back(CreateTransaction(transaction, keys));
   }
-  return env_ptr;
+
+  //TODO (nick): use the latest blockchain of this shard from the repeater
+  Blockchain chain("test-shard");
+  auto pb_proposals = envelope.proposals();
+  for (auto const& proposal : pb_proposals) {
+    std::string oracle_name = proposal.oraclename();
+    if (oracle_name == api::getOracleName()) {
+      api oracle(proposal.data());
+      std::vector<TransactionPtr> actions = validateOracle(oracle, chain);
+      ptrs.insert(ptrs.end(), std::make_move_iterator(actions.begin())
+                            , std::make_move_iterator(actions.end()));
+    } else if (oracle_name == data::getOracleName()) {
+      data oracle(proposal.data());
+      std::vector<TransactionPtr> actions = validateOracle(oracle, chain);
+      ptrs.insert(ptrs.end(), std::make_move_iterator(actions.begin())
+                            , std::make_move_iterator(actions.end()));
+    } else if (oracle_name == dcash::getOracleName()) {
+      dcash oracle(proposal.data());
+      std::vector<TransactionPtr> actions = validateOracle(oracle, chain);
+      ptrs.insert(ptrs.end(), std::make_move_iterator(actions.begin())
+                            , std::make_move_iterator(actions.end()));
+    } else if (oracle_name == dnero::getOracleName()) {
+      dnero oracle(proposal.data());
+      std::vector<TransactionPtr> actions = validateOracle(oracle, chain);
+      ptrs.insert(ptrs.end(), std::make_move_iterator(actions.begin())
+                            , std::make_move_iterator(actions.end()));
+    } else if (oracle_name == dneroavailable::getOracleName()) {
+      dneroavailable oracle(proposal.data());
+      std::vector<TransactionPtr> actions = validateOracle(oracle, chain);
+      ptrs.insert(ptrs.end(), std::make_move_iterator(actions.begin())
+                            , std::make_move_iterator(actions.end()));
+    } else if (oracle_name == dnerowallet::getOracleName()) {
+      dnerowallet oracle(proposal.data());
+      std::vector<TransactionPtr> actions = validateOracle(oracle, chain);
+      ptrs.insert(ptrs.end(), std::make_move_iterator(actions.begin())
+                            , std::make_move_iterator(actions.end()));
+    } else if (oracle_name == id::getOracleName()) {
+      id oracle(proposal.data());
+      std::vector<TransactionPtr> actions = validateOracle(oracle, chain);
+      ptrs.insert(ptrs.end(), std::make_move_iterator(actions.begin())
+                            , std::make_move_iterator(actions.end()));
+    } else if (oracle_name == vote::getOracleName()) {
+      vote oracle(proposal.data());
+      std::vector<TransactionPtr> actions = validateOracle(oracle, chain);
+      ptrs.insert(ptrs.end(), std::make_move_iterator(actions.begin())
+                            , std::make_move_iterator(actions.end()));
+    } else {
+      LOG_ERROR << "Unknown oracle: "+oracle_name;
+    }
+  }
+
+  return ptrs;
 }
 
-Tier2TransactionPtr DeserializeTxProtobufString(const std::string& pb_tx, const KeyRing& keys, bool do_sign = false) {
+TransactionPtr DeserializeTxProtobufString(const std::string& pb_tx, const KeyRing& keys, bool do_sign = false) {
 
   Devv::proto::Transaction tx;
   tx.ParseFromString(pb_tx);

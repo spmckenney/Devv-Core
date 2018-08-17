@@ -22,92 +22,106 @@ class dnerowallet : public oracleInterface {
 
  public:
 
-  /**
-   *  @return string that invokes this oracle in a T2 transaction
-  */
-  static std::string getCoinType() {
-    return("dnerowallet");
-  }
+  dnerowallet(std::string data) : oracleInterface(data) {};
 
-  /**
-   *  @return int internal index of this coin type
-  */
-  static int getCoinIndex() {
-    return(2);
-  }
-
-  /** Checks if a transaction is objectively valid according to this oracle.
-   *  When this function returns false, a transaction is syntactically invalid
-   *  and will be invalid for all chain states.
-   *  Transactions are atomic, so if any portion of the transaction is invalid,
-   *  the entire transaction is also invalid.
-   *
-   *  dnerowallet is a flag with only 0 or 1 such tokens at any address.
-   *
-   * @params checkTx the transaction to (in)validate
-   * @return true iff the transaction can be valid according to this oracle
-   * @return false otherwise
-   */
-  bool isSound(Tier2Transaction& checkTx) override {
-    std::vector<TransferPtr> xfers = checkTx.getTransfers();
-    for (auto& it : xfers) {
-      if (it->getAmount() > 1) {
-        LOG_WARNING << "Error: Can only have at most 1 dnerowallet token.";
-        return false;
-      }
-    }
-    return true;
-  }
-
-  /** Checks if a transaction is valid according to this oracle
-   *  given a specific chain state.
-   *  Transactions are atomic, so if any portion of the transaction is invalid,
-   *  the entire transaction is also invalid.
-   *
-   *  A dnerowallet token indicates that this address may not send dcash.
-   *
-   * @params checkTx the transaction to (in)validate
-   * @params context the chain state to check against
-   * @return true iff the transaction is valid according to this oracle
-   * @return false otherwise
-   */
-  bool isValid(Tier2Transaction& checkTx, const ChainState&) override {
-    if (!isSound(checkTx)) { return false; }
-    return true;
-  }
-
-/** Generate a tier 1 smartcoin transaction based on this tier 2 transaction.
- *
- * @pre This transaction must be valid.
- * @params checkTx the transaction to (in)validate
- * @return a tier 1 transaction to implement this tier 2 logic.
+/**
+ *  @return the string name that invokes this oracle
  */
-  Tier1TransactionPtr getT1Syntax(Tier2TransactionPtr) override {
-    // TODO(spm)
-    Tier1TransactionPtr t1 = std::make_unique<Tier1Transaction>();
-    return(t1);
+  static std::string getOracleName() {
+    return("io.devv.dnerowallet");
   }
 
 /**
- * End-to-end tier2 process that takes a string, parses it into a transaction,
- * validates it against the provided chain state,
- * and returns a tier 1 transaction if it is valid.
- * Returns null if the transaction is invalid.
- *
- * @params input_buffer the raw transaction to process
- * @params context the chain state to check against
- * @return a tier 1 transaction to implement this tier 2 logic.
- * @return empty/null transaction if the transaction is invalid
+ *  @return the shard used by this oracle
  */
-  Tier2TransactionPtr tier2Process(InputBuffer &input_buffer,
-                                   const ChainState &context,
-                                   const KeyRing &keys) override {
-    Tier2TransactionPtr tx = Tier2Transaction::CreateUniquePtr(input_buffer, keys);
-    if (!isValid(*tx, context)) {
-      return tx;
-    }
-    return nullptr;
+  static uint64_t getShardIndex() {
+    return(2);
   }
+
+/**
+ *  @return the coin type used by this oracle
+ */
+  static uint64_t getCoinIndex() {
+    return(2);
+  }
+
+/** Checks if this proposal is objectively sound according to this oracle.
+ *  When this function returns false, the proposal is syntactically unsound
+ *  and will be invalid for all chain states.
+ * @return true iff the proposal can be valid according to this oracle
+ * @return false otherwise
+ */
+  bool isSound() override {
+    return false;
+  }
+
+/** Checks if this proposal is valid according to this oracle
+ *  given a specific blockchain.
+ * @params context the blockchain to check against
+ * @return true iff the proposal is valid according to this oracle
+ * @return false otherwise
+ */
+  bool isValid(const Blockchain& context) override {
+    return false;
+  }
+
+/**
+ *  @return if not valid or not sound, return an error message
+ */
+  std::string getErrorMessage() override {
+    return(error_msg_);
+  }
+
+/** Generate the transactions to encode the effect of this propsal on chain.
+ *
+ * @pre This transaction must be valid.
+ * @params context the blockchain of the shard that provides context for this oracle
+ * @return a map of shard indicies to transactions to encode in each shard
+ */
+  std::map<uint64_t, std::vector<Tier2Transaction>>
+      getTransactions(const Blockchain& context) override {
+    std::map<uint64_t, std::vector<Tier2Transaction>> out;
+    return out;
+  }
+
+/** Recursively generate the state of this oracle and all dependent oracles.
+ *
+ * @pre This transaction must be valid.
+ * @params context the blockchain of the shard that provides context for this oracle
+ * @return a map of oracles to data
+ */
+  std::map<std::string, std::vector<byte>>
+      getDecompositionMap(const Blockchain& context) override {
+    std::map<std::string, std::vector<byte>> out;
+    std::vector<byte> data(Str2Bin(raw_data_));
+    std::pair<std::string, std::vector<byte>> p(getOracleName(), data);
+    out.insert(p);
+    return out;
+  }
+
+/** Recursively generate the state of this oracle and all dependent oracles.
+ *
+ * @pre This transaction must be valid.
+ * @params context the blockchain of the shard that provides context for this oracle
+ * @return a map of oracles to data encoded in JSON
+ */
+  virtual std::map<std::string, std::string>
+      getDecompositionMapJSON(const Blockchain& context) override {
+    std::map<std::string, std::string> out;
+    std::pair<std::string, std::string> p(getOracleName(), getJSON());
+    out.insert(p);
+    return out;
+  }
+
+/**
+ * @return the internal state of this oracle in JSON.
+ */
+  std::string getJSON() override {
+    return "";
+  }
+
+private:
+ std::string error_msg_;
 
 };
 

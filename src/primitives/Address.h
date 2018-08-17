@@ -87,6 +87,17 @@ class Address {
     return *this;
   }
 
+  static size_t getSizeByType(byte addr_type) {
+    if (addr_type == kWALLET_ADDR_SIZE) {
+      return kWALLET_ADDR_SIZE;
+    } else if (addr_type == kNODE_ADDR_SIZE) {
+      return kNODE_ADDR_SIZE;
+    } else {
+      LOG_ERROR << "Invalid Address size.";
+      return 0;
+    }
+  }
+
   byte at(size_t loc) const {
     return canonical_.at(loc);
   }

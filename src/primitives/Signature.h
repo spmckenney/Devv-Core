@@ -90,6 +90,17 @@ class Signature {
     return *this;
   }
 
+  static size_t getSizeByType(byte addr_type) {
+    if (addr_type == kWALLET_SIG_SIZE) {
+      return kWALLET_SIG_SIZE;
+    } else if (addr_type == kNODE_SIG_SIZE) {
+      return kNODE_SIG_SIZE;
+    } else {
+      LOG_ERROR << "Invalid Signature size.";
+      return 0;
+    }
+  }
+
   /**
    * Return the size of this Signature
    * @return size of this Signature
