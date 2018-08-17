@@ -113,9 +113,9 @@ int main(int argc, char* argv[]) {
       std::string tx_string = std::string(static_cast<char*>(transaction_message.data()),
           transaction_message.size());
 
-      auto env_ptr = DeserializeEnvelopeProtobufString(tx_string, keys);
+      auto ptrs = DeserializeEnvelopeProtobufString(tx_string, keys);
 
-      for (auto const& t2tx : env_ptr->transactions) {
+      for (auto const& t2tx : ptrs) {
         auto announce_msg = std::make_unique<DevcashMessage>(
             this_context.get_uri(),
             TRANSACTION_ANNOUNCEMENT,
@@ -197,7 +197,7 @@ annouonces them to nodes provided by the host-list arguments.\n\
 
     po::variables_map vm;
     po::store(po::command_line_parser(argc, argv).
-                  options(all_options).
+                  options(all_options).allow_unregistered().
                   run(),
               vm);
 
@@ -218,11 +218,14 @@ annouonces them to nodes provided by the host-list arguments.\n\
           LOG_ERROR << "Error opening config file: " << config_filenames[i];
           return nullptr;
         }
-        po::store(po::parse_config_file(ifs, all_options), vm);
+        po::store(po::parse_config_file(ifs, all_options, true), vm);
       }
     }
 
-    po::store(po::parse_command_line(argc, argv, all_options), vm);
+   po::store(po::command_line_parser(argc, argv).
+                  options(all_options).allow_unregistered().
+                  run(),
+              vm);
     po::notify(vm);
 
     if (vm.count("mode")) {
