@@ -21,6 +21,8 @@ class dneroavailable : public oracleInterface {
 
  public:
 
+  dneroavailable(std::string data) : oracleInterface(data) {};
+
 /**
  *  @return the string name that invokes this oracle
  */

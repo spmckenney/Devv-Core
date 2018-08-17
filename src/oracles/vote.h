@@ -23,6 +23,8 @@ class vote : public oracleInterface {
 
  public:
 
+  vote(std::string data) : oracleInterface(data) {};
+
   Address election_;
   std::vector<Address> targets_;
 

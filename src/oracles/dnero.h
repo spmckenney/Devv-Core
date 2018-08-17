@@ -23,6 +23,8 @@ class dnero : public oracleInterface {
 
  public:
 
+  dnero(std::string data) : oracleInterface(data) {};
+
   const long kDEFAULT_DELAY = 604800; //1 week in seconds
 
 /**

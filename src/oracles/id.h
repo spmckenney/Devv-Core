@@ -24,6 +24,8 @@ class id : public oracleInterface {
 
   const long kID_LIFETIME = 31449600; //1 year in seconds
 
+  id(std::string data) : oracleInterface(data) {};
+
 /**
  *  @return the string name that invokes this oracle
  */

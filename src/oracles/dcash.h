@@ -22,6 +22,8 @@ class dcash : public oracleInterface {
 
  public:
 
+  dcash(std::string data) : oracleInterface(data) {};
+
 /**
  *  @return the string name that invokes this oracle
  */

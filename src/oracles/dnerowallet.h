@@ -22,6 +22,8 @@ class dnerowallet : public oracleInterface {
 
  public:
 
+  dnerowallet(std::string data) : oracleInterface(data) {};
+
 /**
  *  @return the string name that invokes this oracle
  */

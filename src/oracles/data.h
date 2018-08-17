@@ -25,6 +25,8 @@ class data : public oracleInterface {
 
   const int kBYTES_PER_COIN = 10240;
 
+  data(std::string data) : oracleInterface(data) {};
+
   static Address getDataSinkAddress() {
     std::vector<byte> bin(kNODE_ADDR_SIZE, 0);
     Address sink(bin);

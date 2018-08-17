@@ -21,6 +21,8 @@ class api : public oracleInterface {
 
  public:
 
+  api(std::string data) : oracleInterface(data) {};
+
 /**
  *  @return the string name that invokes this oracle
  */

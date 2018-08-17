@@ -88,7 +88,7 @@ Tier2TransactionPtr CreateTransaction(const Devv::proto::Transaction& transactio
 Tier2TransactionPtr CreateTransaction(const Devv::proto::Transaction& transaction, std::string pk) {
   auto operation = transaction.operation();
   auto pb_xfers = transaction.xfers();
-  std::string aes_pass = "password";
+  std::string aes_password = "password";
 
   std::vector<Transfer> transfers;
   EC_KEY* key = nullptr;
@@ -123,12 +123,12 @@ Tier2TransactionPtr CreateTransaction(const Devv::proto::Transaction& transactio
 std::vector<Tier2TransactionPtr> validateOracle(oracleInterface& oracle
                                               , const Blockchain& chain) {
   std::vector<Tier2TransactionPtr> out;
-  if (oracle.isValid(blockchain)) {
-    std::map<uint64_t, std::vector<Tier2Transaction>> oracle_actions = oracle.getTransactions();
+  if (oracle.isValid(chain)) {
+    std::map<uint64_t, std::vector<Tier2Transaction>> oracle_actions = oracle.getTransactions(chain);
     for (auto& it : oracle_actions) {
       //TODO (nick) forward transactions for other shards to those shards
       for (auto& tx : it.second) {
-        Tier2TransactionPtr t2tx_ptr = std::make_unique<Tier2Transaction>(tx);
+        Tier2TransactionPtr t2tx_ptr = tx.clone();
         out.push_back(std::move(t2tx_ptr));
       }
     }
@@ -155,7 +155,8 @@ std::vector<Tier2TransactionPtr> DeserializeEnvelopeProtobufString(const std::st
     if (oracle_name == api::getOracleName()) {
       api oracle(proposal.data());
       std::vector<Tier2TransactionPtr> actions = validateOracle(oracle, chain);
-      ptrs.insert(ptrs.end(), actions.begin(), actions.end());
+      ptrs.insert(ptrs.end(), std::make_move_iterator(actions.begin())
+                            , std::make_move_iterator(actions.end()));
 	} else if (oracle_name == data::getOracleName()) {
       data oracle(proposal.data());
       std::vector<Tier2TransactionPtr> actions = validateOracle(oracle, chain);
