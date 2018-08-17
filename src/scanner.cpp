@@ -100,7 +100,6 @@ int main(int argc, char* argv[])
     auto options = ParseScannerOptions(argc, argv);
 
     if (!options) {
-      LOG_ERROR << "ParseScannerOptions failed";
       exit(-1);
     }
 
@@ -297,7 +296,7 @@ Required parameters");
     desc.add_options()
         ("mode", po::value<std::string>(), "Devcash mode (T1|T2|scan)")
         ("working-dir", po::value<std::string>(), "Directory where inputs are read and outputs are written")
-        ("output", po::value<std::string>(), "Output file")
+        ("output", po::value<std::string>(), "Output file (JSON)")
         ;
 
     po::options_description d2("Optional parameters");
@@ -305,7 +304,7 @@ Required parameters");
         ("help", "produce help message")
         ("debug-mode", po::value<std::string>(), "Debug mode (on|off|perf) for testing")
         ("expect-version", "look for this block version while scanning")
-        ("filter-by-address", po::value<std::string>(), "Filter results by address - only transactions involving this address will be displayed")
+        ("filter-by-address", po::value<std::string>(), "Filter results by address - only transactions involving this address will written to the JSON output file")
         ;
     desc.add(d2);
 
