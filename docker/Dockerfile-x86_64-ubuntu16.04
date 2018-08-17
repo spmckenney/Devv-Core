@@ -71,6 +71,10 @@ RUN apt-get install -y \
     python-zmq \
     python3-zmq
 
+# Database deps
+RUN apt-get install -y \
+    libpqxx-dev
+
 RUN apt-get install -y \
     software-properties-common
 
