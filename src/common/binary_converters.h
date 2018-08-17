@@ -117,11 +117,31 @@ static int Char2Int(char in) {
 }
 
 /**
- * Maps a hex string into a byte vector for CBOR parsing.
- * @param hex a string of hex digits encoding a CBOR message.
+ * Maps a string into a byte vector.
+ * @param str a string to encode directly into binary
  * @return a byte vector of the same data in binary form.
  */
-static std::vector<byte> Hex2Bin(std::string hex) {
+static std::vector<byte> Str2Bin(const std::string& str) {
+  std::vector<byte> out(str.begin(), str.end());
+  return out;
+}
+
+/**
+ * Maps a byte vector into a string.
+ * @param bin a binary vector
+ * @return a string containing the same data
+ */
+static std::string Bin2Str(const std::vector<byte>& bin) {
+  std::string out(bin.begin(), bin.end());
+  return out;
+}
+
+/**
+ * Maps a hex string into a byte vector.
+ * @param hex a string of hex digits.
+ * @return a byte vector of the same data in binary form.
+ */
+static std::vector<byte> Hex2Bin(const std::string& hex) {
   MTR_SCOPE_FUNC();
   int len = hex.length();
   std::vector<uint8_t> buf(len / 2 + 1);
