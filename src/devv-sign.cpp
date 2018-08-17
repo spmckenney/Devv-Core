@@ -96,10 +96,13 @@ int main(int argc, char* argv[]) {
   KeyRing keys;
   keys.addNodeKeyPair(tup.address, tup.key, options->key_pass);
 
-  out_stream << "made it: " << tup.address.size() << std::endl;
+  out_stream << "addr_size    : " << tup.address.size() << std::endl;
+  out_stream << "env_str_size : " << env_str.size() << std::endl;
 
   Devv::proto::Envelope envelope;
-  envelope.ParseFromString(env_str);
+  auto res = envelope.ParseFromString(env_str);
+
+  out_stream << "res: " << res << std::endl;
 
   auto pb_transactions = envelope.txs();
   out_stream << "num tx: " << pb_transactions.size() << std::endl;
