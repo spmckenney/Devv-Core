@@ -32,6 +32,8 @@ struct devcash_options {
   unsigned int shard_index = 0;
   unsigned int num_consensus_threads = 1;
   unsigned int num_validator_threads = 1;
+  unsigned int batch_size;
+  unsigned int max_wait;
   std::string working_dir;
   std::string trace_file;
   std::string inn_keys;
@@ -77,6 +79,8 @@ std::unique_ptr<struct devcash_options> ParseDevcashOptions(int argc, char** arg
         ("num-validator-threads", po::value<unsigned int>(), "Number of validation threads")
         ("working-dir", po::value<std::string>(), "Directory where inputs are read and outputs are written")
         ("stop-file", po::value<std::string>(), "A file in working-dir indicating that this node should stop.")
+        ("tx-batch-size", po::value<unsigned int>(), "Target size of transaction batches")
+        ("max-wait", po::value<unsigned int>(), "Maximum number of millis to wait for transactions")
         ;
 
     po::options_description all_options;
@@ -172,6 +176,22 @@ std::unique_ptr<struct devcash_options> ParseDevcashOptions(int argc, char** arg
     } else {
       LOG_INFO << "Num validator threads was not set, defaulting to 10";
       options->num_validator_threads = 10;
+    }
+
+    if (vm.count("tx-batch-size")) {
+      options->batch_size = vm["tx-batch-size"].as<unsigned int>();
+      LOG_INFO << "Batch size: " << options->batch_size;
+    } else {
+      LOG_INFO << "Batch size was not set (default to 10000).";
+      options->batch_size = 10000;
+    }
+
+    if (vm.count("max-wait")) {
+      options->max_wait = vm["max-wait"].as<unsigned int>();
+      LOG_INFO << "Max Wait: " << options->max_wait;
+    } else {
+      LOG_INFO << "Max Wait was not set (default to no wait).";
+      options->max_wait = 0;
     }
 
     if (vm.count("bind-endpoint")) {
