@@ -385,6 +385,7 @@ class UnrecordedTransactionPool {
     MTR_SCOPE_FUNC();
     std::lock_guard<std::mutex> guard(txs_mutex_);
     if (txs_.size() < max_tx_per_block_) {
+      LOG_DEBUG << "low incoming transaction volume: sleeping";
       sleep(context.get_max_wait());
     }
     unsigned int num_txs = 0;
