@@ -3,7 +3,9 @@
 #include "devv_pbuf.h"
 
 JNIEXPORT jbyteArray JNICALL Java_io_devv_test_DevvTestMain_SignTransaction
-  (JNIEnv* env, jobject obj, jbyteArray proto_tx, jbyteArray private_key) {
+  (JNIEnv* env, jobject obj, jbyteArray proto_tx
+  , jstring password, jbyteArray private_key) {
+
     std::string pbuf_str;
     jsize tx_pbuf_len = env->GetArrayLength(env, proto_tx);
     jint* tx_pbuf_body = env->GetIntArrayElements(env, proto_tx, 0);
@@ -13,6 +15,10 @@ JNIEXPORT jbyteArray JNICALL Java_io_devv_test_DevvTestMain_SignTransaction
     Devv::proto::Transaction tx;
     tx.ParseFromString(pbuf_str);
 
+    jboolean do_copy = true;
+    const char *pass_ptr= env->GetStringUTFChars(password, &do_copy);
+	std::string pass(pass_ptr);
+
     std::string key_str;
     jsize key_pbuf_len = env->GetArrayLength(env, private_key);
     jint* key_pbuf_body = env->GetIntArrayElements(env, private_key, 0);
@@ -20,7 +26,7 @@ JNIEXPORT jbyteArray JNICALL Java_io_devv_test_DevvTestMain_SignTransaction
       key_str.push_back(key_pbuf_body[i]);
     }
 
-    Tier2TransactionPtr t2tx_ptr = CreateTransaction(tx, key_str);
+    Tier2TransactionPtr t2tx_ptr = CreateTransaction(tx, key_str, pass);
     Devv::proto::Transaction tx;
     for (const std::vector<TransferPtr>& xfer_ptr : t2tx_ptr->getTransfers()) {
       Devv::proto::Transfer* xfer = tx->add_xfers();
@@ -42,6 +48,7 @@ JNIEXPORT jbyteArray JNICALL Java_io_devv_test_DevvTestMain_SignTransaction
     env->SetByteArrayRegion(ret, 0, final_tx_len, (jbyte*) bin_ptr);
 
     env->ReleaseIntArrayElements(proto_tx, tx_pbuf_body, 0);
+    env->ReleaseStringUTFChars(password, pass_ptr);
     env->ReleaseIntArrayElements(private_key, key_pbuf_body, 0);
     return ret;
   }

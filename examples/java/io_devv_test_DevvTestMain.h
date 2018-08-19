@@ -10,10 +10,10 @@ extern "C" {
 /*
  * Class:     io_devv_test_DevvTestMain
  * Method:    SignTransaction
- * Signature: ([B[B)[B
+ * Signature: ([BLjava/lang/String;[B)[B
  */
 JNIEXPORT jbyteArray JNICALL Java_io_devv_test_DevvTestMain_SignTransaction
-  (JNIEnv *, jobject, jbyteArray, jbyteArray);
+  (JNIEnv *, jobject, jbyteArray, jstring, jbyteArray);
 
 #ifdef __cplusplus
 }

@@ -16,6 +16,7 @@ public class DevvTestMain {
 	static final public String ADDR_2 = "2102E14466DC0E5A3E6EBBEAB5DD24ABE950E44EF2BEB509A5FD113460414A6EFAB4";
 	static final public String SOME_NONCE_HEXSTR = "00112233445566778899AABBCCDDEEFF";
 	static final public String ANNOUNCER_URL = "tcp://*:55706";
+	static final public String PK_AES_PASS = "password";
 	
 	
 	static public byte[] hexStringToByteArray(String s) {
@@ -53,7 +54,8 @@ public class DevvTestMain {
 		return tx;
 	}
 	
-	public native byte[] SignTransaction(byte[] tx, byte[] privateKey);
+	
+	public native byte[] SignTransaction(byte[] tx, String keyPass, byte[] privateKey);
 	
 	public static void main(String[] args) {
 		try {
@@ -70,7 +72,7 @@ public class DevvTestMain {
 					0L, 1L, 0L,
 					hexStringToByteArray(SOME_NONCE_HEXSTR),
 					hexStringToByteArray(ADDR_1));
-			byte[] signed = test.SignTransaction(tx.toByteArray(), hexStringToByteArray(ADDR_1_KEY));
+			byte[] signed = test.SignTransaction(tx.toByteArray(), PK_AES_PASS, hexStringToByteArray(ADDR_1_KEY));
 			try {
 			  Transaction tx2 = Transaction.parseFrom(signed);
 			  Envelope env = Envelope.newBuilder().addTxs(tx2).build();

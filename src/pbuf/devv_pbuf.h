@@ -84,10 +84,10 @@ TransactionPtr CreateTransaction(const Devv::proto::Transaction& transaction, co
   }
 }
 
-Tier2TransactionPtr CreateTransaction(const Devv::proto::Transaction& transaction, std::string pk) {
+Tier2TransactionPtr CreateTransaction(const Devv::proto::Transaction& transaction
+    , std::string pk, std::pk_pass) {
   auto operation = transaction.operation();
   auto pb_xfers = transaction.xfers();
-  std::string aes_password = "password";
 
   std::vector<Transfer> transfers;
   EC_KEY* key = nullptr;
@@ -100,7 +100,7 @@ Tier2TransactionPtr CreateTransaction(const Devv::proto::Transaction& transactio
       if (!pub_key.empty()) {
         throw std::runtime_error("More than one send transfer not supported.");
       }
-      key = LoadEcKey(pub_key, pk, aes_password);
+      key = LoadEcKey(pub_key, pk, pk_pass);
     }
   }
 
