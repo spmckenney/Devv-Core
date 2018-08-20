@@ -155,6 +155,25 @@ class dnero : public oracleInterface {
     return tx.getJSON();
   }
 
+/** Generate the appropriate signature(s) for this proposal.
+ *
+ * @params address - the address corresponding to this key
+ * @params key - an ECDSA key, AES encrypted with ASCII armor
+ * @params aes_password - the AES password for the key
+ * @return the signed oracle data
+ */
+  std::string Sign(std::string address
+        , std::string key, std::string aes_password) override {
+    InputBuffer buffer(Str2Bin(raw_data_));
+    Tier2Transaction unsigned_tx = Tier2Transaction::QuickCreate(buffer);
+    EC_KEY* key = LoadEcKey(address, key, aes_password);
+    Tier2Transaction the_tx(unsigned_tx.getOperation()
+             , unsigned_tx.getTransfers()
+             , unsigned_tx.getNonce()
+             , key);
+    return Bin2Str(the_tx.getCanonical());
+  }
+
 private:
  std::string error_msg_;
 

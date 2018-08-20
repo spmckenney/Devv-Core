@@ -85,7 +85,7 @@ TransactionPtr CreateTransaction(const Devv::proto::Transaction& transaction, co
 }
 
 Tier2TransactionPtr CreateTransaction(const Devv::proto::Transaction& transaction
-    , std::string pk, std::pk_pass) {
+    , std::string pk, std::string pk_pass) {
   auto operation = transaction.operation();
   auto pb_xfers = transaction.xfers();
 
@@ -135,21 +135,44 @@ std::vector<TransactionPtr> validateOracle(oracleInterface& oracle
   return out;
 }
 
-std::vector<TransactionPtr> DeserializeEnvelopeProtobufString(const std::string& pb_envelope, const KeyRing& keys) {
-  Devv::proto::Envelope envelope;
-  envelope.ParseFromString(pb_envelope);
-
-  std::vector<TransactionPtr> ptrs;
-
-  auto pb_transactions = envelope.txs();
-  for (auto const& transaction : pb_transactions) {
-    ptrs.push_back(CreateTransaction(transaction, keys));
+std::string SignProposal(const Devv::proto::Proposal& proposal
+            , std::string addr , std::string pk, std::string pk_pass) {
+    std::string oracle_name = proposal.oraclename();
+    if (oracle_name == api::getOracleName()) {
+      api oracle(proposal.data());
+      return api.Sign(addr, pk, pk_pass);
+    } else if (oracle_name == data::getOracleName()) {
+      data oracle(proposal.data());
+      return data.Sign(addr, pk, pk_pass);
+    } else if (oracle_name == dcash::getOracleName()) {
+      dcash oracle(proposal.data());
+      return dcash.Sign(addr, pk, pk_pass);
+    } else if (oracle_name == dnero::getOracleName()) {
+      dnero oracle(proposal.data());
+      return dnero.Sign(addr, pk, pk_pass);
+    } else if (oracle_name == dneroavailable::getOracleName()) {
+      dneroavailable oracle(proposal.data());
+      return dneroavailable.Sign(addr, pk, pk_pass);
+    } else if (oracle_name == dnerowallet::getOracleName()) {
+      dnerowallet oracle(proposal.data());
+      return dnerowallet.Sign(addr, pk, pk_pass);
+    } else if (oracle_name == id::getOracleName()) {
+      id oracle(proposal.data());
+      std::vector<TransactionPtr> actions = validateOracle(oracle, chain);
+      return id.Sign(addr, pk, pk_pass);
+    } else if (oracle_name == vote::getOracleName()) {
+      vote oracle(proposal.data());
+      return vote.Sign(addr, pk, pk_pass);
+    } else {
+      LOG_ERROR << "Unknown oracle: "+oracle_name;
+    }
   }
+  return "";
+}
 
-  //TODO (nick): use the latest blockchain of this shard from the repeater
-  Blockchain chain("test-shard");
-  auto pb_proposals = envelope.proposals();
-  for (auto const& proposal : pb_proposals) {
+std::vector<TransactionPtr> DecomposeProposal(const Devv::proto::Proposal& proposal
+                             , const Blockchain& chain) {
+	std::vector<TransactionPtr> ptrs;
     std::string oracle_name = proposal.oraclename();
     if (oracle_name == api::getOracleName()) {
       api oracle(proposal.data());
@@ -194,6 +217,28 @@ std::vector<TransactionPtr> DeserializeEnvelopeProtobufString(const std::string&
     } else {
       LOG_ERROR << "Unknown oracle: "+oracle_name;
     }
+  }
+  return out;
+}
+
+std::vector<TransactionPtr> DeserializeEnvelopeProtobufString(const std::string& pb_envelope, const KeyRing& keys) {
+  Devv::proto::Envelope envelope;
+  envelope.ParseFromString(pb_envelope);
+
+  std::vector<TransactionPtr> ptrs;
+
+  auto pb_transactions = envelope.txs();
+  for (auto const& transaction : pb_transactions) {
+    ptrs.push_back(CreateTransaction(transaction, keys));
+  }
+
+  //TODO (nick): use the latest blockchain of this shard from the repeater
+  Blockchain chain("test-shard");
+  auto pb_proposals = envelope.proposals();
+  for (auto const& proposal : pb_proposals) {
+    std::vector<TransactionPtr> actions = DecomposeProposal(proposal, chain);
+    ptrs.insert(ptrs.end(), std::make_move_iterator(actions.begin())
+                          , std::make_move_iterator(actions.end()));
   }
 
   return ptrs;
