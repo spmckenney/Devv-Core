@@ -30,10 +30,10 @@ JNIEXPORT jbyteArray JNICALL Java_io_devv_test_DevvTestMain_SignTransaction
     Devv::proto::Transaction tx_out;
     for (const TransferPtr& xfer_ptr : t2tx_ptr->getTransfers()) {
       Devv::proto::Transfer* xfer = tx_out.add_xfers();
-      xfer.set_address(Bin2Str(xfer_ptr->getAddress().getCanonical()));
-      xfer.set_coin(xfer_ptr->getCoin());
-      xfer.set_amount(xfer_ptr->getAmount());
-      xfer.set_delay(xfer_ptr->getDelay());
+      xfer->set_address(Bin2Str(xfer_ptr->getAddress().getCanonical()));
+      xfer->set_coin(xfer_ptr->getCoin());
+      xfer->set_amount(xfer_ptr->getAmount());
+      xfer->set_delay(xfer_ptr->getDelay());
     }
     tx_out.set_nonce_size(t2tx_ptr->getNonce().size());
     tx_out.set_xfer_size(t2tx_ptr->getTransfers().size());

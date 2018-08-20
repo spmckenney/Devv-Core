@@ -169,9 +169,10 @@ class dnero : public oracleInterface {
     EC_KEY* key_ptr = LoadEcKey(address, key, aes_password);
     std::vector<Transfer> xfers;
     for (const auto& xfer : unsigned_tx.getTransfers()) {
-      Transfer copy_xfer(xfer.get());
+      InputBuffer xfer_buffer(xfer->getCanonical());
+      Transfer copy_xfer(xfer_buffer);
       xfers.push_back(copy_xfer);
-	}
+    }
     Tier2Transaction the_tx(unsigned_tx.getOperation()
              , xfers
              , unsigned_tx.getNonce()
