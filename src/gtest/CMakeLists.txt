@@ -12,37 +12,19 @@ find_package(GTest REQUIRED)
 #find_package(GMock REQUIRED)
 include_directories(${GTEST_INCLUDE_DIRS})
 
-# Now simply link against gtest or gtest_main as needed. Eg
+# Primitive data type tests
 add_executable(primitives_test gtest/primitives_test.cpp)
-target_link_libraries(primitives_test
-  ${GTEST_BOTH_LIBRARIES}
-  ${devcash_core_libs}
-  ${ZMQ}
-  ${OPENSSL_LIBRARIES}
-  ${CMAKE_THREAD_LIBS_INIT}
-  ${Boost_LIBRARIES})
+target_link_libraries(primitives_test ${GTEST_BOTH_LIBRARIES} ${devv_all_libs})
 
-# Now simply link against gtest or gtest_main as needed. Eg
+# unit tests for consensus algorithms
 add_executable(consensus_test gtest/consensus_test.cpp)
-target_link_libraries(consensus_test
-  ${GTEST_BOTH_LIBRARIES}
-  ${devcash_core_libs}
-  ${ZMQ}
-  ${OPENSSL_LIBRARIES}
-  ${CMAKE_THREAD_LIBS_INIT}
-  ${Boost_LIBRARIES})
+target_link_libraries(consensus_test ${GTEST_BOTH_LIBRARIES} ${devv_all_libs})
 
-# Now simply link against gtest or gtest_main as needed. Eg
+# ossladapter tests
 add_executable(ossladapter_test gtest/ossladapter_test.cpp)
-target_link_libraries(ossladapter_test
-  ${GTEST_BOTH_LIBRARIES}
-  ${devcash_core_libs}
-  ${ZMQ}
-  ${OPENSSL_LIBRARIES}
-  ${CMAKE_THREAD_LIBS_INIT}
-  ${Boost_LIBRARIES})
+target_link_libraries(ossladapter_test ${GTEST_BOTH_LIBRARIES} ${devv_all_libs})
 
-# Now simply link against gtest or gtest_main as needed. Eg
+# protocol buffer tests
 add_executable(pbuf_test gtest/pbuf_test.cpp)
 target_link_libraries(pbuf_test ${GTEST_BOTH_LIBRARIES} ${devv_all_libs})
 
