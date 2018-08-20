@@ -215,7 +215,6 @@ std::vector<TransactionPtr> DecomposeProposal(const Devv::proto::Proposal& propo
     } else {
       LOG_ERROR << "Unknown oracle: "+oracle_name;
     }
-  }
   return ptrs;
 }
 
