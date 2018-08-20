@@ -136,36 +136,34 @@ std::vector<TransactionPtr> validateOracle(oracleInterface& oracle
 }
 
 std::string SignProposal(const Devv::proto::Proposal& proposal
-            , std::string addr , std::string pk, std::string pk_pass) {
-    std::string oracle_name = proposal.oraclename();
-    if (oracle_name == api::getOracleName()) {
-      api oracle(proposal.data());
-      return api.Sign(addr, pk, pk_pass);
-    } else if (oracle_name == data::getOracleName()) {
-      data oracle(proposal.data());
-      return data.Sign(addr, pk, pk_pass);
-    } else if (oracle_name == dcash::getOracleName()) {
-      dcash oracle(proposal.data());
-      return dcash.Sign(addr, pk, pk_pass);
-    } else if (oracle_name == dnero::getOracleName()) {
-      dnero oracle(proposal.data());
-      return dnero.Sign(addr, pk, pk_pass);
-    } else if (oracle_name == dneroavailable::getOracleName()) {
-      dneroavailable oracle(proposal.data());
-      return dneroavailable.Sign(addr, pk, pk_pass);
-    } else if (oracle_name == dnerowallet::getOracleName()) {
-      dnerowallet oracle(proposal.data());
-      return dnerowallet.Sign(addr, pk, pk_pass);
-    } else if (oracle_name == id::getOracleName()) {
-      id oracle(proposal.data());
-      std::vector<TransactionPtr> actions = validateOracle(oracle, chain);
-      return id.Sign(addr, pk, pk_pass);
-    } else if (oracle_name == vote::getOracleName()) {
-      vote oracle(proposal.data());
-      return vote.Sign(addr, pk, pk_pass);
-    } else {
-      LOG_ERROR << "Unknown oracle: "+oracle_name;
-    }
+          , std::string addr , std::string pk, std::string pk_pass) {
+  std::string oracle_name = proposal.oraclename();
+  if (oracle_name == api::getOracleName()) {
+    api oracle(proposal.data());
+    return oracle.Sign(addr, pk, pk_pass);
+  } else if (oracle_name == data::getOracleName()) {
+    data oracle(proposal.data());
+    return oracle.Sign(addr, pk, pk_pass);
+  } else if (oracle_name == dcash::getOracleName()) {
+    dcash oracle(proposal.data());
+    return oracle.Sign(addr, pk, pk_pass);
+  } else if (oracle_name == dnero::getOracleName()) {
+    dnero oracle(proposal.data());
+    return oracle.Sign(addr, pk, pk_pass);
+  } else if (oracle_name == dneroavailable::getOracleName()) {
+    dneroavailable oracle(proposal.data());
+    return oracle.Sign(addr, pk, pk_pass);
+  } else if (oracle_name == dnerowallet::getOracleName()) {
+    dnerowallet oracle(proposal.data());
+    return oracle.Sign(addr, pk, pk_pass);
+  } else if (oracle_name == id::getOracleName()) {
+    id oracle(proposal.data());
+    return oracle.Sign(addr, pk, pk_pass);
+  } else if (oracle_name == vote::getOracleName()) {
+    vote oracle(proposal.data());
+    return oracle.Sign(addr, pk, pk_pass);
+  } else {
+    LOG_ERROR << "Unknown oracle: "+oracle_name;
   }
   return "";
 }
@@ -218,7 +216,7 @@ std::vector<TransactionPtr> DecomposeProposal(const Devv::proto::Proposal& propo
       LOG_ERROR << "Unknown oracle: "+oracle_name;
     }
   }
-  return out;
+  return ptrs;
 }
 
 std::vector<TransactionPtr> DeserializeEnvelopeProtobufString(const std::string& pb_envelope, const KeyRing& keys) {

@@ -128,7 +128,7 @@ class api : public oracleInterface {
  * @params aes_password - the AES password for the key
  * @return the signed oracle data
  */
-  std::vector<byte> Sign(std::string address
+  std::string Sign(std::string address
         , std::string key, std::string aes_password) override {
     return raw_data_;
   }

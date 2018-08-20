@@ -162,11 +162,16 @@ class dcash : public oracleInterface {
         , std::string key, std::string aes_password) override {
     InputBuffer buffer(Str2Bin(raw_data_));
     Tier2Transaction unsigned_tx = Tier2Transaction::QuickCreate(buffer);
-    EC_KEY* key = LoadEcKey(address, key, aes_password);
+    EC_KEY* key_ptr = LoadEcKey(address, key, aes_password);
+    std::vector<Transfer> xfers;
+    for (const auto& xfer : unsigned_tx.getTransfers()) {
+      Transfer copy_xfer(xfer.get());
+      xfers.push_back(copy_xfer);
+	}
     Tier2Transaction the_tx(unsigned_tx.getOperation()
-             , unsigned_tx.getTransfers()
+             , xfers
              , unsigned_tx.getNonce()
-             , key);
+             , key_ptr);
     return Bin2Str(the_tx.getCanonical());
   }
 
