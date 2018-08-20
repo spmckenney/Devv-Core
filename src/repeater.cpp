@@ -12,6 +12,7 @@
 #include <iostream>
 #include <string>
 #include <thread>
+#include <memory>
 
 #include <boost/filesystem.hpp>
 #include <boost/program_options.hpp>
@@ -103,23 +104,28 @@ int main(int argc, char* argv[]) {
 
     std::string shard_name = "Shard-"+std::to_string(options->shard_index);
     bool db_connected = false;
-    pqxx::connection db_link(
-      "username="+options->db_user+
-      " host="+options->db_host+
-      " password="+options->db_pass+
-      " dbname="+options->db_name+
-      " port="+std::to_string(options->db_port));
-    if (db_link.is_open()) {
-      LOG_INFO << "Successfully connected to database.";
-      db_connected = true;
-      db_link.prepare(kTX_INSERT, kTX_INSERT_STATEMENT);
-      db_link.prepare(kRX_INSERT, kRX_INSERT_STATEMENT);
-      db_link.prepare(kWALLET_INSERT, kWALLET_INSERT_STATEMENT);
-      db_link.prepare(kBALANCE_SELECT, kBALANCE_SELECT_STATEMENT);
-      db_link.prepare(kBALANCE_INSERT, kBALANCE_INSERT_STATEMENT);
-      db_link.prepare(kBALANCE_UPDATE, kBALANCE_UPDATE_STATEMENT);
+    std::unique_ptr<pqxx::connection> db_link = nullptr;
+    if ((options->db_host.size() > 0) && (options->db_user.size() > 0)) {
+      db_link = std::make_unique<pqxx::connection>(
+          "username=" + options->db_user + \
+          " host=" + options->db_host + \
+          " password=" + options->db_pass + \
+          " dbname=" + options->db_name + \
+          " port=" + std::to_string(options->db_port));
+      if (db_link->is_open()) {
+        LOG_INFO << "Successfully connected to database.";
+        db_connected = true;
+        db_link->prepare(kTX_INSERT, kTX_INSERT_STATEMENT);
+        db_link->prepare(kRX_INSERT, kRX_INSERT_STATEMENT);
+        db_link->prepare(kWALLET_INSERT, kWALLET_INSERT_STATEMENT);
+        db_link->prepare(kBALANCE_SELECT, kBALANCE_SELECT_STATEMENT);
+        db_link->prepare(kBALANCE_INSERT, kBALANCE_INSERT_STATEMENT);
+        db_link->prepare(kBALANCE_UPDATE, kBALANCE_UPDATE_STATEMENT);
+      } else {
+        LOG_INFO << "Database connection failed.";
+      }
     } else {
-      LOG_INFO << "Database connection failed.";
+      LOG_INFO << "Database host and user not set, setting db_connected = false";
     }
 
     //@todo(nick@cloudsolar.co): read pre-existing chain
@@ -136,7 +142,7 @@ int main(int argc, char* argv[]) {
           FinalBlock one_block(buffer, priori, keys, options->mode);
           std::vector<TransactionPtr> txs = one_block.CopyTransactions();
           for (TransactionPtr& one_tx : txs) {
-            pqxx::work stmt(db_link);
+            pqxx::work stmt(*db_link);
             std::vector<TransferPtr> xfers = one_tx->getTransfers();
             std::string sig_str(one_tx->getSignature().getCanonical().begin()
                               , one_tx->getSignature().getCanonical().end());
@@ -169,7 +175,7 @@ int main(int argc, char* argv[]) {
               //update receiver
               std::string receiver_str(one_xfer->getAddress().getCanonical().begin()
                                      , one_xfer->getAddress().getCanonical().end());
-              pqxx::work rx_stmt(db_link);
+              pqxx::work rx_stmt(*db_link);
               pqxx::result rx_balance = stmt.prepared(kBALANCE_SELECT)(receiver_str)(coin_id).exec();
               if (rx_balance.empty()) {
                 stmt.prepared(kBALANCE_INSERT)(receiver_str)(coin_id)(kNIL_UUID_PSQL)(amount).exec();
@@ -218,7 +224,7 @@ int main(int argc, char* argv[]) {
         break;
       }
     }
-    if (db_connected) db_link.disconnect();
+    if (db_connected) db_link->disconnect();
     peer_listener->stopClient();
     return (true);
   }

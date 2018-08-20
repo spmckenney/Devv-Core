@@ -82,7 +82,7 @@ class oracleInterface {
 
 /** Recursively generate the state of this oracle and all dependent oracles.
  *
- * @pre This transaction must be valid.
+ * @pre This proposal must be valid.
  * @params context the blockchain of the shard that provides context for this oracle
  * @return a map of oracles to data
  */
@@ -91,12 +91,22 @@ class oracleInterface {
 
 /** Recursively generate the state of this oracle and all dependent oracles.
  *
- * @pre This transaction must be valid.
+ * @pre This proposal must be valid.
  * @params context the blockchain of the shard that provides context for this oracle
  * @return a map of oracles to data encoded in JSON
  */
   virtual std::map<std::string, std::string>
     getDecompositionMapJSON(const Blockchain& context) = 0;
+
+/** Generate the appropriate signature(s) for this proposal.
+ *
+ * @params address - the address corresponding to this key
+ * @params key - an ECDSA key, AES encrypted with ASCII armor
+ * @params aes_password - the AES password for the key
+ * @return the signed oracle data
+ */
+  virtual std::string Sign(std::string address
+          , std::string key, std::string aes_password) = 0;
 
 /**
  * @return the internal state of this oracle

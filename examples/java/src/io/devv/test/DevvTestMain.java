@@ -6,6 +6,7 @@ import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
 
 import proto.Devv.Devv.Envelope;
+import proto.Devv.Devv.Proposal;
 import proto.Devv.Devv.Transaction;
 import proto.Devv.Devv.Transfer;
 
@@ -16,8 +17,9 @@ public class DevvTestMain {
 	static final public String ADDR_2 = "2102E14466DC0E5A3E6EBBEAB5DD24ABE950E44EF2BEB509A5FD113460414A6EFAB4";
 	static final public String SOME_NONCE_HEXSTR = "00112233445566778899AABBCCDDEEFF";
 	static final public String ANNOUNCER_URL = "tcp://*:55706";
-	
-	
+	static final public String PK_AES_PASS = "password";
+
+
 	static public byte[] hexStringToByteArray(String s) {
 	    int len = s.length();
 	    byte[] data = new byte[len / 2];
@@ -27,7 +29,39 @@ public class DevvTestMain {
 	    }
 	    return data;
 	}
-	
+
+	/** use Devv shared library to Sign a transaction
+	 *
+	 * @params tx - the unsigned transaction in binary form
+	 * @params keyPass - the AES password for the key
+	 * @params privateKey - an ECDSA private key, AES encrypted with ASCII armor
+	 * @return the signed transaction in canonical form
+	 */
+	public native byte[] SignTransaction(byte[] tx, String keyPass, byte[] privateKey);
+
+	/** Use Devv shared library to Create a proposal
+	 *
+	 * @params oracle - the fully qualified name of the oracle to invoke
+	 * @params data - the raw data to provide this oracle
+	 * @params keyAddress - the addresses corresponding to this private key
+	 * @params keyPass - the AES password for the key
+	 * @params privateKey - an ECDSA private key, AES encrypted with ASCII armor
+	 * @return a binary proposal including the signature(s) as needed
+	 */
+	public native byte[] CreateProposal(String oracle, byte[] data, String keyAddress, String keyPass, byte[] privateKey);
+
+	/** Generate a transaction
+	 *
+	 * @params sender - the transaction sender/signer address
+	 * @params receiver - the transaction recipient address
+	 * @params coin - the type of coin to send
+	 * @params amount - the amount of this coin to send
+	 * @params delay - a delay (in seconds) before this transaction settles and can be reversed
+	 * @params nonce - arbitrary contextual binary data associated with this transaction
+	 * @params sig - the sender's signature using the hash of rest of this transaction in canonical form as a message digest
+	 * @note use the JNI SignTransaction method to generate a signed version of this transaction for the given key
+	 * @return a binary proposal including the signature(s) as needed
+	 */
 	public Transaction getTransaction(ByteString sender, ByteString receiver, long coin, long amount, long delay, byte[] nonce, byte[] sig) {
 		Transfer xfer = Transfer.newBuilder()
 				.setAddress(sender)
@@ -52,32 +86,40 @@ public class DevvTestMain {
 				.build();
 		return tx;
 	}
-	
-	public native byte[] SignTransaction(byte[] tx, byte[] privateKey);
-	
+
+	public Proposal getDataProposal(ByteString sender, ByteString data) {
+		final String DATA_ORACLE = "io.devv.data";
+		byte[] signed_raw = CreateProposal(DATA_ORACLE, data.toByteArray(), ADDR_1, PK_AES_PASS, hexStringToByteArray(ADDR_1_KEY));
+		Proposal prop = Proposal.newBuilder()
+				.setOraclename(DATA_ORACLE)
+				.setData(ByteString.copyFrom(signed_raw))
+				.build();
+		return prop;
+	}
+
 	public static void main(String[] args) {
 		try {
-			System.loadLibrary("Devv");
-			
+			System.loadLibrary("devvjni");
+
 			ZMQ.Context context = ZMQ.context(1);
-	
+
 	        ZMQ.Socket requester = context.socket(ZMQ.REQ);
 	        requester.connect(ANNOUNCER_URL);
-			
+
 			DevvTestMain test = new DevvTestMain();
 			Transaction tx = test.getTransaction(ByteString.copyFrom(hexStringToByteArray(ADDR_1)),
 					ByteString.copyFrom(hexStringToByteArray(ADDR_2)),
 					0L, 1L, 0L,
 					hexStringToByteArray(SOME_NONCE_HEXSTR),
 					hexStringToByteArray(ADDR_1));
-			byte[] signed = test.SignTransaction(tx.toByteArray(), hexStringToByteArray(ADDR_1_KEY));
+			byte[] signed = test.SignTransaction(tx.toByteArray(), PK_AES_PASS, hexStringToByteArray(ADDR_1_KEY));
 			try {
 			  Transaction tx2 = Transaction.parseFrom(signed);
 			  Envelope env = Envelope.newBuilder().addTxs(tx2).build();
 			  requester.send(env.toByteArray(), 0);
 			  byte[] reply = requester.recv(0);
 	          System.out.println("Received " + new String(reply));
-	
+
 			} catch (InvalidProtocolBufferException ipbe) {
 				System.err.println("InvalidProtocolBufferException: "+ipbe.getMessage());
 			}
@@ -86,7 +128,7 @@ public class DevvTestMain {
 		} catch (Exception e) {
 			System.err.println(e.getClass()+": "+e.getMessage());
 		}
-        
+
 	}
-	
+
 }

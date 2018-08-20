@@ -225,7 +225,7 @@ class UnrecordedTransactionPool {
     Summary summary = Summary::Create();
     Validation validation = Validation::Create();
 
-    auto validated = CollectValidTransactions(new_state, keys, summary);
+    auto validated = CollectValidTransactions(new_state, keys, summary, context);
 
     ProposedBlock new_proposal(prev_hash, validated, summary, validation
         , new_state);
@@ -379,11 +379,15 @@ class UnrecordedTransactionPool {
    *  @return a vector of unrecorded valid transactions
    */
   std::vector<TransactionPtr> CollectValidTransactions(ChainState& state
-      , const KeyRing& keys, Summary& summary) {
+      , const KeyRing& keys, Summary& summary, const DevcashContext& context) {
     LOG_DEBUG << "CollectValidTransactions()";
     std::vector<TransactionPtr> valid;
     MTR_SCOPE_FUNC();
     std::lock_guard<std::mutex> guard(txs_mutex_);
+    if (txs_.size() < max_tx_per_block_) {
+      LOG_DEBUG << "low incoming transaction volume: sleeping";
+      sleep(context.get_max_wait());
+    }
     unsigned int num_txs = 0;
     std::map<Address, SmartCoin> aggregate;
     ChainState prior(state);
@@ -396,6 +400,7 @@ class UnrecordedTransactionPool {
         if (num_txs >= max_tx_per_block_) { break; }
       }
     }
+
     return valid;
   }
 

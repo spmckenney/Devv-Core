@@ -18,24 +18,79 @@
 
 #include <boost/filesystem.hpp>
 #include <boost/program_options.hpp>
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/json_parser.hpp>
 
 #include "common/devcash_context.h"
 #include "modules/BlockchainModule.h"
 #include "primitives/json_interface.h"
 #include "primitives/block_tools.h"
+#include "common/logger.h"
 
 using namespace Devcash;
 namespace fs = boost::filesystem;
+namespace bpt = boost::property_tree;
 
 struct scanner_options {
   eAppMode mode  = eAppMode::T1;
   std::string working_dir;
   std::string write_file;
-  eDebugMode debug_mode;
-  unsigned int version;
+  std::string address_filter;
+  eDebugMode debug_mode = eDebugMode::off;
+  unsigned int version = 0;
 };
 
 std::unique_ptr<struct scanner_options> ParseScannerOptions(int argc, char** argv);
+
+/**
+ * Convert the input string to a json ptree and add it to the supplied tree
+ *
+ * @param input_string Input JSON string containing FinalBlocks
+ * @param tree Tree in which to add the new FinalBlock
+ * @param block_count The block index number
+ */
+void add_to_tree(const std::string& input_string, bpt::ptree& tree, size_t block_count) {
+  bpt::ptree pt2;
+  std::istringstream is(input_string);
+  bpt::read_json(is, pt2);
+  std::string key = "block_" + std::to_string(block_count);
+  //tree.put_child(key, pt2);
+  tree.push_back(std::make_pair("", pt2));
+}
+
+/**
+ * Filters the ptree (array of blocks) and returns a ptree with a list
+ * of transactions that contain a transfer involving the provided
+ * address
+ *
+ * @param tree A ptree of blocks to search in
+ * @param filter_address The address to search for
+ * @return New ptree containing list of matched addresses
+ */
+bpt::ptree filter_by_address(const bpt::ptree& tree, const std::string& filter_address) {
+  bpt::ptree tx_tree;
+  bpt::ptree tx_children;
+  for (auto block : tree) {
+    const bpt::ptree txs = block.second.get_child("txs");
+    for (auto tx : txs) {
+      const bpt::ptree transfers = tx.second.get_child("xfer");
+      bool addr_found = false;
+      for (auto xfer : transfers) {
+        auto address = xfer.second.find("addr");
+        std::string addr = address->second.data();
+        std::size_t found = addr.find(filter_address);
+        if (found != std::string::npos) {
+          addr_found = true;
+        }
+      }
+      if (addr_found) {
+        tx_children.push_back(std::make_pair("", tx.second));
+      }
+    }
+  }
+  tx_tree.add_child("txs", tx_children);
+  return tx_tree;
+}
 
 int main(int argc, char* argv[])
 {
@@ -45,7 +100,6 @@ int main(int argc, char* argv[])
     auto options = ParseScannerOptions(argc, argv);
 
     if (!options) {
-      LOG_ERROR << "ParseScannerOptions failed";
       exit(-1);
     }
 
@@ -67,7 +121,7 @@ int main(int argc, char* argv[])
       return false;
     }
 
-    std::string out;
+    bpt::ptree block_array;
     std::vector<std::string> files;
     for(auto& entry : boost::make_iterator_range(fs::directory_iterator(p), {})) {
       files.push_back(entry.path().string());
@@ -97,6 +151,7 @@ int main(int argc, char* argv[])
       uint64_t start_time = 0;
       uint64_t blocktime = 0;
       uint64_t volume = 0;
+      uint64_t value = 0;
 
       ChainState priori;
       ChainState posteri;
@@ -108,7 +163,8 @@ int main(int argc, char* argv[])
             Tier2Transaction tx(Tier2Transaction::Create(buffer, keys, true));
             file_txs++;
             file_tfer += tx.getTransfers().size();
-            out += tx.getJSON();
+
+            add_to_tree(tx.getJSON(), block_array, block_counter);
           } else if (is_block) {
             FinalBlock one_block(buffer, priori, keys, options->mode);
 
@@ -121,22 +177,21 @@ int main(int argc, char* argv[])
             blocktime = one_block.getBlockTime();
             uint64_t duration = blocktime-previous_time;
             priori = one_block.getChainState();
-            out += GetJSON(one_block);
 
-            out += std::to_string(txs_count)+" txs, transfers: "+std::to_string(tfers)+"\n";
+            add_to_tree(GetJSON(one_block), block_array, block_counter);
+
             LOG_INFO << std::to_string(txs_count)+" txs, transfers: "+std::to_string(tfers);
-            out += "Duration: "+std::to_string(duration)+" ms.\n";
             LOG_INFO << "Duration: "+std::to_string(duration)+" ms.";
             if (duration != 0 && previous_time != 0) {
-              out += "Rate: "+std::to_string(txs_count*1000/duration)+" txs/sec\n";
               LOG_INFO << "Rate: "+std::to_string(txs_count*1000/duration)+" txs/sec";
             } else if (previous_time == 0) {
               start_time = blocktime;
             }
             uint64_t block_volume = one_block.getVolume();
             volume += block_volume;
-            out += "Volume: "+std::to_string(block_volume)+"\n";
+            value += one_block.getValue();
             LOG_INFO << "Volume: "+std::to_string(block_volume);
+            LOG_INFO << "Value: "+std::to_string(one_block.getValue());
 
             Summary block_summary(Summary::Create());
             std::vector<TransactionPtr> txs = one_block.CopyTransactions();
@@ -169,18 +224,14 @@ int main(int argc, char* argv[])
       }
 
       if (posteri.getStateMap().empty()) {
-        out += "End with no chainstate.";
+        LOG_DEBUG << "End with no chainstate.";
 	  } else {
-        out += "End chainstate: " + WriteChainStateMap(posteri.getStateMap());
+        LOG_DEBUG << "End chainstate: " + WriteChainStateMap(posteri.getStateMap());
 	  }
 
 
-      out += file_name + " has " + std::to_string(file_txs)
-              + " txs, " +std::to_string(file_tfer)+" tfers in "+std::to_string(file_blocks)+" blocks.\n";
-      out += file_name + " coin volume is "+std::to_string(volume)+"\n";
       uint64_t duration = blocktime-start_time;
       if (duration != 0 && start_time != 0) {
-        out += file_name+" overall rate: "+std::to_string(file_txs*1000/duration)+" txs/sec\n";
         LOG_INFO << file_name << " overall rate: "+std::to_string(file_txs*1000/duration)+" txs/sec";
       }
       LOG_INFO << file_name << " has " << std::to_string(file_txs)
@@ -192,9 +243,6 @@ int main(int argc, char* argv[])
       tfer_count += file_tfer;
       total_volume += volume;
     }
-    out += "Dir has "+std::to_string(tx_counter)+" txs, "
-      +std::to_string(tfer_count)+" tfers in "+std::to_string(block_counter)+" blocks.";
-    out += "Grand total coin volume is "+std::to_string(total_volume)+"\n";
     LOG_INFO << "Dir has "+std::to_string(tx_counter)+" txs, "
       +std::to_string(tfer_count)+" tfers in "+std::to_string(block_counter)+" blocks.";
     LOG_INFO << "Grand total coin volume is "+std::to_string(total_volume);
@@ -202,7 +250,16 @@ int main(int argc, char* argv[])
     if (!options->write_file.empty()) {
       std::ofstream out_file(options->write_file, std::ios::out);
       if (out_file.is_open()) {
-        out_file << out;
+        std::stringstream json_tot;
+        if (options->address_filter.size() > 0) {
+          auto txs_tree = filter_by_address(block_array, options->address_filter);
+          bpt::write_json(json_tot, txs_tree);
+        } else {
+          bpt::ptree block_ptree;
+          block_ptree.add_child("blocks", block_array);
+          bpt::write_json(json_tot, block_ptree);
+        }
+        out_file << json_tot.str();
         out_file.close();
       } else {
         LOG_FATAL << "Failed to open output file '" << options->write_file << "'.";
@@ -239,14 +296,15 @@ Required parameters");
     desc.add_options()
         ("mode", po::value<std::string>(), "Devcash mode (T1|T2|scan)")
         ("working-dir", po::value<std::string>(), "Directory where inputs are read and outputs are written")
-        ("output", po::value<std::string>(), "Output path in binary JSON or CBOR")
+        ("output", po::value<std::string>(), "Output file (JSON)")
         ;
 
     po::options_description d2("Optional parameters");
     d2.add_options()
-        ("expect-version", "look for this block version while scanning")
         ("help", "produce help message")
         ("debug-mode", po::value<std::string>(), "Debug mode (on|off|perf) for testing")
+        ("expect-version", "look for this block version while scanning")
+        ("filter-by-address", po::value<std::string>(), "Filter results by address - only transactions involving this address will written to the JSON output file")
         ;
     desc.add(d2);
 
@@ -296,6 +354,13 @@ Required parameters");
       LOG_INFO << "Working dir: " << options->working_dir;
     } else {
       LOG_INFO << "Working dir was not set.";
+    }
+
+    if (vm.count("filter-by-address")) {
+      options->address_filter = vm["filter-by-address"].as<std::string>();
+      LOG_INFO << "Address filter: " << options->address_filter;
+    } else {
+      LOG_INFO << "Address filter was not specified.";
     }
 
     if (vm.count("output")) {

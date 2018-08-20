@@ -140,7 +140,7 @@ class data : public oracleInterface {
 
 /** Recursively generate the state of this oracle and all dependent oracles.
  *
- * @pre This transaction must be valid.
+ * @pre This proposal must be valid.
  * @params context the blockchain of the shard that provides context for this oracle
  * @return a map of oracles to data
  */
@@ -155,16 +155,46 @@ class data : public oracleInterface {
 
 /** Recursively generate the state of this oracle and all dependent oracles.
  *
- * @pre This transaction must be valid.
+ * @pre This proposal must be valid.
  * @params context the blockchain of the shard that provides context for this oracle
  * @return a map of oracles to data encoded in JSON
  */
-  virtual std::map<std::string, std::string>
+  std::map<std::string, std::string>
       getDecompositionMapJSON(const Blockchain& context) override {
     std::map<std::string, std::string> out;
     std::pair<std::string, std::string> p(getOracleName(), getJSON());
     out.insert(p);
     return out;
+  }
+
+/** Generate the appropriate signature(s) for this proposal.
+ *
+ * @params address - the address corresponding to this key
+ * @params key - an ECDSA key, AES encrypted with ASCII armor
+ * @params aes_password - the AES password for the key
+ * @return the signed oracle data
+ */
+  std::string Sign(std::string address
+        , std::string key, std::string aes_password) override {
+    EC_KEY* key_ptr = LoadEcKey(address, key, aes_password);
+
+    size_t data_size = raw_data_.size();
+    int64_t coins_needed = ceil(data_size/kBYTES_PER_COIN);
+    std::vector<Transfer> xfers;
+    Address client(Str2Bin(address));
+    Transfer pay(client, getCoinIndex(), -1*coins_needed, 0);
+    Transfer settle(getDataSinkAddress(), getCoinIndex(), coins_needed, 0);
+    xfers.push_back(pay);
+    xfers.push_back(settle);
+
+    Tier2Transaction the_tx((byte) eOpType::Exchange, xfers
+                           , Str2Bin(raw_data_), key_ptr);
+    std::vector<byte> sig = the_tx.getSignature().getCanonical();
+    std::vector<byte> bin_addr = client.getCanonical();
+    //note that these inserts are on the front of the raw data
+    raw_data_.insert(std::begin(raw_data_), std::begin(sig), std::end(sig));
+    raw_data_.insert(std::begin(raw_data_), std::begin(bin_addr), std::end(bin_addr));
+    return raw_data_;
   }
 
 /**

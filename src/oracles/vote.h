@@ -132,6 +132,18 @@ class vote : public oracleInterface {
     return json;
   }
 
+/** Generate the appropriate signature(s) for this proposal.
+ *
+ * @params address - the address corresponding to this key
+ * @params key - an ECDSA key, AES encrypted with ASCII armor
+ * @params aes_password - the AES password for the key
+ * @return the signed oracle data
+ */
+  std::string Sign(std::string address
+        , std::string key, std::string aes_password) override {
+    return raw_data_;
+  }
+
 private:
  std::string error_msg_;
 
