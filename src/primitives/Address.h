@@ -32,7 +32,7 @@ namespace Devcash {
 
 class Address {
  public:
-  Address() : canonical_(1, 0) {}
+  Address() = default;
   /**
    *
    * @param vec
@@ -135,6 +135,7 @@ class Address {
    * @return type byte for this address
    */
   byte getAddressType() {
+    if (isNull()) throw std::runtime_error("Address is not initialized!");
     return canonical_.at(0);
   }
 
@@ -183,7 +184,7 @@ class Address {
 
  private:
   /// The canonical representation of this Address
-  std::vector<byte> canonical_;
+  std::vector<byte> canonical_{0};
 };
 
 }  // end namespace Devcash
