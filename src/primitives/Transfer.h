@@ -33,17 +33,36 @@ static const std::string kAMOUNT_TAG = "amount";
 class Transfer {
  public:
   /**
+   * Constructor
    *
-   * @param addr
-   * @param coin
-   * @param amount
-   * @param delay
+   * @param addr address of transfer
+   * @param coin coin number (index)
+   * @param amount transfer amount
+   * @param delay delay of transfer
    */
   Transfer(const Address& addr,
            uint64_t coin,
            int64_t amount,
            uint64_t delay)
       : canonical_(addr.getCanonical()) {
+    Uint64ToBin(coin, canonical_);
+    Int64ToBin(amount, canonical_);
+    Uint64ToBin(delay, canonical_);
+  }
+
+  /**
+   * Constructor for hex Address
+   *
+   * @param addr address of transfer as a hex string
+   * @param coin coin number (index)
+   * @param amount transfer amount
+   * @param delay delay of transfer
+   */
+  Transfer(const std::string& addr_string,
+           uint64_t coin,
+           int64_t amount,
+           uint64_t delay)
+      : canonical_(Address(Hex2Bin(addr_string)).getCanonical()) {
     Uint64ToBin(coin, canonical_);
     Int64ToBin(amount, canonical_);
     Uint64ToBin(delay, canonical_);
@@ -67,10 +86,10 @@ class Transfer {
   }
 
   /**
-   *
+   * Copy constructor
    * @param other
    */
-  Transfer(const Transfer& other) = default; // : canonical_(other.canonical_) {}
+  Transfer(const Transfer& other) = default;
 
   /** Compare transfers */
   friend bool operator==(const Transfer& a, const Transfer& b) { return (a.canonical_ == b.canonical_); }
@@ -78,7 +97,7 @@ class Transfer {
   friend bool operator!=(const Transfer& a, const Transfer& b) { return (a.canonical_ != b.canonical_); }
 
   /** Assign transfers */
-  Transfer& operator=(const Transfer&& other) {
+  Transfer& operator=(const Transfer&& other) noexcept {
     if (this != &other) {
       this->canonical_ = other.canonical_;
     }
