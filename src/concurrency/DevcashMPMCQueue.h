@@ -63,7 +63,7 @@ class DevcashMPMCQueue {
     while (!queue_.wait_dequeue_timed(ptr, std::chrono::milliseconds(5))) {
       if (!keep_popping_) {
         LOG_INFO << "keep_popping_ == false";
-        break;
+        return nullptr;
       }
     }
 
