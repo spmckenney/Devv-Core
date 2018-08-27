@@ -228,9 +228,31 @@ TEST_F(PbufTransactionTest, createTransaction_sig_wrong_size) {
 
 TEST_F(PbufTransactionTest, createTransaction_bad_sig) {
   pb_transaction_0_.set_sig(Bin2Str(Hex2Bin("deadbeef000BCFD89AE647DACA5A5D64FCEC0F66C66497F03449E8C6EEC239B1F94C1E5FC860CE5C37BBFC3142A4FFF2C857A8E55C023075918475133C249446114AC31D5DBD62AD74C254EDF1C9652D547CE906EF68504390ABC4724ADFB000B1C61454E871CC000000")));
-  auto transaction_0 = Devcash::CreateTransaction(pb_transaction_0_, keys_);
+  try {
+    auto transaction_0 = Devcash::CreateTransaction(pb_transaction_0_, keys_);
+    FAIL() << "Expected std::runtime_error";
+  }
+  catch (std::runtime_error const& err) {
+    EXPECT_EQ(err.what(), std::string("Invalid Signature - size == 106 but byte(0) != 105"));
+  }
+  catch (...) {
+    FAIL() << "Expected std::runtime_error";
+  }
 }
 
+TEST_F(PbufTransactionTest, createTransaction_bad_amount) {
+  pb_transaction_0_.mutable_xfers(1)->set_amount(100);
+  try {
+    auto transaction_0 = Devcash::CreateTransaction(pb_transaction_0_, keys_);
+    FAIL() << "Expected std::runtime_error";
+  }
+  catch (std::runtime_error const& err) {
+    EXPECT_EQ(err.what(), std::string("TransactionError: transaction amounts are asymmetric. (sum=98)"));
+  }
+  catch (...) {
+    FAIL() << "Expected std::runtime_error";
+  }
+}
 
 
 } // unnamed namespace
