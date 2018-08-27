@@ -20,6 +20,7 @@
 #include <boost/log/sinks/sync_frontend.hpp>
 #include <boost/log/sinks/text_file_backend.hpp>
 #include <boost/log/sinks/text_ostream_backend.hpp>
+#include <boost/log/sinks/syslog_backend.hpp>
 #include <boost/log/attributes/named_scope.hpp>
 #include <cstdlib>
 
