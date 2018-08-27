@@ -240,6 +240,21 @@ TEST_F(PbufTransactionTest, createTransaction_bad_sig) {
   }
 }
 
+TEST_F(PbufTransactionTest, createTransaction_big_sig) {
+  std::string big_sig(500000000, 'a');
+  pb_transaction_0_.set_sig(Bin2Str(Hex2Bin(big_sig)));
+  try {
+    auto transaction_0 = Devcash::CreateTransaction(pb_transaction_0_, keys_);
+    FAIL() << "Expected std::runtime_error";
+  }
+  catch (std::runtime_error const& err) {
+    EXPECT_EQ(err.what(), std::string("Invalid Signature size: 250000000"));
+  }
+  catch (...) {
+    FAIL() << "Expected std::runtime_error";
+  }
+}
+
 TEST_F(PbufTransactionTest, createTransaction_bad_amount) {
   pb_transaction_0_.mutable_xfers(1)->set_amount(100);
   try {
@@ -248,6 +263,48 @@ TEST_F(PbufTransactionTest, createTransaction_bad_amount) {
   }
   catch (std::runtime_error const& err) {
     EXPECT_EQ(err.what(), std::string("TransactionError: transaction amounts are asymmetric. (sum=98)"));
+  }
+  catch (...) {
+    FAIL() << "Expected std::runtime_error";
+  }
+}
+
+TEST_F(PbufTransactionTest, createTransaction_change_delay) {
+  pb_transaction_0_.mutable_xfers(1)->set_delay(10);
+  try {
+    auto transaction_0 = Devcash::CreateTransaction(pb_transaction_0_, keys_);
+    FAIL() << "Expected std::runtime_error";
+  }
+  catch (std::runtime_error const& err) {
+    EXPECT_EQ(err.what(), std::string("TransactionError: transaction signature did not validate"));
+  }
+  catch (...) {
+    FAIL() << "Expected std::runtime_error";
+  }
+}
+
+TEST_F(PbufTransactionTest, createTransaction_small_nonce) {
+  pb_transaction_0_.set_nonce("1");
+  try {
+    auto transaction_0 = Devcash::CreateTransaction(pb_transaction_0_, keys_, true);
+    FAIL() << "Expected std::runtime_error";
+  }
+  catch (std::runtime_error const& err) {
+    EXPECT_EQ(err.what(), std::string("Invalid serialized T2 transaction, nonce is too small (1)"));
+  }
+  catch (...) {
+    FAIL() << "Expected std::runtime_error";
+  }
+}
+
+TEST_F(PbufTransactionTest, createTransaction_signature_validation) {
+  pb_transaction_0_.set_nonce("1");
+  try {
+    auto transaction_0 = Devcash::CreateTransaction(pb_transaction_0_, keys_);
+    FAIL() << "Expected std::runtime_error";
+  }
+  catch (std::runtime_error const& err) {
+    EXPECT_EQ(err.what(), std::string("TransactionError: transaction signature did not validate"));
   }
   catch (...) {
     FAIL() << "Expected std::runtime_error";
