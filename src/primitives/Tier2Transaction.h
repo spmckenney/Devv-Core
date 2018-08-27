@@ -53,8 +53,8 @@ class Tier2Transaction : public Transaction {
     nonce_size_ = nonce.size();
 
     if (nonce_size_ < minNonceSize()) {
-      LOG_WARNING << "Invalid serialized T2 transaction, nonce is too small ("
-        +std::to_string(nonce_size_)+").";
+      throw DevcashMessageError("Invalid serialized T2 transaction, nonce is too small ("
+        + std::to_string(nonce_size_) + ")");
     }
 
     Uint64ToBin(nonce_size_, canonical_);
@@ -368,8 +368,7 @@ class Tier2Transaction : public Transaction {
         if (amount < 0) {
           if (sender_set) {
             if (sender != it->getAddress()) {
-              LOG_WARNING << "Multiple senders in transaction!";
-              return false;
+              throw std::runtime_error("TransactionError: Multiple senders in transaction");
             } else {
               LOG_INFO << "Sending multiple distinct transfers at once.";
             }
@@ -380,18 +379,16 @@ class Tier2Transaction : public Transaction {
       }
       if (oper == eOpType::Create || oper == eOpType::Delete || oper == eOpType::Modify) {
         if (!keys.isINN(sender)) {
-          LOG_WARNING << "Invalid operation, non-INN address performing priviledged operation.";
-          return false;
+          throw std::runtime_error("TransactionError: Invalid operation, non-INN address performing privileged operation.");
         }
       }
       if (total != 0) {
-        LOG_WARNING << "Error: transaction amounts are asymmetric. (sum=" + std::to_string(total) + ")";
-        return false;
+        std::string err = "TransactionError: transaction amounts are asymmetric. (sum=" + std::to_string(total) + ")";
+        throw std::runtime_error(err);
       }
 
       if ((oper != eOpType::Exchange) && (!keys.isINN(sender))) {
-        LOG_WARNING << "INN transaction not performed by INN!";
-        return false;
+        throw std::runtime_error("TransactionError: INN transaction not performed by INN");
       }
 
       EC_KEY* eckey(keys.getKey(sender));
@@ -399,11 +396,11 @@ class Tier2Transaction : public Transaction {
       Signature sig = getSignature();
 
       if (!VerifyByteSig(eckey, DevcashHash(msg), sig)) {
-        LOG_WARNING << "Error: transaction signature did not validate.\n";
+        std::string err = "TransactionError: transaction signature did not validate";
         LOG_DEBUG << "Transaction state is: " + getJSON();
         LOG_DEBUG << "Sender addr is: " + sender.getJSON();
         LOG_DEBUG << "Signature is: " + sig.getJSON();
-        return false;
+        throw std::runtime_error(err);
       }
       return true;
     } catch (const std::exception& e) {
