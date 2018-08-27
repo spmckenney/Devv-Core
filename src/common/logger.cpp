@@ -15,21 +15,12 @@
 #include <fstream>
 #include <ostream>
 
-namespace logging = boost::log;
-namespace src = boost::log::sources;
-namespace expr = boost::log::expressions;
-namespace sinks = boost::log::sinks;
-namespace attrs = boost::log::attributes;
-
-BOOST_LOG_ATTRIBUTE_KEYWORD(line_id, "LineID", unsigned int)
-BOOST_LOG_ATTRIBUTE_KEYWORD(timestamp, "TimeStamp", boost::posix_time::ptime)
-BOOST_LOG_ATTRIBUTE_KEYWORD(severity, "Severity", logging::trivial::severity_level)
-BOOST_LOG_ATTRIBUTE_KEYWORD(thread_id, "ThreadID", attrs::current_thread_id::value_type)
-
 BOOST_LOG_GLOBAL_LOGGER_INIT(logger, src::severity_logger_mt) {
-  //src::severity_logger_mt logger;
   logger_t logger;
+  return logger;
+}
 
+/*
   boost::shared_ptr< logging::core > core = logging::core::get();
 
   bool add_ostream_sink = true;
@@ -83,3 +74,4 @@ BOOST_LOG_GLOBAL_LOGGER_INIT(logger, src::severity_logger_mt) {
   }
   return logger;
 }
+*/

@@ -25,14 +25,16 @@ using namespace Devcash;
 int main(int argc, char* argv[])
 {
 
-  init_log();
-
   try {
     auto options = ParseDevcashOptions(argc, argv);
 
     if (!options) {
       exit(-1);
     }
+
+    LoggerContext lg_context(options->syslog_host, options->syslog_port);
+
+    init_log(lg_context);
 
     zmq::context_t zmq_context(1);
 
