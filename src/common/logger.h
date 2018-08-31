@@ -1,6 +1,7 @@
 #ifndef DEVCASH_LOGGER_H
 #define DEVCASH_LOGGER_H
 
+#include <cstdlib>
 #include <thread>
 
 #define BOOST_LOG_DYN_LINK \
@@ -20,22 +21,32 @@
 #include <boost/log/sinks/sync_frontend.hpp>
 #include <boost/log/sinks/text_file_backend.hpp>
 #include <boost/log/sinks/text_ostream_backend.hpp>
+#include <boost/log/sinks/syslog_backend.hpp>
 #include <boost/log/attributes/named_scope.hpp>
-#include <cstdlib>
 
 #include "common/minitrace.h"
 
 // the logs are also written to LOGFILE
 #define LOGFILE "/tmp/devcash.log"
 
-// just log messages with severity >= SEVERITY_THRESHOLD are written
-#define SEVERITY_THRESHOLD logging::trivial::warning
-
 //Narrow-char thread-safe logger.
 typedef boost::log::sources::severity_logger_mt<boost::log::trivial::severity_level> logger_t;
 
+static const unsigned int kDEFAULT_SYSLOG_PORT = 514;
+
 // register a global logger
 BOOST_LOG_GLOBAL_LOGGER(logger, logger_t)
+
+struct LoggerContext {
+  LoggerContext() = default;
+
+  LoggerContext(const std::string& log_hostname, unsigned int log_port)
+      : syslog_hostname(log_hostname)
+      , syslog_port(log_port) {}
+
+  std::string syslog_hostname = "";
+  unsigned int syslog_port = kDEFAULT_SYSLOG_PORT;
+};
 
 static boost::log::trivial::severity_level GetLogLevel() {
   const char* env_p = std::getenv("DEVCASH_OUTPUT_LOGLEVEL");
@@ -64,13 +75,82 @@ static boost::log::trivial::severity_level GetLogLevel() {
   }
 }
 
-static void init_log(void) {
+namespace logging = boost::log;
+namespace src = boost::log::sources;
+namespace expr = boost::log::expressions;
+namespace sinks = boost::log::sinks;
+namespace attrs = boost::log::attributes;
+
+BOOST_LOG_ATTRIBUTE_KEYWORD(line_id, "LineID", unsigned int)
+BOOST_LOG_ATTRIBUTE_KEYWORD(timestamp, "TimeStamp", boost::posix_time::ptime)
+BOOST_LOG_ATTRIBUTE_KEYWORD(severity, "Severity", logging::trivial::severity_level)
+BOOST_LOG_ATTRIBUTE_KEYWORD(thread_id, "ThreadID", attrs::current_thread_id::value_type)
+
+static void init_log(const LoggerContext& context) {
   /* init boost log
    * 1. Add common attributes
    * 2. set log filter to trace
    */
+  logger_t logger;
+
+  boost::shared_ptr< logging::core > core = logging::core::get();
+
+  bool add_ostream_sink = true;
+  if (add_ostream_sink) {
+    // Create a backend and attach a couple of streams to it
+    boost::shared_ptr<sinks::text_ostream_backend> backend =
+        boost::make_shared<sinks::text_ostream_backend>();
+
+    typedef boost::shared_ptr<std::ostream> OStreamPtr;
+    backend->add_stream(OStreamPtr(&std::clog, boost::null_deleter()));
+    //backend->add_stream(OStreamPtr(new std::ofstream(LOGFILE)));
+
+    // Enable auto-flushing after each log record written
+    backend->auto_flush(true);
+
+    // Wrap it into the frontend and register in the core.
+    // The backend requires synchronization in the frontend.
+    typedef sinks::synchronous_sink<sinks::text_ostream_backend> sink_t;
+    boost::shared_ptr<sink_t> sink(new sink_t(backend));
+
+    sink->set_formatter
+        (
+            expr::stream
+                << std::hex << std::setw(6) << std::setfill('0') << line_id << std::dec << std::setfill(' ')
+                << " " << timestamp
+                << " " << severity
+                << " " << std::hex << std::setw(6) << thread_id
+                << " " << expr::smessage
+        );
+
+    core->add_sink(sink);
+  }
+
+  // Add syslog sink
+  if (context.syslog_hostname.size() > 1) {
+    // Create a new backend
+    boost::shared_ptr< sinks::syslog_backend > backend(new sinks::syslog_backend(
+        logging::keywords::facility = sinks::syslog::local0,
+        logging::keywords::use_impl = sinks::syslog::udp_socket_based
+    ));
+
+    // Setup the target address and port to send syslog messages to
+    backend->set_target_address(context.syslog_hostname, context.syslog_port);
+
+    // Wrap it into the frontend and register in the core.
+    // The backend requires synchronization in the frontend.
+    typedef sinks::synchronous_sink<sinks::syslog_backend> sink_t;
+    boost::shared_ptr<sink_t> sink(new sink_t(backend));
+
+    core->add_sink(sink);
+  }
   boost::log::add_common_attributes();
   boost::log::core::get()->set_filter(boost::log::trivial::severity >= GetLogLevel());
+}
+
+static void init_log() {
+  LoggerContext context;
+  init_log(context);
 }
 
 static inline std::string file_cut(const char* file) {
@@ -86,7 +166,9 @@ static inline std::string file_cut(const char* file) {
   << file_cut(__FILE__) << ":" << __LINE__ << " " << __FUNCTION__ << " -> "
 
 // ===== log macros =====
+/// Very verbose - used for profiling
 #define LOG_TRACE LOG(trace)
+/// Highly verbose - good for debugging
 #define LOG_DEBUG LOG(debug)
 #define LOG_INFO LOG(info)
 // FIXME(spm): Add custom log levels including notice
@@ -96,7 +178,7 @@ static inline std::string file_cut(const char* file) {
 #define LOG_FATAL LOG(fatal)
 
 //toggle exceptions on/off
-#if (defined(__cpp_exceptions) || defined(__EXCEPTIONS) || defined(_CPPUNWIND)) && not defined(DEVCASH_NOEXCEPTION)
+#if true
     #define CASH_THROW(exception) throw exception
     #define CASH_TRY try
     #define CASH_CATCH(exception) catch(exception)

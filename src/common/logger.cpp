@@ -15,50 +15,10 @@
 #include <fstream>
 #include <ostream>
 
-namespace logging = boost::log;
-namespace src = boost::log::sources;
-namespace expr = boost::log::expressions;
-namespace sinks = boost::log::sinks;
-namespace attrs = boost::log::attributes;
-
-BOOST_LOG_ATTRIBUTE_KEYWORD(line_id, "LineID", unsigned int)
-BOOST_LOG_ATTRIBUTE_KEYWORD(timestamp, "TimeStamp", boost::posix_time::ptime)
-BOOST_LOG_ATTRIBUTE_KEYWORD(severity, "Severity", logging::trivial::severity_level)
-BOOST_LOG_ATTRIBUTE_KEYWORD(thread_id, "ThreadID", attrs::current_thread_id::value_type)
-
+// This seems to be needed to prevent undefined references
+// to boost::log functions while linking. Probably a better way to
+// do it than this (mckenney)
 BOOST_LOG_GLOBAL_LOGGER_INIT(logger, src::severity_logger_mt) {
-  //src::severity_logger_mt logger;
   logger_t logger;
-
-  boost::shared_ptr< logging::core > core = logging::core::get();
-
-  // Create a backend and attach a couple of streams to it
-  boost::shared_ptr< sinks::text_ostream_backend > backend =
-    boost::make_shared< sinks::text_ostream_backend >();
-
-  typedef boost::shared_ptr<std::ostream> OStreamPtr;
-  backend->add_stream(OStreamPtr(&std::clog, boost::null_deleter()));
-  backend->add_stream(OStreamPtr(new std::ofstream(LOGFILE)));
-
-  // Enable auto-flushing after each log record written
-  backend->auto_flush(true);
-
-  // Wrap it into the frontend and register in the core.
-  // The backend requires synchronization in the frontend.
-  typedef sinks::synchronous_sink< sinks::text_ostream_backend > sink_t;
-  boost::shared_ptr< sink_t > sink(new sink_t(backend));
-
-  sink->set_formatter
-    (
-     expr::stream
-     << std::hex << std::setw(6) << std::setfill('0') << line_id << std::dec << std::setfill(' ')
-     << " " << timestamp
-     << " " << severity
-     << " " << std::hex << std::setw(6) << thread_id
-     << " " << expr::smessage
-     );
-
-  core->add_sink(sink);
-
   return logger;
 }

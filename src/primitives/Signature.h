@@ -42,20 +42,33 @@ class Signature {
   Signature(const std::vector<byte>& vec)
       : canonical_(vec) {
     if (vec.size() == kWALLET_SIG_SIZE) {
-      //prepend type
+      // prepend type
       canonical_.insert(std::begin(canonical_), kWALLET_SIG_SIZE);
-    } else if (vec.size() == kWALLET_SIG_BUF_SIZE
-        && vec.at(0) == kWALLET_SIG_SIZE) {
-      //already good, copied from argument
+    } else if (vec.size() == kWALLET_SIG_BUF_SIZE) {
+      if (vec.at(0) == kWALLET_SIG_SIZE) {
+        // already good, copied from argument
+      } else {
+        std::string err = "Invalid Signature - size == " +
+            std::to_string(kWALLET_SIG_BUF_SIZE) + " but byte(0) != " +
+            std::to_string(kWALLET_SIG_SIZE);
+        throw std::runtime_error(err);
+      }
     } else if (vec.size() == kNODE_SIG_SIZE) {
-      //prepend type
+      // prepend type
       canonical_.insert(std::begin(canonical_), kNODE_SIG_SIZE);
-    } else if (vec.size() == kNODE_SIG_BUF_SIZE
-        && vec.at(0) == kNODE_SIG_SIZE) {
-      //already good, copied from argument
+    } else if (vec.size() == kNODE_SIG_BUF_SIZE) {
+      if (vec.at(0) == kNODE_SIG_SIZE) {
+        // already good, copied from argument
+      } else {
+        std::string err = "Invalid Signature - size == " +
+            std::to_string(kNODE_SIG_BUF_SIZE) + " but byte(0) != " +
+            std::to_string(kNODE_SIG_SIZE);
+        throw std::runtime_error(err);
+      }
     } else {
       /// @todo (mckenney) Don't throw from constructor
-      throw std::runtime_error("Invalid Signature size.");
+      std::string err = "Invalid Signature size: " + std::to_string(vec.size());
+      throw std::runtime_error(err);
     }
   }
 

@@ -47,7 +47,7 @@ tx.sig = bytes.fromhex("69306402304BCFD89AE647DACA5A5D64FCEC0F66C66497F03449E8C6
 
 context = zmq.Context()
 socket = context.socket(zmq.REQ)
-socket.connect("tcp://localhost:5555")
+socket.connect("tcp://localhost:55706")
 
 print("Sending message in 3")
 time.sleep(3)
@@ -57,15 +57,15 @@ env.txs.extend([tx])
 
 socket.send(env.SerializeToString())
 
+msg = socket.recv()
+
+print("response: " + msg.decode("utf-8"))
+
 '''
 with open("transaction.pbuf", "wb") as f:
     f.write(env.SerializeToString())
     f.close()
 '''
-
-#f = open("transaction.pbuf", "wb")
-#f.write(env.SerializeToString())
-#f.close()
 
 print("Done")
 

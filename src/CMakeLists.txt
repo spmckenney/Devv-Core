@@ -110,23 +110,18 @@ if(WITH_THREAD_TESTING)
   add_definitions(-DTEST_THREADS)
 endif()
 
-add_executable(devcash devcash.cpp ${dcInclude})
-
+# Find OpenSSL and setup variables
 find_package (OpenSSL REQUIRED)
-if (OPENSSL_FOUND)
-  include_directories(${OPENSSL_INCLUDE_DIR})
-  target_link_libraries (devcash ${OPENSSL_LIBRARIES})
-endif (OPENSSL_FOUND)
 
-find_package(Threads)
-target_link_libraries(devcash ${CMAKE_THREAD_LIBS_INIT})
+# Find thread library and setup variables
+find_package(Threads REQUIRED)
 
+# Find boost and setup variables
 find_package(Boost COMPONENTS date_time filesystem thread
   system program_options log REQUIRED)
-if(Boost_FOUND)
-  include_directories(${Boost_INCLUDE_DIRS})
-  target_link_libraries(devcash ${Boost_LIBRARIES})
-endif(Boost_FOUND)
+
+set(CONFIGURED_ONCE TRUE CACHE INTERNAL
+    "A flag showing that CMake has configured at least once.")
 
 # Convenience variable containing all linker libs
 set(devv_all_libs
@@ -136,21 +131,19 @@ set(devv_all_libs
         ${OPENSSL_LIBRARIES}
         ${CMAKE_THREAD_LIBS_INIT}
         ${Boost_LIBRARIES}
+        ${PQXX}
         )
 
-target_link_libraries (devcash
-  ${devv_all_libs}
-  )
-
+#
+# devcash executable
+#
+add_executable(devcash devcash.cpp)
+target_link_libraries (devcash ${devv_all_libs})
 target_include_directories(devcash PRIVATE ${dcInclude})
-
-set(CONFIGURED_ONCE TRUE CACHE INTERNAL
-    "A flag showing that CMake has configured at least once.")
-
 install (TARGETS devcash DESTINATION bin)
 
 #
-# Scanner
+# scanner
 #
 add_executable(scanner scanner.cpp ${dcInclude})
 target_link_libraries (scanner ${devv_all_libs})
@@ -182,91 +175,43 @@ target_include_directories(pb_announcer PRIVATE ${dcInclude})
 install (TARGETS pb_announcer DESTINATION bin)
 
 #
-# Repeater
+# repeater
 #
 add_executable(repeater repeater.cpp ${dcInclude})
-target_link_libraries (repeater ${devv_all_libs} ${PQXX})
+target_link_libraries (repeater ${devv_all_libs})
 target_include_directories(repeater PRIVATE ${dcInclude})
 install (TARGETS repeater DESTINATION bin)
 
 #
-# Chain state Tests
+# circuit
 #
 add_executable(circuit circuit.cpp ${dcInclude})
-target_link_libraries (circuit
-        ${devcash_core_libs}
-        ${ZMQ}
-        ${CMAKE_THREAD_LIBS_INIT}
-        ${OPENSSL_LIBRARIES}
-        ${Boost_LIBRARIES}
-        )
+target_link_libraries (circuit ${devv_all_libs})
 target_include_directories(circuit PRIVATE ${dcInclude})
 install (TARGETS circuit DESTINATION bin)
 
+#
+# laminar
+#
 add_executable(laminar laminar.cpp ${dcInclude})
-target_link_libraries (laminar
-  ${devcash_core_libs}
-  ${ZMQ}
-  )
-
-if (OPENSSL_FOUND)
-  include_directories(${OPENSSL_INCLUDE_DIR})
-  target_link_libraries (laminar ${OPENSSL_LIBRARIES})
-endif (OPENSSL_FOUND)
-
-target_link_libraries(laminar ${CMAKE_THREAD_LIBS_INIT})
-
-if(Boost_FOUND)
-  include_directories(${Boost_INCLUDE_DIRS})
-  target_link_libraries(laminar ${Boost_LIBRARIES})
-endif(Boost_FOUND)
-
+target_link_libraries (laminar ${devv_all_libs})
 target_include_directories(laminar PRIVATE ${dcInclude})
-
 install (TARGETS laminar DESTINATION bin)
 
+#
+# turbulent
+#
 add_executable(turbulent turbulent.cpp ${dcInclude})
-target_link_libraries (turbulent
-  ${devcash_core_libs}
-  ${ZMQ}
-  )
-
-if (OPENSSL_FOUND)
-  include_directories(${OPENSSL_INCLUDE_DIR})
-  target_link_libraries (turbulent ${OPENSSL_LIBRARIES})
-endif (OPENSSL_FOUND)
-
-target_link_libraries(turbulent ${CMAKE_THREAD_LIBS_INIT})
-
-if(Boost_FOUND)
-  include_directories(${Boost_INCLUDE_DIRS})
-  target_link_libraries(turbulent ${Boost_LIBRARIES})
-endif(Boost_FOUND)
-
+target_link_libraries (turbulent ${devv_all_libs})
 target_include_directories(turbulent PRIVATE ${dcInclude})
-
 install (TARGETS turbulent DESTINATION bin)
 
+#
+# verifier
+#
 add_executable(verifier verifier.cpp ${dcInclude})
-target_link_libraries (verifier
-  ${devcash_core_libs}
-  ${ZMQ}
-  )
-
-if (OPENSSL_FOUND)
-  include_directories(${OPENSSL_INCLUDE_DIR})
-  target_link_libraries (verifier ${OPENSSL_LIBRARIES})
-endif (OPENSSL_FOUND)
-
-target_link_libraries(verifier ${CMAKE_THREAD_LIBS_INIT})
-
-if(Boost_FOUND)
-  include_directories(${Boost_INCLUDE_DIRS})
-  target_link_libraries(verifier ${Boost_LIBRARIES})
-endif(Boost_FOUND)
-
+target_link_libraries (verifier ${devv_all_libs})
 target_include_directories(verifier PRIVATE ${dcInclude})
-
 install (TARGETS verifier DESTINATION bin)
 
 #

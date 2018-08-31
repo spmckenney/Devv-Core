@@ -10,6 +10,8 @@ set (DevCash_VERSION_MINOR 2)
 
 enable_testing()
 
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" OR
     "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
     set(warnings "-Wall -Wextra \
@@ -154,6 +156,8 @@ add_library(devvjni SHARED
   ${devvjni_SRC}
   ${dcInclude}
   )
+
+target_link_libraries(devvjni ${devv_all_libs})
 
 set(CONFIGURED_ONCE TRUE CACHE INTERNAL
     "A flag showing that CMake has configured at least once.")

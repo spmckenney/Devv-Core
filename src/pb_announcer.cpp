@@ -90,7 +90,6 @@ int main(int argc, char* argv[]) {
 
     auto server = io::CreateTransactionServer(options->bind_endpoint, context);
     server->startServer();
-    unsigned int processed = 0;
 
     zmq::socket_t socket (context, ZMQ_REP);
     socket.bind (options->protobuf_endpoint);
@@ -98,11 +97,12 @@ int main(int argc, char* argv[]) {
     if (options->start_delay > 0) sleep(options->start_delay);
 
     bool keep_running = true;
+    unsigned int processed_total = 0;
     while (keep_running) {
       zmq::message_t transaction_message;
       //  Wait for next request from client
 
-      std::cout << "Waiting for envelope" << std::endl;
+      LOG_INFO << "Waiting for envelope";
       auto res = socket.recv(&transaction_message);
       if (!res) {
         LOG_ERROR << "socket.recv != true - exiting";
@@ -113,8 +113,20 @@ int main(int argc, char* argv[]) {
       std::string tx_string = std::string(static_cast<char*>(transaction_message.data()),
           transaction_message.size());
 
-      auto ptrs = DeserializeEnvelopeProtobufString(tx_string, keys);
+      std::string response;
+      std::vector<TransactionPtr> ptrs;
+      try {
+        ptrs = DeserializeEnvelopeProtobufString(tx_string, keys);
+      } catch (std::runtime_error& e) {
+        response = "Deserialization error: " + std::string(e.what());
+        zmq::message_t reply(response.size());
+        memcpy(reply.data(), response.data(), response.size());
+        socket.send(reply);
+        continue;
+      }
 
+      unsigned int processed = 0;
+      std::vector<DevcashMessageUniquePtr> messages;
       for (auto const& t2tx : ptrs) {
         auto announce_msg = std::make_unique<DevcashMessage>(
             this_context.get_uri(),
@@ -122,7 +134,7 @@ int main(int argc, char* argv[]) {
             t2tx->getCanonical(),
             DEBUG_TRANSACTION_INDEX);
 
-        std::cout << "Going to queue" << std::endl;
+        LOG_DEBUG << "Going to queue";
         server->queueMessage(std::move(announce_msg));
         LOG_DEBUG << "Sent transaction batch #" << processed;
         ++processed;
@@ -132,16 +144,20 @@ int main(int argc, char* argv[]) {
           keep_running = false;
         }
       }
+      processed_total += processed;
+      LOG_DEBUG << "Finished publishing transactions (processed/total) (" +
+            std::to_string(processed) + "/" +
+            std::to_string(processed_total) + ")";
 
-      LOG_INFO << "Finished 0";
+      response = "Successfully published " + std::to_string(processed) + " transactions.";
 
-      zmq::message_t reply(7);
-      memcpy(reply.data(), "SUCCESS", 7);
+      zmq::message_t reply(response.size());
+      memcpy(reply.data(), response.data(), response.size());
       socket.send(reply);
     }
 
-    LOG_INFO << "Finished 1";
-    sleep(5);
+    LOG_INFO << "Finished running";
+    sleep(1);
     server->stopServer();
     LOG_WARNING << "All done.";
     return (true);

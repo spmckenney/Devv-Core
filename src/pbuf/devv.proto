@@ -20,11 +20,9 @@ message Transfer {
 // Tier2Transaction, assumed to be an Exchange TX (oper=2)
 message Transaction {
   Devv.proto.eOpType operation = 1;
-  fixed64 nonce_size = 2;
-  fixed64 xfer_size = 3;
-  repeated Devv.proto.Transfer xfers = 4;
-  bytes nonce = 5;
-  bytes sig = 6;
+  repeated Devv.proto.Transfer xfers = 2;
+  bytes nonce = 3;
+  bytes sig = 4;
 }
 
 message Proposal {

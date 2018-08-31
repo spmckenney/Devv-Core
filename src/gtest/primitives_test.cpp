@@ -2,6 +2,8 @@
 // Created by mckenney on 6/11/18.
 //
 
+#include <cstdint>
+
 #include "gtest/gtest.h"
 
 #include "primitives/Summary.h"
@@ -234,6 +236,26 @@ TEST_F(InputBufferTest, test_uint64) {
   check = ibuffer.getNextUint64();
   EXPECT_EQ(int1, check);
 }
+
+/**
+ *
+ * AddressTest
+ *
+ */
+class AddressTest : public ::testing::Test {
+  AddressTest() = default;
+  ~AddressTest() = default;
+
+  void SetUp() override {
+    // Code here will be called immediately after the constructor (right
+    // before each test).
+  }
+
+  void TearDown() override {
+    // Code here will be called immediately after each test (right
+    // before the destructor).
+  }
+};
 
 /**
  *
@@ -475,6 +497,22 @@ TEST_F(TransferTest, getAddress_1) {
   std::vector<Devcash::byte> tmp(Devcash::Hex2Bin(t1_context_0_.kADDRs[0]));
   Address a(tmp);
   EXPECT_EQ(test0.getAddress(), a);
+}
+
+TEST(address, constructor_0) {
+  std::string addr_hex = "310272B05D9A8CF6E1565B965A5CCE6FF88ABD0C250BC17AB23745D512095C2AFCDB3640A2CBA7665F0FAADC26B96E8B8A9D";
+
+  auto transfer_a = Transfer(addr_hex, 0, 1, 2);
+  auto transfer_b = Transfer(Address(Hex2Bin(addr_hex)), 0, 1, 2);
+
+  EXPECT_EQ(transfer_a, transfer_b);
+}
+
+TEST(address, constructor_1) {
+  Address a;
+
+  EXPECT_EQ(a.size(), 1);
+  EXPECT_EQ(a.at(0), 0);
 }
 
 // Exception - wrong size input
