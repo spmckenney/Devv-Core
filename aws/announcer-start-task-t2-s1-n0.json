@@ -1,0 +1,25 @@
+{
+    "cluster": "devv-test-cluster-01",
+    "taskDefinition": "arn:aws:ecs:us-east-2:682078287735:task-definition/devv-validator-00",
+    "overrides": {
+	"containerOverrides": [
+	    {
+		"name": "devv-bin-full-validator",
+		"command": [
+		    "pb_announcer",
+		    "--shard-index", "1",
+		    "--node-index", "0",
+		    "--config", "/etc/devv/validator.conf",
+		    "--config", "/etc/devv/default_pass.conf",
+		    "--bind-endpoint", "tcp://*:55602",
+		    "--protobuf-endpoint", "tcp://*:5656"
+		]
+	    }
+	],
+	"taskRoleArn": "arn:aws:iam::682078287735:role/ecsTaskExecutionRole",
+	"executionRoleArn": "arn:aws:iam::682078287735:role/ecsTaskExecutionRole"
+    },
+    "containerInstances": [
+        "d5199042-820a-4123-bb38-284561b7fe28"
+    ]
+}
