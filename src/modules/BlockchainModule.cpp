@@ -117,8 +117,8 @@ std::unique_ptr<BlockchainModule> BlockchainModule::Create(io::TransactionServer
   /// Attach a callback to be run in the threads
 
   blockchain_module_ptr->validator_executor_->attachCallback(
-      [&](DevcashMessageUniquePtr p) { vc.validatorCallback(std::move(p));
-  });
+      [&vc](DevcashMessageUniquePtr p) { vc.validatorCallback(std::move(p)); }
+      );
 
 
   /// Register the outgoing callback to send over zmq
@@ -129,9 +129,9 @@ std::unique_ptr<BlockchainModule> BlockchainModule::Create(io::TransactionServer
       std::make_unique<ParallelExecutor<ConsensusController>>(cc, 1);
 
   /// Attach a callback to be run in the threads
-  blockchain_module_ptr->consensus_executor_->attachCallback([&](DevcashMessageUniquePtr p) {
-    cc.consensusCallback(std::move(p));
-  });
+  blockchain_module_ptr->consensus_executor_->attachCallback(
+      [&cc](DevcashMessageUniquePtr p) { cc.consensusCallback(std::move(p)); }
+      );
 
 
   /// Register the outgoing callback to send over zmq
@@ -142,9 +142,9 @@ std::unique_ptr<BlockchainModule> BlockchainModule::Create(io::TransactionServer
       std::make_unique<ParallelExecutor<InternetworkController>>(ic, 1);
 
   /// Attach a callback to be run in the threads
-  blockchain_module_ptr->internetwork_executor_->attachCallback([&](DevcashMessageUniquePtr p) {
-    ic.messageCallback(std::move(p));
-  });
+  blockchain_module_ptr->internetwork_executor_->attachCallback(
+      [&ic](DevcashMessageUniquePtr p) { ic.messageCallback(std::move(p)); }
+      );
 
   return (blockchain_module_ptr);
 }
