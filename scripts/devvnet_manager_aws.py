@@ -6,69 +6,33 @@ import subprocess
 import time
 import boto3
 
-validator_json_string_o = """
-{
-    "cluster": "$cluster",
-    "taskDefinition": "arn:aws:ecs:$region:682078287735:task-definition/devv-validator-00",
-    "overrides": {
-	"containerOverrides": [
-	    {
-		"name": "devv-bin-full-validator",
-		"command": [
-		    "devcash",
-		    "--shard-index", "1",
-		    "--node-index", "0",
-		    "--config", "/etc/devv/validator.conf",
-		    "--config", "/etc/devv/default_pass.conf",
-		    "--bind-endpoint", "tcp://*:55601",
-		    "--host-list", "tcp://10.0.0.191:55601",
-		    "--host-list", "tcp://10.0.0.242:55601",
-		    "--host-list", "tcp://10.0.0.150:55602"
-		]
-	    }
-	],
-	"taskRoleArn": "arn:aws:iam::682078287735:role/ecsTaskExecutionRole",
-	"executionRoleArn": "arn:aws:iam::682078287735:role/ecsTaskExecutionRole"
-    },
-    "containerInstances": [
-        "ce4c55f8-e53c-4051-a890-bc87f36ad7a7"
-    ]
-}
-"""
-validator_json_string = """
-{
-    "cluster": "$cluster",
-    "taskDefinition": "$task_definition",
-    "overrides": {
-	"containerOverrides": [
-	    {
-		"name": "$container_name",
-		"command": [ $command ]
-	    }
-	],
-	"taskRoleArn": "$task_role_arn",
-	"executionRoleArn": "$execution_role_arn"
-    },
-    "containerInstances": [
-        "$container_instance"
-    ]
-}
-"""
+shard_validators = []
+# shard0 validators
+shard_validators.append([
+    {'host':'10.0.0.100', 'port':'55601'},
+    {'host':'10.0.0.101', 'port':'55601'},
+    {'host':'10.0.0.102', 'port':'55601'}])
+# shard1 validators
+shard_validators.append([
+    {'host':'10.0.1.100', 'port':'55601'},
+    {'host':'10.0.1.101', 'port':'55601'},
+    {'host':'10.0.1.102', 'port':'55601'}])
+# shard2 validators
+shard_validators.append([
+    {'host':'10.0.2.100', 'port':'55601'},
+    {'host':'10.0.2.101', 'port':'55601'},
+    {'host':'10.0.2.102', 'port':'55601'}])
 
-def get_task_list(session):
-    ecs = session.client('ecs')
-    tasks = ecs.list_tasks(cluster = 'devv-test-cluster-01')['taskArns']
-    return tasks
+shard_announcers = []
+# shard0 announcers
+shard_announcers.append([{'host':'10.0.0.10', 'port':'55602'}])
+# shard1 announcers
+shard_announcers.append([{'host':'10.0.1.10', 'port':'55602'}])
+# shard2 announcers
+shard_announcers.append([{'host':'10.0.2.10', 'port':'55602'}])
 
-def get_task(task_num):
-    task_list = [ecs.list_tasks(cluster = 'devv-test-cluster-01')['taskArns'][task_num]]
-    return ecs.describe_tasks(cluster='devv-test-cluster-01', tasks=task_list)['tasks'][0]
-
-def instance_from_arn(arn):
-    return(arn.split('/')[-1])
 
 class ECSTask(object):
-    _cluster = "devv-test-cluster-01"
     _task_role = "ecsTaskExecutionRole"
     _execution_role = "ecsTaskExecutionRole"
     _task_name = "devv-validator-00"
@@ -81,10 +45,12 @@ class ECSTask(object):
         self._host_list = []
         self._shard_index = shard_index
         self._node_index = node_index
-        self._task_ip_address = "10.0."+str(self._shard_index)+"."+str(self._node_index)
+        self._task_ip_address = "10.0."+str(self._shard_index)+"."+str(100+self._node_index)
         self._container_instance = self._aws.get_container_instance_by_ip(self._task_ip_address)
         
     def start_task(self):
+        self._add_hosts()
+
         task_role_arn = "arn:aws:iam:"+self._aws.get_iam_account()+":role/"+self._task_role
         task_role_arn = "arn:aws:iam:"+self._aws.get_iam_account()+":role/"+self._execution_role
         
@@ -98,24 +64,31 @@ class ECSTask(object):
 		   "--config", "/etc/devv/default_pass.conf",
 		   "--bind-endpoint", "tcp://*:55601"]
         for uri in self._host_list:
-            command.append("--host-list", "tcp://"+uri['host']+":"+uri['port'])
+            command.extend(["--host-list", "tcp://"+uri['host']+":"+uri['port']])
 
         override_dict['command'] = command
         or_param = {'containerOverrides':[override_dict]}
         print(or_param)
-        ret = self._aws.get_ecs().start_task(cluster=self._cluster,
+        ret = self._aws.get_ecs().start_task(cluster=self._aws.get_cluster(),
                                              taskDefinition=self._task_definition,
                                              overrides=or_param,
                                              containerInstances=[self._container_instance])
         return ret
 
-    def add_host(ip_addr, port):
-        self._host_list.append(dict(host=ip_addr, port=port))
+    def add_host(self, ip_addr, port):
+        self._host_list.append(dict(host=ip_addr, port=str(port)))
 
-        
+    def _add_hosts(self):
+        hosts = shard_validators[self._shard_index]
+        hosts.extend(shard_announcers[self._shard_index])
+        for v in hosts:
+            if v['host'] == self._task_ip_address:
+                continue
+            self.add_host(v['host'], v['port'])
+
+
 class AWS(object):
     _session = None
-    _cluster = "devv-test-cluster-01"
     _region = "us-east-2"
     _iam_account = "682078287735"
 
@@ -131,14 +104,14 @@ class AWS(object):
 
     def get_iam_account(self):
         return self._iam_account
-    
+
     def get_ecs(self):
         return self._ecs
-    
+
     def get_task_list(self):
         tasks = self._ecs.list_tasks(cluster=self._cluster)['taskArns']
         return tasks
-    
+
     def get_task(self, task_num):
         task_list = [self._ecs.list_tasks(cluster=self._cluster)['taskArns'][task_num]]
         return self._ecs.describe_tasks(cluster=self._cluster, tasks=task_list)['tasks'][0]
@@ -158,9 +131,12 @@ class AWS(object):
 
         return(instance)
 
+    def get_cluster(self):
+        return self._cluster
+
     def get_container_instance_by_ip(self, ip_address):
         container_instances = self._ecs.list_container_instances(cluster=self._cluster)['containerInstanceArns']
-        container_inst_desc_list = self._ecs.describe_container_instances(cluster='devv-test-cluster-01', containerInstances=container_instances)['containerInstances']
+        container_inst_desc_list = self._ecs.describe_container_instances(cluster=self._cluster, containerInstances=container_instances)['containerInstances']
         ec2_instance_ids = []
         container_instance_dict = {}
         for desc in container_inst_desc_list:
@@ -179,8 +155,13 @@ class AWS(object):
             if trimmed['PrivateIpAddress'] == ip_address:
                 if c_inst:
                     raise LookupError("PrivateIpAddress found more than once")
-                c_inst = container_instance_dict[trimmed['InstanceId']]
-                print("match")
+                try:
+                    c_inst = container_instance_dict[trimmed['InstanceId']]
+                except KeyError:
+                    print("ip address "+ip_address+" not found in container instance dict")
+                    print("key: "+trimmed['InstanceId'])
+                    print(container_instance_dict)
+                    raise
                 print(c_inst)
 
         if c_inst == None:
