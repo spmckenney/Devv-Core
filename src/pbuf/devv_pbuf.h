@@ -278,8 +278,8 @@ Devv::proto::AnnouncerResponse SerializeAnnouncerResponse(const AnnouncerRespons
   response.set_message(response_ptr->message);
   for (auto const& pending_ptr : response_ptr->pending) {
     Devv::proto::PendingTransaction* one_pending_tx = response.add_txs();
-    std::string raw_sig(pending_ptr->sig.begin()
-                      , pending_ptr->sig.end());
+    std::string raw_sig(std::begin(pending_ptr->sig.getCanonical())
+                      , std::end(pending_ptr->sig.getCanonical()));
     one_pending_tx->set_signature(raw_sig);
     one_pending_tx->set_expect_block(pending_ptr->expect_block);
     one_pending_tx->set_shard_index(pending_ptr->shard_index);
@@ -291,11 +291,11 @@ RepeaterRequestPtr DeserializeRepeaterRequest(const std::string& pb_request) {
   Devv::proto::RepeaterRequest incoming_request;
   incoming_request.ParseFromString(pb_request);
 
-  auto request_ptr = std::make_unique<RepeaterRequest>(
-        incoming_request.timestamp(),
-        incoming_request.operation(),
-        incoming_request.uri());
-  return request_ptr;
+  RepeaterRequest request;
+  request.timestamp = incoming_request.timestamp();
+  request.operation = incoming_request.operation();
+  request.uri = incoming_request.uri();
+  return std::make_unique<RepeaterRequest>(request);
 }
 
 Devv::proto::RepeaterResponse SerializeRepeaterResponse(const RepeaterResponsePtr& response_ptr) {
