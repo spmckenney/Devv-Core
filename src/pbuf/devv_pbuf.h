@@ -37,6 +37,36 @@ struct Envelope {
 };
 typedef std::unique_ptr<Envelope> EnvelopePtr;
 
+struct PendingTransaction {
+  Signature sig;
+  uint32_t expect_block = 0;
+  uint32_t shard_index = 0;
+};
+typedef std::unique_ptr<PendingTransaction> PendingTransactionPtr;
+
+struct AnnouncerResponse {
+  uint32_t return_code = 0;
+  std::string message;
+  std::vector<PendingTransactionPtr> pending;
+}
+typedef std::unique_ptr<AnnouncerResponse> AnnouncerResponsePtr;
+
+struct RepeaterRequest {
+  int64_t timestamp = 0;
+  uint32_t operation = 0;
+  std::string uri;
+}
+typedef std::unique_ptr<RepeaterRequest> RepeaterRequestPtr;
+
+struct RepeaterResponse {
+  int64_t request_timestamp = 0;
+  uint32_t operation = 0;
+  uint32_t return_code = 0;
+  std::string message;
+  std::vector<byte> raw_response;
+}
+typedef std::unique_ptr<RepeaterResponse> RepeaterResponsePtr;
+
 TransactionPtr CreateTransaction(const Devv::proto::Transaction& transaction, const KeyRing& keys, bool do_sign = false) {
   auto operation = transaction.operation();
   auto pb_xfers = transaction.xfers();
@@ -56,7 +86,7 @@ TransactionPtr CreateTransaction(const Devv::proto::Transaction& transaction, co
   }
 
   if (key == nullptr) {
-    throw std::runtime_error("Sender key not set (key == null)");
+    throw std::runtime_error("Exchange transactions must have one transfer with a negative amount.");
   }
 
   std::vector<byte> nonce(transaction.nonce().begin(), transaction.nonce().end());
@@ -105,7 +135,7 @@ Tier2TransactionPtr CreateTransaction(const Devv::proto::Transaction& transactio
   }
 
   if (key == nullptr) {
-    throw std::runtime_error("Sender key not set (key == null)");
+    throw std::runtime_error("Exchange transactions must have one transfer with a negative amount.");
   }
 
   std::vector<byte> nonce(transaction.nonce().begin(), transaction.nonce().end());
@@ -239,7 +269,45 @@ TransactionPtr DeserializeTxProtobufString(const std::string& pb_tx, const KeyRi
 
   auto t2tx_ptr = CreateTransaction(tx, keys, do_sign);
 
-  return(t2tx_ptr);
+  return t2tx_ptr;
+}
+
+Devv::proto::RepeaterResponse SerializeAnnouncerResponse(const AnnouncerResponsePtr& response_ptr) {
+  Devv::proto::AnnouncerResponse response;
+  response.set_return_code(reponse_ptr->return_code);
+  response.set_message(response_ptr->message);
+  for (auto pending_ptr : response_ptr->pending) {
+    Devv::proto::PendingTransaction* one_pending_tx = response.add_txs();
+    std::string raw_sig(std::begin(pending_ptr->sig)
+                      , std::end(pending_ptr->sig));
+    one_pending_tx->set_sig(raw_sig);
+    one_pending_tx->set_expect_block(pending_ptr->expect_block);
+    one_pending_tx->set_shard_index(pending_ptr->shard_index);
+  }
+  return response;
+}
+
+RepeaterRequestPtr DeserializeRepeaterRequest(const std::string& pb_request) {
+  Devv::proto::RepeaterRequest incoming_request;
+  incoming_request.ParseFromString(pb_request);
+
+  auto request_ptr = std::make_unique<RepeaterRequest>(
+        incoming_request.timestamp(),
+        incoming_request.operation(),
+        incoming_request.uri());
+  return request_ptr;
+}
+
+Devv::proto::RepeaterResponse SerializeRepeaterResponse(const RepeaterResponsePtr& response_ptr) {
+  Devv::proto::RepeaterResponse response;
+  response.set_request_timestamp(response_ptr->request_timestamp);
+  response.set_operation(response_ptr->operation);
+  response.set_return_code(reponse_ptr->return_code);
+  response.set_message(response_ptr->message);
+  std::string raw_str(std::begin(response_ptr->raw_response)
+                    , std::end(response_ptr->raw_response));
+  response.set_raw_response(raw_str);
+  return response;
 }
 
 } // namespace Devcash
