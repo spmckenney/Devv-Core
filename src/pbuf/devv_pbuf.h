@@ -48,14 +48,14 @@ struct AnnouncerResponse {
   uint32_t return_code = 0;
   std::string message;
   std::vector<PendingTransactionPtr> pending;
-}
+};
 typedef std::unique_ptr<AnnouncerResponse> AnnouncerResponsePtr;
 
 struct RepeaterRequest {
   int64_t timestamp = 0;
   uint32_t operation = 0;
   std::string uri;
-}
+};
 typedef std::unique_ptr<RepeaterRequest> RepeaterRequestPtr;
 
 struct RepeaterResponse {
@@ -64,7 +64,7 @@ struct RepeaterResponse {
   uint32_t return_code = 0;
   std::string message;
   std::vector<byte> raw_response;
-}
+};
 typedef std::unique_ptr<RepeaterResponse> RepeaterResponsePtr;
 
 TransactionPtr CreateTransaction(const Devv::proto::Transaction& transaction, const KeyRing& keys, bool do_sign = false) {
@@ -272,15 +272,15 @@ TransactionPtr DeserializeTxProtobufString(const std::string& pb_tx, const KeyRi
   return t2tx_ptr;
 }
 
-Devv::proto::RepeaterResponse SerializeAnnouncerResponse(const AnnouncerResponsePtr& response_ptr) {
+Devv::proto::AnnouncerResponse SerializeAnnouncerResponse(const AnnouncerResponsePtr& response_ptr) {
   Devv::proto::AnnouncerResponse response;
-  response.set_return_code(reponse_ptr->return_code);
+  response.set_return_code(response_ptr->return_code);
   response.set_message(response_ptr->message);
-  for (auto pending_ptr : response_ptr->pending) {
+  for (auto const& pending_ptr : response_ptr->pending) {
     Devv::proto::PendingTransaction* one_pending_tx = response.add_txs();
-    std::string raw_sig(std::begin(pending_ptr->sig)
-                      , std::end(pending_ptr->sig));
-    one_pending_tx->set_sig(raw_sig);
+    std::string raw_sig(pending_ptr->sig.begin()
+                      , pending_ptr->sig.end());
+    one_pending_tx->set_signature(raw_sig);
     one_pending_tx->set_expect_block(pending_ptr->expect_block);
     one_pending_tx->set_shard_index(pending_ptr->shard_index);
   }
@@ -302,7 +302,7 @@ Devv::proto::RepeaterResponse SerializeRepeaterResponse(const RepeaterResponsePt
   Devv::proto::RepeaterResponse response;
   response.set_request_timestamp(response_ptr->request_timestamp);
   response.set_operation(response_ptr->operation);
-  response.set_return_code(reponse_ptr->return_code);
+  response.set_return_code(response_ptr->return_code);
   response.set_message(response_ptr->message);
   std::string raw_str(std::begin(response_ptr->raw_response)
                     , std::end(response_ptr->raw_response));
