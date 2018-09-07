@@ -100,6 +100,7 @@ Tier2TransactionPtr CreateTransaction(const Devv::proto::Transaction& transactio
       if (!pub_key.empty()) {
         throw std::runtime_error("More than one send transfer not supported.");
       }
+      pub_key = address.getHexString();
       key = LoadEcKey(pub_key, pk, pk_pass);
     }
   }
