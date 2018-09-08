@@ -338,16 +338,14 @@ Devv::proto::FinalBlock SerializeFinalBlock(const FinalBlock& block) {
   final_block.set_version(block.getVersion());
   final_block.set_num_bytes(block.getNumBytes());
   final_block.set_block_time(block.getBlockTime());
-  std::vector<byte> prev_hash(block.getPreviousHash());
-  std::string prev_hash_str(std::begin(prev_hash), std::end(prev_hash));
+  std::string prev_hash_str(std::begin(block.getPreviousHash()), std::end(block.getPreviousHash()));
   final_block.set_prev_hash(prev_hash_str);
-  std::vector<byte> merkle(block.getMerkleRoot());
-  std::string merkle_str(std::begin(merkle), std::end(merkle));
+  std::string merkle_str(std::begin(block.getMerkleRoot()), std::end(block.getMerkleRoot()));
   final_block.set_merkle_root(merkle_str);
   final_block.set_tx_size(block.getSizeofTransactions());
   final_block.set_sum_size(block.getSummarySize());
   final_block.set_val_count(block.getNumValidations());
-  for (auto const one_tx : block.getTransactions()) {
+  for (auto const& one_tx : block.getTransactions()) {
     Devv::proto::Transaction* tx = final_block.add_txs();
     tx = SerializeTransaction(std::move(one_tx));
   }
