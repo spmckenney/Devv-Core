@@ -51,7 +51,7 @@ static std::string MakeDevvUri(std::string shard_name, uint32_t block_height
   return uri;
 }
 
-static std::string MakeDevvUri(DevvURI uri_struct) {
+static std::string MakeDevvUri(DevvUri uri_struct) {
   std::string uri;
   if (!uri_struct.valid) return uri;
   if (uri_struct.shard_name.empty()) return uri;
@@ -72,8 +72,9 @@ static DevvUri ParseDevvUri(std::string uri) {
   pos += kDEVV_PROTOCOL.size();
 
   std::vector<std::string> parts;
-  boost::split(parts, uri.substr(pos), boost::is_any_of("/"));
-  if (!parts[0].empty()) devv_uri.shard_name = parts[0];
+  std::string uri_path = uri.substr(pos);
+  boost::split(parts, uri_path, boost::is_any_of("/"));
+  if (!parts[0].empty()) devv_uri.shard = parts[0];
   if (!parts[1].empty()) {
     devv_uri.block_height = std::stoul(parts[1], nullptr, 10);
   }

@@ -135,9 +135,6 @@ int main(int argc, char* argv[]) {
     peer_listener->startClient();
     LOG_INFO << "Repeater is listening to shard: "+this_context.get_shard_uri();
 
-    auto server = io::CreateTransactionServer(options->bind_endpoint, context);
-    server->startServer();
-
     zmq::socket_t socket (context, ZMQ_REP);
     socket.bind (options->protobuf_endpoint);
 
@@ -172,7 +169,7 @@ int main(int argc, char* argv[]) {
           + std::string(e.what()));
         std::stringstream response_ss;
         Devv::proto::RepeaterResponse pbuf_response = SerializeRepeaterResponse(std::move(response_ptr));
-        pbuf_response->SerializeToOstream(&response_ss);
+        pbuf_response.SerializeToOstream(&response_ss);
         response = response_ss.str();
         zmq::message_t reply(response.size());
         memcpy(reply.data(), response.data(), response.size());
@@ -184,7 +181,7 @@ int main(int argc, char* argv[]) {
       Devv::proto::RepeaterResponse pbuf_response = SerializeRepeaterResponse(std::move(response_ptr));
       LOG_INFO << "Generated RepeaterResponse, Serializing";
       std::stringstream response_ss;
-      pbuf_response->SerializeToOstream(&response_ss);
+      pbuf_response.SerializeToOstream(&response_ss);
       response = response_ss.str();
       zmq::message_t reply(response.size());
       memcpy(reply.data(), response.data(), response.size());
@@ -194,8 +191,6 @@ int main(int argc, char* argv[]) {
                 +std::to_string(queries_processed)+" queries";
     }
     peer_listener->stopClient();
-    sleep(1);
-    server->stopServer();
     return (true);
   }
   catch (const std::exception& e) {
@@ -398,7 +393,7 @@ bool hasBlock(std::string shard, uint32_t block, const std::string& working_dir)
 uint32_t getHighestBlock(std::string shard, const std::string& working_dir) {
   std::string shard_dir(working_dir+"/"+shard);
   uint32_t highest = 0;
-  for (auto i = boost::filesystem::directory_iterator(p);
+  for (auto i = boost::filesystem::directory_iterator(shard_dir);
        i != boost::filesystem::directory_iterator(); i++) {
     uint32_t some_block = std::stoul(i->path().filename().string(), nullptr, 10);
     if (some_block > highest) highest = some_block;
@@ -428,7 +423,7 @@ uint32_t SearchForTransaction(const std::string& shard, uint32_t start_block, Si
   uint32_t highest = getHighestBlock(shard, working_dir);
   if (highest < start_block) return UINT32_MAX;
 
-  std::vector target(std::begin(tx_id.getCanonical()), std::end(tx_id.getCanonical()));
+  std::vector<byte> target(std::begin(tx_id.getCanonical()), std::end(tx_id.getCanonical()));
   for (uint32_t i=start_block; i<=highest; ++i) {
     std::vector<byte> block = ReadBlock(shard, i, working_dir);
     if (std::search(block.begin(), block.end(), target.begin(), target.end())
@@ -451,13 +446,13 @@ RepeaterResponsePtr HandleRepeaterRequest(const RepeaterRequestPtr& request, con
       response.message = "URI is not valid.";
       return std::make_unique<RepeaterResponse>(response);
 	}
-    if (!hasShard(id.shard_name, working_dir)) {
+    if (!hasShard(id.shard, working_dir)) {
       response.return_code = 1050;
-      response.message = "Shard "+id.shard_name+" is not available.";
+      response.message = "Shard "+id.shard+" is not available.";
       return std::make_unique<RepeaterResponse>(response);
 	}
-    if (id.shard_height != UINT32_MAX) {
-      if (!hasBlock(id.shard_name, id.block_height, working_dir)) {
+    if (id.block_height != UINT32_MAX) {
+      if (!hasBlock(id.shard, id.block_height, working_dir)) {
         response.return_code = 1050;
         response.message = "Block "+std::to_string(id.block_height)+" is not available.";
         return std::make_unique<RepeaterResponse>(response);
@@ -471,16 +466,16 @@ RepeaterResponsePtr HandleRepeaterRequest(const RepeaterRequestPtr& request, con
           response.message = "Block height is missing from the URI.";
           return std::make_unique<RepeaterResponse>(response);
 		}
-        response.raw_response = ReadBlock(id.shard_name, id.block_height, working_dir);
+        response.raw_response = ReadBlock(id.shard, id.block_height, working_dir);
       }
         break;
       case 2: {
         LOG_INFO << "Get Binary Blocks Since: "+request->uri;
-        uint32_t highest_block = getHighestBlock(shard, working_dir);
+        uint32_t highest_block = getHighestBlock(id.shard, working_dir);
         if (id.block_height <= highest_block) {
           for (uint32_t i=id.block_height; i<=highest_block; ++i) {
-            std::vector<byte> one_block = ReadBlock(id.shard_name, i, working_dir);
-            response.raw_response.insert(raw_response.end()
+            std::vector<byte> one_block = ReadBlock(id.shard, i, working_dir);
+            response.raw_response.insert(response.raw_response.end()
                        , one_block.begin(), one_block.end());
           }
         }
@@ -488,10 +483,10 @@ RepeaterResponsePtr HandleRepeaterRequest(const RepeaterRequestPtr& request, con
         break;
       case 3: {
         LOG_INFO << "Get Binary Chain: "+request->uri;
-        uint32_t highest_block = getHighestBlock(shard, working_dir);
+        uint32_t highest_block = getHighestBlock(id.shard, working_dir);
         for (uint32_t i=0; i<=highest_block; ++i) {
-          std::vector<byte> one_block = ReadBlock(id.shard_name, i, working_dir);
-          response.raw_response.insert(raw_response.end()
+          std::vector<byte> one_block = ReadBlock(id.shard, i, working_dir);
+          response.raw_response.insert(response.raw_response.end()
                      , one_block.begin(), one_block.end());
         }
       }
@@ -508,14 +503,14 @@ RepeaterResponsePtr HandleRepeaterRequest(const RepeaterRequestPtr& request, con
           response.message = "Transaction signature is missing from the URI.";
           return std::make_unique<RepeaterResponse>(response);
 		}
-        uint32_t height = SearchForTransaction(id.shard_name, id.block_height, id.sig, working_dir);
-        std::vector<byte> block = ReadBlock(id.shard_name, id.block_height, working_dir);
+        uint32_t height = SearchForTransaction(id.shard, id.block_height, id.sig, working_dir);
+        std::vector<byte> block = ReadBlock(id.shard, height, working_dir);
         InputBuffer buffer(block);
         ChainState state;
         FinalBlock one_block(FinalBlock::Create(buffer, state));
         for (const auto& tx : one_block.getTransactions()) {
-          if (tx.getSignature() == id.sig) {
-            response.raw_response = tx.getCanonical();
+          if (tx->getSignature() == id.sig) {
+            response.raw_response = tx->getCanonical();
             break;
 		  }
         }
@@ -523,7 +518,7 @@ RepeaterResponsePtr HandleRepeaterRequest(const RepeaterRequestPtr& request, con
         break;
       case 5: {
         LOG_INFO << "Get Protobuf Block: "+request->uri;
-        std::vector<byte> block = ReadBlock(id.shard_name, id.block_height, working_dir);
+        std::vector<byte> block = ReadBlock(id.shard, id.block_height, working_dir);
         InputBuffer buffer(block);
         ChainState state;
         FinalBlock one_block(FinalBlock::Create(buffer, state));
@@ -537,10 +532,10 @@ RepeaterResponsePtr HandleRepeaterRequest(const RepeaterRequestPtr& request, con
         break;
       case 6: {
         LOG_INFO << "Get Protobuf Blocks Since: "+request->uri;
-        uint32_t highest_block = getHighestBlock(shard, working_dir);
+        uint32_t highest_block = getHighestBlock(id.shard, working_dir);
         if (id.block_height <= highest_block) {
           for (uint32_t i=id.block_height; i<=highest_block; ++i) {
-            std::vector<byte> block = ReadBlock(id.shard_name, i, working_dir);
+            std::vector<byte> block = ReadBlock(id.shard, i, working_dir);
             InputBuffer buffer(block);
             ChainState state;
             FinalBlock one_block(FinalBlock::Create(buffer, state));
@@ -549,7 +544,7 @@ RepeaterResponsePtr HandleRepeaterRequest(const RepeaterRequestPtr& request, con
             proto_block.SerializeToOstream(&block_stream);
             std::string proto_block_str = block_stream.str();
             std::vector<byte> pbuf_block(proto_block_str.begin(), proto_block_str.end());
-            response.raw_response.insert(raw_response.end()
+            response.raw_response.insert(response.raw_response.end()
                        , pbuf_block.begin(), pbuf_block.end());
           }
         }
@@ -557,9 +552,9 @@ RepeaterResponsePtr HandleRepeaterRequest(const RepeaterRequestPtr& request, con
         break;
       case 7: {
         LOG_INFO << "Get Protobuf Chain: "+request->uri;
-        uint32_t highest_block = getHighestBlock(shard, working_dir);
+        uint32_t highest_block = getHighestBlock(id.shard, working_dir);
         for (uint32_t i=0; i<=highest_block; ++i) {
-          std::vector<byte> block = ReadBlock(id.shard_name, i, working_dir);
+          std::vector<byte> block = ReadBlock(id.shard, i, working_dir);
           InputBuffer buffer(block);
           ChainState state;
           FinalBlock one_block(FinalBlock::Create(buffer, state));
@@ -568,7 +563,7 @@ RepeaterResponsePtr HandleRepeaterRequest(const RepeaterRequestPtr& request, con
           proto_block.SerializeToOstream(&block_stream);
           std::string proto_block_str = block_stream.str();
           std::vector<byte> pbuf_block(proto_block_str.begin(), proto_block_str.end());
-          response.raw_response.insert(raw_response.end()
+          response.raw_response.insert(response.raw_response.end()
                      , pbuf_block.begin(), pbuf_block.end());
         }
       }
@@ -585,14 +580,14 @@ RepeaterResponsePtr HandleRepeaterRequest(const RepeaterRequestPtr& request, con
           response.message = "Transaction signature is missing from the URI.";
           return std::make_unique<RepeaterResponse>(response);
         }
-        uint32_t height = SearchForTransaction(id.shard_name, id.block_height, id.sig, working_dir);
-        std::vector<byte> block = ReadBlock(id.shard_name, id.block_height, working_dir);
+        uint32_t height = SearchForTransaction(id.shard, height, id.sig, working_dir);
+        std::vector<byte> block = ReadBlock(id.shard, id.block_height, working_dir);
         InputBuffer buffer(block);
         ChainState state;
         FinalBlock one_block(FinalBlock::Create(buffer, state));
         for (const auto& tx : one_block.getTransactions()) {
-          if (tx.getSignature() == id.sig) {
-            InputBuffer buffer(tx.getCanonical());
+          if (tx->getSignature() == id.sig) {
+            InputBuffer buffer(tx->getCanonical());
             std::stringstream tx_stream;
             Devv::proto::Transaction pbuf_tx = SerializeTransaction(Tier2Transaction::QuickCreate(buffer));
             pbuf_tx.SerializeToOstream(&tx_stream);
@@ -616,7 +611,7 @@ RepeaterResponsePtr HandleRepeaterRequest(const RepeaterRequestPtr& request, con
           response.message = "Transaction signature is missing from the URI.";
           return std::make_unique<RepeaterResponse>(response);
         }
-        uint32_t block_height = SearchForTransaction(id.shard_name, id.block_height, id.sig, working_dir);
+        uint32_t block_height = SearchForTransaction(id.shard, id.block_height, id.sig, working_dir);
         if (block_height != UINT32_MAX) {
           std::vector<byte> raw_data((byte*)&block_height, (byte*)&(block_height) + sizeof(std::uint32_t));
           response.raw_response = raw_data;

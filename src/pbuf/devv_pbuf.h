@@ -346,8 +346,11 @@ Devv::proto::FinalBlock SerializeFinalBlock(const FinalBlock& block) {
   final_block.set_sum_size(block.getSummarySize());
   final_block.set_val_count(block.getNumValidations());
   for (auto const& one_tx : block.getTransactions()) {
-    Devv::proto::Transaction* tx = final_block.add_txs();
-    tx = SerializeTransaction(std::move(one_tx));
+    if (typeid(*one_tx) == typeid(Tier2Transaction)) {
+      Devv::proto::Transaction* tx = final_block.add_txs();
+      Devv::proto::Transaction serialized = SerializeTransaction(std::move(one_tx));
+      tx = &serialized;
+    }
   }
   std::vector<byte> summary(block.getSummary().getCanonical());
   std::string summary_str(std::begin(summary), std::end(summary));
