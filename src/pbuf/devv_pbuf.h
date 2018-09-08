@@ -9,6 +9,7 @@
 
 #include <vector>
 #include <exception>
+#include <typeinfo>
 
 #include "consensus/blockchain.h"
 #include "primitives/Tier2Transaction.h"
@@ -308,6 +309,55 @@ Devv::proto::RepeaterResponse SerializeRepeaterResponse(const RepeaterResponsePt
                     , std::end(response_ptr->raw_response));
   response.set_raw_response(raw_str);
   return response;
+}
+
+Devv::proto::Transaction SerializeTransaction(const Tier2Transaction& one_tx) {
+  Devv::proto::Transaction tx;
+  tx.set_operation(static_cast<Devv::proto::eOpType>(one_tx.getOperation()));
+  std::vector<byte> nonce = one_tx.getNonce();
+  std::string nonce_str(std::begin(nonce), std::end(nonce));
+  tx.set_nonce(nonce_str);
+  for (auto const& xfer : one_tx.getTransfers()) {
+    Devv::proto::Transfer* transfer = tx.add_xfers();
+    std::string addr(std::begin(xfer->getAddress().getCanonical())
+                    ,std::end(xfer->getAddress().getCanonical()));
+    transfer->set_address(addr);
+    transfer->set_coin(xfer->getCoin());
+    transfer->set_amount(xfer->getAmount());
+    transfer->set_delay(xfer->getDelay());
+  }
+  Signature sig = one_tx.getSignature();
+  std::string raw_sig(std::begin(sig.getCanonical())
+                    , std::end(sig.getCanonical()));
+  tx.set_sig(raw_sig);
+  return tx;
+}
+
+Devv::proto::FinalBlock SerializeFinalBlock(const FinalBlock& block) {
+  Devv::proto::FinalBlock final_block;
+  final_block.set_version(block.getVersion());
+  final_block.set_num_bytes(block.getNumBytes());
+  final_block.set_block_time(block.getBlockTime());
+  std::vector<byte> prev_hash(block.getPreviousHash());
+  std::string prev_hash_str(std::begin(prev_hash), std::end(prev_hash));
+  final_block.set_prev_hash(prev_hash_str);
+  std::vector<byte> merkle(block.getMerkleRoot());
+  std::string merkle_str(std::begin(merkle), std::end(merkle));
+  final_block.set_merkle_root(merkle_str);
+  final_block.set_tx_size(block.getSizeofTransactions());
+  final_block.set_sum_size(block.getSummarySize());
+  final_block.set_val_count(block.getNumValidations());
+  for (auto const one_tx : block.getTransactions()) {
+    Devv::proto::Transaction* tx = final_block.add_txs();
+    tx = SerializeTransaction(std::move(one_tx));
+  }
+  std::vector<byte> summary(block.getSummary().getCanonical());
+  std::string summary_str(std::begin(summary), std::end(summary));
+  final_block.set_summary(summary_str);
+  std::vector<byte> vals(block.getValidation().getCanonical());
+  std::string vals_str(std::begin(vals), std::end(vals));
+  final_block.set_vals(vals_str);
+  return final_block;
 }
 
 } // namespace Devcash
