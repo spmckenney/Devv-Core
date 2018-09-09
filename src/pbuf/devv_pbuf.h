@@ -350,6 +350,7 @@ Devv::proto::FinalBlock SerializeFinalBlock(const FinalBlock& block) {
     Devv::proto::Transaction* tx = final_block.add_txs();
     Devv::proto::Transaction pbuf_tx = SerializeTransaction(Tier2Transaction::QuickCreate(buffer));
     tx = &pbuf_tx;
+    LOG_NOTICE << "Serialized TX: "+tx.sig();
   }
   std::vector<byte> summary(block.getSummary().getCanonical());
   std::string summary_str(std::begin(summary), std::end(summary));
