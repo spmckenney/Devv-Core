@@ -134,7 +134,7 @@ class InputBuffer {
 
   std::vector<byte> getNextTransaction() {
     std::vector<byte> out;
-    if (size() < offset_ + kMIN_SIZE) {
+    if (size() < offset_ + kTX_MIN_SIZE) {
       return getNextT1Transaction();
     }
     /// Don't increment the buffer, we want to copy it all to canonical_
@@ -150,7 +150,7 @@ class InputBuffer {
       return getNextT1Transaction();
     }
 
-    size_t tx_size = kMIN_SIZE + xfer_size + nonce_size;
+    size_t tx_size = kTX_MIN_SIZE + xfer_size + nonce_size;
     if (oper != eOpType::Exchange) tx_size += kNODE_SIG_BUF_SIZE - kWALLET_SIG_BUF_SIZE;
     if (size() < offset_ + tx_size) {
       LOG_WARNING << "Buffer is smaller than calculated Tier2Transaction size.";

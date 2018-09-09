@@ -39,21 +39,6 @@ using namespace Devcash;
 
 namespace Devcash {
 
-static const std::string kXFER_SIZE_TAG = "xfer_size";
-static const std::string kSUMMARY_TAG = "summary";
-static const std::string kSUM_SIZE_TAG = "sum_size";
-static const std::string kOPER_TAG = "oper";
-static const std::string kXFER_TAG = "xfer";
-static const std::string kNONCE_TAG = "nonce";
-static const std::string kNONCE_SIZE_TAG = "nonce_size";
-static const std::string kSIG_TAG = "sig";
-static const std::string kVALIDATOR_DEX_TAG = "val_dex";
-
-/**
- * Types of operations performed by transactions
- */
-enum eOpType : byte { Create = 0, Modify = 1, Exchange = 2, Delete = 3, NumOperations = 4 };
-
 /**
  * The Transaction Abstract Base Class
  * Subclassed as Tier1Transaction and Tier2Transaction
@@ -127,7 +112,7 @@ static const size_t kTRANSFER_OFFSET = 17;
    * Returns min nonce size (hard-coded to 8)
    * @return min nonce size (hard-coded to 8)
    */
-  static size_t minNonceSize() { return kMIN_NONCE_SICE; }
+  static size_t minNonceSize() { return kMIN_NONCE_SIZE; }
 
  /**
   * Returns min nonce size (hard-coded to 8)
