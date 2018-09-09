@@ -32,18 +32,6 @@ static std::vector<TransactionPtr> Copy(const std::vector<TransactionPtr> &txs) 
   return (std::move(tx_out));
 }
 
-/// @todo (mckenney) move to constants file
-static const std::string kVERSION_TAG = "v";
-static const std::string kPREV_HASH_TAG = "prev";
-static const std::string kMERKLE_TAG = "merkle";
-static const std::string kBYTES_TAG = "bytes";
-static const std::string kTIME_TAG = "time";
-static const std::string kTX_SIZE_TAG = "txlen";
-static const std::string kVAL_COUNT_TAG = "vcount";
-static const std::string kTXS_TAG = "txs";
-static const std::string kSUM_TAG = "sum";
-static const std::string kVAL_TAG = "vals";
-
 /**
  * A proposed block.
  */
@@ -284,6 +272,15 @@ class ProposedBlock {
    */
   const std::vector<TransactionPtr>& getTransactions() const { return transaction_vector_; }
 
+  const std::vector<std::vector<byte>>& getRawTransactions() const {
+    std::vector<std::vector<byte>> out;
+    for (auto const& item : transaction_vector_) {
+      const std::vector<byte> txs_canon(item->getCanonical());
+      out.push_back(txs_canon);
+    }
+    return out;
+  }
+
   /**
    *
    * @return
@@ -391,7 +388,7 @@ class ProposedBlock {
   /// Number of Validations
   uint32_t val_count_ = 0;
   /// vector of TransactionPtrs
-  std::vector<TransactionPtr> transaction_vector_;
+  std::vector<std::vector<byte>> raw_transaction_vector_;
   /// Summary
   Summary summary_ = Summary::Create();
   /// Validation

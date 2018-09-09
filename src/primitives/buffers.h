@@ -131,6 +131,49 @@ class InputBuffer {
     return ret;
   }
 
+  std::vector<byte> getNextTransaction() {
+    std::vector<byte> out;
+    if (size() < offset_ + Tier2Transaction::MinSize()) {
+      return getNextT1Transaction();
+    }
+    /// Don't increment the buffer, we want to copy it all to canonical_
+    uint64_t xfer_size = getNextUint64(false);
+    uint64_t nonce_size = getSecondUint64(false);
+
+    if (nonce_size_ < Tier2Transaction::minNonceSize()) {
+      return getNextT1Transaction();
+    }
+
+    byte oper = buffer.offsetAt(16);
+    if (oper >= eOpType::NumOperations) {
+      return getNextT1Transaction();
+    }
+
+    size_t tx_size = Tier2Transaction::MinSize() + fer_size + nonce_size;
+    if (oper != eOpType::Exchange) tx_size += kNODE_SIG_BUF_SIZE - kWALLET_SIG_BUF_SIZE;
+    if (size() < offset_ + tx_size) {
+      LOG_WARNING << "Buffer is smaller than calculated Tier2Transaction size.";
+      return getNextT1Transaction();
+    }
+    MTR_STEP("Transaction", "Transaction", &trace_int, "step2");
+    copy(std::back_inserter(out), tx_size);
+    return out;
+  }
+
+  std::vector<byte> getNextT1Transaction() {
+    std::vector<byte> out;
+    uint64_t sum_size = buffer.getNextUint64(false);
+    size_t tx_size = sum_size + kNODE_SIG_BUF_SIZE + uint64Size() + kNODE_ADDR_BUF_SIZE;
+    if (size() < offset_ + tx_size) {
+      LOG_WARNING << "Invalid serialized transaction, too small!";
+      return out;
+    }
+
+    MTR_STEP("Transaction", "Transaction", &trace_int, "step2");
+    copy(std::back_inserter(out), tx_size);
+    return out;
+  }
+
   /**
    * Returns the next uint32_t and increment the buffer
    * by the size if increment_buffer is true

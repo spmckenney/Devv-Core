@@ -54,14 +54,14 @@ static std::string MakeDevvUri(std::string shard_name, uint32_t block_height
 static std::string MakeDevvUri(DevvUri uri_struct) {
   std::string uri;
   if (!uri_struct.valid) return uri;
-  if (uri_struct.shard_name.empty()) return uri;
-  uri = "devv://"+uri_struct.shard_name;
+  if (uri_struct.shard.empty()) return uri;
+  uri = "devv://"+uri_struct.shard;
   if (uri_struct.block_height == UINT32_MAX) return uri;
-  uri += "/"+std::to_string(block_height);
+  uri += "/"+std::to_string(uri_struct.block_height);
   if (uri_struct.sig.isNull()) return uri;
-  uri += "/"+sig.getJSON();
+  uri += "/"+uri_struct.sig.getJSON();
   if (uri_struct.addr.isNull()) return uri;
-  uri += "/"+addr.getJSON();
+  uri += "/"+uri_struct.addr.getJSON();
   return uri;
 }
 
