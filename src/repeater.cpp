@@ -62,7 +62,7 @@ std::unique_ptr<struct repeater_options> ParseRepeaterOptions(int argc, char** a
  * @param request - a smart pointer to the request
  * @return RepeaterResponsePtr - a smart pointer to the response
  */
-RepeaterResponsePtr HandleRepeaterRequest(const RepeaterRequestPtr& request);
+RepeaterResponsePtr HandleRepeaterRequest(const RepeaterRequestPtr& request, const std::string& working_dir);
 
 /**
  * Generate a bad syntax error response.
@@ -135,6 +135,7 @@ int main(int argc, char* argv[]) {
     peer_listener->startClient();
     LOG_INFO << "Repeater is listening to shard: "+this_context.get_shard_uri();
 
+    zmq::context_t context(1);
     zmq::socket_t socket (context, ZMQ_REP);
     socket.bind (options->protobuf_endpoint);
 
