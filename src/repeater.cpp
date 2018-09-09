@@ -581,8 +581,8 @@ RepeaterResponsePtr HandleRepeaterRequest(const RepeaterRequestPtr& request, con
           response.message = "Transaction signature is missing from the URI.";
           return std::make_unique<RepeaterResponse>(response);
         }
-        uint32_t height = SearchForTransaction(id.shard, height, id.sig, working_dir);
-        std::vector<byte> block = ReadBlock(id.shard, id.block_height, working_dir);
+        uint32_t height = SearchForTransaction(id.shard, id.block_height, id.sig, working_dir);
+        std::vector<byte> block = ReadBlock(id.shard, height, working_dir);
         InputBuffer buffer(block);
         ChainState state;
         FinalBlock one_block(FinalBlock::Create(buffer, state));
