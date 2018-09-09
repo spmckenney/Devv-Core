@@ -29,6 +29,7 @@
 #include "Summary.h"
 #include "Transfer.h"
 #include "Validation.h"
+#include "common/devcash_constants.h"
 #include "primitives/buffers.h"
 
 #include "consensus/KeyRing.h"
@@ -100,35 +101,39 @@ class Transaction {
    */
   friend bool operator!=(const Transaction& a, const Transaction& b) { return a.canonical_ != b.canonical_; }
 
+static const size_t kTX_MIN_SIZE = (89 + 2);
+static const size_t kENVELOPE_SIZE = 17;
+static const size_t kTRANSFER_OFFSET = 17;
+
   /**
    * Returns minimum size (hard-coded to 89)
    * @return minimum size (hard-coded to 89)
    */
-  static size_t MinSize() { return (89 + 2); }
+  static size_t MinSize() { return kTX_MIN_SIZE; }
 
   /**
    * Returns envelope size (hard-coded to 17)
    * @return envelope size (hard-coded to 17)
    */
-  static size_t EnvelopeSize() { return 17; }
+  static size_t EnvelopeSize() { return kENVELOPE_SIZE; }
 
   /**
    * Returns transfer offset (hard-coded to 17)
    * @return transfer offset (hard-coded to 17)
    */
-  static size_t transferOffset() { return 17; }
+  static size_t transferOffset() { return kTRANSFER_OFFSET; }
 
   /**
    * Returns min nonce size (hard-coded to 8)
    * @return min nonce size (hard-coded to 8)
    */
-  static size_t minNonceSize() { return 8; }
+  static size_t minNonceSize() { return kMIN_NONCE_SICE; }
 
  /**
   * Returns min nonce size (hard-coded to 8)
   * @return min nonce size (hard-coded to 8)
   */
-  static size_t uint64Size() { return 8; }
+  static size_t uint64Size() { return kUINT64_SIZE; }
 
   /**
    * Make a deep copy of the TierXTransaction subclass

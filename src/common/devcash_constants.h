@@ -33,4 +33,22 @@ static const std::string kTXS_TAG = "txs";
 static const std::string kSUM_TAG = "sum";
 static const std::string kVAL_TAG = "vals";
 
+static const size_t kTX_MIN_SIZE = (89 + 2);
+static const size_t kENVELOPE_SIZE = 17;
+static const size_t kTRANSFER_OFFSET = 17;
+static const size_t kMIN_NONCE_SIZE = 8;
+static const size_t kUINT64_SIZE = 8;
+
+  /**
+   * Returns min nonce size (hard-coded to 8)
+   * @return min nonce size (hard-coded to 8)
+   */
+  static size_t minNonceSize() { return 8; }
+
+ /**
+  * Returns min nonce size (hard-coded to 8)
+  * @return min nonce size (hard-coded to 8)
+  */
+  static size_t uint64Size() { return 8; }
+
 } // namespace Devcash
