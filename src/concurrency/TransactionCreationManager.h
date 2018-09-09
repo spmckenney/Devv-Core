@@ -55,7 +55,7 @@ public:
    * @param tx_size - the total byte size of this block of serial Transactions
    * @return std::vector<std::vector<byte>> raw transactions - the canonical transactions in series
    */
-  std::vector<std:vector<byte>> CreateTransactions(InputBuffer& buffer
+  std::vector<std::vector<byte>> CreateTransactions(InputBuffer& buffer
                           , std::vector<TransactionPtr>& vtx
                           , size_t start_size
                           , size_t& tx_size) {
@@ -68,7 +68,7 @@ public:
                                   *keys_p_,
                                   app_mode_,
                                   false);
-      raw_txs.push_back(tx.getCanonical());
+      raw_txs.push_back(tx->getCanonical());
       vtx.push_back(std::move(tx));
     }
 

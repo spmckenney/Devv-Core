@@ -272,7 +272,7 @@ class ProposedBlock {
    */
   const std::vector<TransactionPtr>& getTransactions() const { return transaction_vector_; }
 
-  const std::vector<std::vector<byte>>& getRawTransactions() const {
+  const std::vector<std::vector<byte>> getRawTransactions() const {
     std::vector<std::vector<byte>> out;
     for (auto const& item : transaction_vector_) {
       const std::vector<byte> txs_canon(item->getCanonical());
@@ -388,7 +388,7 @@ class ProposedBlock {
   /// Number of Validations
   uint32_t val_count_ = 0;
   /// vector of TransactionPtrs
-  std::vector<std::vector<byte>> raw_transaction_vector_;
+  std::vector<TransactionPtr> transaction_vector_;
   /// Summary
   Summary summary_ = Summary::Create();
   /// Validation

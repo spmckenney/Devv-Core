@@ -7,6 +7,8 @@
 #include <vector>
 #include "common/binary_converters.h"
 #include "common/devcash_types.h"
+#include "primitives/Tier1Transaction.h"
+#include "primitives/Tier2Transaction.h"
 
 namespace Devcash {
 
@@ -140,36 +142,34 @@ class InputBuffer {
     uint64_t xfer_size = getNextUint64(false);
     uint64_t nonce_size = getSecondUint64(false);
 
-    if (nonce_size_ < Tier2Transaction::minNonceSize()) {
+    if (nonce_size < Tier2Transaction::minNonceSize()) {
       return getNextT1Transaction();
     }
 
-    byte oper = buffer.offsetAt(16);
+    byte oper = offsetAt(offset_+16);
     if (oper >= eOpType::NumOperations) {
       return getNextT1Transaction();
     }
 
-    size_t tx_size = Tier2Transaction::MinSize() + fer_size + nonce_size;
+    size_t tx_size = Tier2Transaction::MinSize() + xfer_size + nonce_size;
     if (oper != eOpType::Exchange) tx_size += kNODE_SIG_BUF_SIZE - kWALLET_SIG_BUF_SIZE;
     if (size() < offset_ + tx_size) {
       LOG_WARNING << "Buffer is smaller than calculated Tier2Transaction size.";
       return getNextT1Transaction();
     }
-    MTR_STEP("Transaction", "Transaction", &trace_int, "step2");
     copy(std::back_inserter(out), tx_size);
     return out;
   }
 
   std::vector<byte> getNextT1Transaction() {
     std::vector<byte> out;
-    uint64_t sum_size = buffer.getNextUint64(false);
-    size_t tx_size = sum_size + kNODE_SIG_BUF_SIZE + uint64Size() + kNODE_ADDR_BUF_SIZE;
+    uint64_t sum_size = getNextUint64(false);
+    size_t tx_size = sum_size + kNODE_SIG_BUF_SIZE + Transaction::uint64Size() + kNODE_ADDR_BUF_SIZE;
     if (size() < offset_ + tx_size) {
       LOG_WARNING << "Invalid serialized transaction, too small!";
       return out;
     }
 
-    MTR_STEP("Transaction", "Transaction", &trace_int, "step2");
     copy(std::back_inserter(out), tx_size);
     return out;
   }
