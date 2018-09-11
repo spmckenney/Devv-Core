@@ -5,10 +5,14 @@ import org.zeromq.ZMQ;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
 
+import proto.Devv.Devv;
 import proto.Devv.Devv.Envelope;
+import proto.Devv.Devv.FinalBlock;
 import proto.Devv.Devv.Proposal;
 import proto.Devv.Devv.Transaction;
 import proto.Devv.Devv.Transfer;
+import proto.Devv.Devv.RepeaterRequest;
+import proto.Devv.Devv.RepeaterResponse;
 
 public class DevvTestMain {
 
@@ -17,9 +21,12 @@ public class DevvTestMain {
 	static final public String ADDR_2 = "2102E14466DC0E5A3E6EBBEAB5DD24ABE950E44EF2BEB509A5FD113460414A6EFAB4";
 	static final public String SOME_NONCE_HEXSTR = "00112233445566778899AABBCCDDEEFF";
 	static final public String ANNOUNCER_URL = "tcp://*:55706";
+	static final public String REPEATER_URL = "tcp://*:55806";
 	static final public String PK_AES_PASS = "password";
-
-
+	
+	static final public int CHECK_TRANSACTION = 9;
+	static final public int GET_BLOCK_AS_PBUF = 5;
+	
 	static public byte[] hexStringToByteArray(String s) {
 	    int len = s.length();
 	    byte[] data = new byte[len / 2];
@@ -29,7 +36,7 @@ public class DevvTestMain {
 	    }
 	    return data;
 	}
-
+	
 	/** use Devv shared library to Sign a transaction
 	 *
 	 * @params tx - the unsigned transaction in binary form
@@ -38,7 +45,7 @@ public class DevvTestMain {
 	 * @return the signed transaction in canonical form
 	 */
 	public native byte[] SignTransaction(byte[] tx, String keyPass, byte[] privateKey);
-
+	
 	/** Use Devv shared library to Create a proposal
 	 *
 	 * @params oracle - the fully qualified name of the oracle to invoke
@@ -47,7 +54,7 @@ public class DevvTestMain {
 	 * @params keyPass - the AES password for the key
 	 * @params privateKey - an ECDSA private key, AES encrypted with ASCII armor
 	 * @return a binary proposal including the signature(s) as needed
-	 */
+	 */	
 	public native byte[] CreateProposal(String oracle, byte[] data, String keyAddress, String keyPass, byte[] privateKey);
 
 	/** Generate a transaction
@@ -59,9 +66,9 @@ public class DevvTestMain {
 	 * @params delay - a delay (in seconds) before this transaction settles and can be reversed
 	 * @params nonce - arbitrary contextual binary data associated with this transaction
 	 * @params sig - the sender's signature using the hash of rest of this transaction in canonical form as a message digest
-	 * @note use the JNI SignTransaction method to generate a signed version of this transaction for the given key
+	 * @note use the JNI SignTransaction method to generate a signed version of this transaction for the given key 
 	 * @return a binary proposal including the signature(s) as needed
-	 */
+	 */	
 	public Transaction getTransaction(ByteString sender, ByteString receiver, long coin, long amount, long delay, byte[] nonce, byte[] sig) {
 		Transfer xfer = Transfer.newBuilder()
 				.setAddress(sender)
@@ -76,8 +83,6 @@ public class DevvTestMain {
 				.setDelay(0)
 				.build();
 		Transaction tx = Transaction.newBuilder()
-				.setNonceSize(sender.size())
-				.setXferSize(2)
 				.addXfers(xfer)
 				.addXfers(xfer2)
 				.setOperationValue(2)
@@ -96,16 +101,19 @@ public class DevvTestMain {
 				.build();
 		return prop;
 	}
-
+	
 	public static void main(String[] args) {
 		try {
 			System.loadLibrary("devvjni");
-
+			
 			ZMQ.Context context = ZMQ.context(1);
-
+	
 	        ZMQ.Socket requester = context.socket(ZMQ.REQ);
 	        requester.connect(ANNOUNCER_URL);
 
+	        ZMQ.Socket repeater = context.socket(ZMQ.REQ);
+	        repeater.connect(REPEATER_URL);
+	        
 			DevvTestMain test = new DevvTestMain();
 			Transaction tx = test.getTransaction(ByteString.copyFrom(hexStringToByteArray(ADDR_1)),
 					ByteString.copyFrom(hexStringToByteArray(ADDR_2)),
@@ -119,16 +127,46 @@ public class DevvTestMain {
 			  requester.send(env.toByteArray(), 0);
 			  byte[] reply = requester.recv(0);
 	          System.out.println("Received " + new String(reply));
-
+	          
+	          RepeaterRequest request = RepeaterRequest.newBuilder()
+	        		  .setTimestamp(System.currentTimeMillis())
+	        		  .setOperation(CHECK_TRANSACTION)
+	        		  .setUri("devv://shard-1/0/"+tx2.getSig().toString())	        		 
+	        		  .build();
+	          repeater.send(request.toByteArray(), 0);
+	          RepeaterResponse response = RepeaterResponse.parseFrom(repeater.recv(0));
+	          if (response.getReturnCode() == 0) {
+	        	System.out.println("Suucess: Transaction is in block #"+response.getRawResponse().toString());
+	        	RepeaterRequest blockRequest = RepeaterRequest.newBuilder()
+		        		  .setTimestamp(System.currentTimeMillis())
+		        		  .setOperation(GET_BLOCK_AS_PBUF)
+		        		  .setUri("devv://shard-1/"+response.getRawResponse().toString())        		 
+		        		  .build();
+		        repeater.send(blockRequest.toByteArray(), 0);
+		        RepeaterResponse blockResponse = RepeaterResponse.parseFrom(repeater.recv(0));
+		        if (blockResponse.getReturnCode() == 0) {
+		          FinalBlock block = FinalBlock.parseFrom(blockResponse.getRawResponse());
+		          for (Devv.Transaction one_tx : block.getTxsList()) {
+		            if (one_tx.getSig() == tx2.getSig()) {
+		            	System.out.println("Found the transaction with nonce: "+one_tx.getNonce());
+		            }
+		          }
+		        } else {
+		          System.out.println("Error (#"+response.getReturnCode()+"): "+response.getMessage());	
+		        }
+	          } else {
+	        	System.out.println("Error (#"+response.getReturnCode()+"): "+response.getMessage());
+	          }
 			} catch (InvalidProtocolBufferException ipbe) {
 				System.err.println("InvalidProtocolBufferException: "+ipbe.getMessage());
 			}
 	        requester.close();
+	        
 	        context.term();
 		} catch (Exception e) {
 			System.err.println(e.getClass()+": "+e.getMessage());
 		}
-
+        
 	}
-
+	
 }
