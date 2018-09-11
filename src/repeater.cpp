@@ -115,7 +115,7 @@ int main(int argc, char* argv[]) {
         fs::path dir_path(shard_dir);
         if (is_directory(dir_path)) {
           std::string block_height(std::to_string(chain_height));
-          std::string out_file(shard_dir + "/" + block_height + ".dat");
+          std::string out_file(shard_dir + "/" + block_height + ".blk");
           std::ofstream block_file(out_file
             , std::ios::out | std::ios::binary);
           if (block_file.is_open()) {
@@ -395,8 +395,8 @@ uint32_t getHighestBlock(std::string shard, const std::string& working_dir) {
   std::string shard_dir(working_dir+"/"+shard);
   uint32_t highest = 0;
   for (auto i = boost::filesystem::directory_iterator(shard_dir);
-       i != boost::filesystem::directory_iterator(); i++) {
-    uint32_t some_block = std::stoul(i->path().filename().string(), nullptr, 10);
+      i != boost::filesystem::directory_iterator(); i++) {
+    uint32_t some_block = std::stoul(i->path().stem().string(), nullptr, 10);
     if (some_block > highest) highest = some_block;
   }
   return highest;

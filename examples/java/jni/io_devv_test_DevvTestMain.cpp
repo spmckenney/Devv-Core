@@ -35,8 +35,6 @@ JNIEXPORT jbyteArray JNICALL Java_io_devv_test_DevvTestMain_SignTransaction
       xfer->set_amount(xfer_ptr->getAmount());
       xfer->set_delay(xfer_ptr->getDelay());
     }
-    tx_out.set_nonce_size(t2tx_ptr->getNonce().size());
-    tx_out.set_xfer_size(t2tx_ptr->getTransfers().size());
     tx_out.set_nonce(Bin2Str(t2tx_ptr->getNonce()));
     tx_out.set_sig(Bin2Str(t2tx_ptr->getSignature().getCanonical()));
     tx_out.set_operation((Devv::proto::eOpType) t2tx_ptr->getOperation());
