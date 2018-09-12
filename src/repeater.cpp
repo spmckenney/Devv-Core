@@ -386,7 +386,7 @@ bool hasShard(std::string shard, const std::string& working_dir) {
 }
 
 bool hasBlock(std::string shard, uint32_t block, const std::string& working_dir) {
-  std::string block_path(working_dir+"/"+shard+std::to_string(block));
+  std::string block_path(working_dir+"/"+shard+"/"+std::to_string(block)+".blk");
   if (boost::filesystem::exists(block_path)) return true;
   return false;
 }
@@ -404,7 +404,7 @@ uint32_t getHighestBlock(std::string shard, const std::string& working_dir) {
 
 std::vector<byte> ReadBlock(const std::string& shard, uint32_t block, const std::string& working_dir) {
   std::vector<byte> out;
-  std::string block_path(working_dir+"/"+shard+"/"+std::to_string(block));
+  std::string block_path(working_dir+"/"+shard+"/"+std::to_string(block)+".blk");
   std::ifstream block_file(block_path, std::ios::in | std::ios::binary);
   block_file.unsetf(std::ios::skipws);
 
@@ -446,12 +446,12 @@ RepeaterResponsePtr HandleRepeaterRequest(const RepeaterRequestPtr& request, con
       response.return_code = 1052;
       response.message = "URI is not valid.";
       return std::make_unique<RepeaterResponse>(response);
-	}
+    }
     if (!hasShard(id.shard, working_dir)) {
       response.return_code = 1050;
       response.message = "Shard "+id.shard+" is not available.";
       return std::make_unique<RepeaterResponse>(response);
-	}
+    }
     if (id.block_height != UINT32_MAX) {
       if (!hasBlock(id.shard, id.block_height, working_dir)) {
         response.return_code = 1050;

@@ -27,25 +27,25 @@ struct DevvUri {
 };
 
 static std::string MakeDevvUri(std::string shard_name) {
-  std::string uri = "devv://"+shard_name;
+  std::string uri = kDEVV_PROTOCOL+shard_name;
   return uri;
 }
 
 static std::string MakeDevvUri(std::string shard_name, uint32_t block_height) {
-  std::string uri = "devv://"+shard_name+"/"+std::to_string(block_height);
+  std::string uri = kDEVV_PROTOCOL+shard_name+"/"+std::to_string(block_height);
   return uri;
 }
 
 static std::string MakeDevvUri(std::string shard_name, uint32_t block_height
                             , Signature sig) {
-  std::string uri = "devv://"+shard_name+"/"+std::to_string(block_height);
+  std::string uri = kDEVV_PROTOCOL+shard_name+"/"+std::to_string(block_height);
   uri += "/"+sig.getJSON();
   return uri;
 }
 
 static std::string MakeDevvUri(std::string shard_name, uint32_t block_height
                             , Signature sig, Address addr) {
-  std::string uri = "devv://"+shard_name+"/"+std::to_string(block_height);
+  std::string uri = kDEVV_PROTOCOL+shard_name+"/"+std::to_string(block_height);
   uri += "/"+sig.getJSON();
   uri += "/"+addr.getJSON();
   return uri;
@@ -55,7 +55,7 @@ static std::string MakeDevvUri(DevvUri uri_struct) {
   std::string uri;
   if (!uri_struct.valid) return uri;
   if (uri_struct.shard.empty()) return uri;
-  uri = "devv://"+uri_struct.shard;
+  uri = kDEVV_PROTOCOL+uri_struct.shard;
   if (uri_struct.block_height == UINT32_MAX) return uri;
   uri += "/"+std::to_string(uri_struct.block_height);
   if (uri_struct.sig.isNull()) return uri;
@@ -74,15 +74,24 @@ static DevvUri ParseDevvUri(std::string uri) {
   std::vector<std::string> parts;
   std::string uri_path = uri.substr(pos);
   boost::split(parts, uri_path, boost::is_any_of("/"));
-  if (!parts[0].empty()) devv_uri.shard = parts[0];
-  if (!parts[1].empty()) {
-    devv_uri.block_height = std::stoul(parts[1], nullptr, 10);
+  size_t num_parts = parts.size();
+  if (size > 0) {
+    if (!parts[0].empty()) devv_uri.shard = parts[0];
   }
-  if (!parts[2].empty()) {
-    devv_uri.sig = Signature(Str2Bin(parts[2]));
+  if (size > 1) {
+    if (!parts[1].empty()) {
+      devv_uri.block_height = std::stoul(parts[1], nullptr, 10);
+    }
   }
-  if (!parts[3].empty()) {
-      devv_uri.addr = Address(Str2Bin(parts[3]));
+  if (size > 2) {
+    if (!parts[2].empty()) {
+      devv_uri.sig = Signature(Hex2Bin(parts[2]));
+    }
+  }
+  if (size > 3) {
+    if (!parts[3].empty()) {
+      devv_uri.addr = Address(Hex2Bin(parts[3]));
+    }
   }
   devv_uri.valid = true;
   return devv_uri;
