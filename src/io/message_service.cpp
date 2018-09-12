@@ -13,8 +13,13 @@
 namespace Devcash {
 namespace io {
 
-TransactionServer::TransactionServer(zmq::context_t& context, const std::string& bind_url)
-    : bind_url_(bind_url), context_(context) {}
+TransactionServer::TransactionServer(zmq::context_t& context,
+                                     const std::string& bind_url,
+                                     int socket_protocol)
+    : bind_url_(bind_url)
+    , context_(context)
+    , socket_protocol_(socket_protocol)
+{}
 
 void TransactionServer::sendMessage(DevcashMessageUniquePtr dc_message) noexcept {
   if (!keep_running_) {
@@ -26,8 +31,8 @@ void TransactionServer::sendMessage(DevcashMessageUniquePtr dc_message) noexcept
             << dc_message->uri << "]";
 
   auto buffer = serialize(*dc_message);
-  s_sendmore(*pub_socket_, dc_message->uri);
-  s_send(*pub_socket_, buffer);
+  s_sendmore(*pub_socket_, dc_message->uri, socket_flags_);
+  s_send(*pub_socket_, buffer, socket_flags_);
 }
 
 void TransactionServer::queueMessage(DevcashMessageUniquePtr message) noexcept {
@@ -60,9 +65,13 @@ void TransactionServer::stopServer() {
 
 void TransactionServer::run() noexcept {
   MTR_META_THREAD_NAME("TransactionServer::run() Thread");
-  pub_socket_ = std::make_unique<zmq::socket_t>(context_, ZMQ_PUB);
+  pub_socket_ = std::make_unique<zmq::socket_t>(context_, socket_protocol_);
   LOG_INFO << "Server: Binding bind_url_ '" << bind_url_ << "'";
   pub_socket_->bind(bind_url_);
+
+  if (socket_protocol_ == ZMQ_PUSH) {
+    socket_flags_ |= ZMQ_NOBLOCK;
+  }
 
   for (;;) {
     auto message = message_queue_.pop();
@@ -79,8 +88,14 @@ void TransactionServer::run() noexcept {
  * Communication class. Register a callback using the registerCallback() method
  * and connect to one or more TransactionServers to receive DevcashMessages
  */
-TransactionClient::TransactionClient(zmq::context_t& context)
-    : peer_urls_(), context_(context), sub_socket_(nullptr), callback_() {}
+TransactionClient::TransactionClient(zmq::context_t& context, int socket_protocol)
+    : peer_urls_()
+    , context_(context)
+    , sub_socket_(nullptr)
+    , callback_()
+    , socket_protocol_(socket_protocol)
+{
+}
 
 void TransactionClient::addConnection(const std::string& endpoint) { peer_urls_.push_back(endpoint); }
 
@@ -108,15 +123,17 @@ void TransactionClient::processIncomingMessage() noexcept {
 void TransactionClient::run() {
   try {
     MTR_META_THREAD_NAME("TransactionClient::run() Thread");
-    sub_socket_ = std::unique_ptr<zmq::socket_t>(new zmq::socket_t(context_, ZMQ_SUB));
+    sub_socket_ = std::unique_ptr<zmq::socket_t>(new zmq::socket_t(context_, socket_protocol_));
     int timeout_ms = 100;
     sub_socket_->setsockopt(ZMQ_RCVTIMEO, &timeout_ms, sizeof(timeout_ms));
 
     for (auto endpoint : peer_urls_) {
       sub_socket_->connect(endpoint);
-      for (auto filter : filter_vector_) {
-        LOG_DEBUG << "ZMQ_SUBSCRIBE: '" << endpoint << ":" << filter << "'";
-        sub_socket_->setsockopt(ZMQ_SUBSCRIBE, filter.c_str(), filter.size());
+      if (socket_protocol_ == ZMQ_SUB) {
+        for (auto filter : filter_vector_) {
+          LOG_DEBUG << "ZMQ_SUBSCRIBE: '" << endpoint << ":" << filter << "'";
+          sub_socket_->setsockopt(ZMQ_SUBSCRIBE, filter.c_str(), filter.size());
+        }
       }
     }
 

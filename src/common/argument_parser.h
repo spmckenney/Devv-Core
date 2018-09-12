@@ -28,6 +28,7 @@ void RemoveDuplicates(std::vector<T>& vec)
 struct devcash_options {
   std::string bind_endpoint;
   std::vector<std::string> host_vector{};
+  std::string announcer_endpoint;
   eAppMode mode = T1;
   unsigned int node_index = 0;
   unsigned int shard_index = 0;
@@ -69,6 +70,7 @@ inline std::unique_ptr<struct devcash_options> ParseDevcashOptions(int argc, cha
         ("host-list,H", po::value<std::vector<std::string>>()->composing(),
          "Client URI (i.e. tcp://192.168.10.1:5005). Option can be repeated to connect to multiple nodes.")
         ("bind-endpoint", po::value<std::string>(), "Endpoint for server (i.e. tcp://*:5556)")
+        ("announcer-endpoint", po::value<std::string>(), "Connect to the announcer at this URI endpoint")
         ("inn-keys", po::value<std::string>(), "Path to INN key file")
         ("node-keys", po::value<std::string>(), "Path to Node key file")
         ("key-pass", po::value<std::string>(), "Password for private keys")
@@ -213,6 +215,13 @@ inline std::unique_ptr<struct devcash_options> ParseDevcashOptions(int argc, cha
       for (auto i : options->host_vector) {
         std::cout << "  " << i << std::endl;
       }
+    }
+
+    if (vm.count("announcer-endpoint")) {
+      options->announcer_endpoint = vm["announcer-endpoint"].as<std::string>();
+      std::cout << "announcer URI: " << options->announcer_endpoint << std::endl;
+    } else {
+      std::cout << "announcer URI was not set" << std::endl;
     }
 
     if (vm.count("working-dir")) {

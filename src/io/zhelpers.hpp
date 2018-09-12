@@ -92,32 +92,32 @@ static std::vector<uint8_t> s_vrecv(zmq::socket_t &socket) {
 }
 
 //  Convert string to 0MQ string and send to socket
-static bool s_send(zmq::socket_t &socket, const std::string& buf) {
+static bool s_send(zmq::socket_t &socket, const std::string& buf, int flags = 0) {
 
   zmq::message_t message(buf.size());
   memcpy(message.data(), buf.data(), buf.size());
 
-  bool rc = socket.send(message);
+  bool rc = socket.send(message, flags);
   return (rc);
 }
 
 //  Convert string to 0MQ string and send to socket
-static bool s_send(zmq::socket_t &socket, const std::vector<uint8_t>& buf) {
+static bool s_send(zmq::socket_t &socket, const std::vector<uint8_t>& buf, int flags = 0) {
 
   zmq::message_t message(buf.size());
   memcpy(message.data(), buf.data(), buf.size());
 
-  bool rc = socket.send(message);
+  bool rc = socket.send(message, flags);
   return (rc);
 }
 
 //  Sends string as 0MQ string, as multipart non-terminal
-static bool s_sendmore(zmq::socket_t &socket, const std::string &string) {
+static bool s_sendmore(zmq::socket_t &socket, const std::string &string, int flags = 0) {
 
   zmq::message_t message(string.size());
   memcpy(message.data(), string.data(), string.size());
 
-  bool rc = socket.send(message, ZMQ_SNDMORE);
+  bool rc = socket.send(message, ZMQ_SNDMORE | flags);
   return (rc);
 }
 

@@ -26,7 +26,9 @@ class TransactionServer final {
    * @param context
    * @param bind_url
    */
-  TransactionServer(zmq::context_t& context, const std::string& bind_url);
+  TransactionServer(zmq::context_t& context,
+                    const std::string& bind_url,
+                    int socket_protocol = ZMQ_PUB);
 
   // Disable copying
   TransactionServer(const TransactionServer&) = delete;
@@ -79,6 +81,12 @@ class TransactionServer final {
   /// Used to run the server service in a background thread
   std::unique_ptr<std::thread> server_thread_ = nullptr;
 
+  /// The protocol (pub/sub - push/pull) for the zmq socket
+  int socket_protocol_ = ZMQ_PUB;
+
+  /// The zmq socket flags
+  int socket_flags_ = 0;
+
   /// Used to queue outgoing messages
   DevcashMPMCQueue message_queue_;
 
@@ -91,7 +99,7 @@ class TransactionServer final {
  */
 class TransactionClient final {
  public:
-  TransactionClient(zmq::context_t& context);
+  TransactionClient(zmq::context_t& context, int socket_protocol = ZMQ_SUB);
 
   ~TransactionClient() {
     /// Stop the thread if it is running
@@ -155,6 +163,9 @@ class TransactionClient final {
 
   /// List of strings to filter incoming messages
   std::vector<std::string> filter_vector_;
+
+  /// The protocol (pub/sub - push/pull) for the zmq socket
+  int socket_protocol_ = ZMQ_SUB;
 
   /// Set to true when client thread starts and
   /// false when a shutdown is requested
