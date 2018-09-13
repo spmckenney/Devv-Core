@@ -16,3 +16,8 @@ make -j4
 make check
 sudo make install
 sudo ldconfig
+
+cd python
+python3 setup.py build
+python3 setup.py test
+python3 setup.py install
