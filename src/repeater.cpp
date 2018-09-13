@@ -427,12 +427,15 @@ uint32_t SearchForTransaction(const std::string& shard, uint32_t start_block, co
   std::vector<byte> target(tx_id.getRawSignature());
   for (uint32_t i=start_block; i<=highest; ++i) {
     std::vector<byte> block = ReadBlock(shard, i, working_dir);
-    if (std::search(block.begin(), block.end(), target.begin(), target.end())
-        != block.end()) {
-      return i;
+    InputBuffer buffer(block);
+    ChainState state;
+    FinalBlock one_block(FinalBlock::Create(buffer, state));
+    for (const auto& tx : one_block.getTransactions()) {
+      if (tx->getSignature() == tx_id) {
+        return i;
+      }
     }
   }
-
   return UINT32_MAX;
 }
 
@@ -444,19 +447,16 @@ std::vector<std::vector<byte>> SearchForAddress(const std::string& shard, uint32
   std::vector<byte> target(addr.getAddressRaw());
   for (uint32_t i=start_block; i<=highest; ++i) {
     std::vector<byte> block = ReadBlock(shard, i, working_dir);
-    if (std::search(block.begin(), block.end(), target.begin(), target.end())
-        != block.end()) {
-      InputBuffer buffer(block);
-      ChainState state;
-      FinalBlock one_block(FinalBlock::Create(buffer, state));
-      for (const auto& tx : one_block.getTransactions()) {
-        for (const auto& xfer : tx->getTransfers()) {
-          if (xfer->getAddress() == addr) {
-            txs.push_back(tx->getCanonical());
-          }
-        } //end for xfers
-      } //end for tx
-    } //end if addr found
+    InputBuffer buffer(block);
+    ChainState state;
+    FinalBlock one_block(FinalBlock::Create(buffer, state));
+    for (const auto& tx : one_block.getTransactions()) {
+      for (const auto& xfer : tx->getTransfers()) {
+        if (xfer->getAddress() == addr) {
+          txs.push_back(tx->getCanonical());
+        }
+      } //end for xfers
+    } //end for tx
   }
   return txs;
 }
