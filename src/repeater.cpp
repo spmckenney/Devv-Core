@@ -424,7 +424,7 @@ uint32_t SearchForTransaction(const std::string& shard, uint32_t start_block, co
   uint32_t highest = getHighestBlock(shard, working_dir);
   if (highest < start_block) return UINT32_MAX;
 
-  std::vector<byte> target(std::begin(tx_id.getCanonical()), std::end(tx_id.getCanonical()));
+  std::vector<byte> target(tx_id.getRawSignature());
   for (uint32_t i=start_block; i<=highest; ++i) {
     std::vector<byte> block = ReadBlock(shard, i, working_dir);
     if (std::search(block.begin(), block.end(), target.begin(), target.end())
@@ -441,7 +441,7 @@ std::vector<std::vector<byte>> SearchForAddress(const std::string& shard, uint32
   uint32_t highest = getHighestBlock(shard, working_dir);
   if (highest < start_block) return txs;
 
-  std::vector<byte> target(std::begin(addr.getCanonical()), std::end(addr.getCanonical()));
+  std::vector<byte> target(addr.getAddressRaw());
   for (uint32_t i=start_block; i<=highest; ++i) {
     std::vector<byte> block = ReadBlock(shard, i, working_dir);
     if (std::search(block.begin(), block.end(), target.begin(), target.end())
