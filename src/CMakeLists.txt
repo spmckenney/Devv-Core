@@ -151,6 +151,14 @@ target_include_directories(scanner PRIVATE ${dcInclude})
 install (TARGETS scanner DESTINATION bin)
 
 #
+# devv-key
+#
+add_executable(devv-key devv-key.cpp ${dcInclude} ${PROTO_SRCS} ${PROTO_HDRS})
+target_link_libraries (devv-key ${devv_all_libs})
+target_include_directories(devv-key PRIVATE ${dcInclude})
+install (TARGETS devv-key DESTINATION bin)
+
+#
 # devv-sign
 #
 add_executable(devv-sign devv-sign.cpp ${dcInclude} ${PROTO_SRCS} ${PROTO_HDRS})

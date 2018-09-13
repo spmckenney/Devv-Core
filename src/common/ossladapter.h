@@ -119,7 +119,7 @@ static bool GenerateAndWriteKeyfile(const std::string& path, size_t num_keys
     std::string addr;
     std::string key;
     GenerateEcKey(addr, key, aes_password);
-    output += addr+key;
+    output += addr+'\n'+key;
   }
   std::ofstream out_file(path);
   if (out_file.is_open()) {
