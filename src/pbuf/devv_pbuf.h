@@ -361,6 +361,18 @@ Devv::proto::FinalBlock SerializeFinalBlock(const FinalBlock& block) {
   return final_block;
 }
 
+Devv::proto::Envelope SerializeEnvelopeFromBinaryTransactions(const std::vector<std::vector<byte>>& txs) {
+  Devv::proto::Envelope envelope;
+  for (auto const& one_tx : txs) {
+    InputBuffer buffer(one_tx);
+    Devv::proto::Transaction* tx = final_block.add_txs();
+    Devv::proto::Transaction pbuf_tx = SerializeTransaction(Tier2Transaction::QuickCreate(buffer));
+    tx = &pbuf_tx;
+  }
+
+  return envelope;
+}
+
 } // namespace Devcash
 
 #endif //DEVCASH_DEVV_PBUF_H

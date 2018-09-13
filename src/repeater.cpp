@@ -420,7 +420,7 @@ std::vector<byte> ReadBlock(const std::string& shard, uint32_t block, const std:
   return out;
 }
 
-uint32_t SearchForTransaction(const std::string& shard, uint32_t start_block, Signature tx_id, const std::string& working_dir) {
+uint32_t SearchForTransaction(const std::string& shard, uint32_t start_block, const Signature& tx_id, const std::string& working_dir) {
   uint32_t highest = getHighestBlock(shard, working_dir);
   if (highest < start_block) return UINT32_MAX;
 
@@ -431,6 +431,33 @@ uint32_t SearchForTransaction(const std::string& shard, uint32_t start_block, Si
         != block.end()) {
       return i;
     }
+  }
+
+  return UINT32_MAX;
+}
+
+std::vector<std::vector<byte>> SearchForAddress(const std::string& shard, uint32_t start_block, const Address& addr, const std::string& working_dir) {
+  std::vector<std::vector<byte>> txs;
+  uint32_t highest = getHighestBlock(shard, working_dir);
+  if (highest < start_block) return txs;
+
+  std::vector<byte> target(std::begin(addr.getCanonical()), std::end(addr.getCanonical()));
+  for (uint32_t i=start_block; i<=highest; ++i) {
+    std::vector<byte> block = ReadBlock(shard, i, working_dir);
+    if (std::search(block.begin(), block.end(), target.begin(), target.end())
+        != block.end()) {
+      InputBuffer buffer(block);
+      ChainState state;
+      FinalBlock one_block(FinalBlock::Create(buffer, state));
+      for (const auto& tx : one_block.getTransactions()) {
+        for (const auto& xfer : tx->getTransfers()) {
+          if (xfer->getAddress() == addr) {
+            txs.push_back(tx->getCanonical());
+          }
+        } //end for xfers
+      } //end for tx
+    } //end if addr found
+    return txs;
   }
 
   return UINT32_MAX;
@@ -614,9 +641,33 @@ RepeaterResponsePtr HandleRepeaterRequest(const RepeaterRequestPtr& request, con
         }
         uint32_t block_height = SearchForTransaction(id.shard, id.block_height, id.sig, working_dir);
         if (block_height != UINT32_MAX) {
-          std::vector<byte> raw_data((byte*)&block_height, (byte*)&(block_height) + sizeof(std::uint32_t));
-          response.raw_response = raw_data;
+          response.raw_response = Uint32ToBin(block_height);
+        } else {
+          response.return_code = 3020;
+          response.message = "Transaction not found since block "+std::to_string(id.block_height)+".";
+          return std::make_unique<RepeaterResponse>(response);
+		}
+      }
+        break;
+      case 10: {
+        LOG_INFO << "Get Transactions for Address Since Block: "+request->uri;
+        if (id.block_height == UINT32_MAX) {
+          response.return_code = 1051;
+          response.message = "Block height is missing from the URI.";
+          return std::make_unique<RepeaterResponse>(response);
         }
+        if (id.addr.isNull()) {
+          response.return_code = 1051;
+          response.message = "Transaction address is missing from the URI.";
+          return std::make_unique<RepeaterResponse>(response);
+        }
+        std::vector<std::vector<byte>> txs = SearchForAddress(id.shard, id.block_height, id.addr, working_dir);
+        std::stringstream pbuf_stream;
+        Devv::proto::Envelope envelope = SerializeEnvelopeFromBinaryTransactions(txs);
+        envelope.SerializeToOstream(&pbuf_stream);
+        std::string proto_str = pbuf_stream.str();
+        std::vector<byte> pbuf_vector(proto_str.begin(), proto_str.end());
+        response.raw_response = pbuf_vector;
       }
         break;
       default:

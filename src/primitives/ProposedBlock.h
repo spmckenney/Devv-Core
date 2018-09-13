@@ -231,7 +231,11 @@ class ProposedBlock {
       LOG_INFO << out.str();
       /// @todo(mckenney) Up the stack, we need to check that this incoming_hash has already
       /// been added to the chain, or this is a bigger problem
-      throw std::runtime_error(out.str());
+      // in the meantime, bad validations should simply be ignored by returning false
+      // this typically occurs in a race between validations and new blocks
+      // even if the validation is completely wrong (not a prior block), the validator
+      // should ignore it and continue.  A health monitor should check if fradulent validations
+      // are somehow being injected and identify/block/drop the source.
     }
     LOG_DEBUG << "checkValidationData: validated incoming(" + ToHex(incoming_hash) + ")";
     return false;
