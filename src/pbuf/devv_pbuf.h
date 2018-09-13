@@ -365,7 +365,7 @@ Devv::proto::Envelope SerializeEnvelopeFromBinaryTransactions(const std::vector<
   Devv::proto::Envelope envelope;
   for (auto const& one_tx : txs) {
     InputBuffer buffer(one_tx);
-    Devv::proto::Transaction* tx = final_block.add_txs();
+    Devv::proto::Transaction* tx = envelope.add_txs();
     Devv::proto::Transaction pbuf_tx = SerializeTransaction(Tier2Transaction::QuickCreate(buffer));
     tx = &pbuf_tx;
   }
