@@ -75,20 +75,20 @@ static DevvUri ParseDevvUri(std::string uri) {
   std::string uri_path = uri.substr(pos);
   boost::split(parts, uri_path, boost::is_any_of("/"));
   size_t num_parts = parts.size();
-  if (size > 0) {
+  if (num_parts > 0) {
     if (!parts[0].empty()) devv_uri.shard = parts[0];
   }
-  if (size > 1) {
+  if (num_parts > 1) {
     if (!parts[1].empty()) {
       devv_uri.block_height = std::stoul(parts[1], nullptr, 10);
     }
   }
-  if (size > 2) {
+  if (num_parts > 2) {
     if (!parts[2].empty()) {
       devv_uri.sig = Signature(Hex2Bin(parts[2]));
     }
   }
-  if (size > 3) {
+  if (num_parts > 3) {
     if (!parts[3].empty()) {
       devv_uri.addr = Address(Hex2Bin(parts[3]));
     }

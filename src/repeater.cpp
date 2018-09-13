@@ -457,10 +457,8 @@ std::vector<std::vector<byte>> SearchForAddress(const std::string& shard, uint32
         } //end for xfers
       } //end for tx
     } //end if addr found
-    return txs;
   }
-
-  return UINT32_MAX;
+  return txs;
 }
 
 RepeaterResponsePtr HandleRepeaterRequest(const RepeaterRequestPtr& request, const std::string& working_dir) {
@@ -641,7 +639,7 @@ RepeaterResponsePtr HandleRepeaterRequest(const RepeaterRequestPtr& request, con
         }
         uint32_t block_height = SearchForTransaction(id.shard, id.block_height, id.sig, working_dir);
         if (block_height != UINT32_MAX) {
-          response.raw_response = Uint32ToBin(block_height);
+          Uint32ToBin(block_height, response.raw_response);
         } else {
           response.return_code = 3020;
           response.message = "Transaction not found since block "+std::to_string(id.block_height)+".";
