@@ -368,6 +368,7 @@ Devv::proto::Envelope SerializeEnvelopeFromBinaryTransactions(const std::vector<
     Devv::proto::Transaction* tx = envelope.add_txs();
     Devv::proto::Transaction pbuf_tx = SerializeTransaction(Tier2Transaction::QuickCreate(buffer));
     tx = &pbuf_tx;
+    LOG_NOTICE << "Serialized TX: "+tx->sig();
   }
 
   return envelope;
