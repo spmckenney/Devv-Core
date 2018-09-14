@@ -312,7 +312,7 @@ Devv::proto::RepeaterResponse SerializeRepeaterResponse(const RepeaterResponsePt
 }
 
 Devv::proto::Transaction SerializeTransaction(const Tier2Transaction& one_tx
-      , Devv::Proto::Transaction& tx) {
+      , Devv::proto::Transaction& tx) {
   tx.set_operation(static_cast<Devv::proto::eOpType>(one_tx.getOperation()));
   std::vector<byte> nonce = one_tx.getNonce();
   std::string nonce_str(std::begin(nonce), std::end(nonce));
