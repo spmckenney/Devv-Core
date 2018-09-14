@@ -617,7 +617,7 @@ RepeaterResponsePtr HandleRepeaterRequest(const RepeaterRequestPtr& request, con
           if (tx->getSignature() == id.sig) {
             InputBuffer buffer(tx->getCanonical());
             std::stringstream tx_stream;
-            Devv::proto::Transaction pbuf_tx
+            Devv::proto::Transaction pbuf_tx;
             SerializeTransaction(Tier2Transaction::QuickCreate(buffer), pbuf_tx);
             pbuf_tx.SerializeToOstream(&tx_stream);
             std::string proto_tx_str = tx_stream.str();
