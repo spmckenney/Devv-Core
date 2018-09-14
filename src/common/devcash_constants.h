@@ -51,8 +51,10 @@ static const std::string kVALIDATOR_DEX_TAG = "val_dex";
 
 static const size_t kTX_MIN_SIZE = (89 + 2);
 static const size_t kENVELOPE_SIZE = 17;
+static const size_t kOPERATION_OFFSET = 16;
 static const size_t kTRANSFER_OFFSET = 17;
 static const size_t kMIN_NONCE_SIZE = 8;
 static const size_t kUINT64_SIZE = 8;
+static const size_t kTRANSFER_NONADDR_DATA_SIZE = kUINT64_SIZE*3;
 
 } // namespace Devcash

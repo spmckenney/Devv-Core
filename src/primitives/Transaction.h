@@ -86,10 +86,6 @@ class Transaction {
    */
   friend bool operator!=(const Transaction& a, const Transaction& b) { return a.canonical_ != b.canonical_; }
 
-static const size_t kTX_MIN_SIZE = (89 + 2);
-static const size_t kENVELOPE_SIZE = 17;
-static const size_t kTRANSFER_OFFSET = 17;
-
   /**
    * Returns minimum size (hard-coded to 89)
    * @return minimum size (hard-coded to 89)

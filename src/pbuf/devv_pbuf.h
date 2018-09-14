@@ -311,8 +311,8 @@ Devv::proto::RepeaterResponse SerializeRepeaterResponse(const RepeaterResponsePt
   return response;
 }
 
-Devv::proto::Transaction SerializeTransaction(const Tier2Transaction& one_tx) {
-  Devv::proto::Transaction tx;
+Devv::proto::Transaction SerializeTransaction(const Tier2Transaction& one_tx
+      , Devv::Proto::Transaction& tx) {
   tx.set_operation(static_cast<Devv::proto::eOpType>(one_tx.getOperation()));
   std::vector<byte> nonce = one_tx.getNonce();
   std::string nonce_str(std::begin(nonce), std::end(nonce));
@@ -348,9 +348,7 @@ Devv::proto::FinalBlock SerializeFinalBlock(const FinalBlock& block) {
   for (auto const& one_tx : block.getRawTransactions()) {
     InputBuffer buffer(one_tx);
     Devv::proto::Transaction* tx = final_block.add_txs();
-    Devv::proto::Transaction pbuf_tx = SerializeTransaction(Tier2Transaction::QuickCreate(buffer));
-    tx = &pbuf_tx;
-    LOG_NOTICE << "Serialized TX: "+tx->sig();
+    Devv::proto::Transaction pbuf_tx = SerializeTransaction(Tier2Transaction::QuickCreate(buffer), *tx);
   }
   std::vector<byte> summary(block.getSummary().getCanonical());
   std::string summary_str(std::begin(summary), std::end(summary));
@@ -366,9 +364,7 @@ Devv::proto::Envelope SerializeEnvelopeFromBinaryTransactions(const std::vector<
   for (auto const& one_tx : txs) {
     InputBuffer buffer(one_tx);
     Devv::proto::Transaction* tx = envelope.add_txs();
-    Devv::proto::Transaction pbuf_tx = SerializeTransaction(Tier2Transaction::QuickCreate(buffer));
-    tx = &pbuf_tx;
-    LOG_NOTICE << "Serialized TX: "+tx->sig();
+    Devv::proto::Transaction pbuf_tx = SerializeTransaction(Tier2Transaction::QuickCreate(buffer), *tx);
   }
 
   return envelope;

@@ -145,13 +145,14 @@ class InputBuffer {
       return getNextT1Transaction();
     }
 
-    byte oper = offsetAt(offset_+16);
+    byte oper = offsetAt(kOPERATION_OFFSET);
     if (oper >= eOpType::NumOperations) {
       return getNextT1Transaction();
     }
 
-    size_t tx_size = kTX_MIN_SIZE + xfer_size + nonce_size;
-    if (oper != eOpType::Exchange) tx_size += kNODE_SIG_BUF_SIZE - kWALLET_SIG_BUF_SIZE;
+    size_t tx_size = offsetAt(kTRANSFER_OFFSET+xfer_size+nonce_size)
+                     +kTRANSFER_OFFSET+xfer_size+nonce_size+1;
+
     if (size() < offset_ + tx_size) {
       LOG_WARNING << "Buffer is smaller than calculated Tier2Transaction size.";
       return getNextT1Transaction();
@@ -212,6 +213,13 @@ class InputBuffer {
   {
     uint64_t ret(BinToUint64(buffer_, offset_+8));
     if (increment_buffer) { offset_ += sizeof(ret); }
+    return ret;
+  }
+
+  int64_t getInt64StartingAt(size_t start_offset, bool increment_buffer = true)
+  {
+    int64_t ret(BinToInt64(buffer_, start_offset+8));
+    if (increment_buffer) { offset_ += start_offset+8; }
     return ret;
   }
 
