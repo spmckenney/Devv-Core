@@ -41,10 +41,10 @@ void Tier2Transaction::QuickFill(Tier2Transaction& tx,
     throw DeserializationError(ss.str());
   }
 
-  size_t tx_size = buffer.offsetAt(kTRANSFER_OFFSET+xfer_size+nonce_size)
-                   +kTRANSFER_OFFSET+xfer_size+nonce_size;
+  size_t tx_size = buffer.offsetAt(kTRANSFER_OFFSET+tx.xfer_size_+tx.nonce_size_)
+                   +kTRANSFER_OFFSET+tx.xfer_size_+tx.nonce_size_;
 
-  if (size() < offset_ + tx_size) {
+  if (buffer.size() < buffer.getOffset() + tx_size) {
     std::stringstream ss;
     std::vector<byte> prefix(buffer.getCurrentIterator()
         , buffer.getCurrentIterator() + 8);
@@ -92,10 +92,10 @@ void Tier2Transaction::Fill(Tier2Transaction& tx,
     throw DeserializationError(ss.str());
   }
 
-  size_t tx_size = buffer.offsetAt(kTRANSFER_OFFSET+xfer_size+nonce_size)
-                   +kTRANSFER_OFFSET+xfer_size+nonce_size;
+  size_t tx_size = buffer.offsetAt(kTRANSFER_OFFSET+tx.xfer_size_+tx.nonce_size_)
+                   +kTRANSFER_OFFSET+tx.xfer_size_+tx.nonce_size_;
 
-  if (size() < offset_ + tx_size) {
+  if (buffer.size() < buffer.getOffset() + tx_size) {
     std::stringstream ss;
     std::vector<byte> prefix(buffer.getCurrentIterator()
         , buffer.getCurrentIterator() + 8);
