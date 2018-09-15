@@ -165,8 +165,8 @@ class Shard(object):
 
             for l in r_index:
                 #print(type(self._nodes[i].get_index()))
-                if self._nodes[i].get_index() == self._nodes[l].get_index():
-                    self._nodes[l].add_subscriber(host, port)
+                #if self._nodes[i].get_index() == self._nodes[l].get_index():
+                self._nodes[l].add_subscriber(host, port)
 
 
     def evaluate_hostname(self, host):
