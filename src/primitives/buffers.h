@@ -216,13 +216,6 @@ class InputBuffer {
     return ret;
   }
 
-  int64_t getInt64StartingAt(size_t start_offset, bool increment_buffer = true)
-  {
-    int64_t ret(BinToInt64(buffer_, start_offset+8));
-    if (increment_buffer) { offset_ += start_offset+8; }
-    return ret;
-  }
-
   /**
    * Return a const ref to the full buffer
    * @return
