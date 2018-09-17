@@ -15,6 +15,7 @@
 #include "io/file_ops.h"
 #include "consensus/KeyRing.h"
 #include "pbuf/devv_pbuf.h"
+#include "common/ossladapter.h"
 
 using namespace Devcash;
 namespace fs = boost::filesystem;
@@ -57,7 +58,6 @@ void TestSign(EC_KEY& ec_key) {
 }
 
 int main(int argc, char* argv[]) {
-
   std::unique_ptr<struct devvsign_options> options;
   try {
     options = ParseDevvsignOptions(argc, argv);
@@ -81,6 +81,11 @@ int main(int argc, char* argv[]) {
   out_stream << tup.key;
 
   options->file_type = devvsign_options::eTxFileType::PROTOBUF;
+
+  // If there is a newline between the address and key, get rid of it
+  if (tup.key[0] == '\n') {
+    tup.key.erase(0,1);
+  }
 
   auto ec_key = LoadEcKey(tup.address, tup.key, options->key_pass);
 

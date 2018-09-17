@@ -11,8 +11,7 @@ import time
 import tempfile
 
 def create_devvsign_command(env_file, private_keyfile, key_pass):
-    cmd = ["./devv-sign"]
-    cmd.extend(["./devv-sign"])
+    cmd = ["devv-sign"]
     cmd.extend(["--quiet-mode"])
     cmd.extend(["--envelope-file", env_file])
     cmd.extend(["--private-key", private_keyfile])
@@ -134,30 +133,68 @@ def send_envelope(env, uri):
     print("Sent message")
 
 
-def get_sig(env, args, filename=None):
+class EnvFile:
+    def __init__(self, env, tmp_dir='/tmp'):
+        self._env_file = tempfile.NamedTemporaryFile(dir=tmp_dir, suffix="_env.pbuf")
+
+        self._estr = env.SerializeToString()
+        print("estr: ", len(self._estr))
+        self._env_file.write(env.SerializeToString())
+        self._env_file.flush()
+
+    def __del__(self):
+        self._env_file.close()
+
+    def filename(self):
+        return self._env_file.name
+
+class KeyFile:
+    def __init__(self, address, key, tmp_dir='/tmp'):
+        self._tmp_dir = tmp_dir
+        lsize = 64
+        self._key = [address]
+        self._key.append('-----BEGIN ENCRYPTED PRIVATE KEY-----')
+        self._key.extend([key[i:i+lsize] for i in range(0, len(key), lsize) ])
+        self._key.append('-----END ENCRYPTED PRIVATE KEY-----')
+
+        self._key_file = None
+        self.write()
+
+    def __del__(self):
+        if self._key_file:
+            self._key_file.close()
+            self._key_file = None
+
+    def write(self):
+        self._key_file = tempfile.NamedTemporaryFile(dir=self._tmp_dir, suffix=".devvkey", mode='w+', delete=False)
+        for i in self._key:
+            self._key_file.write(i)
+            self._key_file.write('\n')
+        self._key_file.close()
+
+    def filename(self):
+        return self._key_file.name
+
+    def display(self):
+        for i in self._key:
+            print("{}".format(i))
+
+def get_sig(env, pkeyfile, key_pass, filename=None):
     print('size txs', str(len(env.txs)))
 
     env_file = None
     if not filename:
-        env_file = tempfile.NamedTemporaryFile(dir=args.tmp_dir, suffix="_env.pbuf")
-
-        estr = env.SerializeToString()
-        print("estr: ", len(estr))
-        env_file.write(env.SerializeToString())
-        env_file.flush()
-        filename = env_file.name
+        env_file = EnvFile(env, tmp_dir='/tmp')
+        filename = env_file.filename()
 
     print("env filename: ", filename)
 
-    cmd = create_devvsign_command(filename, args.private_keyfile, args.key_pass)
+    cmd = create_devvsign_command(filename, pkeyfile, key_pass)
     out = subprocess.check_output(cmd)
     sig = out.decode("utf-8").rstrip()
 
     print("sleeping 1 again")
     time.sleep(1)
-
-    if env_file:
-        env_file.close()
 
     print("sig: "+sig)
 
@@ -167,7 +204,7 @@ def get_sig(env, args, filename=None):
 def handle_pbuf_file(args):
     tx = DevvTransaction(args.operation, args.nonce)
     env = get_envelope(tx)
-    sig = get_sig(env, args, args.pbuf_file)
+    sig = get_sig(env, args.private_keyfile, args.key_pass, filename=args.pbuf_file)
     env.txs[0].sig = bytes.fromhex(sig)
     print(env)
 
@@ -195,7 +232,7 @@ def handle_transfer_string(args):
             tx.add_transfer(transfer_string=transfer)
 
     env = get_envelope(tx)
-    sig = get_sig(env, env_file, args)
+    sig = get_sig(env, args.private_keyfile, args.key_pass, filename=env_file)
     env.txs[0].sig = bytes.fromhex(sig)
     print(env)
 
@@ -230,7 +267,7 @@ def handle_transaction(args):
         tx.add_transfer(args.dest_address, args.coin_index, args.amount, args.transfer_delay)
 
     env = get_envelope(tx)
-    sig = get_sig(env, args)
+    sig = get_sig(env, args.private_keyfile, args.key_pass)
     env.txs[0].sig = bytes.fromhex(sig)
     print(env)
 
@@ -303,6 +340,6 @@ Exit status:\n\
     for func in functions:
         func(args)
 
-time.sleep(1)
+    time.sleep(1)
 
-print("Done.")
+    print("Done.")

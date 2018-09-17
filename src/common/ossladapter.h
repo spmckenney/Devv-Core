@@ -87,8 +87,10 @@ static EC_KEY* GenerateEcKey(std::string& publicKey, std::string& pk
       const_cast<char*>(aes_password.c_str()));
     if (result != 1) { LOG_ERROR << "Failed to generate PEM private key file"; }
     char buffer[1024];
+    memset(buffer, 0, 1024);
     while (BIO_read(fOut, buffer, 1024) > 0) {
       pk += buffer;
+      memset(buffer, 0, 1024);
     }
     BIO_free(fOut);
     EVP_cleanup();
@@ -119,7 +121,7 @@ static bool GenerateAndWriteKeyfile(const std::string& path, size_t num_keys
     std::string addr;
     std::string key;
     GenerateEcKey(addr, key, aes_password);
-    output += addr+'\n'+key;
+    output += addr+"\n"+key;
   }
   std::ofstream out_file(path);
   if (out_file.is_open()) {
@@ -145,7 +147,7 @@ static bool ValidateKey(EC_KEY* key) {
   }
 
   int ret = EC_KEY_check_key(key);
-  LOG_DEBUG << "ossl version: " << OPENSSL_VERSION_NUMBER;
+  //LOG_DEBUG << "ossl version: " << OPENSSL_VERSION_NUMBER;
   if (ret != 1) {
 	auto ossl_ver = OPENSSL_VERSION_NUMBER;
 	auto err = ERR_get_error();

@@ -65,7 +65,7 @@ Generates a wallet address and corresponding encrypted private key\n\
   general.add_options()
       ("help,h", "produce help message")
       ("version,v", "print version string")
-      ("private-key,k", po::value<fs::path>(), "File to write key pair")
+      ("key-file,k", po::value<fs::path>(), "File to write key pair")
       ("key-pass,p", po::value<std::string>(), "Password for private keys")
       ;
 
@@ -83,8 +83,8 @@ Generates a wallet address and corresponding encrypted private key\n\
     return nullptr;
   }
 
-  if (vm.count("private-key")) {
-    options->key_file = vm["private-key"].as<fs::path>();
+  if (vm.count("key-file")) {
+    options->key_file = vm["key-file"].as<fs::path>();
   } else {
     throw std::runtime_error("Private key file was not set");
   }
