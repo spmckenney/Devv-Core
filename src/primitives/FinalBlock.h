@@ -32,6 +32,7 @@ class FinalBlock {
         sum_size_(proposed.getSummarySize()),
         val_count_(proposed.getNumValidations()),
         transaction_vector_(Copy(proposed.getTransactions())),
+        raw_transactions_(proposed.getRawTransactions()),
         summary_(Summary::Copy(proposed.getSummary())),
         vals_(proposed.getValidation()),
         block_state_(proposed.getBlockState()) {
@@ -73,7 +74,7 @@ class FinalBlock {
     val_count_ = buffer.getNextUint32();
 
     tcm.set_keys(&keys);
-    tcm.CreateTransactions(buffer, transaction_vector_, MinSize(), tx_size_);
+    raw_transactions_ = tcm.CreateTransactions(buffer, transaction_vector_, MinSize(), tx_size_);
 
     summary_ = Summary::Create(buffer);
     vals_ = Validation::Create(buffer);
@@ -115,9 +116,11 @@ class FinalBlock {
     while (buffer.getOffset() < tx_start + tx_size_) {
       if (mode == eAppMode::T1) {
         Tier1TransactionPtr one_tx = std::make_unique<Tier1Transaction>(buffer, keys);
+        raw_transactions_.push_back(one_tx->getCanonical());
         transaction_vector_.push_back(std::move(one_tx));
       } else if (mode == eAppMode::T2) {
         Tier2TransactionPtr one_tx = Tier2Transaction::CreateUniquePtr(buffer, keys);
+        raw_transactions_.push_back(one_tx->getCanonical());
         transaction_vector_.push_back(std::move(one_tx));
       } else {
         throw std::runtime_error("Unsupported mode: "+std::to_string(mode));
@@ -142,6 +145,7 @@ class FinalBlock {
       , sum_size_(other.sum_size_)
       , val_count_(other.val_count_)
       , transaction_vector_(Copy(other.transaction_vector_))
+      , raw_transactions_(other.raw_transactions_)
       , summary_(Summary::Copy(other.summary_))
       , vals_(other.vals_)
       , block_state_(other.block_state_){}
@@ -169,11 +173,13 @@ class FinalBlock {
    */
   const std::vector<TransactionPtr>& getTransactions() const { return transaction_vector_; }
 
+  const std::vector<std::vector<byte>>& getRawTransactions() const {   return raw_transactions_;  }
+
   /**
    * Returns the number of transactions in this block
    * @return number of transactions
    */
-  size_t getNumTransactions() const { return transaction_vector_.size(); }
+  size_t getNumTransactions() const { return raw_transactions_.size(); }
 
   /**
    * Returns the number of validations
@@ -217,9 +223,8 @@ class FinalBlock {
    */
   std::vector<byte> getBlockDigest() const {
     std::vector<byte> txs;
-    for (auto const& item : transaction_vector_) {
-      const std::vector<byte> txs_canon(item->getCanonical());
-      txs.insert(txs.end(), txs_canon.begin(), txs_canon.end());
+    for (auto const& item : raw_transactions_) {
+      txs.insert(txs.end(), item.begin(), item.end());
     }
     const std::vector<byte> sum_canon(summary_.getCanonical());
     const std::vector<byte> val_canon(vals_.getCanonical());
@@ -246,9 +251,8 @@ class FinalBlock {
    */
   std::vector<byte> getCanonical() const {
     std::vector<byte> txs;
-    for (auto const& item : transaction_vector_) {
-      const std::vector<byte> txs_canon(item->getCanonical());
-      txs.insert(txs.end(), txs_canon.begin(), txs_canon.end());
+    for (auto const& item : raw_transactions_) {
+      txs.insert(txs.end(), item.begin(), item.end());
     }
     const std::vector<byte> sum_canon(summary_.getCanonical());
     const std::vector<byte> val_canon(vals_.getCanonical());
@@ -381,6 +385,8 @@ class FinalBlock {
   uint32_t val_count_ = 0;
   /// vector of TransactionPtrs
   std::vector<TransactionPtr> transaction_vector_;
+  /// vector of canonical transactions
+  std::vector<std::vector<byte>> raw_transactions_;
   /// Summary
   Summary summary_ = Summary::Create();
   /// Validation

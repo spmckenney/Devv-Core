@@ -1,4 +1,3 @@
-
 /*
  * repeater.cpp listens for FinalBlock messages and saves them to a file
  * @TODO(nick@cloudsolar.co): it also provides specific blocks by request.
@@ -11,17 +10,19 @@
 #include <functional>
 #include <iostream>
 #include <string>
+#include <sstream>
 #include <thread>
 #include <memory>
 
 #include <boost/filesystem.hpp>
 #include <boost/program_options.hpp>
-#include <pqxx/pqxx>
 
 #include "common/logger.h"
 #include "common/devcash_context.h"
+#include "common/devv_uri.h"
 #include "io/message_service.h"
 #include "modules/BlockchainModule.h"
+#include "pbuf/devv_pbuf.h"
 
 using namespace Devcash;
 
@@ -35,6 +36,7 @@ typedef std::chrono::milliseconds millisecs;
  */
 struct repeater_options {
   std::vector<std::string> host_vector{};
+  std::string protobuf_endpoint;
   eAppMode mode = eAppMode::T1;
   unsigned int node_index = 0;
   unsigned int shard_index = 0;
@@ -44,29 +46,7 @@ struct repeater_options {
   std::string key_pass;
   std::string stop_file;
   eDebugMode debug_mode = eDebugMode::off;
-
-  std::string db_user;
-  std::string db_pass;
-  std::string db_host;
-  std::string db_name;
-  unsigned int db_port = 5432;
 };
-
-static const std::string kNIL_UUID = "00000000-0000-0000-0000-000000000000";
-static const std::string kNIL_UUID_PSQL = "'00000000-0000-0000-0000-000000000000'::uuid";
-static const std::string kTX_INSERT = "tx_insert";
-static const std::string kTX_INSERT_STATEMENT = "INSERT INTO tx (tx_id, shard, block_height, wallet_id, coin_id, amount) VALUES ($1, $2, $3, $4, $5, $6)";
-static const std::string kRX_INSERT = "rx_insert";
-static const std::string kRX_INSERT_STATEMENT = "INSERT INTO rx (shard, block_height, wallet_id, coin_id, amount, tx_id) VALUES ($1, $2, $3, $4, $5, $6)";
-static const std::string kBALANCE_SELECT = "balance_select";
-static const std::string kBALANCE_SELECT_STATEMENT = "select balance from walletCoins where wallet_id = $1 and coin_id = $2";
-static const std::string kWALLET_INSERT = "wallet_insert";
-static const std::string kWALLET_INSERT_STATEMENT = "INSERT INTO wallet (wallet_id, account_id, wallet_name) VALUES ($1, '"+kNIL_UUID+"':uuid, 'None')";
-static const std::string kBALANCE_INSERT = "balance_insert";
-static const std::string kBALANCE_INSERT_STATEMENT = "INSERT INTO walletCoins (wallet_coin_id, wallet_id, coin_id, account_id, balance) (select devv_uuid(), $1, $2, $3, $4)";
-static const std::string kBALANCE_UPDATE = "balance_update";
-static const std::string kBALANCE_UPDATE_STATEMENT = "UPDATE walletCoins set balance = $1 where wallet_id = $2 and coin_id = $3";
-
 
 /**
  * Parse command-line options
@@ -75,6 +55,26 @@ static const std::string kBALANCE_UPDATE_STATEMENT = "UPDATE walletCoins set bal
  * @return
  */
 std::unique_ptr<struct repeater_options> ParseRepeaterOptions(int argc, char** argv);
+
+/**
+ * Handle repeater request operations.
+ * See the Repeater Interface page of the wiki for further information.
+ * @param request - a smart pointer to the request
+ * @return RepeaterResponsePtr - a smart pointer to the response
+ */
+RepeaterResponsePtr HandleRepeaterRequest(const RepeaterRequestPtr& request, const std::string& working_dir);
+
+/**
+ * Generate a bad syntax error response.
+ * @param message - an error message to include with the response
+ * @return RepeaterResponsePtr - a smart pointer to the response
+ */
+RepeaterResponsePtr GenerateBadSyntaxResponse(std::string message) {
+  RepeaterResponse response;
+  response.return_code = 1010;
+  response.message = message;
+  return std::make_unique<RepeaterResponse>(response);
+}
 
 int main(int argc, char* argv[]) {
   init_log();
@@ -103,30 +103,6 @@ int main(int argc, char* argv[]) {
     }
 
     std::string shard_name = "Shard-"+std::to_string(options->shard_index);
-    bool db_connected = false;
-    std::unique_ptr<pqxx::connection> db_link = nullptr;
-    if ((options->db_host.size() > 0) && (options->db_user.size() > 0)) {
-      db_link = std::make_unique<pqxx::connection>(
-          "username=" + options->db_user + \
-          " host=" + options->db_host + \
-          " password=" + options->db_pass + \
-          " dbname=" + options->db_name + \
-          " port=" + std::to_string(options->db_port));
-      if (db_link->is_open()) {
-        LOG_INFO << "Successfully connected to database.";
-        db_connected = true;
-        db_link->prepare(kTX_INSERT, kTX_INSERT_STATEMENT);
-        db_link->prepare(kRX_INSERT, kRX_INSERT_STATEMENT);
-        db_link->prepare(kWALLET_INSERT, kWALLET_INSERT_STATEMENT);
-        db_link->prepare(kBALANCE_SELECT, kBALANCE_SELECT_STATEMENT);
-        db_link->prepare(kBALANCE_INSERT, kBALANCE_INSERT_STATEMENT);
-        db_link->prepare(kBALANCE_UPDATE, kBALANCE_UPDATE_STATEMENT);
-      } else {
-        LOG_INFO << "Database connection failed.";
-      }
-    } else {
-      LOG_INFO << "Database host and user not set, setting db_connected = false";
-    }
 
     //@todo(nick@cloudsolar.co): read pre-existing chain
     unsigned int chain_height = 0;
@@ -134,67 +110,12 @@ int main(int argc, char* argv[]) {
     auto peer_listener = io::CreateTransactionClient(options->host_vector, zmq_context);
     peer_listener->attachCallback([&](DevcashMessageUniquePtr p) {
       if (p->message_type == eMessageType::FINAL_BLOCK) {
-        //update database
-        if (db_connected) {
-          InputBuffer buffer(p->data);
-          ChainState priori;
-          KeyRing keys;
-          FinalBlock one_block(buffer, priori, keys, options->mode);
-          std::vector<TransactionPtr> txs = one_block.CopyTransactions();
-          for (TransactionPtr& one_tx : txs) {
-            pqxx::work stmt(*db_link);
-            std::vector<TransferPtr> xfers = one_tx->getTransfers();
-            std::string sig_str(one_tx->getSignature().getCanonical().begin()
-                              , one_tx->getSignature().getCanonical().end());
-            std::string sender_str;
-            uint64_t coin_id = 0;
-            int64_t send_amount = 0;
-            for (TransferPtr& one_xfer : xfers) {
-              if (one_xfer->getAmount() < 0) {
-                std::string temp(one_xfer->getAddress().getCanonical().begin()
-                               , one_xfer->getAddress().getCanonical().end());
-                sender_str = temp;
-                coin_id = one_xfer->getCoin();
-                send_amount = one_xfer->getAmount();
-                break;
-			  }
-			} //end sender search loop
-
-			//update sender
-			pqxx::result balance_result = stmt.prepared(kBALANCE_SELECT)(sender_str)(coin_id).exec();
-			if (balance_result.empty()) {
-              stmt.prepared(kBALANCE_INSERT)(sender_str)(coin_id)(kNIL_UUID_PSQL)(send_amount).exec();
-			} else {
-              int64_t new_balance = balance_result[0][0].as<int64_t>()-send_amount;
-              stmt.prepared(kBALANCE_UPDATE)(new_balance)(sender_str)(coin_id).exec();
-			}
-			stmt.prepared(kTX_INSERT)(sig_str)(shard_name)(chain_height)(sender_str)(coin_id)(send_amount).exec();
-            for (TransferPtr& one_xfer : xfers) {
-			  int64_t amount = one_xfer->getAmount();
-              if (amount < 0) continue;
-              //update receiver
-              std::string receiver_str(one_xfer->getAddress().getCanonical().begin()
-                                     , one_xfer->getAddress().getCanonical().end());
-              pqxx::work rx_stmt(*db_link);
-              pqxx::result rx_balance = stmt.prepared(kBALANCE_SELECT)(receiver_str)(coin_id).exec();
-              if (rx_balance.empty()) {
-                stmt.prepared(kBALANCE_INSERT)(receiver_str)(coin_id)(kNIL_UUID_PSQL)(amount).exec();
-              } else {
-                int64_t new_balance = balance_result[0][0].as<int64_t>()+amount;
-                stmt.prepared(kBALANCE_UPDATE)(new_balance)(receiver_str)(coin_id).exec();
-			  }
-			  stmt.prepared(kRX_INSERT)(shard_name)(chain_height)(receiver_str)(coin_id)(send_amount)(sig_str).exec();
-			} //end transfer loop
-			stmt.commit();
-          } //end transaction loop
-        } //endif db connected?
-
         //write final chain to file
         std::string shard_dir(options->working_dir+"/"+this_context.get_shard_uri());
         fs::path dir_path(shard_dir);
         if (is_directory(dir_path)) {
           std::string block_height(std::to_string(chain_height));
-          std::string out_file(shard_dir + "/" + block_height + ".dat");
+          std::string out_file(shard_dir + "/" + block_height + ".blk");
           std::ofstream block_file(out_file
             , std::ios::out | std::ios::binary);
           if (block_file.is_open()) {
@@ -214,17 +135,62 @@ int main(int argc, char* argv[]) {
     peer_listener->startClient();
     LOG_INFO << "Repeater is listening to shard: "+this_context.get_shard_uri();
 
-    auto ms = kMAIN_WAIT_INTERVAL;
+    zmq::context_t context(1);
+    zmq::socket_t socket (context, ZMQ_REP);
+    socket.bind (options->protobuf_endpoint);
+
+    unsigned int queries_processed = 0;
     while (true) {
-      LOG_DEBUG << "Repeater sleeping for " << ms;
-      std::this_thread::sleep_for(millisecs(ms));
       /* Should we shutdown? */
       if (fs::exists(options->stop_file)) {
         LOG_INFO << "Shutdown file exists. Stopping repeater...";
         break;
       }
+
+      zmq::message_t request_message;
+      //  Wait for next request from client
+
+      LOG_INFO << "Waiting for RepeaterRequest";
+      auto res = socket.recv(&request_message);
+      if (!res) {
+        LOG_ERROR << "socket.recv != true - exiting";
+        break;
+      }
+      LOG_INFO << "Received Message";
+      std::string msg_string = std::string(static_cast<char*>(request_message.data()),
+	            request_message.size());
+
+      std::string response;
+      RepeaterRequestPtr request_ptr;
+      try {
+        request_ptr = DeserializeRepeaterRequest(msg_string);
+      } catch (std::runtime_error& e) {
+        RepeaterResponsePtr response_ptr =
+          GenerateBadSyntaxResponse("RepeaterRequeste Deserialization error: "
+          + std::string(e.what()));
+        std::stringstream response_ss;
+        Devv::proto::RepeaterResponse pbuf_response = SerializeRepeaterResponse(std::move(response_ptr));
+        pbuf_response.SerializeToOstream(&response_ss);
+        response = response_ss.str();
+        zmq::message_t reply(response.size());
+        memcpy(reply.data(), response.data(), response.size());
+        socket.send(reply);
+        continue;
+      }
+
+      RepeaterResponsePtr response_ptr = HandleRepeaterRequest(std::move(request_ptr), options->working_dir);
+      Devv::proto::RepeaterResponse pbuf_response = SerializeRepeaterResponse(std::move(response_ptr));
+      LOG_INFO << "Generated RepeaterResponse, Serializing";
+      std::stringstream response_ss;
+      pbuf_response.SerializeToOstream(&response_ss);
+      response = response_ss.str();
+      zmq::message_t reply(response.size());
+      memcpy(reply.data(), response.data(), response.size());
+      socket.send(reply);
+      queries_processed++;
+      LOG_INFO << "RepeaterResponse sent, process has handled: "
+                +std::to_string(queries_processed)+" queries";
     }
-    if (db_connected) db_link->disconnect();
     peer_listener->stopClient();
     return (true);
   }
@@ -237,7 +203,6 @@ int main(int argc, char* argv[]) {
     return (false);
   }
 }
-
 
 std::unique_ptr<struct repeater_options> ParseRepeaterOptions(int argc, char** argv) {
 
@@ -267,21 +232,14 @@ Listens for FinalBlock messages and saves them to a file\n\
         ("num-validator-threads", po::value<unsigned int>(), "Number of validation threads")
         ("host-list,host", po::value<std::vector<std::string>>(),
          "Client URI (i.e. tcp://192.168.10.1:5005). Option can be repeated to connect to multiple nodes.")
+        ("protobuf-endpoint", po::value<std::string>(), "Endpoint for protobuf server (i.e. tcp://*:5557)")
         ("working-dir", po::value<std::string>(), "Directory where inputs are read and outputs are written")
         ("output", po::value<std::string>(), "Output path in binary JSON or CBOR")
         ("trace-output", po::value<std::string>(), "Output path to JSON trace file (Chrome)")
         ("inn-keys", po::value<std::string>(), "Path to INN key file")
         ("node-keys", po::value<std::string>(), "Path to Node key file")
         ("key-pass", po::value<std::string>(), "Password for private keys")
-        ("generate-tx", po::value<unsigned int>(), "Generate at least this many Transactions")
-        ("tx-batch-size", po::value<unsigned int>(), "Target size of transaction batches")
-        ("tx-limit", po::value<unsigned int>(), "Number of transaction to process before shutting down.")
         ("stop-file", po::value<std::string>(), "A file in working-dir indicating that this node should stop.")
-        ("update-host", po::value<std::string>(), "Host of database to update.")
-        ("update-db", po::value<std::string>(), "Database name to update.")
-        ("update-user", po::value<std::string>(), "Database username to use for updates.")
-        ("update-pass", po::value<std::string>(), "Database password to use for updates.")
-        ("update-port", po::value<unsigned int>(), "Database port to use for updates.")
         ;
 
     po::options_description all_options;
@@ -370,6 +328,13 @@ Listens for FinalBlock messages and saves them to a file\n\
       }
     }
 
+    if (vm.count("protobuf-endpoint")) {
+      options->protobuf_endpoint = vm["protobuf-endpoint"].as<std::string>();
+      LOG_INFO << "Protobuf Endpoint: " << options->protobuf_endpoint;
+    } else {
+      LOG_INFO << "Protobuf Endpoint was not set";
+    }
+
     if (vm.count("working-dir")) {
       options->working_dir = vm["working-dir"].as<std::string>();
       LOG_INFO << "Working dir: " << options->working_dir;
@@ -404,43 +369,6 @@ Listens for FinalBlock messages and saves them to a file\n\
     } else {
       LOG_INFO << "Stop file was not set. Use a signal to stop the node.";
     }
-
-    if (vm.count("update-host")) {
-      options->db_host = vm["update-host"].as<std::string>();
-      LOG_INFO << "Database host: " << options->db_host;
-    } else {
-      LOG_INFO << "Database host was not set.";
-    }
-
-    if (vm.count("update-db")) {
-      options->db_name = vm["update-db"].as<std::string>();
-      LOG_INFO << "Database name: " << options->db_name;
-    } else {
-      LOG_INFO << "Database name was not set.";
-    }
-
-    if (vm.count("update-user")) {
-      options->db_user = vm["update-user"].as<std::string>();
-      LOG_INFO << "Database user: " << options->db_host;
-    } else {
-      LOG_INFO << "Database user was not set.";
-    }
-
-    if (vm.count("update-pass")) {
-      options->db_pass = vm["update-pass"].as<std::string>();
-      LOG_INFO << "Database pass: " << options->db_pass;
-    } else {
-      LOG_INFO << "Database pass was not set.";
-    }
-
-    if (vm.count("update-port")) {
-      options->db_port = vm["update-port"].as<unsigned int>();
-      LOG_INFO << "Database pass: " << options->db_port;
-    } else {
-      LOG_INFO << "Database port was not set, default to 5432.";
-      options->db_port = 5432;
-    }
-
   }
   catch(std::exception& e) {
     LOG_ERROR << "error: " << e.what();
@@ -448,4 +376,311 @@ Listens for FinalBlock messages and saves them to a file\n\
   }
 
   return options;
+}
+
+bool hasShard(std::string shard, const std::string& working_dir) {
+  std::string shard_dir(working_dir+"/"+shard);
+  fs::path dir_path(shard_dir);
+  if (is_directory(dir_path)) return true;
+  return false;
+}
+
+bool hasBlock(std::string shard, uint32_t block, const std::string& working_dir) {
+  std::string block_path(working_dir+"/"+shard+"/"+std::to_string(block)+".blk");
+  if (boost::filesystem::exists(block_path)) return true;
+  return false;
+}
+
+uint32_t getHighestBlock(std::string shard, const std::string& working_dir) {
+  std::string shard_dir(working_dir+"/"+shard);
+  uint32_t highest = 0;
+  for (auto i = boost::filesystem::directory_iterator(shard_dir);
+      i != boost::filesystem::directory_iterator(); i++) {
+    uint32_t some_block = std::stoul(i->path().stem().string(), nullptr, 10);
+    if (some_block > highest) highest = some_block;
+  }
+  return highest;
+}
+
+std::vector<byte> ReadBlock(const std::string& shard, uint32_t block, const std::string& working_dir) {
+  std::vector<byte> out;
+  std::string block_path(working_dir+"/"+shard+"/"+std::to_string(block)+".blk");
+  std::ifstream block_file(block_path, std::ios::in | std::ios::binary);
+  block_file.unsetf(std::ios::skipws);
+
+  std::streampos block_size;
+  block_file.seekg(0, std::ios::end);
+  block_size = block_file.tellg();
+  block_file.seekg(0, std::ios::beg);
+  out.reserve(block_size);
+
+  out.insert(out.begin(),
+             std::istream_iterator<byte>(block_file),
+             std::istream_iterator<byte>());
+  return out;
+}
+
+uint32_t SearchForTransaction(const std::string& shard, uint32_t start_block, const Signature& tx_id, const std::string& working_dir) {
+  uint32_t highest = getHighestBlock(shard, working_dir);
+  if (highest < start_block) return UINT32_MAX;
+
+  std::vector<byte> target(tx_id.getRawSignature());
+  for (uint32_t i=start_block; i<=highest; ++i) {
+    std::vector<byte> block = ReadBlock(shard, i, working_dir);
+    InputBuffer buffer(block);
+    ChainState state;
+    FinalBlock one_block(FinalBlock::Create(buffer, state));
+    for (const auto& tx : one_block.getTransactions()) {
+      if (tx->getSignature() == tx_id) {
+        return i;
+      }
+    }
+  }
+  return UINT32_MAX;
+}
+
+std::vector<std::vector<byte>> SearchForAddress(const std::string& shard, uint32_t start_block, const Address& addr, const std::string& working_dir) {
+  std::vector<std::vector<byte>> txs;
+  uint32_t highest = getHighestBlock(shard, working_dir);
+  if (highest < start_block) return txs;
+
+  std::vector<byte> target(addr.getAddressRaw());
+  for (uint32_t i=start_block; i<=highest; ++i) {
+    std::vector<byte> block = ReadBlock(shard, i, working_dir);
+    InputBuffer buffer(block);
+    ChainState state;
+    FinalBlock one_block(FinalBlock::Create(buffer, state));
+    for (const auto& tx : one_block.getRawTransactions()) {
+      InputBuffer t2_buffer(tx);
+      Tier2Transaction t2tx = Tier2Transaction::QuickCreate(t2_buffer);
+      for (const auto& xfer : t2tx.getTransfers()) {
+        if (xfer->getAddress() == addr) {
+          txs.push_back(tx);
+        }
+      } //end for xfers
+    } //end for tx
+  }
+  return txs;
+}
+
+RepeaterResponsePtr HandleRepeaterRequest(const RepeaterRequestPtr& request, const std::string& working_dir) {
+  RepeaterResponse response;
+  try {
+    response.request_timestamp = request->timestamp;
+    response.operation = request->operation;
+    DevvUri id = ParseDevvUri(request->uri);
+    if (!id.valid) {
+      response.return_code = 1052;
+      response.message = "URI is not valid.";
+      return std::make_unique<RepeaterResponse>(response);
+    }
+    if (!hasShard(id.shard, working_dir)) {
+      response.return_code = 1050;
+      response.message = "Shard "+id.shard+" is not available.";
+      return std::make_unique<RepeaterResponse>(response);
+    }
+    if (id.block_height != UINT32_MAX) {
+      if (!hasBlock(id.shard, id.block_height, working_dir)) {
+        response.return_code = 1050;
+        response.message = "Block "+std::to_string(id.block_height)+" is not available.";
+        return std::make_unique<RepeaterResponse>(response);
+      }
+    }
+    switch (request->operation) {
+      case 1: {
+        LOG_INFO << "Get Binary Block: "+request->uri;
+        if (id.block_height == UINT32_MAX) {
+          response.return_code = 1051;
+          response.message = "Block height is missing from the URI.";
+          return std::make_unique<RepeaterResponse>(response);
+		}
+        response.raw_response = ReadBlock(id.shard, id.block_height, working_dir);
+      }
+        break;
+      case 2: {
+        LOG_INFO << "Get Binary Blocks Since: "+request->uri;
+        uint32_t highest_block = getHighestBlock(id.shard, working_dir);
+        if (id.block_height <= highest_block) {
+          for (uint32_t i=id.block_height; i<=highest_block; ++i) {
+            std::vector<byte> one_block = ReadBlock(id.shard, i, working_dir);
+            response.raw_response.insert(response.raw_response.end()
+                       , one_block.begin(), one_block.end());
+          }
+        }
+      }
+        break;
+      case 3: {
+        LOG_INFO << "Get Binary Chain: "+request->uri;
+        uint32_t highest_block = getHighestBlock(id.shard, working_dir);
+        for (uint32_t i=0; i<=highest_block; ++i) {
+          std::vector<byte> one_block = ReadBlock(id.shard, i, working_dir);
+          response.raw_response.insert(response.raw_response.end()
+                     , one_block.begin(), one_block.end());
+        }
+      }
+        break;
+      case 4: {
+        LOG_INFO << "Get Binary Transaction: "+request->uri;
+        if (id.block_height == UINT32_MAX) {
+          response.return_code = 1051;
+          response.message = "Block height is missing from the URI.";
+          return std::make_unique<RepeaterResponse>(response);
+		}
+        if (id.sig.isNull()) {
+          response.return_code = 1051;
+          response.message = "Transaction signature is missing from the URI.";
+          return std::make_unique<RepeaterResponse>(response);
+		}
+        uint32_t height = SearchForTransaction(id.shard, id.block_height, id.sig, working_dir);
+        std::vector<byte> block = ReadBlock(id.shard, height, working_dir);
+        InputBuffer buffer(block);
+        ChainState state;
+        FinalBlock one_block(FinalBlock::Create(buffer, state));
+        for (const auto& tx : one_block.getTransactions()) {
+          if (tx->getSignature() == id.sig) {
+            response.raw_response = tx->getCanonical();
+            break;
+		  }
+        }
+      }
+        break;
+      case 5: {
+        LOG_INFO << "Get Protobuf Block: "+request->uri;
+        std::vector<byte> block = ReadBlock(id.shard, id.block_height, working_dir);
+        InputBuffer buffer(block);
+        ChainState state;
+        FinalBlock one_block(FinalBlock::Create(buffer, state));
+        std::stringstream block_stream;
+        Devv::proto::FinalBlock proto_block = SerializeFinalBlock(one_block);
+        proto_block.SerializeToOstream(&block_stream);
+        std::string proto_block_str = block_stream.str();
+        std::vector<byte> pbuf_block(proto_block_str.begin(), proto_block_str.end());
+        response.raw_response = pbuf_block;
+        }
+        break;
+      case 6: {
+        LOG_INFO << "Get Protobuf Blocks Since: "+request->uri;
+        uint32_t highest_block = getHighestBlock(id.shard, working_dir);
+        if (id.block_height <= highest_block) {
+          for (uint32_t i=id.block_height; i<=highest_block; ++i) {
+            std::vector<byte> block = ReadBlock(id.shard, i, working_dir);
+            InputBuffer buffer(block);
+            ChainState state;
+            FinalBlock one_block(FinalBlock::Create(buffer, state));
+            std::stringstream block_stream;
+            Devv::proto::FinalBlock proto_block = SerializeFinalBlock(one_block);
+            proto_block.SerializeToOstream(&block_stream);
+            std::string proto_block_str = block_stream.str();
+            std::vector<byte> pbuf_block(proto_block_str.begin(), proto_block_str.end());
+            response.raw_response.insert(response.raw_response.end()
+                       , pbuf_block.begin(), pbuf_block.end());
+          }
+        }
+      }
+        break;
+      case 7: {
+        LOG_INFO << "Get Protobuf Chain: "+request->uri;
+        uint32_t highest_block = getHighestBlock(id.shard, working_dir);
+        for (uint32_t i=0; i<=highest_block; ++i) {
+          std::vector<byte> block = ReadBlock(id.shard, i, working_dir);
+          InputBuffer buffer(block);
+          ChainState state;
+          FinalBlock one_block(FinalBlock::Create(buffer, state));
+          std::stringstream block_stream;
+          Devv::proto::FinalBlock proto_block = SerializeFinalBlock(one_block);
+          proto_block.SerializeToOstream(&block_stream);
+          std::string proto_block_str = block_stream.str();
+          std::vector<byte> pbuf_block(proto_block_str.begin(), proto_block_str.end());
+          response.raw_response.insert(response.raw_response.end()
+                     , pbuf_block.begin(), pbuf_block.end());
+        }
+      }
+        break;
+      case 8: {
+        LOG_INFO << "Get Protobuf Transaction: "+request->uri;
+        if (id.block_height == UINT32_MAX) {
+          response.return_code = 1051;
+          response.message = "Block height is missing from the URI.";
+          return std::make_unique<RepeaterResponse>(response);
+        }
+        if (id.sig.isNull()) {
+          response.return_code = 1051;
+          response.message = "Transaction signature is missing from the URI.";
+          return std::make_unique<RepeaterResponse>(response);
+        }
+        uint32_t height = SearchForTransaction(id.shard, id.block_height, id.sig, working_dir);
+        std::vector<byte> block = ReadBlock(id.shard, height, working_dir);
+        InputBuffer buffer(block);
+        ChainState state;
+        FinalBlock one_block(FinalBlock::Create(buffer, state));
+        for (const auto& tx : one_block.getTransactions()) {
+          if (tx->getSignature() == id.sig) {
+            InputBuffer buffer(tx->getCanonical());
+            std::stringstream tx_stream;
+            Devv::proto::Transaction pbuf_tx;
+            SerializeTransaction(Tier2Transaction::QuickCreate(buffer), pbuf_tx);
+            pbuf_tx.SerializeToOstream(&tx_stream);
+            std::string proto_tx_str = tx_stream.str();
+            std::vector<byte> tx_vector(proto_tx_str.begin(), proto_tx_str.end());
+            response.raw_response = tx_vector;
+            break;
+		  }
+        }
+      }
+        break;
+      case 9: {
+        LOG_INFO << "Check Transaction Since Block: "+request->uri;
+        if (id.block_height == UINT32_MAX) {
+          response.return_code = 1051;
+          response.message = "Block height is missing from the URI.";
+          return std::make_unique<RepeaterResponse>(response);
+        }
+        if (id.sig.isNull()) {
+          response.return_code = 1051;
+          response.message = "Transaction signature is missing from the URI.";
+          return std::make_unique<RepeaterResponse>(response);
+        }
+        uint32_t block_height = SearchForTransaction(id.shard, id.block_height, id.sig, working_dir);
+        if (block_height != UINT32_MAX) {
+          Uint32ToBin(block_height, response.raw_response);
+        } else {
+          response.return_code = 3020;
+          response.message = "Transaction not found since block "+std::to_string(id.block_height)+".";
+          return std::make_unique<RepeaterResponse>(response);
+		}
+      }
+        break;
+      case 10: {
+        LOG_INFO << "Get Transactions for Address Since Block: "+request->uri;
+        if (id.block_height == UINT32_MAX) {
+          response.return_code = 1051;
+          response.message = "Block height is missing from the URI.";
+          return std::make_unique<RepeaterResponse>(response);
+        }
+        if (id.addr.isNull()) {
+          response.return_code = 1051;
+          response.message = "Transaction address is missing from the URI.";
+          return std::make_unique<RepeaterResponse>(response);
+        }
+        std::vector<std::vector<byte>> txs = SearchForAddress(id.shard, id.block_height, id.addr, working_dir);
+        std::stringstream pbuf_stream;
+        Devv::proto::Envelope envelope = SerializeEnvelopeFromBinaryTransactions(txs);
+        envelope.SerializeToOstream(&pbuf_stream);
+        std::string proto_str = pbuf_stream.str();
+        std::vector<byte> pbuf_vector(proto_str.begin(), proto_str.end());
+        response.raw_response = pbuf_vector;
+      }
+        break;
+      default:
+        response.return_code = 1020;
+        response.message = "Unknown operation: "+std::to_string(request->operation);
+        return std::make_unique<RepeaterResponse>(response);
+	}
+	return std::make_unique<RepeaterResponse>(response);
+  } catch (std::exception& e) {
+    LOG_ERROR << "Repeater Error: "+std::string(e.what());
+    response.return_code = 1010;
+    response.message = "Repeater Error: "+std::string(e.what());
+    return std::make_unique<RepeaterResponse>(response);
+  }
 }

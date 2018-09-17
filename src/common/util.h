@@ -92,20 +92,28 @@ void FileCommit(FILE* file);
  *  @param s the string to trim
  *  @param t pointer to chars that should be trimmed
 */
-inline void ltrim(std::string& s, const char* t);
+inline void ltrim(std::string& s, const char* t) {
+  s.erase(0, s.find_first_not_of(t));
+}
 
 /** Right trims chars from a string.
  *  @note the string is modified by reference
  *  @param s the string to trim
  *  @param t pointer to chars that should be trimmed
 */
-inline void rtrim(std::string& s, const char* t);
+inline void rtrim(std::string& s, const char* t) {
+  s.erase(s.find_last_not_of(t) +1);
+}
 
 /** Trims whitespace chars from both sides of a string.
  *  @note the string is modified by reference
  *  @param s the string to trim
 */
-inline std::string trim(std::string& s);
+inline std::string trim(std::string& s) {
+  ltrim(s, " \t\n\r\f\v");
+  rtrim(s, " \t\n\r\f\v");
+  return(s);
+}
 
 /** Attempts to raise the file descriptor limit.
  * This function tries to raise the file descriptor limit to the requested number.

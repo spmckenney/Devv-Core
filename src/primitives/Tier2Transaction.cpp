@@ -26,7 +26,7 @@ void Tier2Transaction::QuickFill(Tier2Transaction& tx,
   if (tx.nonce_size_ < minNonceSize()) {
     std::stringstream ss;
     std::vector<byte> prefix(buffer.getCurrentIterator()
-        , buffer.getCurrentIterator() + 8);
+        , buffer.getCurrentIterator() + kUINT64_SIZE);
     ss << "Invalid serialized T2 transaction, bad nonce size ("
         + std::to_string(tx.nonce_size_) + ")!";
     ss << "Transaction prefix: " + ToHex(prefix);
@@ -34,15 +34,16 @@ void Tier2Transaction::QuickFill(Tier2Transaction& tx,
     throw DeserializationError(ss.str());
   }
 
-  byte oper = buffer.offsetAt(16);
+  byte oper = buffer.offsetAt(kOPERATION_OFFSET);
   if (oper >= eOpType::NumOperations) {
     std::stringstream ss;
     ss << "Invalid serialized T2 transaction, invalid operation!";
     throw DeserializationError(ss.str());
   }
 
-  size_t tx_size = MinSize() + tx.xfer_size_ + tx.nonce_size_;
-  if (oper != eOpType::Exchange) tx_size += kNODE_SIG_BUF_SIZE - kWALLET_SIG_BUF_SIZE;
+  size_t tx_size = buffer.offsetAt(kTRANSFER_OFFSET+tx.xfer_size_+tx.nonce_size_)
+                   +kTRANSFER_OFFSET+tx.xfer_size_+tx.nonce_size_;
+
   if (buffer.size() < buffer.getOffset() + tx_size) {
     std::stringstream ss;
     std::vector<byte> prefix(buffer.getCurrentIterator()
@@ -91,8 +92,9 @@ void Tier2Transaction::Fill(Tier2Transaction& tx,
     throw DeserializationError(ss.str());
   }
 
-  size_t tx_size = MinSize() + tx.xfer_size_ + tx.nonce_size_;
-  if (oper != eOpType::Exchange) tx_size += kNODE_SIG_BUF_SIZE - kWALLET_SIG_BUF_SIZE;
+  size_t tx_size = buffer.offsetAt(kTRANSFER_OFFSET+tx.xfer_size_+tx.nonce_size_)
+                   +kTRANSFER_OFFSET+tx.xfer_size_+tx.nonce_size_;
+
   if (buffer.size() < buffer.getOffset() + tx_size) {
     std::stringstream ss;
     std::vector<byte> prefix(buffer.getCurrentIterator()
@@ -103,7 +105,6 @@ void Tier2Transaction::Fill(Tier2Transaction& tx,
     ss << "Bytes offset: " + std::to_string(buffer.getOffset());
     throw DeserializationError(ss.str());
   }
-  MTR_STEP("Transaction", "Transaction", &trace_int, "step2");
   buffer.copy(std::back_inserter(tx.canonical_), tx_size);
 
   MTR_STEP("Transaction", "Transaction", &trace_int, "sound");
