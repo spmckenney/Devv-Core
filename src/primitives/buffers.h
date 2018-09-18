@@ -6,6 +6,7 @@
 
 #include <vector>
 #include "common/binary_converters.h"
+#include "common/devcash_constants.h"
 #include "common/devcash_types.h"
 
 namespace Devcash {
@@ -129,6 +130,48 @@ class InputBuffer {
     byte ret = at(offset_);
     if (increment_buffer) { offset_ += sizeof(ret); }
     return ret;
+  }
+
+  std::vector<byte> getNextTransaction() {
+    std::vector<byte> out;
+    if (size() < offset_ + kTX_MIN_SIZE) {
+      return getNextT1Transaction();
+    }
+    /// Don't increment the buffer, we want to copy it all to canonical_
+    uint64_t xfer_size = getNextUint64(false);
+    uint64_t nonce_size = getSecondUint64(false);
+
+    if (nonce_size < kMIN_NONCE_SIZE) {
+      return getNextT1Transaction();
+    }
+
+    byte oper = offsetAt(kOPERATION_OFFSET);
+    if (oper >= eOpType::NumOperations) {
+      return getNextT1Transaction();
+    }
+
+    size_t tx_size = offsetAt(kTRANSFER_OFFSET+xfer_size+nonce_size)
+                     +kTRANSFER_OFFSET+xfer_size+nonce_size+1;
+
+    if (size() < offset_ + tx_size) {
+      LOG_WARNING << "Buffer is smaller than calculated Tier2Transaction size.";
+      return getNextT1Transaction();
+    }
+    copy(std::back_inserter(out), tx_size);
+    return out;
+  }
+
+  std::vector<byte> getNextT1Transaction() {
+    std::vector<byte> out;
+    uint64_t sum_size = getNextUint64(false);
+    size_t tx_size = sum_size + kNODE_SIG_BUF_SIZE + kUINT64_SIZE + kNODE_ADDR_BUF_SIZE;
+    if (size() < offset_ + tx_size) {
+      LOG_WARNING << "Invalid serialized transaction, too small!";
+      return out;
+    }
+
+    copy(std::back_inserter(out), tx_size);
+    return out;
   }
 
   /**

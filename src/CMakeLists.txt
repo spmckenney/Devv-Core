@@ -191,6 +191,14 @@ target_include_directories(repeater PRIVATE ${dcInclude})
 install (TARGETS repeater DESTINATION bin)
 
 #
+# db_repeater
+#
+add_executable(db_repeater db_repeater.cpp ${dcInclude})
+target_link_libraries (db_repeater ${devv_all_libs})
+target_include_directories(db_repeater PRIVATE ${dcInclude})
+install (TARGETS db_repeater DESTINATION bin)
+
+#
 # circuit
 #
 add_executable(circuit circuit.cpp ${dcInclude})

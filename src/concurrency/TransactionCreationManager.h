@@ -49,24 +49,26 @@ public:
 
   /**
    * Create Transactions objects from serialized binary data.
-   * @param serial - a binary series of Transactions
+   * @param buffer - buffer containing a binary series of Transactions
    * @param vtx - (out) target vector for pointers to the Transaction objects
-   * @param offset - a offset where this function should start reading the serial data
-   * @param min_size - the minimum number of bytes in a Transaction
+   * @param start_size - the starting offset of Transaction bytes in the buffer
    * @param tx_size - the total byte size of this block of serial Transactions
+   * @return std::vector<std::vector<byte>> raw transactions - the canonical transactions in series
    */
-  void CreateTransactions(InputBuffer& buffer
+  std::vector<std::vector<byte>> CreateTransactions(InputBuffer& buffer
                           , std::vector<TransactionPtr>& vtx
-                          , size_t min_size
+                          , size_t start_size
                           , size_t& tx_size) {
 
-    while (buffer.getOffset() < (min_size + tx_size)) {
+    std::vector<std::vector<byte>> raw_txs;
+    while (buffer.getOffset() < (start_size + tx_size)) {
       //Transaction constructor increments offset by ref
       LOG_TRACE << "while, offset = " << buffer.getOffset();
       auto tx = CreateTransaction(buffer,
                                   *keys_p_,
                                   app_mode_,
                                   false);
+      raw_txs.push_back(tx->getCanonical());
       vtx.push_back(std::move(tx));
     }
 
@@ -77,6 +79,7 @@ public:
     }
 
     boost::wait_for_all(pending_data.begin(), pending_data.end());
+    return raw_txs;
   }
 
   /**
