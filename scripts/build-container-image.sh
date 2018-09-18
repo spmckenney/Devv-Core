@@ -2,11 +2,11 @@
 
 ver=$1
 arch=`uname -m`
-
-build="docker build -t $arch-ubuntu16.04-devcash:$ver -f Dockerfile-$arch-ubuntu16.04 ."
-dtoch="ch-docker2tar ${arch}-ubuntu16.04-devcash:${ver} /z/c-cloud/tars/"
-move="mv /z/c-cloud/tars/${arch}-ubuntu16.04-devcash:${ver}.tar.gz /z/c-cloud/tars/${arch}-ubuntu16.04-devcash-${ver}.tar.gz"
-chtodir="ch-tar2dir /z/c-cloud/tars/${arch}-ubuntu16.04-devcash-${ver}.tar.gz /z/c-cloud/dirs/"
+image_name="devvio-core-$arch-ubuntu16.04-dev"
+build="docker build -t ${image_name}:$ver -f Dockerfile-$arch-ubuntu16.04 ."
+dtoch="ch-docker2tar ${image_name}:${ver} /z/c-cloud/tars/"
+move="mv /z/c-cloud/tars/${image_name}:${ver}.tar.gz /z/c-cloud/tars/${$image_name}-${ver}.tar.gz"
+chtodir="ch-tar2dir /z/c-cloud/tars/${image_name}-${ver}.tar.gz /z/c-cloud/dirs/"
 
 echo $build
 echo $dtoch
