@@ -93,6 +93,9 @@ RUN apt-get install -y \
     supervisor \
     telnet
 
+ RUN apt-get install -y \
+     openjdk-8-jdk
+
 RUN groupadd --gid 1002 dcrunner
 RUN useradd -d /home/dcrunner --uid 1002 -m --gid 1002 dcrunner
 COPY bashrc /home/dcrunner/.bashrc
