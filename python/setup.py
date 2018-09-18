@@ -1,3 +1,4 @@
+from os.path import join as pjoin
 import setuptools
 
 with open("README.md", "r") as fh:
@@ -13,6 +14,7 @@ setuptools.setup(
     long_description_content_type="text/markdown",
     url="https://devv.io",
     packages=setuptools.find_packages(),
+    scripts=[pjoin('bin','devv')],
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
