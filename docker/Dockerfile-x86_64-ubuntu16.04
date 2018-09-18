@@ -93,16 +93,20 @@ RUN apt-get install -y \
     supervisor \
     telnet
 
- RUN apt-get install -y \
-     openjdk-8-jdk
+# Cleanup
+RUN apt-get clean autoclean
 
 RUN groupadd --gid 1002 dcrunner
-RUN useradd -d /home/dcrunner --uid 1002 -m --gid 1002 dcrunner
-COPY bashrc /home/dcrunner/.bashrc
+RUN useradd -d /opt/dcrunner --uid 1002 -m --gid 1002 dcrunner
+COPY bashrc /opt/dcrunner/.bashrc
+RUN echo "dcrunner ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
 
 # Python3 virtualenvwrapper
 RUN pip3 install --upgrade pip setuptools
 RUN pip3 install virtualenvwrapper --ignore-installed six
+
+# Use dcrunner account to install virtualenv
+USER dcrunner
 COPY install_virtualenvwrapper.sh /tmp/
 RUN /bin/bash -c "/tmp/install_virtualenvwrapper.sh"
 
@@ -110,17 +114,15 @@ RUN /bin/bash -c "/tmp/install_virtualenvwrapper.sh"
 COPY install_protobuf_v3.sh /tmp/
 RUN /bin/bash -c "/tmp/install_protobuf_v3.sh"
 
-# Cleanup
-RUN apt-get clean autoclean
-
 COPY install_googletest.sh /tmp/install_googletest.sh
 RUN /tmp/install_googletest.sh
 
-EXPOSE 55556
+COPY setup_virtualenv.sh /opt/dcrunner
 
-RUN echo "dcrunner ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
+WORKDIR /opt/dcrunner
 
-WORKDIR /home/dcrunner
+# Back to user root
+USER root
 
 # https://denibertovic.com/posts/handling-permissions-with-docker-volumes/
 COPY entrypoint.sh /tmp/entrypoint.sh
