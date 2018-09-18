@@ -30,8 +30,11 @@ FinalBlock FinalBlock::Create(InputBuffer &buffer, const ChainState &prior) {
   block.sum_size_ = buffer.getNextUint64();
   block.val_count_ = buffer.getNextUint32();
 
-  // this constructor does not load transactions
-  buffer.increment(block.tx_size_);
+  // this constructor does not parse transactions, but groups their canonical forms
+  size_t pre_tx_offset = buffer.getOffset();
+  while (buffer.getOffset() < pre_tx_offset+block.tx_size_) {
+    block.raw_transactions_.push_back(buffer.getNextTransaction());
+  }
 
   block.summary_ = Summary::Create(buffer);
   block.vals_ = Validation::Create(buffer, block.val_count_);

@@ -82,7 +82,7 @@ class Transfer {
     canonical_ = addr.getCanonical();
 
     // Copy out coin, amount, delay
-    buffer.copy(std::back_inserter(canonical_), 8*3);
+    buffer.copy(std::back_inserter(canonical_), kTRANSFER_NONADDR_DATA_SIZE);
   }
 
   /**
@@ -118,8 +118,8 @@ class Transfer {
    */
   size_t Size() const { return canonical_.size(); }
 
-  static size_t MinSize() { return kWALLET_ADDR_BUF_SIZE + 24; }
-  static size_t MaxSize() { return kNODE_ADDR_BUF_SIZE + 24; }
+  static size_t MinSize() { return kWALLET_ADDR_BUF_SIZE + kTRANSFER_NONADDR_DATA_SIZE; }
+  static size_t MaxSize() { return kNODE_ADDR_BUF_SIZE + kTRANSFER_NONADDR_DATA_SIZE; }
 
   /**
    * Gets this transfer in a canonical form.
@@ -180,9 +180,9 @@ class Transfer {
    */
   int64_t getAmount() const {
 	if (canonical_.at(0) == kWALLET_ADDR_SIZE) {
-      return BinToInt64(canonical_, kWALLET_ADDR_BUF_SIZE + 8);
+      return BinToInt64(canonical_, kWALLET_ADDR_BUF_SIZE + kUINT64_SIZE);
 	} else if (canonical_.at(0) == kNODE_ADDR_SIZE) {
-      return BinToInt64(canonical_, kNODE_ADDR_BUF_SIZE + 8);
+      return BinToInt64(canonical_, kNODE_ADDR_BUF_SIZE + kUINT64_SIZE);
 	}
 	std::string err = "Transfer has invalid type prefix.";
 	throw std::runtime_error(err);
@@ -194,9 +194,9 @@ class Transfer {
    */
   uint64_t getDelay() const {
 	if (canonical_.at(0) == kWALLET_ADDR_SIZE) {
-      return BinToUint64(canonical_, kWALLET_ADDR_BUF_SIZE + 16);
+      return BinToUint64(canonical_, kWALLET_ADDR_BUF_SIZE + kUINT64_SIZE*2);
 	} else if (canonical_.at(0) == kNODE_ADDR_SIZE) {
-      return BinToUint64(canonical_, kNODE_ADDR_BUF_SIZE + 16);
+      return BinToUint64(canonical_, kNODE_ADDR_BUF_SIZE + kUINT64_SIZE*2);
 	}
 	std::string err = "Transfer has invalid type prefix.";
 	throw std::runtime_error(err);

@@ -14,7 +14,7 @@ namespace Devcash {
 
 static std::unique_ptr<Transaction> CreateTransaction(InputBuffer& buffer,
                                                const KeyRing& keys,
-                                               eAppMode mode,
+                                               eAppMode mode = eAppMode::T2,
                                                bool calculate_soundness = true) {
   if (mode == eAppMode::T1) {
     auto tx = std::make_unique<Tier1Transaction>(buffer, keys, calculate_soundness);
