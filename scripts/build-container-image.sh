@@ -1,5 +1,13 @@
 #!/bin/bash -ex
 
+# Usage:
+# From the docker directory of devcash-core or devvio-inn
+#
+# ../../devcash-core/scripts/build-container-image.sh ${ver} ${repo} ${rel}
+#
+# ../../devcash-core/scripts/build-container-image.sh v005 devvio-inn dev
+#
+
 ver=$1
 repo=$2
 rel=$3
