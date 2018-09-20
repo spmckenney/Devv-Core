@@ -54,18 +54,19 @@ struct repeater_options {
 static const std::string kNIL_UUID = "00000000-0000-0000-0000-000000000000";
 static const std::string kNIL_UUID_PSQL = "'00000000-0000-0000-0000-000000000000'::uuid";
 static const std::string kTX_INSERT = "tx_insert";
-static const std::string kTX_INSERT_STATEMENT = "INSERT INTO tx (tx_id, shard, block_height, wallet_id, coin_id, amount) VALUES ($1, $2, $3, $4, $5, $6)";
+static const std::string kTX_INSERT_STATEMENT = "INSERT INTO tx (tx_id, shard_id, block_height, wallet_id, coin_id, amount) VALUES ($1, $2, $3, $4, $5, $6)";
 static const std::string kRX_INSERT = "rx_insert";
-static const std::string kRX_INSERT_STATEMENT = "INSERT INTO rx (shard, block_height, wallet_id, coin_id, amount, tx_id) VALUES ($1, $2, $3, $4, $5, $6)";
+static const std::string kRX_INSERT_STATEMENT = "INSERT INTO rx (rx_id, shard_id, block_height, wallet_id, coin_id, amount, tx_id) VALUES (devv_uuid(), $1, $2, $3, $4, $5, $6)";
 static const std::string kBALANCE_SELECT = "balance_select";
-static const std::string kBALANCE_SELECT_STATEMENT = "select balance from walletCoins where wallet_id = $1 and coin_id = $2";
+static const std::string kBALANCE_SELECT_STATEMENT = "select balance from wallet_coin where wallet_id = $1 and coin_id = $2";
 static const std::string kWALLET_INSERT = "wallet_insert";
-static const std::string kWALLET_INSERT_STATEMENT = "INSERT INTO wallet (wallet_id, account_id, wallet_name) VALUES ($1, '"+kNIL_UUID+"':uuid, 'None')";
+static const std::string kWALLET_INSERT_STATEMENT = "INSERT INTO wallet (wallet_id, account_id, wallet_name, shard_id) VALUES ($1, '"+kNIL_UUID+"', 'None', $2)";
 static const std::string kBALANCE_INSERT = "balance_insert";
-static const std::string kBALANCE_INSERT_STATEMENT = "INSERT INTO walletCoins (wallet_coin_id, wallet_id, coin_id, account_id, balance) (select devv_uuid(), $1, $2, $3, $4)";
+static const std::string kBALANCE_INSERT_STATEMENT = "INSERT INTO wallet_coin (wallet_coin_id, wallet_id, coin_id, account_id, balance) (select devv_uuid(), $1, $2, $3, $4)";
 static const std::string kBALANCE_UPDATE = "balance_update";
-static const std::string kBALANCE_UPDATE_STATEMENT = "UPDATE walletCoins set balance = $1 where wallet_id = $2 and coin_id = $3";
-
+static const std::string kBALANCE_UPDATE_STATEMENT = "UPDATE wallet_coin set balance = $1 where wallet_id = $2 and coin_id = $3";
+static const std::string kSHARD_SELECT = "shard_select";
+static const std::string kSHARD_SELECT_STATEMENT = "select shard_id from shard where shard_name = $1";
 
 /**
  * Parse command-line options
@@ -160,7 +161,7 @@ int main(int argc, char* argv[]) {
               int64_t new_balance = balance_result[0][0].as<int64_t>()-send_amount;
               stmt.prepared(kBALANCE_UPDATE)(new_balance)(sender_str)(coin_id).exec();
 			}
-			stmt.prepared(kTX_INSERT)(sig_str)(shard_name)(chain_height)(sender_str)(coin_id)(send_amount).exec();
+			stmt.prepared(kTX_INSERT)(sig_str)(options->shard_index)(chain_height)(sender_str)(coin_id)(send_amount).exec();
             for (TransferPtr& one_xfer : xfers) {
 			  int64_t amount = one_xfer->getAmount();
               if (amount < 0) continue;
@@ -175,7 +176,7 @@ int main(int argc, char* argv[]) {
                 int64_t new_balance = balance_result[0][0].as<int64_t>()+amount;
                 stmt.prepared(kBALANCE_UPDATE)(new_balance)(receiver_str)(coin_id).exec();
 			  }
-			  stmt.prepared(kRX_INSERT)(shard_name)(chain_height)(receiver_str)(coin_id)(send_amount)(sig_str).exec();
+			  stmt.prepared(kRX_INSERT)(options->shard_index)(chain_height)(receiver_str)(coin_id)(send_amount)(sig_str).exec();
 			} //end transfer loop
 			stmt.commit();
           } //end transaction loop
