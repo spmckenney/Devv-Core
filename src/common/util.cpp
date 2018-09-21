@@ -111,22 +111,6 @@ std::string FormatException(const std::exception* pex, const std::string pszThre
   return(msg);
 }
 
-//Note that the following functions trim by ref
-//modifying the original string without copying
-inline void ltrim(std::string& s, const char* t) {
-  s.erase(0, s.find_first_not_of(t));
-}
-
-inline void rtrim(std::string& s, const char* t) {
-  s.erase(s.find_last_not_of(t) +1);
-}
-
-inline std::string trim(std::string& s) {
-  ltrim(s, " \t\n\r\f\v");
-  rtrim(s, " \t\n\r\f\v");
-  return(s);
-}
-
 void signalHandler(int signum) {
   //StartShutdown();
   LOG_INFO << "Signal ("+std::to_string(signum)+") received.";

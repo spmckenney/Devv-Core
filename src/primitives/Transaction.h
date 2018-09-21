@@ -29,6 +29,7 @@
 #include "Summary.h"
 #include "Transfer.h"
 #include "Validation.h"
+#include "common/devcash_constants.h"
 #include "primitives/buffers.h"
 
 #include "consensus/KeyRing.h"
@@ -37,21 +38,6 @@
 using namespace Devcash;
 
 namespace Devcash {
-
-static const std::string kXFER_SIZE_TAG = "xfer_size";
-static const std::string kSUMMARY_TAG = "summary";
-static const std::string kSUM_SIZE_TAG = "sum_size";
-static const std::string kOPER_TAG = "oper";
-static const std::string kXFER_TAG = "xfer";
-static const std::string kNONCE_TAG = "nonce";
-static const std::string kNONCE_SIZE_TAG = "nonce_size";
-static const std::string kSIG_TAG = "sig";
-static const std::string kVALIDATOR_DEX_TAG = "val_dex";
-
-/**
- * Types of operations performed by transactions
- */
-enum eOpType : byte { Create = 0, Modify = 1, Exchange = 2, Delete = 3, NumOperations = 4 };
 
 /**
  * The Transaction Abstract Base Class
@@ -104,31 +90,31 @@ class Transaction {
    * Returns minimum size (hard-coded to 89)
    * @return minimum size (hard-coded to 89)
    */
-  static size_t MinSize() { return (89 + 2); }
+  static size_t MinSize() { return kTX_MIN_SIZE; }
 
   /**
    * Returns envelope size (hard-coded to 17)
    * @return envelope size (hard-coded to 17)
    */
-  static size_t EnvelopeSize() { return 17; }
+  static size_t EnvelopeSize() { return kENVELOPE_SIZE; }
 
   /**
    * Returns transfer offset (hard-coded to 17)
    * @return transfer offset (hard-coded to 17)
    */
-  static size_t transferOffset() { return 17; }
+  static size_t transferOffset() { return kTRANSFER_OFFSET; }
 
   /**
    * Returns min nonce size (hard-coded to 8)
    * @return min nonce size (hard-coded to 8)
    */
-  static size_t minNonceSize() { return 8; }
+  static size_t minNonceSize() { return kMIN_NONCE_SIZE; }
 
  /**
   * Returns min nonce size (hard-coded to 8)
   * @return min nonce size (hard-coded to 8)
   */
-  static size_t uint64Size() { return 8; }
+  static size_t uint64Size() { return kUINT64_SIZE; }
 
   /**
    * Make a deep copy of the TierXTransaction subclass

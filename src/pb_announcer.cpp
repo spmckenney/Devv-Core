@@ -297,9 +297,9 @@ annouonces them to nodes provided by the host-list arguments.\n\
 
     if (vm.count("protobuf-endpoint")) {
       options->protobuf_endpoint = vm["protobuf-endpoint"].as<std::string>();
-      LOG_INFO << "Bind URI: " << options->protobuf_endpoint;
+      LOG_INFO << "Protobuf Endpoint: " << options->protobuf_endpoint;
     } else {
-      LOG_INFO << "Bind URI was not set";
+      LOG_INFO << "Protobuf Endpoint was not set";
     }
 
     if (vm.count("inn-keys")) {

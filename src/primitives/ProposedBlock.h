@@ -32,18 +32,6 @@ static std::vector<TransactionPtr> Copy(const std::vector<TransactionPtr> &txs) 
   return (std::move(tx_out));
 }
 
-/// @todo (mckenney) move to constants file
-static const std::string kVERSION_TAG = "v";
-static const std::string kPREV_HASH_TAG = "prev";
-static const std::string kMERKLE_TAG = "merkle";
-static const std::string kBYTES_TAG = "bytes";
-static const std::string kTIME_TAG = "time";
-static const std::string kTX_SIZE_TAG = "txlen";
-static const std::string kVAL_COUNT_TAG = "vcount";
-static const std::string kTXS_TAG = "txs";
-static const std::string kSUM_TAG = "sum";
-static const std::string kVAL_TAG = "vals";
-
 /**
  * A proposed block.
  */
@@ -243,7 +231,11 @@ class ProposedBlock {
       LOG_INFO << out.str();
       /// @todo(mckenney) Up the stack, we need to check that this incoming_hash has already
       /// been added to the chain, or this is a bigger problem
-      throw std::runtime_error(out.str());
+      // in the meantime, bad validations should simply be ignored by returning false
+      // this typically occurs in a race between validations and new blocks
+      // even if the validation is completely wrong (not a prior block), the validator
+      // should ignore it and continue.  A health monitor should check if fradulent validations
+      // are somehow being injected and identify/block/drop the source.
     }
     LOG_DEBUG << "checkValidationData: validated incoming(" + ToHex(incoming_hash) + ")";
     return false;
@@ -283,6 +275,15 @@ class ProposedBlock {
    * @return
    */
   const std::vector<TransactionPtr>& getTransactions() const { return transaction_vector_; }
+
+  const std::vector<std::vector<byte>> getRawTransactions() const {
+    std::vector<std::vector<byte>> out;
+    for (auto const& item : transaction_vector_) {
+      const std::vector<byte> txs_canon(item->getCanonical());
+      out.push_back(txs_canon);
+    }
+    return out;
+  }
 
   /**
    *

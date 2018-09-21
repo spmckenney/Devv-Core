@@ -228,7 +228,7 @@ class Tier2Transaction : public Transaction {
    * Returns the operation performed by this transfer
    * @return
    */
-  byte getOperation() const { return canonical_[16]; }
+  byte getOperation() const { return canonical_[kOPERATION_OFFSET]; }
 
   /**
    * Get the nonce of this Transaction
