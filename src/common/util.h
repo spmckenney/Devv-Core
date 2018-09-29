@@ -13,14 +13,47 @@
 #define DEVCASH_UTIL_H
 
 #include <atomic>
+#include <chrono>
 #include <exception>
 #include <map>
-#include <stdint.h>
+#include <bitset>
+#include <fstream>
+#include <iostream>
+#include <sstream>
 #include <string>
 #include <vector>
+#include <memory>
+#include <thread>
+
+#include "common/devcash_types.h"
+#include "common/devcash_constants.h"
+#include "common/logger.h"
+#include "common/minitrace.h"
+#include "primitives/Address.h"
+#include "primitives/Signature.h"
 
 namespace Devcash
 {
+
+template <typename Container>
+void CheckSizeEqual(const Container& c, size_t size) {
+  if (c.size() != size) {
+    std::string err = "Container must be "
+                      + std::to_string(size) + " bytes (" + std::to_string(c.size()) + ")";
+    throw std::runtime_error(err);
+  }
+}
+
+/**
+ * Get the number of milliseconds since the Epoch (Jan 1, 1970)
+ * @return Number of milliseconds
+ */
+static uint64_t GetMillisecondsSinceEpoch() {
+  //MTR_SCOPE_FUNC();
+  std::chrono::milliseconds ms = std::chrono::duration_cast<std::chrono::milliseconds>
+    (std::chrono::system_clock::now().time_since_epoch());
+  return ms.count();
+}
 
 /** Setup the runtime environment. */
 void SetupEnvironment();
@@ -59,20 +92,28 @@ void FileCommit(FILE* file);
  *  @param s the string to trim
  *  @param t pointer to chars that should be trimmed
 */
-inline void ltrim(std::string& s, const char* t);
+inline void ltrim(std::string& s, const char* t) {
+  s.erase(0, s.find_first_not_of(t));
+}
 
 /** Right trims chars from a string.
  *  @note the string is modified by reference
  *  @param s the string to trim
  *  @param t pointer to chars that should be trimmed
 */
-inline void rtrim(std::string& s, const char* t);
+inline void rtrim(std::string& s, const char* t) {
+  s.erase(s.find_last_not_of(t) +1);
+}
 
 /** Trims whitespace chars from both sides of a string.
  *  @note the string is modified by reference
  *  @param s the string to trim
 */
-inline std::string trim(std::string& s);
+inline std::string trim(std::string& s) {
+  ltrim(s, " \t\n\r\f\v");
+  rtrim(s, " \t\n\r\f\v");
+  return(s);
+}
 
 /** Attempts to raise the file descriptor limit.
  * This function tries to raise the file descriptor limit to the requested number.
@@ -102,11 +143,11 @@ int StreamWriteStr(const std::string& str, std::ostream* fout);
 
 /**
  * Reads a file into a string
- * @param filePath the path of the file
+ * @param file_path the path of the file
  * @return if the file is readable, returns a string of its contents
  * @return if file is not readable, returns an empty string
  */
-std::string ReadFile(const std::string& filePath);
+std::string ReadFile(const std::string& file_path);
 
 /**
  * Reacts to an OS signal.
@@ -147,114 +188,91 @@ static int char2int(char in) {
   return(-1);
 }
 
-/** Maps a hex string into a byte vector for CBOR parsing.
- *  @param hex a string of hex digits encoding a CBOR message.
- *  @return a byte vector of the same data in binary form.
-*/
-static std::vector<uint8_t> hex2CBOR(std::string hex) {
-  int len = hex.length();
-  std::vector<uint8_t> buf(len/2+1);
-  for (int i=0;i<len/2;i++) {
-    buf.at(i) = (uint8_t) char2int(hex.at(i*2))*16+char2int(hex.at(1+i*2));
-  }
-  buf.pop_back(); //remove null terminator
-  return(buf);
+template<typename T, typename ...Args>
+std::unique_ptr<T> make_unique( Args&& ...args )
+{
+    return std::unique_ptr<T>( new T( std::forward<Args>(args)... ) );
 }
 
-/** Maps a CBOR byte vector to a hex string.
- *  @param b a CBOR byte vector to encode as hex digits.
- *  @return a string of hex digits encoding this byte vector.
-*/
-/*static std::string CBOR2hex(std::vector<uint8_t> b) {
-  int len = b.size();
-  std::stringstream ss;
-  for (int j=0; j<len; j++) {
-  int c = (int) b[j];
-  ss.put(alpha[(c>>4)&0xF]);
-  ss.put(alpha[c&0xF]);
-  }
-  return(ss.str());
-}*/
-
-class ArgsManager
+/**
+ * Timer. A simple timer class.
+ */
+class Timer
 {
 public:
-    void ParseParameters(int argc, const char*const argv[]);
-    void ReadConfigFile(const std::string& confPath);
+  Timer() { clock_gettime(CLOCK_REALTIME, &beg_); }
 
-    /**
-     * Return a vector of strings of the given argument
-     *
-     * @param strArg Argument to get (e.g. "-foo")
-     * @return command-line arguments
-     */
-    std::vector<std::string> GetArgs(const std::string& strArg) const;
+  double operator()() { return elapsed(); }
 
-    /**
-     * Return true if the given argument has been manually set
-     *
-     * @param strArg Argument to get (e.g. "-foo")
-     * @return true if the argument has been set
-     */
-    bool IsArgSet(const std::string& strArg) const;
+  double elapsed() {
+    clock_gettime(CLOCK_REALTIME, &end_);
+    return (end_.tv_sec - beg_.tv_sec)*1000 +
+      (end_.tv_nsec - beg_.tv_nsec) / 1000000.;
+  }
 
-    /**
-     * Return string argument or default value
-     *
-     * @param strArg Argument to get (e.g. "-foo")
-     * @param strDefault (e.g. "1")
-     * @return command-line argument or default value
-     */
-    std::string GetArg(const std::string& strArg, const std::string& strDefault) const;
+  void reset() { clock_gettime(CLOCK_REALTIME, &beg_); }
 
-    /**
-     * Return a file path argument or an empty string.
-     * Adds the relative path for this program if no path was specified in the map
-     *
-     * @param strArg Argument to get (e.g. "LOGFILE")
-     * @return file path config argument or an empty string
-     */
-    std::string GetPathArg(const std::string& strArg) const;
-
-    /**
-     * Return boolean argument or default value
-     *
-     * @param strArg Argument to get (e.g. "-foo")
-     * @param fDefault (true or false)
-     * @return command-line argument or default value
-     */
-    bool GetBoolArg(const std::string& strArg, bool fDefault) const;
-
-    /**
-     * Set an argument if it doesn't already have a value
-     *
-     * @param strArg Argument to set (e.g. "-foo")
-     * @param strValue Value (e.g. "1")
-     * @return true if argument gets set, false if it already had a value
-     */
-    bool SoftSetArg(const std::string& strArg, const std::string& strValue);
-
-    /**
-     * Set a boolean argument if it doesn't already have a value
-     *
-     * @param strArg Argument to set (e.g. "-foo")
-     * @param fValue Value (e.g. false)
-     * @return true if argument gets set, false if it already had a value
-     */
-    bool SoftSetBoolArg(const std::string& strArg, bool fValue);
-
-    // Forces an arg setting. Called by SoftSetArg() if the arg hasn't already
-    // been set. Also called directly in testing.
-    void ForceSetArg(const std::string& strArg, const std::string& strValue);
-
-protected:
-    std::map<std::string, std::string> mapArgs;
-    std::map<std::string, std::vector<std::string>> mapMultiArgs;
+private:
+  timespec beg_, end_;
 };
 
-extern ArgsManager gArgs;
+/**
+ * Threadpool. A simple ThreadPool class.
+ */
+class ThreadPool {
+
+public:
+
+  template<typename Index, typename Callable>
+  static void ParallelFor(Index start, Index end, Callable func, unsigned n_cpu_factor = 1) {
+    // Estimate number of threads in the pool
+    const static unsigned nb_threads_hint = unsigned (std::thread::hardware_concurrency()/n_cpu_factor);
+    const static unsigned nb_threads = (nb_threads_hint == 0u ? 8u : nb_threads_hint);
+
+    // Size of a slice for the range functions
+    Index n = end - start + 1;
+    Index slice = (Index) std::round(n / static_cast<double> (nb_threads));
+    slice = std::max(slice, Index(1));
+
+    // [Helper] Inner loop
+    auto launchRange = [&func] (int k1, int k2) {
+      for (Index k = k1; k < k2; k++) {
+        func(k);
+      }
+    };
+
+    // Create pool and launch jobs
+    std::vector<std::thread> pool;
+    pool.reserve(nb_threads);
+    Index i1 = start;
+    Index i2 = std::min(start + slice, end);
+    for (unsigned i = 0; i + 1 < nb_threads && i1 < end; ++i) {
+      pool.emplace_back(launchRange, i1, i2);
+      i1 = i2;
+      i2 = std::min(i2 + slice, end);
+    }
+    if (i1 < end) {
+      pool.emplace_back(launchRange, i1, end);
+    }
+
+    // Wait for jobs to finish
+    for (std::thread &t : pool) {
+      if (t.joinable()) {
+        t.join();
+      }
+    }
+  }
+
+  // Serial version for easy comparison
+  template<typename Index, typename Callable>
+  static void SequentialFor(Index start, Index end, Callable func) {
+    for (Index i = start; i < end; i++) {
+      func(i);
+    }
+  }
+
+};
 
 } //end namespace Devcash
 
 #endif // DEVCASH_UTIL_H
-

@@ -1,6 +1,6 @@
 #/bin/bash
 
-WORKON_HOME=/home/dcrunner/py_virtual_env
+WORKON_HOME=/opt/dcrunner/py_virtual_env
 VIRTUALENVWRAPPER_PYTHON=`which python3`
 
 mkdir -p ${WORKON_HOME}
@@ -20,4 +20,5 @@ pip install --upgrade \
     pillow \
     portpicker \
     scipy \
-    xmlrunner
+    xmlrunner\
+    zmq

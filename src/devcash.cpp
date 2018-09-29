@@ -1,93 +1,110 @@
-
 /*
  * devcash.cpp the main class.  Checks args and hands of to init.
  *
  *  Created on: Dec 8, 2017
  *  Author: Nick Williams
  */
-#if defined(HAVE_CONFIG_H)
-#include <DevcashConfig.h>
-#endif
 
 #include <stdlib.h>
 #include <stdio.h>
 #include <string>
 #include <iostream>
 #include <fstream>
+#include <functional>
+#include <thread>
 
-#include "init.h"
-#include "common/json.hpp"
-#include "common/logger.h"
+#include "common/argument_parser.h"
+#include "common/devcash_context.h"
+#include "concurrency/ValidatorController.h"
+#include "modules/BlockchainModule.h"
+#include "io/message_service.h"
+#include "modules/ParallelExecutor.h"
 
 using namespace Devcash;
-using json = nlohmann::json;
 
-ArgsManager dCashArgs; /** stores data parsed from config file */
+int main(int argc, char* argv[])
+{
 
-//toggle exceptions on/off
-#if (defined(__cpp_exceptions) || defined(__EXCEPTIONS) || defined(_CPPUNWIND)) && not defined(DEVCASH_NOEXCEPTION)
-    #define CASH_THROW(exception) throw exception
-    #define CASH_TRY try
-    #define CASH_CATCH(exception) catch(exception)
-#else
-    #define CASH_THROW(exception) std::abort()
-    #define CASH_TRY if(true)
-    #define CASH_CATCH(exception) if(false)
-#endif
+  try {
+    auto options = ParseDevcashOptions(argc, argv);
 
-typedef unsigned char byte;
-#define UNUSED(x) ((void)x)
-
-bool AppInit(int argc, char* argv[]) {
-  CASH_TRY {
-
-    std::string announce("Check DevCash logs at ");
-    announce += LOGFILE;
-    announce += "\n";
-    std::cout << announce;
-    LOG_INFO << "DevCash initializing...";
-
-    setWorkPath(argv[0]);
-
-    std::string mode("");
-    mode += argv[1];
-
-    if (mode != "mine" && mode != "scan") {
-      LOG_FATAL << "Invalid mode";
-      return(false);
+    if (!options) {
+      exit(-1);
     }
 
-    CASH_TRY {
-      dCashArgs.ReadConfigFile(argv[2]);
-    } CASH_CATCH (const std::exception& e) {
-      LOG_FATAL << "Error reading configuration file: " << e.what();
-      return false;
+    LoggerContext lg_context(options->syslog_host, options->syslog_port);
+
+    init_log(lg_context);
+
+    zmq::context_t zmq_context(1);
+
+    DevcashContext devcash_context(options->node_index
+                                , options->shard_index
+                                , options->mode
+                                , options->inn_keys
+                                , options->node_keys
+                                , options->key_pass
+                                , options->batch_size
+                                , options->max_wait);
+    KeyRing keys(devcash_context);
+    ChainState prior;
+
+    auto server = io::CreateTransactionServer(options->bind_endpoint, zmq_context);
+    auto peer_client = io::CreateTransactionClient(options->host_vector, zmq_context);
+
+
+    // Create loopback client to subscribe to simulator transactions
+    std::unique_ptr<io::TransactionClient> loopback_client(new io::TransactionClient(zmq_context));
+    auto be = options->bind_endpoint;
+    std::string this_uri = "";
+    try {
+      this_uri = "tcp://localhost" + be.substr(be.rfind(":"));
+    } catch (std::range_error& e) {
+      LOG_ERROR << "Extracting bind number failed: " << be;
+    }
+    loopback_client->addConnection(this_uri);
+
+
+    /**
+     * Chrome tracing setup
+     */
+    if (options->trace_file.empty()) {
+      LOG_FATAL << "Trace file is required.";
+      exit(-1);
+	}
+    mtr_init(options->trace_file.c_str());
+    mtr_register_sigint_handler();
+
+    MTR_META_PROCESS_NAME("minitrace_test");
+    MTR_META_THREAD_NAME("main thread");
+
+    MTR_BEGIN("main", "outer");
+
+    {
+      LOG_NOTICE << "Creating the BlockchainModule";
+      auto bcm = BlockchainModule::Create(*server, *peer_client, *loopback_client, keys, prior, options->mode, devcash_context, options->batch_size);
+      LOG_NOTICE << "Starting the BlockchainModule";
+
+      bcm->start();
+
+      for (;;) {
+        int i = 10;
+        LOG_DEBUG << "main loop: sleeping " << i;
+        sleep(i);
+      }
+      LOG_NOTICE << "Stopping the BlockchainModule";
     }
 
-    if (!AppInitBasicSetup(dCashArgs)) {
-      LOG_FATAL << "Basic setup failed";
-      return false;
-    }
-    if (!AppInitSanityChecks()) {
-      LOG_FATAL << "Sanity checks failed";
-      return false;
-    }
-    LOG_INFO << "Sanity checks passed";
+    LOG_NOTICE << "BlockchainModule is halted.";
 
-    std::string inRaw = ReadFile(argv[3]);
-    std::string out = AppInitMain(inRaw, mode);
-    std::ofstream outFile(dCashArgs.GetPathArg("OUTPUT"));
-    if (outFile.is_open()) {
-      outFile << out;
-      outFile.close();
-    } else {
-      LOG_FATAL << "Failed to open output.";
-      return(false);
-    }
+    MTR_END("main", "outer");
+    mtr_flush();
+    mtr_shutdown();
 
     LOG_INFO << "DevCash Shutting Down";
+
     return(true);
-  } CASH_CATCH (...) {
+  } catch (...) {
     std::exception_ptr p = std::current_exception();
     std::string err("");
     err += (p ? p.__cxa_exception_type()->name() : "null");
@@ -97,12 +114,14 @@ bool AppInit(int argc, char* argv[]) {
   }
 }
 
-int main(int argc, char* argv[])
-{
-  if (argc != 4) {
-    LOG_INFO << "Usage: DevCash mine|scan configfile input";
-    return(EXIT_FAILURE);
-  }
 
-  return(AppInit(argc, argv) ? EXIT_SUCCESS : EXIT_FAILURE);
-}
+/*
+    std::signal(SIGINT, signal_handler);
+    std::signal(SIGABRT, signal_handler);
+    std::signal(SIGTERM, signal_handler);
+    shutdown_handler = [&](int signal) {
+      LOG_INFO << "Received signal ("+std::to_string(signal)+").";
+      shutdown();
+    };
+ */
+

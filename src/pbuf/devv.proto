@@ -1,0 +1,77 @@
+syntax = "proto3";
+
+package Devv.proto;
+
+enum eOpType {
+  OP_CREATE = 0;
+  OP_MODIFY = 1;
+  OP_EXCHANGE = 2;
+  OP_DELETE = 3;
+  UNKNOWN = 99;
+}
+
+message Transfer {
+  bytes address = 1;
+  fixed64 coin = 2;
+  sfixed64 amount = 3;
+  fixed64 delay = 4;
+}
+
+// Tier2Transaction, assumed to be an Exchange TX (oper=2)
+message Transaction {
+  Devv.proto.eOpType operation = 1;
+  repeated Devv.proto.Transfer xfers = 2;
+  bytes nonce = 3;
+  bytes sig = 4;
+}
+
+message Proposal {
+  string oraclename = 1;
+  fixed64 data_size = 2;
+  bytes data = 3;
+}
+
+message Envelope {
+  repeated Devv.proto.Transaction txs = 4;
+  repeated Devv.proto.Proposal proposals = 5;
+}
+
+message FinalBlock {
+  uint32 version = 1;
+  fixed64 num_bytes = 2;
+  fixed64 block_time = 3;
+  bytes prev_hash = 4;
+  bytes merkle_root = 5;
+  fixed64 tx_size = 6;
+  fixed64 sum_size = 7;
+  uint32 val_count = 8;
+  repeated Devv.proto.Transaction txs = 9;
+  bytes summary = 10;
+  bytes vals = 11;
+}
+
+message PendingTransaction { 
+  bytes signature = 1; 
+  uint32 expect_block = 2; 
+  uint32 shard_index = 3; 
+}
+
+message AnnouncerResponse { 
+  uint32 return_code = 1; 
+  string message = 2;
+  repeated Devv.proto.PendingTransaction txs = 3; 
+}
+
+message RepeaterRequest {
+  int64 timestamp = 1;
+  uint32 operation = 2; 
+  string uri = 3;
+}
+
+message RepeaterResponse { 
+  int64 request_timestamp = 1;
+  uint32 operation = 2; 
+  uint32 return_code = 3; 
+  string message = 4; 
+  bytes raw_response = 5; 
+}

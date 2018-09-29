@@ -8,53 +8,72 @@
 #ifndef SRC_CONSENSUS_STATESTUB_H_
 #define SRC_CONSENSUS_STATESTUB_H_
 
-#include "../primitives/smartcoin.h"
 #include <map>
+#include <mutex>
+
+#include "primitives/SmartCoin.h"
 
 namespace Devcash
 {
 
-class DCState {
+class ChainState {
 public:
-  std::map<std::string, std::map<std::string, long>> stateMap_;
 
 /** Constructor */
-  DCState();
+  ChainState() noexcept = default;
+
+  /**
+   * Default copy constructor
+   *
+   * @param other
+   */
+  ChainState(const ChainState& other) = default;
+
+  /**
+   * Move constructor
+   * @param other
+   */
+  ChainState(ChainState&& other) noexcept = default;
+
+  ChainState& operator=(const ChainState&& other)
+  {
+    if (this != &other) {
+      this->state_map_ = other.state_map_;
+    }
+    return *this;
+  }
+
+  ChainState& operator=(const ChainState& other)
+  {
+    if (this != &other) {
+      this->state_map_ = other.state_map_;
+    }
+    return *this;
+  }
 
 /** Adds a coin to the state.
  *  @param reference to the coin to add
  *  @return true if the coin was added successfully
  *  @return false otherwise
 */
-  bool addCoin(SmartCoin& coin);
+  bool addCoin(const SmartCoin& coin);
 
 /** Gets the number of coins at a particular location.
  *  @param type the coin type to check
  *  @param the address to check
  *  @return the number of this type of coins at this address
 */
-  long getAmount(std::string type, std::string addr);
+  long getAmount(uint64_t type, const Address& addr) const;
 
-/** Moves a coin from one address to another
- *  @param start references where the coins will be removed
- *  @param end references where the coins will be added
- *  @return true if the coins were moved successfully
- *  @return false otherwise
+/** Get the map describing this chain state
+ *  @return tre map describing this chain state
 */
-  bool moveCoin(SmartCoin& start, SmartCoin& end);
+  std::map<Address, std::map<uint64_t, int64_t>> getStateMap() {
+    return state_map_;
+  }
 
-/** Deletes a coin from the state.
- *  @param reference to the coin to delete
- *  @return true if the coin was deleted successfully
- *  @return false otherwise
-*/
-  bool delCoin(SmartCoin& coin);
-
-/** Clears this chain state.
- *  @return true if the state cleared successfully
- *  @return false otherwise
-*/
-  bool clear();
+private:
+ std::map<Address, std::map<uint64_t, int64_t>> state_map_;
 };
 
 } //namespace Devcash

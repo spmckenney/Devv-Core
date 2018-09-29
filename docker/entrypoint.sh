@@ -7,8 +7,15 @@
 H_USER_ID=${USER_ID:-1002}
 H_GROUP_ID=${GROUP_ID:-1002}
 
-usermod -u $H_USER_ID dcrunner
-chown -R $H_USER_ID:$H_GROUP_ID /home/dcrunner
+echo "Changing ownership of /opt/dcrunner"
+chown_cmd="chown -R $H_USER_ID:$H_GROUP_ID /opt/dcrunner"
+
+sudo usermod -u $H_USER_ID dcrunner
+sudo ${chown_cmd}
 echo "Starting with UID:GID : $H_USER_ID:$H_GROUP_ID"
 
-/bin/bash
+if [ "$#" -eq 0 ]; then
+su dcrunner
+else
+sudo -H -u dcrunner -g dcrunner "$@"
+fi
