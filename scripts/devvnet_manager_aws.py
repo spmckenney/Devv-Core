@@ -6,30 +6,55 @@ import subprocess
 import time
 import boto3
 
+# Create a list of lists holding validator configs
 shard_validators = []
 # shard0 validators
 shard_validators.append([
-    {'host':'10.0.0.100', 'port':'55601'},
-    {'host':'10.0.0.101', 'port':'55601'},
-    {'host':'10.0.0.102', 'port':'55601'}])
+    {'host':'10.0.0.100', 'port':'50501'},
+    {'host':'10.0.0.101', 'port':'50501'},
+    {'host':'10.0.0.102', 'port':'50501'}])
 # shard1 validators
 shard_validators.append([
-    {'host':'10.0.1.100', 'port':'55601'},
-    {'host':'10.0.1.101', 'port':'55601'},
-    {'host':'10.0.1.102', 'port':'55601'}])
+    {'host':'10.0.1.100', 'port':'50511'},
+    {'host':'10.0.1.101', 'port':'50511'},
+    {'host':'10.0.1.102', 'port':'50511'}])
 # shard2 validators
 shard_validators.append([
-    {'host':'10.0.2.100', 'port':'55601'},
-    {'host':'10.0.2.101', 'port':'55601'},
-    {'host':'10.0.2.102', 'port':'55601'}])
+    {'host':'10.0.2.100', 'port':'50521'},
+    {'host':'10.0.2.101', 'port':'50521'},
+    {'host':'10.0.2.102', 'port':'50521'}])
 
+# Create a list of lists holding announcers
 shard_announcers = []
 # shard0 announcers
-shard_announcers.append([{'host':'10.0.0.10', 'port':'55602'}])
+shard_announcers.append([{'host':'10.0.0.10', 'port':'50502', 'protobuf-port':'50503'}])
 # shard1 announcers
-shard_announcers.append([{'host':'10.0.1.10', 'port':'55602'}])
+shard_announcers.append([{'host':'10.0.1.10', 'port':'50502', 'protobuf-port':'50503'}])
 # shard2 announcers
-shard_announcers.append([{'host':'10.0.2.10', 'port':'55602'}])
+shard_announcers.append([{'host':'10.0.2.10', 'port':'50502', 'protobuf-port':'50503'}])
+
+# Create a list of lists holding repeaters
+shard_repeaters = []
+# shard0 repeaters
+shard_repeaters.append([{'host':'10.0.0.20', 'port':'50504'}])
+# shard1 repeaters
+shard_repeaters.append([{'host':'10.0.1.20', 'port':'50504'}])
+# shard2 repeaters
+shard_repeaters.append([{'host':'10.0.2.20', 'port':'50504'}])
+
+
+def stop_task(aws, cluster, ip_address):
+    ret = aws._ec2.describe_instances(Filters=[{'Name':'network-interface.addresses.private-ip-address','Values':[ip_address]}])
+    ec2_instance_id = ret['Reservations'][0]['Instances'][0]['InstanceId']
+
+    ret = aws._ecs.list_container_instances(cluster=cluster, filter='ec2InstanceId == {}'.format(ec2_instance_id))
+    container_instance = ret['containerInstanceArns'][0]
+    ret = aws._ecs.list_tasks(cluster=cluster, containerInstance=container_instance)
+
+    task = ret['taskArns'][0]
+    ret = aws._ecs.stop_task(cluster=cluster, task=task)
+
+    return ret
 
 
 class ECSTask(object):
@@ -45,13 +70,78 @@ class ECSTask(object):
         self._host_list = []
         self._shard_index = shard_index
         self._node_index = node_index
+
+    def start_announcer(self):
+        self._task_ip_address = "10.0."+str(self._shard_index)+".10"
+        self._container_instance = self._aws.get_container_instance_by_ip(self._task_ip_address)
+
+        self._devv_bind_port = shard_announcers[self._shard_index][self._node_index]['port']
+        self._devv_protobuf_port = shard_announcers[self._shard_index][self._node_index]['protobuf-port']
+
+        task_role_arn = "arn:aws:iam:"+self._aws.get_iam_account()+":role/"+self._execution_role
+
+        override_dict = {}
+        override_dict['name'] = self._docker_image_name
+
+        command = ["pb_announcer",
+                   "--shard-index", str(self._shard_index),
+		   "--node-index", str(self._node_index),
+		   "--config", "/etc/devv/validator.conf",
+		   "--config", "/etc/devv/default_pass.conf",
+                   "--separate-ops", "true",
+                   "--start-delay", str(5),
+		   "--bind-endpoint", "tcp://*:{}".format(self._devv_bind_port),
+                   "--protobuf-endpoint", "tcp://*:{}".format(self._devv_protobuf_port)]
+
+        print("   Command: ", *command)
+        override_dict['command'] = command
+        or_param = {'containerOverrides':[override_dict]}
+        print(or_param)
+        ret = self._aws.get_ecs().start_task(cluster=self._aws.get_cluster(),
+                                             taskDefinition=self._task_definition,
+                                             overrides=or_param,
+                                             containerInstances=[self._container_instance])
+        return ret
+
+    def start_repeater(self):
+        self._task_ip_address = "10.0."+str(self._shard_index)+".20"
+        self._container_instance = self._aws.get_container_instance_by_ip(self._task_ip_address)
+
+        for v in shard_validators[self._shard_index]:
+            self.add_host(v['host'], v['port'])
+
+        task_role_arn = "arn:aws:iam:"+self._aws.get_iam_account()+":role/"+self._execution_role
+
+        override_dict = {}
+        override_dict['name'] = self._docker_image_name
+
+        command = ["repeater",
+                   "--shard-index", str(self._shard_index),
+		   "--node-index", str(self._node_index),
+		   "--config", "/etc/devv/validator.conf",
+		   "--config", "/etc/devv/default_pass.conf",
+                   "--working-dir", "/efs/devv/shard-{}".format(self._shard_index)]
+
+        for uri in self._host_list:
+            command.extend(["--host-list", "tcp://"+uri['host']+":"+uri['port']])
+
+        print("   Command: ", *command)
+        override_dict['command'] = command
+        or_param = {'containerOverrides':[override_dict]}
+        print(or_param)
+        ret = self._aws.get_ecs().start_task(cluster=self._aws.get_cluster(),
+                                             taskDefinition=self._task_definition,
+                                             overrides=or_param,
+                                             containerInstances=[self._container_instance])
+        return ret
+
+    def start_validator(self):
         self._task_ip_address = "10.0."+str(self._shard_index)+"."+str(100+self._node_index)
         self._container_instance = self._aws.get_container_instance_by_ip(self._task_ip_address)
-        
-    def start_task(self):
-        self._add_hosts()
 
-        task_role_arn = "arn:aws:iam:"+self._aws.get_iam_account()+":role/"+self._task_role
+        self._add_hosts()
+        print(self._host_list)
+
         task_role_arn = "arn:aws:iam:"+self._aws.get_iam_account()+":role/"+self._execution_role
         
         override_dict = {}
@@ -62,10 +152,12 @@ class ECSTask(object):
 		   "--node-index", str(self._node_index),
 		   "--config", "/etc/devv/validator.conf",
 		   "--config", "/etc/devv/default_pass.conf",
-		   "--bind-endpoint", "tcp://*:55601"]
+		   "--bind-endpoint", "tcp://*:{}".format(self._devv_port)]
+
         for uri in self._host_list:
             command.extend(["--host-list", "tcp://"+uri['host']+":"+uri['port']])
 
+        print("   Command: ", *command)
         override_dict['command'] = command
         or_param = {'containerOverrides':[override_dict]}
         print(or_param)
@@ -79,10 +171,13 @@ class ECSTask(object):
         self._host_list.append(dict(host=ip_addr, port=str(port)))
 
     def _add_hosts(self):
-        hosts = shard_validators[self._shard_index]
+        hosts = []
+        hosts.extend(shard_validators[self._shard_index])
         hosts.extend(shard_announcers[self._shard_index])
         for v in hosts:
             if v['host'] == self._task_ip_address:
+                # Set the port and skip adding this host to host list
+                self._devv_port = v['port']
                 continue
             self.add_host(v['host'], v['port'])
 
@@ -637,7 +732,7 @@ if __name__ == '__main__':
     print("hostname: " + str(args.hostname))
     print("devvnet: " + args.devvnet)
 
-    print(validator_json_string)
+    #print(validator_json_string)
     
     devvnet = get_devvnet(args.devvnet)
     d = Devvnet(devvnet)
