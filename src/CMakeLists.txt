@@ -45,9 +45,7 @@ find_package(Protobuf REQUIRED)
 include_directories(${PROTOBUF_INCLUDE_DIR})
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS pbuf/devv.proto)
-#protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS EXPORT_MACRO DLL_EXPORT foo.proto)
 protobuf_generate_python(PROTO_PY pbuf/devv.proto)
-#add_executable(bar bar.cc ${PROTO_SRCS} ${PROTO_HDRS})
 
 # Dummy target that triggers python protobuf generation
 add_custom_target(myTarget ALL DEPENDS ${PROTO_PY})
@@ -61,7 +59,7 @@ foreach (_headerFile ${dcHeaders})
 endforeach()
 list(REMOVE_DUPLICATES dcInclude)
 
-#Protobuf generated library
+# Protobuf generated library
 ADD_LIBRARY(devvpbuf devv.pb.h devv.pb.cc)
 set_source_files_properties(devv.pb.h devv.pb.cc PROPERTIES GENERATED TRUE)
 
@@ -100,9 +98,10 @@ add_library(primitives
   )
 
 # Add BlockchainModule.cpp
-add_library(devcash_node modules/BlockchainModule.cpp)
+add_library(modules modules/BlockchainModule.cpp)
+add_dependencies(modules devvpbuf)
 
-set(devcash_core_libs devcash_node common concurrency consensus io primitives devvpbuf)
+set(devcash_core_libs modules common concurrency consensus io primitives devvpbuf)
 
 option(WITH_THREAD_TESTING "Enable thread testing" OFF)
 
