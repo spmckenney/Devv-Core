@@ -1,5 +1,7 @@
 FROM ubuntu:16.04
 
+ARG dcrunner_home=/opt/dcrunner
+
 # System packages
 RUN apt-get update && apt-get install -y \
     aptitude \
@@ -97,8 +99,8 @@ RUN apt-get install -y \
 RUN apt-get clean autoclean
 
 RUN groupadd --gid 1002 dcrunner
-RUN useradd -d /opt/dcrunner --uid 1002 -m --gid 1002 dcrunner
-COPY bashrc /opt/dcrunner/.bashrc
+RUN useradd -d ${dcrunner_home} --uid 1002 -m --gid 1002 dcrunner
+COPY bashrc ${dcrunner_home}/.bashrc
 RUN echo "dcrunner ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
 
 # Python3 virtualenvwrapper
@@ -117,9 +119,9 @@ RUN /bin/bash -c "/tmp/install_protobuf_v3.sh"
 COPY install_googletest.sh /tmp/install_googletest.sh
 RUN /tmp/install_googletest.sh
 
-COPY setup_virtualenv.sh /opt/dcrunner
+COPY setup_virtualenv.sh ${dcrunner_home}
 
-WORKDIR /opt/dcrunner
+WORKDIR ${dcrunner_home}
 
 # Back to user root
 USER root

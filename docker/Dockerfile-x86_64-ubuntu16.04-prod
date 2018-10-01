@@ -1,0 +1,24 @@
+ARG version=v005
+ARG dcrunner_home=/opt/dcrunner
+
+FROM devvio-x86_64-ubuntu16.04-dev:${version}
+
+# Copy key
+RUN mkdir -p ${DCRUNNER_HOME}/.ssh
+COPY id_rsa.bitbucket ${dcrunner_home}/.ssh/
+RUN chmod 600 ${dcrunner_home}/.ssh/id_rsa.bitbucket
+
+# Copy ssh config to disable HostKeyChecking
+COPY ssh_config ${dcrunner_home}/.ssh/config
+RUN chmod 644 ${dcrunner_home}/.ssh/config
+
+RUN chown -R dcrunner:dcrunner ${dcrunner_home}/.ssh
+
+USER dcrunner
+
+COPY install_devcash.sh /tmp/
+RUN /bin/bash -c "/tmp/install_devcash.sh DEV-175-create-a-dockerfile-and-image-th"
+
+# Clean up private stuff
+RUN rm -f ${dcrunner_home}/.ssh/id_rsa.bitbucket
+RUN rm -rf ${dcrunner_home}/src/devcash-core
