@@ -42,7 +42,7 @@ void Tier2Transaction::QuickFill(Tier2Transaction& tx,
   }
 
   size_t tx_size = buffer.offsetAt(kTRANSFER_OFFSET+tx.xfer_size_+tx.nonce_size_)
-                   +kTRANSFER_OFFSET+tx.xfer_size_+tx.nonce_size_;
+                   +kTRANSFER_OFFSET+tx.xfer_size_+tx.nonce_size_+1;
 
   if (buffer.size() < buffer.getOffset() + tx_size) {
     std::stringstream ss;
@@ -93,7 +93,7 @@ void Tier2Transaction::Fill(Tier2Transaction& tx,
   }
 
   size_t tx_size = buffer.offsetAt(kTRANSFER_OFFSET+tx.xfer_size_+tx.nonce_size_)
-                   +kTRANSFER_OFFSET+tx.xfer_size_+tx.nonce_size_;
+                   +kTRANSFER_OFFSET+tx.xfer_size_+tx.nonce_size_+1;
 
   if (buffer.size() < buffer.getOffset() + tx_size) {
     std::stringstream ss;
