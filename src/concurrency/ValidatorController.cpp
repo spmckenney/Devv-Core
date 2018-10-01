@@ -14,7 +14,6 @@
 #include <ctime>
 #include <boost/filesystem.hpp>
 
-#include "DevvWorker.h"
 #include "common/devv_exceptions.h"
 #include "common/logger.h"
 #include "io/message_service.h"
