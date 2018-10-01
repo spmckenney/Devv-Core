@@ -192,7 +192,7 @@ install (TARGETS devv-psql DESTINATION bin)
 #
 # circuit-gen
 #
-add_executable(circuit-gen circuit.cpp ${dcInclude})
+add_executable(circuit-gen circuit-gen.cpp ${dcInclude})
 target_link_libraries (circuit-gen ${devv_all_libs})
 target_include_directories(circuit-gen PRIVATE ${dcInclude})
 install (TARGETS circuit-gen DESTINATION bin)

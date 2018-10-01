@@ -212,7 +212,7 @@ install (TARGETS devv-psql DESTINATION bin)
 #
 # circuit-gen
 #
-add_executable(circuit-gen circuit.cpp ${dcInclude})
+add_executable(circuit-gen circuit-gen.cpp ${dcInclude})
 target_link_libraries (circuit-gen ${devv_all_libs})
 target_include_directories(circuit-gen PRIVATE ${dcInclude})
 install (TARGETS circuit-gen DESTINATION bin)
@@ -240,86 +240,6 @@ add_executable(devv-verify devv-verify.cpp ${dcInclude})
 target_link_libraries (devv-verify ${devv_all_libs})
 target_include_directories(devv-verify PRIVATE ${dcInclude})
 install (TARGETS devv-verify DESTINATION bin)
-
-#
-# Chain state Tests
-#
-add_executable(circuit circuit.cpp ${dcInclude})
-target_link_libraries (circuit
-        ${devv_core_libs}
-        ${ZMQ}
-        ${CMAKE_THREAD_LIBS_INIT}
-        ${OPENSSL_LIBRARIES}
-        ${Boost_LIBRARIES}
-        )
-target_include_directories(circuit PRIVATE ${dcInclude})
-install (TARGETS circuit DESTINATION bin)
-
-add_executable(laminar laminar.cpp ${dcInclude})
-target_link_libraries (laminar
-  ${devv_core_libs}
-  ${ZMQ}
-  )
-
-if (OPENSSL_FOUND)
-  include_directories(${OPENSSL_INCLUDE_DIR})
-  target_link_libraries (laminar ${OPENSSL_LIBRARIES})
-endif (OPENSSL_FOUND)
-
-target_link_libraries(laminar ${CMAKE_THREAD_LIBS_INIT})
-
-if(Boost_FOUND)
-  include_directories(${Boost_INCLUDE_DIRS})
-  target_link_libraries(laminar ${Boost_LIBRARIES})
-endif(Boost_FOUND)
-
-target_include_directories(laminar PRIVATE ${dcInclude})
-
-install (TARGETS laminar DESTINATION bin)
-
-add_executable(turbulent turbulent.cpp ${dcInclude})
-target_link_libraries (turbulent
-  ${devv_core_libs}
-  ${ZMQ}
-  )
-
-if (OPENSSL_FOUND)
-  include_directories(${OPENSSL_INCLUDE_DIR})
-  target_link_libraries (turbulent ${OPENSSL_LIBRARIES})
-endif (OPENSSL_FOUND)
-
-target_link_libraries(turbulent ${CMAKE_THREAD_LIBS_INIT})
-
-if(Boost_FOUND)
-  include_directories(${Boost_INCLUDE_DIRS})
-  target_link_libraries(turbulent ${Boost_LIBRARIES})
-endif(Boost_FOUND)
-
-target_include_directories(turbulent PRIVATE ${dcInclude})
-
-install (TARGETS turbulent DESTINATION bin)
-
-add_executable(verifier verifier.cpp ${dcInclude})
-target_link_libraries (verifier
-  ${devv_core_libs}
-  ${ZMQ}
-  )
-
-if (OPENSSL_FOUND)
-  include_directories(${OPENSSL_INCLUDE_DIR})
-  target_link_libraries (verifier ${OPENSSL_LIBRARIES})
-endif (OPENSSL_FOUND)
-
-target_link_libraries(verifier ${CMAKE_THREAD_LIBS_INIT})
-
-if(Boost_FOUND)
-  include_directories(${Boost_INCLUDE_DIRS})
-  target_link_libraries(verifier ${Boost_LIBRARIES})
-endif(Boost_FOUND)
-
-target_include_directories(verifier PRIVATE ${dcInclude})
-
-install (TARGETS verifier DESTINATION bin)
 
 #
 # i/o Tests
