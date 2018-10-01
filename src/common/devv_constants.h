@@ -1,12 +1,12 @@
 /*
- * devcash_constants.h
+ * devv_constants.h
  *
  *  Created on: 6/22/18
  *      Author: mckenney
  */
 #pragma once
 
-namespace Devcash {
+namespace Devv {
 
 static const unsigned int kDEFAULT_WORKERS = 8;
 
@@ -57,4 +57,4 @@ static const size_t kMIN_NONCE_SIZE = 8;
 static const size_t kUINT64_SIZE = 8;
 static const size_t kTRANSFER_NONADDR_DATA_SIZE = kUINT64_SIZE*3;
 
-} // namespace Devcash
+} // namespace Devv

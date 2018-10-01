@@ -6,7 +6,7 @@
  */
 #pragma once
 
-namespace Devcash {
+namespace Devv {
 
 class ModuleInterface {
  public:
@@ -35,4 +35,4 @@ class ModuleInterface {
   virtual void start() = 0;
 };
 
-} // namespace Devcash
+} // namespace Devv

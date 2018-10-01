@@ -19,8 +19,8 @@
  *
  */
 
-#ifndef DEVCASH_PRIMITIVES_TRANSACTION_H
-#define DEVCASH_PRIMITIVES_TRANSACTION_H
+#ifndef DEVV_PRIMITIVES_TRANSACTION_H
+#define DEVV_PRIMITIVES_TRANSACTION_H
 
 #include <cstdint>
 #include <string>
@@ -29,15 +29,15 @@
 #include "Summary.h"
 #include "Transfer.h"
 #include "Validation.h"
-#include "common/devcash_constants.h"
+#include "common/devv_constants.h"
 #include "primitives/buffers.h"
 
 #include "consensus/KeyRing.h"
 #include "consensus/chainstate.h"
 
-using namespace Devcash;
+using namespace Devv;
 
-namespace Devcash {
+namespace Devv {
 
 /**
  * The Transaction Abstract Base Class
@@ -243,6 +243,6 @@ class Transaction {
 
 typedef std::unique_ptr<Transaction> TransactionPtr;
 
-}  // end namespace Devcash
+}  // end namespace Devv
 
-#endif  // DEVCASH_PRIMITIVES_TRANSACTION_H
+#endif  // DEVV_PRIMITIVES_TRANSACTION_H

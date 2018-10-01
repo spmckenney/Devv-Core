@@ -14,8 +14,8 @@
 #include <ctime>
 #include <boost/filesystem.hpp>
 
-#include "DevcashWorker.h"
-#include "common/devcash_exceptions.h"
+#include "DevvWorker.h"
+#include "common/devv_exceptions.h"
 #include "common/logger.h"
 #include "io/message_service.h"
 #include "consensus/KeyRing.h"
@@ -27,14 +27,14 @@ typedef std::chrono::milliseconds millisecs;
 
 namespace fs = boost::filesystem;
 
-namespace Devcash {
+namespace Devv {
 
 #define DEBUG_TRANSACTION_INDEX \
   (processed + (context_.get_current_node()+1)*11000000)
 
 ValidatorController::ValidatorController(
     const KeyRing& keys,
-    DevcashContext& context,
+    DevvContext& context,
     const ChainState&,
     Blockchain& final_chain,
     UnrecordedTransactionPool& utx_pool,
@@ -53,18 +53,18 @@ ValidatorController::~ValidatorController() {
   LOG_DEBUG << "~ValidatorController()";
 }
 
-void ValidatorController::validatorCallback(DevcashMessageUniquePtr ptr) {
+void ValidatorController::validatorCallback(DevvMessageUniquePtr ptr) {
   LOG_DEBUG << "ValidatorController::validatorCallback()";
   std::lock_guard<std::mutex> guard(mutex_);
   if (ptr == nullptr) {
-    throw DevcashMessageError("validatorCallback(): ptr == nullptr, ignoring");
+    throw DevvMessageError("validatorCallback(): ptr == nullptr, ignoring");
   }
-  LogDevcashMessageSummary(*ptr, "validatorCallback");
+  LogDevvMessageSummary(*ptr, "validatorCallback");
 
   LOG_DEBUG << "ValidatorController::validatorCallback()";
   MTR_SCOPE_FUNC();
   if (ptr->message_type == TRANSACTION_ANNOUNCEMENT) {
-    DevcashMessage msg(*ptr.get());
+    DevvMessage msg(*ptr.get());
     utx_pool_.AddTransactions(msg.data, keys_);
     size_t block_height = final_chain_.size();
     if (block_height%context_.get_peer_count() == context_.get_current_node()%context_.get_peer_count()) {
@@ -73,13 +73,13 @@ void ValidatorController::validatorCallback(DevcashMessageUniquePtr ptr) {
         std::vector<byte> proposal = CreateNextProposal(keys_,final_chain_,utx_pool_,context_);
         if (!ProposedBlock::isNullProposal(proposal)) {
           // Create message
-           auto propose_msg = std::make_unique<DevcashMessage>(context_.get_shard_uri()
+           auto propose_msg = std::make_unique<DevvMessage>(context_.get_shard_uri()
 	                                        , PROPOSAL_BLOCK
 	                                        , proposal
 	                                        , ((block_height+1)
 	                                        + (context_.get_current_node()+1)*1000000));
           // FIXME (spm): define index value somewhere
-          LogDevcashMessageSummary(*propose_msg, "CreateNextProposal");
+          LogDevvMessageSummary(*propose_msg, "CreateNextProposal");
           outgoing_callback_(std::move(propose_msg));
         }
       }
@@ -88,8 +88,8 @@ void ValidatorController::validatorCallback(DevcashMessageUniquePtr ptr) {
             " (" << context_.get_current_node()%context_.get_peer_count() << ")";
     }
   } else {
-    throw DevcashMessageError("Wrong message type arrived: " + std::to_string(ptr->message_type));
+    throw DevvMessageError("Wrong message type arrived: " + std::to_string(ptr->message_type));
   }
 }
 
-} //end namespace Devcash
+} //end namespace Devv

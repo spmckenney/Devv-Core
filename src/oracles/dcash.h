@@ -16,7 +16,7 @@
 #include "common/logger.h"
 #include "consensus/blockchain.h"
 
-using namespace Devcash;
+using namespace Devv;
 
 class dcash : public oracleInterface {
 

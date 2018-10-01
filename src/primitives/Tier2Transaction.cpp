@@ -5,9 +5,9 @@
  *      Author: Shawn McKenney
  */
 #include "primitives/Tier2Transaction.h"
-#include "common/devcash_exceptions.h"
+#include "common/devv_exceptions.h"
 
-namespace Devcash {
+namespace Devv {
 
 void Tier2Transaction::QuickFill(Tier2Transaction& tx,
                     InputBuffer &buffer) {
@@ -141,4 +141,4 @@ Tier2TransactionPtr Tier2Transaction::CreateUniquePtr(InputBuffer& buffer,
   return tx;
 }
 
-} // namespace Devcash
+} // namespace Devv

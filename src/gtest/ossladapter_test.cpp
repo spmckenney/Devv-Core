@@ -11,7 +11,7 @@
 
 namespace {
 
-using namespace Devcash;
+using namespace Devv;
 
 #define TEST_DESCRIPTION(desc) RecordProperty("OpenSSL interface unit tests", desc)
 

@@ -26,5 +26,5 @@ node_num = int(sys.argv[1])
 
 node=1
 
-ss = "./devcash --node-index "+str(node)+\
+ss = "./devv --node-index "+str(node)+\
      " --debug-mode

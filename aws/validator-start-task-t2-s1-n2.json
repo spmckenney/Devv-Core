@@ -6,7 +6,7 @@
 	    {
 		"name": "devv-bin-full-validator",
 		"command": [
-		    "devcash",
+		    "devv",
 		    "--shard-index", "1",
 		    "--node-index", "2",
 		    "--config", "/etc/devv/validator.conf",

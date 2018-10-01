@@ -26,9 +26,9 @@
 #include <stdint.h>
 #include <algorithm>
 
-#include "common/devcash_constants.h"
+#include "common/devv_constants.h"
 
-namespace Devcash {
+namespace Devv {
 
 class Address {
  public:
@@ -187,6 +187,6 @@ class Address {
   std::vector<byte> canonical_{0};
 };
 
-}  // end namespace Devcash
+}  // end namespace Devv
 
 #endif /* PRIMITIVES_SIGNATURE_H_ */

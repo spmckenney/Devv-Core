@@ -13,10 +13,10 @@
 
 #include "primitives/Summary.h"
 
-namespace Devcash
+namespace Devv
 {
 
-using namespace Devcash;
+using namespace Devv;
 
 bool ChainState::addCoin(const SmartCoin& coin) {
   bool no_error = true;
@@ -42,4 +42,4 @@ long ChainState::getAmount(uint64_t type, const Address& addr) const {
   return(0);
 }
 
-} //end namespace Devcash
+} //end namespace Devv

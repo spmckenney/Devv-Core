@@ -4,8 +4,8 @@
  *  Created on: 8/6/18
  *      Author: mckenney
  */
-#ifndef DEVCASH_DEVV_PBUF_H
-#define DEVCASH_DEVV_PBUF_H
+#ifndef DEVV_PBUF_H
+#define DEVV_PBUF_H
 
 #include <vector>
 #include <exception>
@@ -24,7 +24,7 @@
 
 #include "devv.pb.h"
 
-namespace Devcash {
+namespace Devv {
 
 struct Proposal {
   std::string oracle_name;
@@ -371,6 +371,6 @@ Devv::proto::Envelope SerializeEnvelopeFromBinaryTransactions(const std::vector<
   return envelope;
 }
 
-} // namespace Devcash
+} // namespace Devv
 
-#endif //DEVCASH_DEVV_PBUF_H
+#endif //DEVV_PBUF_H

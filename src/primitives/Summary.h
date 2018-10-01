@@ -22,7 +22,7 @@
 #include "primitives/buffers.h"
 #include "Transfer.h"
 
-namespace Devcash {
+namespace Devv {
 
 /**
  * Holds the change and delay of a coin
@@ -377,6 +377,6 @@ inline Summary Summary::Copy(const Summary& summary) {
   return new_summary;
 }
 
-}  // end namespace Devcash
+}  // end namespace Devv
 
 #endif /* PRIMITIVES_SUMMARY_H_ */

@@ -17,7 +17,7 @@
 
 //TODO: the election creates the vote tokens by giving them to the voters
 
-using namespace Devcash;
+using namespace Devv;
 
 class vote : public oracleInterface {
 

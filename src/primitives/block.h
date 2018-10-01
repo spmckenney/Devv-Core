@@ -8,12 +8,12 @@
 
 #include <cstdint>
 
-#include "common/devcash_types.h"
+#include "common/devv_types.h"
 #include "primitives/Summary.h"
 #include "primitives/Transaction.h"
 #include "primitives/Validation.h"
 
-namespace Devcash {
+namespace Devv {
 
 /**
  * Holds block-related data
@@ -41,4 +41,4 @@ struct block_info {
   ChainState block_state;
 };
 
-} // namespace Devcash
+} // namespace Devv

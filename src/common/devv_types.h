@@ -1,5 +1,5 @@
 /*
- * types/devcash_types.h
+ * types/devv_types.h
  *
  *  Created on: Jun 6, 2018
  *      Author: Shawn McKenney
@@ -10,7 +10,7 @@
 #include <cstdlib>
 #include <array>
 
-namespace Devcash {
+namespace Devv {
 
 typedef unsigned char byte;
 
@@ -25,4 +25,4 @@ enum eAppMode {
   scan = 2
 };
 
-} // namespace Devcash
+} // namespace Devv

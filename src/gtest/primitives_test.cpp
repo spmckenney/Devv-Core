@@ -264,8 +264,8 @@ class AddressTest : public ::testing::Test {
  */
  class SummaryTest : public ::testing::Test {
  protected:
-  SummaryTest() : t1_context_0_(0, 0, Devcash::eAppMode::T1, "", "", "")
-      , addr_0_(Devcash::Hex2Bin(t1_context_0_.kADDRs[0]))
+  SummaryTest() : t1_context_0_(0, 0, Devv::eAppMode::T1, "", "", "")
+      , addr_0_(Devv::Hex2Bin(t1_context_0_.kADDRs[0]))
   {
   }
 
@@ -282,10 +282,10 @@ class AddressTest : public ::testing::Test {
   }
 
   // Create a default context
-  Devcash::DevcashContext t1_context_0_;
+  Devv::DevvContext t1_context_0_;
 
   // create a default address
-  Devcash::Address addr_0_;
+  Devv::Address addr_0_;
 };
 
 TEST_F(SummaryTest, checkMinSize) {
@@ -297,12 +297,12 @@ TEST_F(SummaryTest, defaultConstructor) {
   Summary s = Summary::Create();
 
   size_t zero = 0;
-  std::vector<Devcash::byte> canon(Summary::MinSize(), '\0');
+  std::vector<Devv::byte> canon(Summary::MinSize(), '\0');
   EXPECT_EQ(s.getCanonical(), canon);
   EXPECT_EQ(s.getByteSize(), Summary::MinSize());
   EXPECT_EQ(s.getTransferCount(), zero);
   EXPECT_EQ(s.getTransfers().size(), zero);
-  Devcash::Address addr;
+  Devv::Address addr;
   EXPECT_EQ(s.getCoinsByAddr(addr, zero).size(), zero);
   EXPECT_FALSE(s.isSane());
 }
@@ -439,8 +439,8 @@ TEST_F(SummaryTest, addItem_6) {
  */
 class TransferTest : public ::testing::Test {
  protected:
-  TransferTest() : t1_context_0_(0, 0, Devcash::eAppMode::T1, "", "", "")
-      , addr_0_(Devcash::Hex2Bin(t1_context_0_.kADDRs[0]))
+  TransferTest() : t1_context_0_(0, 0, Devv::eAppMode::T1, "", "", "")
+      , addr_0_(Devv::Hex2Bin(t1_context_0_.kADDRs[0]))
   {
   }
 
@@ -463,38 +463,38 @@ class TransferTest : public ::testing::Test {
   // Objects declared here can be used by all tests in the test case for Foo.
 
   // Create a default context
-  Devcash::DevcashContext t1_context_0_;
+  Devv::DevvContext t1_context_0_;
 
   // create a default address
-  Devcash::Address addr_0_;
+  Devv::Address addr_0_;
 };
 
 TEST_F(TransferTest, getJSONIdentity) {
-  Devcash::Transfer test_transfer(addr_0_, 0, 1, 0);
+  Devv::Transfer test_transfer(addr_0_, 0, 1, 0);
   InputBuffer buffer(test_transfer.getCanonical());
-  Devcash::Transfer identity(buffer);
+  Devv::Transfer identity(buffer);
 
   EXPECT_EQ(test_transfer.getJSON(), identity.getJSON());
 }
 
 TEST_F(TransferTest, getCanonicalIdentity) {
-  Devcash::Transfer test_transfer(addr_0_, 0, 1, 0);
+  Devv::Transfer test_transfer(addr_0_, 0, 1, 0);
   InputBuffer buffer(test_transfer.getCanonical());
-  Devcash::Transfer identity(buffer);
+  Devv::Transfer identity(buffer);
 
   EXPECT_EQ(test_transfer.getCanonical(), identity.getCanonical());
 }
 
 TEST_F(TransferTest, getAddress_0) {
-  std::vector<Devcash::byte> tmp(33, 'A');
+  std::vector<Devv::byte> tmp(33, 'A');
   Address a(tmp);
-  Devcash::Transfer test0(a, 0, 1, 0);
+  Devv::Transfer test0(a, 0, 1, 0);
   EXPECT_EQ(test0.getAddress(), a);
 }
 
 TEST_F(TransferTest, getAddress_1) {
-  Devcash::Transfer test0(addr_0_, 0, 1, 0);
-  std::vector<Devcash::byte> tmp(Devcash::Hex2Bin(t1_context_0_.kADDRs[0]));
+  Devv::Transfer test0(addr_0_, 0, 1, 0);
+  std::vector<Devv::byte> tmp(Devv::Hex2Bin(t1_context_0_.kADDRs[0]));
   Address a(tmp);
   EXPECT_EQ(test0.getAddress(), a);
 }
@@ -518,20 +518,20 @@ TEST(address, constructor_1) {
 // Exception - wrong size input
 /*
  * TEST_F(TransferTest, getAddress_2) {
-  Devcash::Transfer test0(addr_0_, 0, 1, 0);
-  std::vector<Devcash::byte> tmp(Devcash::Hex2Bin(""));
+  Devv::Transfer test0(addr_0_, 0, 1, 0);
+  std::vector<Devv::byte> tmp(Devv::Hex2Bin(""));
   std::vector<byte> bin_addr(addr_0_.getCanonical());
-  std::copy_n(tmp.begin(), Devcash::kWALLET_ADDR_SIZE, bin_addr.begin());
+  std::copy_n(tmp.begin(), Devv::kWALLET_ADDR_SIZE, bin_addr.begin());
   EXPECT_THROW(Address a(tmp), std::runtime_error);
 }
 */
 
 TEST(ossl, SignBinary_0) {
   // Create a default context
-  Devcash::DevcashContext context(0, 0, Devcash::eAppMode::T1, "", "", "password");
+  Devv::DevvContext context(0, 0, Devv::eAppMode::T1, "", "", "password");
 
   // keys
-  Devcash::KeyRing keys(context);
+  Devv::KeyRing keys(context);
 
   for (int i = 0; i < 4; ++i) {
     keys.addWalletKeyPair(context.kADDRs.at(i), context.kADDR_KEYs.at(i), "password");
@@ -550,7 +550,7 @@ TEST(ossl, SignBinary_0) {
   summary.addItem(w, (uint64_t) 12, (int64_t) 47);
   std::vector<byte> msg = summary.getCanonical();
   auto k = keys.getKey(a);
-  auto h = DevcashHash(msg);
+  auto h = DevvHash(msg);
   auto s1 = SignBinary(k, h);
   EXPECT_EQ(s1.size(), 106);
 }
@@ -566,7 +566,7 @@ class Tier1TransactionTest : public ::testing::Test {
   // is empty.
 
   Tier1TransactionTest()
-      : t1_context_0_(0, 0, Devcash::eAppMode::T1, "", "", "")
+      : t1_context_0_(0, 0, Devv::eAppMode::T1, "", "", "")
       , keys_(t1_context_0_)
   {
     for (int i = 0; i < 4; ++i) {
@@ -597,17 +597,17 @@ class Tier1TransactionTest : public ::testing::Test {
   // Objects declared here can be used by all tests in the test case for Foo.
 
   // Create a default context
-  Devcash::DevcashContext t1_context_0_;
+  Devv::DevvContext t1_context_0_;
 
   // keys
-  Devcash::KeyRing keys_;
+  Devv::KeyRing keys_;
 };
 
 TEST_F(Tier1TransactionTest, defaultConstructor) {
   size_t zero = 0;
-  Devcash::Tier1Transaction transaction = Tier1Transaction::Create();
+  Devv::Tier1Transaction transaction = Tier1Transaction::Create();
 
-  // @todo (mckenney) should be Devcash::Tier1Transaction::MinSize()?
+  // @todo (mckenney) should be Devv::Tier1Transaction::MinSize()?
   EXPECT_EQ(transaction.getByteSize(), zero);
 }
 
@@ -631,7 +631,7 @@ Tier1Transaction CreateTestT1_1(const KeyRing& keys) {
   summary.addItem(a, (uint64_t) 12, (int64_t) -47);
   summary.addItem(w, (uint64_t) 12, (int64_t) 47);
   std::vector<byte> msg = summary.getCanonical();
-  auto s = SignBinary(keys.getKey(a), DevcashHash(msg));
+  auto s = SignBinary(keys.getKey(a), DevvHash(msg));
   Tier1Transaction tx1(summary, s, a, keys);
   InputBuffer ib(tx1.getCanonical());
   Tier1Transaction c = Tier1Transaction::Create(ib, keys, true);
@@ -648,7 +648,7 @@ Tier1TransactionPtr CreateTestT1_2(const KeyRing& keys) {
   summary.addItem(w, (uint64_t) 12, (int64_t) 47);
   std::vector<byte> msg = summary.getCanonical();
   auto k = keys.getKey(a);
-  auto h = DevcashHash(msg);
+  auto h = DevvHash(msg);
   auto s = SignBinary(k, h);
   auto s2 = SignBinary(k, h);
   Tier1Transaction tx1(summary, s, a, keys);
@@ -692,7 +692,7 @@ Tier1TransactionPtr CreateTestT1_3(const KeyRing& keys) {
   sum_test.addTransfer(receiver);
 
   auto node_sig = SignBinary(keys.getNodeKey(0),
-      DevcashHash(sum_test.getCanonical()));
+      DevvHash(sum_test.getCanonical()));
 
   Validation val_test = Validation::Create();
   val_test.addValidation(keys.getNodeAddr(0), SignSummary(sum_test, keys));
@@ -752,7 +752,7 @@ TEST_F(Tier1TransactionTest, DISABLED_getJSON_0) {
 
   /*
    * Summary sum_test = Summary::Create();
-  //Devcash::Tier1Transaction identity(sum_test,
+  //Devv::Tier1Transaction identity(sum_test,
                                      t2_tx1.getSignature(),
                                      node_index,
                                      keys);
@@ -763,8 +763,8 @@ TEST_F(Tier1TransactionTest, DISABLED_getJSON_0) {
 
 /*
 TEST_F(Tier1TransactionTest, getCanonicalIdentity) {
-  Devcash::Transfer test_transfer(addr_0_, 0, 1, 0);
-  Devcash::Transfer identity(test_transfer.getCanonical());
+  Devv::Transfer test_transfer(addr_0_, 0, 1, 0);
+  Devv::Transfer identity(test_transfer.getCanonical());
 
   EXPECT_EQ(test_transfer.getCanonical(), identity.getCanonical());
 }
@@ -784,7 +784,7 @@ class Tier2TransactionTest : public ::testing::Test {
   Tier2TransactionTest()
       : t1_context_0_(node_,
                       shard_,
-                      Devcash::eAppMode::T1,
+                      Devv::eAppMode::T1,
                       "", // "../opt/inn.key"
                       "", //"../opt/node.key"
                       "password")
@@ -801,9 +801,9 @@ class Tier2TransactionTest : public ::testing::Test {
       keys_.addNodeKeyPair(t1_context_0_.kNODE_ADDRs.at(i), t1_context_0_.kNODE_KEYs.at(i), "password");
     }
 
-    Devcash::Transfer transfer1(keys_.getWalletAddr(0), 0, -10, 0);
+    Devv::Transfer transfer1(keys_.getWalletAddr(0), 0, -10, 0);
     transfers_.push_back(transfer1);
-    Devcash::Transfer transfer2(keys_.getWalletAddr(1), 0, 10, 0);
+    Devv::Transfer transfer2(keys_.getWalletAddr(1), 0, 10, 0);
     transfers_.push_back(transfer2);
   }
 
@@ -828,13 +828,13 @@ class Tier2TransactionTest : public ::testing::Test {
   unsigned int shard_ = 2;
 
   // Create a default context
-  Devcash::DevcashContext t1_context_0_;
+  Devv::DevvContext t1_context_0_;
 
   // default Transfer list
-  std::vector<Devcash::Transfer> transfers_;
+  std::vector<Devv::Transfer> transfers_;
 
   // keys
-  Devcash::KeyRing keys_;
+  Devv::KeyRing keys_;
 };
 
 TEST_F(Tier2TransactionTest, createInnTx_0) {
@@ -1062,9 +1062,9 @@ TEST_F(Tier2TransactionTest, serdes_1) {
 }
 
 TEST(Primitives, getCanonical0) {
-  DevcashContext this_context(1,
+  DevvContext this_context(1,
                       1,
-                      Devcash::eAppMode::T1,
+                      Devv::eAppMode::T1,
                       "",
                       "",
                       "password");

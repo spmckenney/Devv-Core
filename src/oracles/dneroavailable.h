@@ -15,7 +15,7 @@
 #include "common/logger.h"
 #include "consensus/chainstate.h"
 
-using namespace Devcash;
+using namespace Devv;
 
 class dneroavailable : public oracleInterface {
 

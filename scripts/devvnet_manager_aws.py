@@ -103,7 +103,7 @@ class ECSTask(object):
                                              containerInstances=[self._container_instance])
         return ret
 
-    def start_repeater(self):
+    def start_devv_query(self):
         self._task_ip_address = "10.0."+str(self._shard_index)+".20"
         self._container_instance = self._aws.get_container_instance_by_ip(self._task_ip_address)
 
@@ -115,7 +115,7 @@ class ECSTask(object):
         override_dict = {}
         override_dict['name'] = self._docker_image_name
 
-        command = ["repeater",
+        command = ["devv-query",
                    "--shard-index", str(self._shard_index),
 		   "--node-index", str(self._node_index),
 		   "--config", "/etc/devv/validator.conf",
@@ -147,7 +147,7 @@ class ECSTask(object):
         override_dict = {}
         override_dict['name'] = self._docker_image_name
         
-        command = ["devcash",
+        command = ["devv",
                    "--shard-index", str(self._shard_index),
 		   "--node-index", str(self._node_index),
 		   "--config", "/etc/devv/validator.conf",
@@ -662,10 +662,10 @@ def get_nodes(yml_dict, host_index_map):
 
 
 def run_validator(node):
-    # ./devcash --node-index 0 --config ../opt/basic_shard.conf --config ../opt/default_pass.conf --host-list tcp://localhost:56551 --host-list tcp://localhost:56552 --host-list tcp://localhost:57550 --bind-endpoint tcp://*:56550
+    # ./devv --node-index 0 --config ../opt/basic_shard.conf --config ../opt/default_pass.conf --host-list tcp://localhost:56551 --host-list tcp://localhost:56552 --host-list tcp://localhost:57550 --bind-endpoint tcp://*:56550
 
     cmd = []
-    cmd.append("./devcash")
+    cmd.append("./devv")
     cmd.extend(["--shard-index", str(node.get_shard_index())])
     cmd.extend(["--node-index", str(node.get_index())])
     cmd.extend(["--num-consensus-threads", "1"])
@@ -680,10 +680,10 @@ def run_validator(node):
 
 
 def run_announcer(node):
-    # ./announcer --node-index 0 --shard-index 1 --mode T2 --stop-file /tmp/stop-devcash-announcer.ctl --inn-keys ../opt/inn.key --node-keys ../opt/node.key --bind-endpoint 'tcp://*:50020' --working-dir ../../tmp/working/input/laminar4/ --key-pass password --separate-ops true
+    # ./devv-announcer --node-index 0 --shard-index 1 --mode T2 --stop-file /tmp/stop-devv-announcer.ctl --inn-keys ../opt/inn.key --node-keys ../opt/node.key --bind-endpoint 'tcp://*:50020' --working-dir ../../tmp/working/input/laminar4/ --key-pass password --separate-ops true
 
     cmd = []
-    cmd.append("./pb_announcer")
+    cmd.append("./devv-announcer")
     cmd.extend(["--shard-index", str(node.get_shard_index())])
     cmd.extend(["--node-index", str(node.get_index())])
     cmd.extend(["--config", node.get_config_file()])
@@ -697,11 +697,11 @@ def run_announcer(node):
     return cmd
 
 
-def run_repeater(node):
-    # ./repeater --node-index 0 --shard-index 1 --mode T2 --stop-file /tmp/stop-devcash-repeater.ctl --inn-keys ../opt/inn.key --node-keys ../opt/node.key --working-dir ../../tmp/working/output/repeater --host-list tcp://localhost:56550 --key-pass password
+def run_devv_query(node):
+    # ./devv-query --node-index 0 --shard-index 1 --mode T2 --stop-file /tmp/stop-devv-query.ctl --inn-keys ../opt/inn.key --node-keys ../opt/node.key --working-dir ../../tmp/working/output/repeater --host-list tcp://localhost:56550 --key-pass password
 
     cmd = []
-    cmd.append("./repeater")
+    cmd.append("./devv-query")
     cmd.extend(["--shard-index", str(node.get_shard_index())])
     cmd.extend(["--node-index", str(node.get_index())])
     cmd.extend(["--num-consensus-threads", "1"])
@@ -747,7 +747,7 @@ if __name__ == '__main__':
             if n.get_name() == 'validator':
                 cmds.append(run_validator(n))
             elif n.get_name() == 'repeater':
-                cmds.append(run_repeater(n))
+                cmds.append(run_devv_query(n))
             elif n.get_name() == 'announcer':
                 cmds.append(run_announcer(n))
             logfiles.append(os.path.join(args.logdir,

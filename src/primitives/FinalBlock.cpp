@@ -5,9 +5,9 @@
  *      Author: Shawn McKenney
  */
 #include "primitives/FinalBlock.h"
-#include "common/devcash_exceptions.h"
+#include "common/devv_exceptions.h"
 
-namespace Devcash {
+namespace Devv {
 
 FinalBlock FinalBlock::Create(InputBuffer &buffer, const ChainState &prior) {
   FinalBlock block(prior);
@@ -41,4 +41,4 @@ FinalBlock FinalBlock::Create(InputBuffer &buffer, const ChainState &prior) {
   return block;
 }
 
-} // namespace Devcash
+} // namespace Devv

@@ -9,7 +9,7 @@
 #include "primitives/FinalBlock.h"
 #include "consensus/blockchain.h"
 
-namespace Devcash {
+namespace Devv {
 
 /**
  *
