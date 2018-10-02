@@ -119,5 +119,6 @@ reset=$(tput sgr0)
 PS1='\[$red\]\u\[$reset\]@\[$green\]\h\[$reset\]:\[$blue\]\w\[$reset\]\$ '
 
 source ${HOME}/setup_virtualenv.sh
+export PATH=${HOME}/local/bin:${PATH}
 
 workon dc-dev
