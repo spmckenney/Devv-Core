@@ -22,4 +22,6 @@ RUN /bin/bash -c "/tmp/install_devcash.sh DEV-175-create-a-dockerfile-and-image-
 RUN rm -f /opt/dcrunner/.ssh/id_rsa.bitbucket
 RUN rm -rf /opt/dcrunner/src/devcash-core
 
+ENV PATH="/opt/dcrunner/local/bin:${PATH}"
+
 ENTRYPOINT []
