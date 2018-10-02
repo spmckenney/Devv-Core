@@ -60,8 +60,8 @@ def stop_task(aws, cluster, ip_address):
 class ECSTask(object):
     _task_role = "ecsTaskExecutionRole"
     _execution_role = "ecsTaskExecutionRole"
-    _task_name = "devv-validator-00"
-    _docker_image_name = "devv-bin-full-validator"
+    _task_name = "devvio-node"
+    _docker_image_name = "devvio-prod"
     _region = "us-east-2"
 
     def __init__(self, aws, shard_index, node_index):
@@ -86,8 +86,8 @@ class ECSTask(object):
         command = ["pb_announcer",
                    "--shard-index", str(self._shard_index),
 		   "--node-index", str(self._node_index),
-		   "--config", "/etc/devv/validator.conf",
-		   "--config", "/etc/devv/default_pass.conf",
+		   "--config", "/efs/devv/shard-1/etc/validator.conf",
+		   "--config", "/efs/devv/shard-1/etc/default_pass.conf",
                    "--separate-ops", "true",
                    "--start-delay", str(5),
 		   "--bind-endpoint", "tcp://*:{}".format(self._devv_bind_port),
@@ -118,8 +118,8 @@ class ECSTask(object):
         command = ["repeater",
                    "--shard-index", str(self._shard_index),
 		   "--node-index", str(self._node_index),
-		   "--config", "/etc/devv/validator.conf",
-		   "--config", "/etc/devv/default_pass.conf",
+		   "--config", "/efs/devv/shard-1/etc/validator.conf",
+		   "--config", "/efs/devv/shard-1/etc/default_pass.conf",
                    "--working-dir", "/efs/devv/shard-{}".format(self._shard_index)]
 
         for uri in self._host_list:
@@ -150,8 +150,8 @@ class ECSTask(object):
         command = ["devcash",
                    "--shard-index", str(self._shard_index),
 		   "--node-index", str(self._node_index),
-		   "--config", "/etc/devv/validator.conf",
-		   "--config", "/etc/devv/default_pass.conf",
+		   "--config", "/efs/devv/shard-1/etc/validator.conf",
+		   "--config", "/efs/devv/shard-1/etc/default_pass.conf",
 		   "--bind-endpoint", "tcp://*:{}".format(self._devv_port)]
 
         for uri in self._host_list:
