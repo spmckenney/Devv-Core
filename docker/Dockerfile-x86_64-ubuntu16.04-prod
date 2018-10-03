@@ -1,7 +1,6 @@
 ARG version=v005
-ARG branch=stable
-
 FROM devvio-x86_64-ubuntu16.04-dev:${version}
+ARG branch=stable
 
 # Copy key
 RUN mkdir -p /opt/dcrunner/.ssh
