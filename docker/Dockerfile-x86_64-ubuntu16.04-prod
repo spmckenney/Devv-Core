@@ -1,4 +1,5 @@
 ARG version=v005
+ARG branch=stable
 
 FROM devvio-x86_64-ubuntu16.04-dev:${version}
 
@@ -15,8 +16,8 @@ RUN chown -R dcrunner:dcrunner /opt/dcrunner/.ssh
 
 USER dcrunner
 
-COPY install_devcash.sh /tmp/
-RUN /bin/bash -c "/tmp/install_devcash.sh DEV-175-create-a-dockerfile-and-image-th"
+COPY install_devvio.sh /tmp/
+RUN /bin/bash -c "/tmp/install_devvio.sh ${branch}"
 
 # Clean up private stuff
 RUN rm -f /opt/dcrunner/.ssh/id_rsa.bitbucket
