@@ -27,11 +27,11 @@ class ChainStateTest : public ::testing::Test {
                                    "", "", "")
   , keys_(t1_context_0_) {
     for (int i = 0; i < 4; ++i) {
-      keys_.addWalletKeyPair(t1_context_0_.kADDRs.at(i), t1_context_0_.kADDR_KEYs.at(i), "password");
+      keys_.addWalletKeyPair(kADDRs.at(i), kADDR_KEYs.at(i), "password");
     }
-    keys_.setInnKeyPair(t1_context_0_.kINN_ADDR, t1_context_0_.kINN_KEY, "password");
+    keys_.setInnKeyPair(kINN_ADDR, kINN_KEY, "password");
     for (int i = 0; i < 3; ++i) {
-      keys_.addNodeKeyPair(t1_context_0_.kNODE_ADDRs.at(i), t1_context_0_.kNODE_KEYs.at(i), "password");
+      keys_.addNodeKeyPair(kNODE_ADDRs.at(i), kNODE_KEYs.at(i), "password");
     }
   }
 

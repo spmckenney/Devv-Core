@@ -220,8 +220,8 @@ void BlockchainModule::performSanityChecks()
   std::vector<byte> msg = {'h', 'e', 'l', 'l', 'o'};
   Hash test_hash(DevvHash(msg));
 
-  EC_KEY *loadkey = LoadEcKey(app_context_.kADDRs[1],
-                              app_context_.kADDR_KEYs[1],
+  EC_KEY *loadkey = LoadEcKey(kADDRs[1],
+                              kADDR_KEYs[1],
                               "password");
 
   Signature sig = SignBinary(loadkey, test_hash);

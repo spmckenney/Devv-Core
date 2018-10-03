@@ -34,14 +34,10 @@ typedef std::chrono::milliseconds millisecs;
 /**
  * Holds command-line options
  */
-struct repeater_options {
+struct psql_options {
   std::vector<std::string> host_vector{};
   eAppMode mode = eAppMode::T1;
-  unsigned int node_index = 0;
   unsigned int shard_index = 0;
-  std::string inn_keys;
-  std::string node_keys;
-  std::string key_pass;
   std::string stop_file;
   eDebugMode debug_mode = eDebugMode::off;
 
@@ -75,23 +71,19 @@ static const std::string kSHARD_SELECT_STATEMENT = "select shard_id from shard w
  * @param argv
  * @return
  */
-std::unique_ptr<struct repeater_options> ParseRepeaterOptions(int argc, char** argv);
+std::unique_ptr<struct psql_options> ParsePsqlOptions(int argc, char** argv);
 
 int main(int argc, char* argv[]) {
   init_log();
 
   try {
-    auto options = ParseRepeaterOptions(argc, argv);
+    auto options = ParsePsqlOptions(argc, argv);
 
     if (!options) {
       exit(-1);
     }
 
     zmq::context_t zmq_context(1);
-
-    DevvContext this_context(options->node_index, options->shard_index, options->mode, options->inn_keys,
-                                options->node_keys, options->key_pass);
-    KeyRing keys(this_context);
 
     MTR_SCOPE_FUNC();
 
@@ -100,26 +92,33 @@ int main(int argc, char* argv[]) {
     bool db_connected = false;
     std::unique_ptr<pqxx::connection> db_link = nullptr;
     if ((options->db_host.size() > 0) && (options->db_user.size() > 0)) {
-      db_link = std::make_unique<pqxx::connection>(
-          "username=" + options->db_user + \
-          " host=" + options->db_host + \
-          " password=" + options->db_pass + \
-          " dbname=" + options->db_name + \
-          " port=" + std::to_string(options->db_port));
-      if (db_link->is_open()) {
-        LOG_INFO << "Successfully connected to database.";
-        db_connected = true;
-        db_link->prepare(kTX_INSERT, kTX_INSERT_STATEMENT);
-        db_link->prepare(kRX_INSERT, kRX_INSERT_STATEMENT);
-        db_link->prepare(kWALLET_INSERT, kWALLET_INSERT_STATEMENT);
-        db_link->prepare(kBALANCE_SELECT, kBALANCE_SELECT_STATEMENT);
-        db_link->prepare(kBALANCE_INSERT, kBALANCE_INSERT_STATEMENT);
-        db_link->prepare(kBALANCE_UPDATE, kBALANCE_UPDATE_STATEMENT);
-      } else {
-        LOG_INFO << "Database connection failed.";
+      const std::string db_params("dbname = "+options->db_name +
+          " user = "+options->db_user+
+          " password = "+options->db_pass +
+          " hostaddr = "+options->db_host +
+          " port = "+std::to_string(options->db_port));
+      LOG_NOTICE << "Using db connection params: "+db_params;
+      try {
+        //throws an exception if the connection failes
+        db_link = std::make_unique<pqxx::connection>(db_params);
+      } catch (const std::exception& e) {
+        LOG_FATAL << FormatException(&e, "Database connection failed: "
+          + db_params);
+        throw;
       }
+      //comments in pqxx say to resist the urge to immediately call
+      //db_link->is_open(), if there was no exception above the
+      //connection should be established
+      LOG_INFO << "Successfully connected to database.";
+      db_connected = true;
+      db_link->prepare(kTX_INSERT, kTX_INSERT_STATEMENT);
+      db_link->prepare(kRX_INSERT, kRX_INSERT_STATEMENT);
+      db_link->prepare(kWALLET_INSERT, kWALLET_INSERT_STATEMENT);
+      db_link->prepare(kBALANCE_SELECT, kBALANCE_SELECT_STATEMENT);
+      db_link->prepare(kBALANCE_INSERT, kBALANCE_INSERT_STATEMENT);
+      db_link->prepare(kBALANCE_UPDATE, kBALANCE_UPDATE_STATEMENT);
     } else {
-      LOG_INFO << "Database host and user not set, setting db_connected = false";
+      LOG_FATAL << "Database host and user not set!";
     }
 
     //@todo(nick@cloudsolar.co): read pre-existing chain
@@ -135,7 +134,9 @@ int main(int argc, char* argv[]) {
           KeyRing keys;
           FinalBlock one_block(buffer, priori, keys, options->mode);
           std::vector<TransactionPtr> txs = one_block.CopyTransactions();
+
           for (TransactionPtr& one_tx : txs) {
+
             pqxx::work stmt(*db_link);
             std::vector<TransferPtr> xfers = one_tx->getTransfers();
             std::string sig_str(one_tx->getSignature().getCanonical().begin()
@@ -143,7 +144,9 @@ int main(int argc, char* argv[]) {
             std::string sender_str;
             uint64_t coin_id = 0;
             int64_t send_amount = 0;
+
             for (TransferPtr& one_xfer : xfers) {
+
               if (one_xfer->getAmount() < 0) {
                 std::string temp(one_xfer->getAddress().getCanonical().begin()
                                , one_xfer->getAddress().getCanonical().end());
@@ -151,35 +154,40 @@ int main(int argc, char* argv[]) {
                 coin_id = one_xfer->getCoin();
                 send_amount = one_xfer->getAmount();
                 break;
-			  }
-			} //end sender search loop
+              }
+            } //end sender search loop
 
-			//update sender
-			pqxx::result balance_result = stmt.prepared(kBALANCE_SELECT)(sender_str)(coin_id).exec();
-			if (balance_result.empty()) {
+            //update sender balance
+            pqxx::result balance_result = stmt.prepared(kBALANCE_SELECT)(sender_str)(coin_id).exec();
+            if (balance_result.empty()) {
               stmt.prepared(kBALANCE_INSERT)(sender_str)(coin_id)(kNIL_UUID_PSQL)(send_amount)(chain_height).exec();
-			} else {
+            } else {
               int64_t new_balance = balance_result[0][0].as<int64_t>()-send_amount;
               stmt.prepared(kBALANCE_UPDATE)(new_balance)(sender_str)(coin_id)(chain_height).exec();
-			}
-			stmt.prepared(kTX_INSERT)(sig_str)(options->shard_index)(chain_height)(sender_str)(coin_id)(send_amount).exec();
+            }
+            stmt.prepared(kTX_INSERT)(sig_str)(options->shard_index)(chain_height)(sender_str)(coin_id)(send_amount).exec();
             for (TransferPtr& one_xfer : xfers) {
-			  int64_t amount = one_xfer->getAmount();
+              int64_t amount = one_xfer->getAmount();
+              uint64_t delay = one_xfer->getDelay();
+              //not a receiver
               if (amount < 0) continue;
-              //update receiver
+              //there's a delay
+              //@todo(nick@devv.io) handle delayed settlements, tx in pending_tx
+              if (delay > 0) continue;
+              //update receiver balance
               std::string receiver_str(one_xfer->getAddress().getCanonical().begin()
-                                     , one_xfer->getAddress().getCanonical().end());
+                , one_xfer->getAddress().getCanonical().end());
               pqxx::work rx_stmt(*db_link);
-              pqxx::result rx_balance = stmt.prepared(kBALANCE_SELECT)(receiver_str)(coin_id).exec();
+              pqxx::result rx_balance = rx_stmt.prepared(kBALANCE_SELECT)(receiver_str)(coin_id).exec();
               if (rx_balance.empty()) {
                 stmt.prepared(kBALANCE_INSERT)(receiver_str)(coin_id)(kNIL_UUID_PSQL)(amount).exec();
               } else {
                 int64_t new_balance = balance_result[0][0].as<int64_t>()+amount;
                 stmt.prepared(kBALANCE_UPDATE)(new_balance)(receiver_str)(coin_id).exec();
-			  }
-			  stmt.prepared(kRX_INSERT)(options->shard_index)(chain_height)(receiver_str)(coin_id)(send_amount)(sig_str).exec();
-			} //end transfer loop
-			stmt.commit();
+              }
+              stmt.prepared(kRX_INSERT)(options->shard_index)(chain_height)(receiver_str)(coin_id)(send_amount)(sig_str).exec();
+            } //end transfer loop
+	    stmt.commit();
           } //end transaction loop
         } else { //endif db connected?
           throw std::runtime_error("Database is not connected!");
@@ -187,17 +195,17 @@ int main(int argc, char* argv[]) {
         chain_height++;
       }
     });
-    peer_listener->listenTo(this_context.get_shard_uri());
+    peer_listener->listenTo(get_shard_uri(options->shard_index));
     peer_listener->startClient();
-    LOG_INFO << "Database repeater is listening to shard: "+this_context.get_shard_uri();
+    LOG_INFO << "devv-psql is listening to shard: "+get_shard_uri(options->shard_index);
 
     auto ms = kMAIN_WAIT_INTERVAL;
     while (true) {
-      LOG_DEBUG << "Database repeater sleeping for " << ms;
+      LOG_DEBUG << "devv-psql sleeping for " << ms;
       std::this_thread::sleep_for(millisecs(ms));
       /* Should we shutdown? */
       if (fs::exists(options->stop_file)) {
-        LOG_INFO << "Shutdown file exists. Stopping database repeater...";
+        LOG_INFO << "Shutdown file exists. Stopping devv-psql...";
         break;
       }
     }
@@ -216,11 +224,11 @@ int main(int argc, char* argv[]) {
 }
 
 
-std::unique_ptr<struct repeater_options> ParseRepeaterOptions(int argc, char** argv) {
+std::unique_ptr<struct psql_options> ParsePsqlOptions(int argc, char** argv) {
 
   namespace po = boost::program_options;
 
-  std::unique_ptr<repeater_options> options(new repeater_options());
+  std::unique_ptr<psql_options> options(new psql_options());
   std::vector<std::string> config_filenames;
 
   try {
@@ -238,15 +246,11 @@ Listens for FinalBlock messages and updates a database\n\
     behavior.add_options()
         ("debug-mode", po::value<std::string>(), "Debug mode (on|toy|perf) for testing")
         ("mode", po::value<std::string>(), "Devv mode (T1|T2|scan)")
-        ("node-index", po::value<unsigned int>(), "Index of this node")
         ("shard-index", po::value<unsigned int>(), "Index of this shard")
         ("num-consensus-threads", po::value<unsigned int>(), "Number of consensus threads")
         ("num-validator-threads", po::value<unsigned int>(), "Number of validation threads")
         ("host-list,host", po::value<std::vector<std::string>>(),
          "Client URI (i.e. tcp://192.168.10.1:5005). Option can be repeated to connect to multiple nodes.")
-        ("inn-keys", po::value<std::string>(), "Path to INN key file")
-        ("node-keys", po::value<std::string>(), "Path to Node key file")
-        ("key-pass", po::value<std::string>(), "Password for private keys")
         ("stop-file", po::value<std::string>(), "A file indicating that this process should stop.")
         ("update-host", po::value<std::string>(), "Host of database to update.")
         ("update-db", po::value<std::string>(), "Database name to update.")
@@ -319,13 +323,6 @@ Listens for FinalBlock messages and updates a database\n\
       LOG_INFO << "debug_mode was not set.";
     }
 
-    if (vm.count("node-index")) {
-      options->node_index = vm["node-index"].as<unsigned int>();
-      LOG_INFO << "Node index: " << options->node_index;
-    } else {
-      LOG_INFO << "Node index was not set.";
-    }
-
     if (vm.count("shard-index")) {
       options->shard_index = vm["shard-index"].as<unsigned int>();
       LOG_INFO << "Shard index: " << options->shard_index;
@@ -339,27 +336,6 @@ Listens for FinalBlock messages and updates a database\n\
       for (auto i : options->host_vector) {
         LOG_INFO << "  " << i;
       }
-    }
-
-    if (vm.count("inn-keys")) {
-      options->inn_keys = vm["inn-keys"].as<std::string>();
-      LOG_INFO << "INN keys file: " << options->inn_keys;
-    } else {
-      LOG_INFO << "INN keys file was not set.";
-    }
-
-    if (vm.count("node-keys")) {
-      options->node_keys = vm["node-keys"].as<std::string>();
-      LOG_INFO << "Node keys file: " << options->node_keys;
-    } else {
-      LOG_INFO << "Node keys file was not set.";
-    }
-
-    if (vm.count("key-pass")) {
-      options->key_pass = vm["key-pass"].as<std::string>();
-      LOG_INFO << "Key pass: " << options->key_pass;
-    } else {
-      LOG_INFO << "Key pass was not set.";
     }
 
     if (vm.count("stop-file")) {

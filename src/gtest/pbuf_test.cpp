@@ -36,13 +36,13 @@ class PbufTransactionTest : public ::testing::Test {
                       "", //"../opt/node.key"
                       "password"), transfers_(), keys_(t1_context_0_) {
     for (int i = 0; i < 4; ++i) {
-      keys_.addWalletKeyPair(t1_context_0_.kADDRs[i], t1_context_0_.kADDR_KEYs[i], "password");
+      keys_.addWalletKeyPair(kADDRs[i], kADDR_KEYs[i], "password");
     }
 
-    keys_.setInnKeyPair(t1_context_0_.kINN_ADDR, t1_context_0_.kINN_KEY, "password");
+    keys_.setInnKeyPair(kINN_ADDR, kINN_KEY, "password");
 
     for (int i = 0; i < 3; ++i) {
-      keys_.addNodeKeyPair(t1_context_0_.kNODE_ADDRs.at(i), t1_context_0_.kNODE_KEYs.at(i), "password");
+      keys_.addNodeKeyPair(kNODE_ADDRs.at(i), kNODE_KEYs.at(i), "password");
     }
 
     Devv::Transfer transfer1(keys_.getWalletAddr(0), 0, -10, 0);

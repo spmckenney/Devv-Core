@@ -265,7 +265,7 @@ class AddressTest : public ::testing::Test {
  class SummaryTest : public ::testing::Test {
  protected:
   SummaryTest() : t1_context_0_(0, 0, Devv::eAppMode::T1, "", "", "")
-      , addr_0_(Devv::Hex2Bin(t1_context_0_.kADDRs[0]))
+      , addr_0_(Devv::Hex2Bin(kADDRs[0]))
   {
   }
 
@@ -440,7 +440,7 @@ TEST_F(SummaryTest, addItem_6) {
 class TransferTest : public ::testing::Test {
  protected:
   TransferTest() : t1_context_0_(0, 0, Devv::eAppMode::T1, "", "", "")
-      , addr_0_(Devv::Hex2Bin(t1_context_0_.kADDRs[0]))
+      , addr_0_(Devv::Hex2Bin(kADDRs[0]))
   {
   }
 
@@ -494,7 +494,7 @@ TEST_F(TransferTest, getAddress_0) {
 
 TEST_F(TransferTest, getAddress_1) {
   Devv::Transfer test0(addr_0_, 0, 1, 0);
-  std::vector<Devv::byte> tmp(Devv::Hex2Bin(t1_context_0_.kADDRs[0]));
+  std::vector<Devv::byte> tmp(Devv::Hex2Bin(kADDRs[0]));
   Address a(tmp);
   EXPECT_EQ(test0.getAddress(), a);
 }
@@ -534,13 +534,13 @@ TEST(ossl, SignBinary_0) {
   Devv::KeyRing keys(context);
 
   for (int i = 0; i < 4; ++i) {
-    keys.addWalletKeyPair(context.kADDRs.at(i), context.kADDR_KEYs.at(i), "password");
+    keys.addWalletKeyPair(kADDRs.at(i), kADDR_KEYs.at(i), "password");
   }
 
-  keys.setInnKeyPair(context.kINN_ADDR, context.kINN_KEY, "password");
+  keys.setInnKeyPair(kINN_ADDR, kINN_KEY, "password");
 
   for (int i = 0; i < 3; ++i) {
-    keys.addNodeKeyPair(context.kNODE_ADDRs.at(i), context.kNODE_KEYs.at(i), "password");
+    keys.addNodeKeyPair(kNODE_ADDRs.at(i), kNODE_KEYs.at(i), "password");
   }
 
   Summary summary = Summary::Create();
@@ -570,11 +570,11 @@ class Tier1TransactionTest : public ::testing::Test {
       , keys_(t1_context_0_)
   {
     for (int i = 0; i < 4; ++i) {
-      keys_.addWalletKeyPair(t1_context_0_.kADDRs.at(i), t1_context_0_.kADDR_KEYs.at(i), "password");
+      keys_.addWalletKeyPair(kADDRs.at(i), kADDR_KEYs.at(i), "password");
     }
-    keys_.setInnKeyPair(t1_context_0_.kINN_ADDR, t1_context_0_.kINN_KEY, "password");
+    keys_.setInnKeyPair(kINN_ADDR, kINN_KEY, "password");
     for (int i = 0; i < 3; ++i) {
-      keys_.addNodeKeyPair(t1_context_0_.kNODE_ADDRs.at(i), t1_context_0_.kNODE_KEYs.at(i), "password");
+      keys_.addNodeKeyPair(kNODE_ADDRs.at(i), kNODE_KEYs.at(i), "password");
     }
   }
 
@@ -792,13 +792,13 @@ class Tier2TransactionTest : public ::testing::Test {
       , keys_(t1_context_0_)
   {
     for (int i = 0; i < 4; ++i) {
-      keys_.addWalletKeyPair(t1_context_0_.kADDRs[i], t1_context_0_.kADDR_KEYs[i], "password");
+      keys_.addWalletKeyPair(kADDRs[i], kADDR_KEYs[i], "password");
     }
 
-    keys_.setInnKeyPair(t1_context_0_.kINN_ADDR, t1_context_0_.kINN_KEY, "password");
+    keys_.setInnKeyPair(kINN_ADDR, kINN_KEY, "password");
 
     for (int i = 0; i < 3; ++i) {
-      keys_.addNodeKeyPair(t1_context_0_.kNODE_ADDRs.at(i), t1_context_0_.kNODE_KEYs.at(i), "password");
+      keys_.addNodeKeyPair(kNODE_ADDRs.at(i), kNODE_KEYs.at(i), "password");
     }
 
     Devv::Transfer transfer1(keys_.getWalletAddr(0), 0, -10, 0);
@@ -1071,13 +1071,13 @@ TEST(Primitives, getCanonical0) {
 
   KeyRing keys(this_context);
   for (int i = 0; i < 4; ++i) {
-    keys.addWalletKeyPair(this_context.kADDRs[i], this_context.kADDR_KEYs[i], "password");
+    keys.addWalletKeyPair(kADDRs[i], kADDR_KEYs[i], "password");
   }
 
-  keys.setInnKeyPair(this_context.kINN_ADDR, this_context.kINN_KEY, "password");
+  keys.setInnKeyPair(kINN_ADDR, kINN_KEY, "password");
 
   for (int i = 0; i < 3; ++i) {
-    keys.addNodeKeyPair(this_context.kNODE_ADDRs.at(i), this_context.kNODE_KEYs.at(i), "password");
+    keys.addNodeKeyPair(kNODE_ADDRs.at(i), kNODE_KEYs.at(i), "password");
   }
 
   Transfer test_transfer(keys.getWalletAddr(0), 0, 1, 0);

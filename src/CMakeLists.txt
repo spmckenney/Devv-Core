@@ -190,6 +190,15 @@ target_include_directories(devv-psql PRIVATE ${dcInclude})
 install (TARGETS devv-psql DESTINATION bin)
 
 #
+# reset-db 
+#
+
+add_executable(reset-db reset-db.cpp ${dcInclude})
+target_link_libraries (reset-db ${devv_all_libs})
+target_include_directories(reset-db PRIVATE ${dcInclude})
+install (TARGETS reset-db DESTINATION bin)
+
+#
 # circuit-gen
 #
 add_executable(circuit-gen circuit-gen.cpp ${dcInclude})
