@@ -36,11 +36,11 @@ shard_announcers.append([{'host':'10.0.2.10', 'port':'50502', 'protobuf-port':'5
 # Create a list of lists holding repeaters
 shard_repeaters = []
 # shard0 repeaters
-shard_repeaters.append([{'host':'10.0.0.20', 'port':'50504'}])
+shard_repeaters.append([{'host':'10.0.0.20', 'protobuf-port':'50504'}])
 # shard1 repeaters
-shard_repeaters.append([{'host':'10.0.1.20', 'port':'50504'}])
+shard_repeaters.append([{'host':'10.0.1.20', 'protobuf-port':'50504'}])
 # shard2 repeaters
-shard_repeaters.append([{'host':'10.0.2.20', 'port':'50504'}])
+shard_repeaters.append([{'host':'10.0.2.20', 'protobuf-port':'50504'}])
 
 
 def stop_task(aws, cluster, ip_address):
@@ -83,7 +83,7 @@ class ECSTask(object):
         override_dict = {}
         override_dict['name'] = self._docker_image_name
 
-        command = ["pb_announcer",
+        command = ["devv-announcer",
                    "--shard-index", str(self._shard_index),
 		   "--node-index", str(self._node_index),
 		   "--config", "/efs/devv/shard-1/etc/validator.conf",
@@ -107,6 +107,8 @@ class ECSTask(object):
         self._task_ip_address = "10.0."+str(self._shard_index)+".20"
         self._container_instance = self._aws.get_container_instance_by_ip(self._task_ip_address)
 
+        self._devv_protobuf_port = shard_repeaters[self._shard_index][self._node_index]['protobuf-port']
+
         for v in shard_validators[self._shard_index]:
             self.add_host(v['host'], v['port'])
 
@@ -120,7 +122,8 @@ class ECSTask(object):
 		   "--node-index", str(self._node_index),
 		   "--config", "/efs/devv/shard-1/etc/validator.conf",
 		   "--config", "/efs/devv/shard-1/etc/default_pass.conf",
-                   "--working-dir", "/efs/devv/shard-{}".format(self._shard_index)]
+                   "--working-dir", "/efs/devv/shard-{}".format(self._shard_index),
+                   "--protobuf-endpoint", "tcp://*:{}".format(self._devv_protobuf_port)]
 
         for uri in self._host_list:
             command.extend(["--host-list", "tcp://"+uri['host']+":"+uri['port']])
