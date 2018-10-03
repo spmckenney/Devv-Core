@@ -19,10 +19,10 @@
 #include <boost/program_options.hpp>
 
 #include "common/logger.h"
-#include "common/devcash_context.h"
+#include "common/devv_context.h"
 #include "modules/BlockchainModule.h"
 
-using namespace Devcash;
+using namespace Devv;
 
 struct laminar_options {
   eAppMode mode  = eAppMode::T1;
@@ -51,7 +51,7 @@ int main(int argc, char* argv[]) {
       exit(-1);
     }
 
-    DevcashContext this_context(options->node_index, options->shard_index, options->mode, options->inn_keys,
+    DevvContext this_context(options->node_index, options->shard_index, options->mode, options->inn_keys,
                                 options->node_keys, options->key_pass);
 
     KeyRing keys(this_context);
@@ -173,7 +173,7 @@ Creates generate_count transactions as follows:\n\
 \n\
 Required parameters");
     desc.add_options()
-        ("mode", po::value<std::string>(), "Devcash mode (T1|T2|scan)")
+        ("mode", po::value<std::string>(), "Devv mode (T1|T2|scan)")
         ("node-index", po::value<unsigned int>(), "Index of this node")
         ("shard-index", po::value<unsigned int>(), "Index of this shard")
         ("output", po::value<std::string>(), "Output path in binary JSON or CBOR")

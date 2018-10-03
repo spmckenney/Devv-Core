@@ -1,11 +1,11 @@
 /*
- * DevcashMessage.h
+ * DevvMessage.h
  *
  *  Created on: Mar 15, 2018
  */
 
-#ifndef TYPES_DEVCASHMESSAGE_H_
-#define TYPES_DEVCASHMESSAGE_H_
+#ifndef TYPES_DEVVMESSAGE_H_
+#define TYPES_DEVVMESSAGE_H_
 
 #include <stdint.h>
 #include <string>
@@ -16,7 +16,7 @@
 #include "common/logger.h"
 #include "common/util.h"
 
-namespace Devcash {
+namespace Devv {
 
 const int num_debug_chars = 8;
 const uint8_t kMSG_HEADER = 52;
@@ -34,19 +34,19 @@ enum eMessageType {
 
 typedef std::string URI;
 
-struct DevcashMessage {
+struct DevvMessage {
   URI uri;
   eMessageType message_type;
   std::vector<uint8_t> data;
   uint32_t index;
 
-  explicit DevcashMessage(uint32_t message_index)
+  explicit DevvMessage(uint32_t message_index)
       : uri("")
       , message_type(eMessageType::VALID)
       , data()
       , index(message_index) {}
 
-  DevcashMessage(URI message_uri,
+  DevvMessage(URI message_uri,
                  eMessageType msgType,
                  const std::vector<uint8_t>& message_data,
                  uint32_t message_index)
@@ -58,7 +58,7 @@ struct DevcashMessage {
   /**
    * Constructor. Takes a string to initialize data vector
    */
-  DevcashMessage(const URI& uri,
+  DevvMessage(const URI& uri,
                  eMessageType msgType,
                  const std::string& data,
                  int index)
@@ -81,9 +81,9 @@ struct DevcashMessage {
   }
 };
 
-typedef std::unique_ptr<DevcashMessage> DevcashMessageUniquePtr;
-/// typedef of the DevcashMessage callback signature
-typedef std::function<void(DevcashMessageUniquePtr)> DevcashMessageCallback;
+typedef std::unique_ptr<DevvMessage> DevvMessageUniquePtr;
+/// typedef of the DevvMessage callback signature
+typedef std::function<void(DevvMessageUniquePtr)> DevvMessageCallback;
 
 /**
  * Append to serialized buffer
@@ -122,7 +122,7 @@ inline void append(std::vector<uint8_t>& buf, const std::vector<uint8_t>& obj) {
 /**
  * Serialize a message into a buffer
  */
-static std::vector<uint8_t> serialize(const DevcashMessage& msg) {
+static std::vector<uint8_t> serialize(const DevvMessage& msg) {
   // Arbitrary header
   uint8_t header_version = kMSG_HEADER;
   // Serialized buffer
@@ -184,14 +184,14 @@ inline unsigned int extract(std::vector<uint8_t>& dest,
 }
 
 /**
- * Deserialize a a buffer into a devcash message
+ * Deserialize a a buffer into a devv message
  */
-static DevcashMessageUniquePtr deserialize(const std::vector<uint8_t>& bytes) {
+static DevvMessageUniquePtr deserialize(const std::vector<uint8_t>& bytes) {
   unsigned int buffer_index = 0;
   uint8_t header_version = 0;
 
-  // Create the devcash message
-  auto message = std::make_unique<DevcashMessage>(0);
+  // Create the devv message
+  auto message = std::make_unique<DevvMessage>(0);
 
   // Get the header_version
   buffer_index = extract(header_version, bytes, buffer_index);
@@ -209,7 +209,7 @@ static DevcashMessageUniquePtr deserialize(const std::vector<uint8_t>& bytes) {
 }
 
 
-static std::string GetMessageType (const DevcashMessage& message) {
+static std::string GetMessageType (const DevvMessage& message) {
   std::string message_type_string;
   switch (message.message_type) {
   case(eMessageType::FINAL_BLOCK):
@@ -243,7 +243,7 @@ static std::string GetMessageType (const DevcashMessage& message) {
 /**
  * Stream the message to the logger
  */
-  static void LogDevcashMessageSummary(const DevcashMessage& message,
+  static void LogDevvMessageSummary(const DevvMessage& message,
                                        const std::string& source,
                                        int summary_bytes = num_debug_chars) {
 
@@ -271,6 +271,6 @@ static std::string GetMessageType (const DevcashMessage& message) {
     "SRC: " << source;
 }
 
-} /* namespace Devcash */
+} /* namespace Devv */
 
-#endif /* TYPES_DEVCASHMESSAGE_H_ */
+#endif /* TYPES_DEVVMESSAGE_H_ */

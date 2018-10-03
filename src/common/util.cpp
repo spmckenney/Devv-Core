@@ -70,7 +70,7 @@
 
 #include "logger.h"
 
-namespace Devcash
+namespace Devv
 {
 
 std::string ReadFile(const std::string& file_path)
@@ -117,4 +117,4 @@ void signalHandler(int signum) {
   //shutdown();
 }
 
-} //end namespace Devcash
+} //end namespace Devv

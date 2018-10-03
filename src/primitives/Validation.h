@@ -28,7 +28,7 @@
 #include "primitives/buffers.h"
 #include "SmartCoin.h"
 
-namespace Devcash {
+namespace Devv {
 
 /// A map of validations - Addresses and Signatures
 typedef std::map<Address, Signature> ValidationMap;
@@ -144,7 +144,7 @@ class Validation {
    * Returns the hash of this validation block.
    * @return the hash of this validation block.
    */
-  const Hash getHash() const { return DevcashHash(getCanonical()); }
+  const Hash getHash() const { return DevvHash(getCanonical()); }
 
   /**
    * Return the size of a pair (Address + Signature)
@@ -207,6 +207,6 @@ inline Validation Validation::Create(InputBuffer& buffer, uint32_t count) {
   return validation;
 }
 
-}  // end namespace Devcash
+}  // end namespace Devv
 
 #endif /* SRC_PRIMITIVES_VALIDATION_H_ */

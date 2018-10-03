@@ -1,20 +1,20 @@
 /*
- * devcashcontext.h runtime constants for this node
+ * DevvContext.h runtime constants for this node
  *
  *  Created on: Mar 20, 2018
  *      Author: Nick Williams
  */
 
-#ifndef COMMON_DEVCASH_CONTEXT_H_
-#define COMMON_DEVCASH_CONTEXT_H_
+#ifndef COMMON_DEVV_CONTEXT_H_
+#define COMMON_DEVV_CONTEXT_H_
 
 #include <string>
 #include <vector>
 #include <sys/stat.h>
 
-#include "common/devcash_types.h"
+#include "common/devv_types.h"
 
-namespace Devcash {
+namespace Devv {
 
 //Consensus Params
 static const int kACTIVATION_ROUNDS = 334;
@@ -25,12 +25,12 @@ static const unsigned int kSYNC_PORT_BASE = 55330;
 
 enum eDebugMode {off, on, toy, perf};
 
-struct DevcashContext {
+struct DevvContext {
 
   /**
    * Constructor
    */
-  DevcashContext(unsigned int current_node, unsigned int current_shard
+  DevvContext(unsigned int current_node, unsigned int current_shard
     , eAppMode mode
     , const std::string& inn_key_path
     , const std::string& node_key_path
@@ -116,7 +116,7 @@ private:
   // Process mode
   eAppMode app_mode_ = scan;
 
-  // Prefix for devcash uris
+  // Prefix for devv uris
   std::string uri_prefix_ = "RemoteURI-";
 
   // This processes uri
@@ -133,6 +133,6 @@ private:
   unsigned int max_wait_;
 };
 
-} /* namespace Devcash */
+} /* namespace Devv */
 
-#endif /* COMMON_DEVCASH_CONTEXT_H_ */
+#endif /* COMMON_DEVV_CONTEXT_H_ */

@@ -9,8 +9,8 @@
  * Server/client environment: argument handling, config file parsing,
  * logging, thread wrappers, startup time
  */
-#ifndef DEVCASH_UTIL_H
-#define DEVCASH_UTIL_H
+#ifndef DEVV_UTIL_H
+#define DEVV_UTIL_H
 
 #include <atomic>
 #include <chrono>
@@ -25,14 +25,14 @@
 #include <memory>
 #include <thread>
 
-#include "common/devcash_types.h"
-#include "common/devcash_constants.h"
+#include "common/devv_types.h"
+#include "common/devv_constants.h"
 #include "common/logger.h"
 #include "common/minitrace.h"
 #include "primitives/Address.h"
 #include "primitives/Signature.h"
 
-namespace Devcash
+namespace Devv
 {
 
 template <typename Container>
@@ -273,6 +273,6 @@ public:
 
 };
 
-} //end namespace Devcash
+} //end namespace Devv
 
-#endif // DEVCASH_UTIL_H
+#endif // DEVV_UTIL_H

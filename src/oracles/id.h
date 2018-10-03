@@ -16,7 +16,7 @@
 #include "consensus/chainstate.h"
 #include "primitives/Transaction.h"
 
-using namespace Devcash;
+using namespace Devv;
 
 class id : public oracleInterface {
 

@@ -1,5 +1,5 @@
 /*
- * devcash_exceptions.h
+ * devv_exceptions.h
  *
  *  Created on: Jun 19, 2018
  *      Author: Shawn McKenney
@@ -9,41 +9,41 @@
 #include <stdexcept>
 #include <exception>
 
-namespace Devcash {
+namespace Devv {
 
 /**
- * An error occured while handling an incoming DevcashMessage
+ * An error occured while handling an incoming DevvMessage
  * Usually these errors occur due to malformed input and are
  * recoverable.
  */
-struct DevcashMessageError : public std::runtime_error {
+struct DevvMessageError : public std::runtime_error {
 
   /// Default constructor
-  DevcashMessageError() = default;
+  DevvMessageError() = default;
 
   /**
    * Constructor
    * @param message human-readable error message
    * @return
    */
-  explicit DevcashMessageError(const std::string& message)
+  explicit DevvMessageError(const std::string& message)
       : std::runtime_error(message)
   {}
 
   /// Default destructor
-  ~DevcashMessageError() override = default;
+  ~DevvMessageError() override = default;
 };
 
 /**
  * Indicates an error deserializing an incoming message
  */
-struct DeserializationError : public DevcashMessageError {
+struct DeserializationError : public DevvMessageError {
   /**
    * Constructor
    * @param message human-readable error message
    */
   explicit DeserializationError(const std::string& message)
-      : DevcashMessageError(message)
+      : DevvMessageError(message)
   {}
 
   /**
@@ -52,4 +52,4 @@ struct DeserializationError : public DevcashMessageError {
   ~DeserializationError() override = default;
 };
 
-} // namespace Devcash
+} // namespace Devv

@@ -1,7 +1,8 @@
 
 /*
- * db_repeater.cpp listens for FinalBlock messages and updates an INN database
+ * devv-psql.cpp listens for FinalBlock messages and updates an INN database
  * based on the transactions in those blocks.
+ * This process is designed to integrate with a postgres database.
  *
  *  Created on: September 6, 2018
  *  Author: Nick Williams
@@ -19,11 +20,11 @@
 #include <pqxx/pqxx>
 
 #include "common/logger.h"
-#include "common/devcash_context.h"
+#include "common/devv_context.h"
 #include "io/message_service.h"
 #include "modules/BlockchainModule.h"
 
-using namespace Devcash;
+using namespace Devv;
 
 namespace fs = boost::filesystem;
 
@@ -88,7 +89,7 @@ int main(int argc, char* argv[]) {
 
     zmq::context_t zmq_context(1);
 
-    DevcashContext this_context(options->node_index, options->shard_index, options->mode, options->inn_keys,
+    DevvContext this_context(options->node_index, options->shard_index, options->mode, options->inn_keys,
                                 options->node_keys, options->key_pass);
     KeyRing keys(this_context);
 
@@ -125,7 +126,7 @@ int main(int argc, char* argv[]) {
     unsigned int chain_height = 0;
 
     auto peer_listener = io::CreateTransactionClient(options->host_vector, zmq_context);
-    peer_listener->attachCallback([&](DevcashMessageUniquePtr p) {
+    peer_listener->attachCallback([&](DevvMessageUniquePtr p) {
       if (p->message_type == eMessageType::FINAL_BLOCK) {
         //update database
         if (db_connected) {
@@ -236,7 +237,7 @@ Listens for FinalBlock messages and updates a database\n\
     po::options_description behavior("Identity and Behavior Options");
     behavior.add_options()
         ("debug-mode", po::value<std::string>(), "Debug mode (on|toy|perf) for testing")
-        ("mode", po::value<std::string>(), "Devcash mode (T1|T2|scan)")
+        ("mode", po::value<std::string>(), "Devv mode (T1|T2|scan)")
         ("node-index", po::value<unsigned int>(), "Index of this node")
         ("shard-index", po::value<unsigned int>(), "Index of this shard")
         ("num-consensus-threads", po::value<unsigned int>(), "Number of consensus threads")

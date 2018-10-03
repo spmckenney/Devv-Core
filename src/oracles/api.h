@@ -15,7 +15,7 @@
 #include "oracleInterface.h"
 #include "common/logger.h"
 
-using namespace Devcash;
+using namespace Devv;
 
 class api : public oracleInterface {
 

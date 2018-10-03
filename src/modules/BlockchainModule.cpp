@@ -32,10 +32,10 @@
 #include "oracles/id.h"
 #include "oracles/vote.h"
 #include "primitives/Transaction.h"
-#include "types/DevcashMessage.h"
-#include "common/devcash_exceptions.h"
+#include "types/DevvMessage.h"
+#include "common/devv_exceptions.h"
 
-namespace Devcash
+namespace Devv
 {
 
 std::atomic<bool> request_shutdown(false); /** has a shutdown been requested? */
@@ -63,7 +63,7 @@ BlockchainModule::BlockchainModule(io::TransactionServer& server,
                                  const KeyRing& keys,
                                  const ChainState &prior,
                                  eAppMode mode,
-                                 DevcashContext &context,
+                                 DevvContext &context,
                                  size_t max_tx_per_block)
     : server_(server),
       client_(client),
@@ -87,7 +87,7 @@ std::unique_ptr<BlockchainModule> BlockchainModule::Create(io::TransactionServer
                                         const KeyRing &keys,
                                         const ChainState &prior,
                                         eAppMode mode,
-                                        DevcashContext &context,
+                                        DevvContext &context,
                                         size_t max_tx_per_block) {
 
   /// Create the ValidatorModule which holds all of the controllers
@@ -102,7 +102,7 @@ std::unique_ptr<BlockchainModule> BlockchainModule::Create(io::TransactionServer
 
   /// Register the outgoing callback to send over zmq
   auto outgoing_callback =
-      [&server](DevcashMessageUniquePtr p) { server.queueMessage(std::move(p)); };
+      [&server](DevvMessageUniquePtr p) { server.queueMessage(std::move(p)); };
 
   /// Shorten the name of the controllers
   auto& vc = blockchain_module_ptr->validator_controller_;
@@ -117,7 +117,7 @@ std::unique_ptr<BlockchainModule> BlockchainModule::Create(io::TransactionServer
   /// Attach a callback to be run in the threads
 
   blockchain_module_ptr->validator_executor_->attachCallback(
-      [&](DevcashMessageUniquePtr p) { vc.validatorCallback(std::move(p));
+      [&](DevvMessageUniquePtr p) { vc.validatorCallback(std::move(p));
   });
 
 
@@ -129,7 +129,7 @@ std::unique_ptr<BlockchainModule> BlockchainModule::Create(io::TransactionServer
       std::make_unique<ParallelExecutor<ConsensusController>>(cc, 1);
 
   /// Attach a callback to be run in the threads
-  blockchain_module_ptr->consensus_executor_->attachCallback([&](DevcashMessageUniquePtr p) {
+  blockchain_module_ptr->consensus_executor_->attachCallback([&](DevvMessageUniquePtr p) {
     cc.consensusCallback(std::move(p));
   });
 
@@ -142,15 +142,15 @@ std::unique_ptr<BlockchainModule> BlockchainModule::Create(io::TransactionServer
       std::make_unique<ParallelExecutor<InternetworkController>>(ic, 1);
 
   /// Attach a callback to be run in the threads
-  blockchain_module_ptr->internetwork_executor_->attachCallback([&](DevcashMessageUniquePtr p) {
+  blockchain_module_ptr->internetwork_executor_->attachCallback([&](DevvMessageUniquePtr p) {
     ic.messageCallback(std::move(p));
   });
 
   return (blockchain_module_ptr);
 }
 
-void BlockchainModule::handleMessage(DevcashMessageUniquePtr message) {
-  LogDevcashMessageSummary(*message, "BlockchainModule::handleMessage()", 6);
+void BlockchainModule::handleMessage(DevvMessageUniquePtr message) {
+  LogDevvMessageSummary(*message, "BlockchainModule::handleMessage()", 6);
   switch(message->message_type) {
     case eMessageType::TRANSACTION_ANNOUNCEMENT:
       LOG_DEBUG << "BlockchainModule::handleMessage(): push(TX_ANNOUNCEMNT)";
@@ -181,7 +181,7 @@ void BlockchainModule::handleMessage(DevcashMessageUniquePtr message) {
       consensus_executor_->pushMessage(std::move(message));
       break;
     default:
-      throw DevcashMessageError("Unknown message type:"+std::to_string(message->message_type));
+      throw DevvMessageError("Unknown message type:"+std::to_string(message->message_type));
   }
   LOG_DEBUG << "BlockchainModule::handleMessage(): message handled!!";
 }
@@ -190,13 +190,13 @@ void BlockchainModule::init()
 {
   LOG_INFO << "Start BlockchainModule::init()";
 
-  client_.attachCallback([&](DevcashMessageUniquePtr p) {
+  client_.attachCallback([&](DevvMessageUniquePtr p) {
     this->handleMessage(std::move(p));
   });
   client_.listenTo(app_context_.get_shard_uri());
   client_.listenTo(app_context_.get_uri());
 
-  loopback_client_.attachCallback([&](DevcashMessageUniquePtr p) {
+  loopback_client_.attachCallback([&](DevvMessageUniquePtr p) {
     this->handleMessage(std::move(p));
   });
   loopback_client_.listenTo(app_context_.get_uri());
@@ -218,7 +218,7 @@ void BlockchainModule::performSanityChecks()
   }
 
   std::vector<byte> msg = {'h', 'e', 'l', 'l', 'o'};
-  Hash test_hash(DevcashHash(msg));
+  Hash test_hash(DevvHash(msg));
 
   EC_KEY *loadkey = LoadEcKey(app_context_.kADDRs[1],
                               app_context_.kADDR_KEYs[1],
@@ -249,7 +249,7 @@ void BlockchainModule::start()
   while (!shutdown_) {
     if (remote_blocks_ < final_chain_.size()) {
       std::vector<byte> request;
-      auto request_msg = std::make_unique<DevcashMessage>(app_context_.get_uri(),
+      auto request_msg = std::make_unique<DevvMessage>(app_context_.get_uri(),
           REQUEST_BLOCK, request, remote_blocks_);
       server_.queueMessage(std::move(request_msg));
       remote_blocks_ = final_chain_.size();
@@ -269,10 +269,7 @@ void BlockchainModule::shutdown()
   server_.stopServer();
   loopback_client_.stopClient();
 
-  LOG_INFO << "Shutting down DevCash";
-  //consensus_controller_.shutdown();
-  //internetwork_.shutdown();
-  //validator_.shutdown();
+  LOG_INFO << "Shutting down Devv";
 
 }
 

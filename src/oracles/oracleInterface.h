@@ -1,6 +1,6 @@
 /*
- * oracleInterface.h defines an interface for primitize Devcash oracles.
- * Devcash oracles further specify validation logic for particular
+ * oracleInterface.h defines an interface for primitize Devv oracles.
+ * Devv oracles further specify validation logic for particular
  * transaction types beyond the 'abstract' smartcoin transactions.
  * Oracles form a Directed Acyclic Graph (DAG) that decomposes abstract
  * functions into a set of clear Tier2Transactions. Oracles can be written
@@ -23,7 +23,7 @@
 #include "primitives/Tier2Transaction.h"
 #include "devv.pb.h"
 
-namespace Devcash
+namespace Devv
 {
 
 class oracleInterface {
@@ -129,6 +129,6 @@ class oracleInterface {
 
 };
 
-} //end namespace Devcash
+} //end namespace Devv
 
 #endif /* ORACLE_INTERFACE_H_ */

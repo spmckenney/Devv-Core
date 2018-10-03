@@ -9,9 +9,9 @@
 #include "primitives/buffers.h"
 #include "primitives/factories.h"
 
-using namespace Devcash;
+using namespace Devv;
 
-namespace Devcash
+namespace Devv
 {
 
 typedef boost::packaged_task<bool> task_t;

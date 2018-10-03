@@ -14,11 +14,11 @@
 
 #include <boost/filesystem.hpp>
 
-#include "common/devcash_types.h"
+#include "common/devv_types.h"
 
 namespace fs = boost::filesystem;
 
-namespace Devcash {
+namespace Devv {
 
 struct key_tuple {
   std::string address;
@@ -31,4 +31,4 @@ std::string ReadTextFile(const fs::path& file_path);
 
 struct key_tuple ReadKeyFile(const fs::path& path);
 
-} // namespace Devcash
+} // namespace Devv

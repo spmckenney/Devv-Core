@@ -23,7 +23,7 @@ namespace {
  */
 class ChainStateTest : public ::testing::Test {
  protected:
-  ChainStateTest() : t1_context_0_(0, 0, Devcash::eAppMode::T1,
+  ChainStateTest() : t1_context_0_(0, 0, Devv::eAppMode::T1,
                                    "", "", "")
   , keys_(t1_context_0_) {
     for (int i = 0; i < 4; ++i) {
@@ -48,8 +48,8 @@ class ChainStateTest : public ::testing::Test {
   }
 
   // Create a default context
-  Devcash::DevcashContext t1_context_0_;
-  Devcash::KeyRing keys_;
+  Devv::DevvContext t1_context_0_;
+  Devv::KeyRing keys_;
 };
 
 TEST_F(ChainStateTest, constructor_0) {

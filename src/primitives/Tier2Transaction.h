@@ -12,12 +12,12 @@
 #define PRIMITIVES_TIER2TRANSACTION_H_
 
 #include "common/logger.h"
-#include "common/devcash_exceptions.h"
+#include "common/devv_exceptions.h"
 #include "Transaction.h"
 
-using namespace Devcash;
+using namespace Devv;
 
-namespace Devcash {
+namespace Devv {
 
 /**
  * The Tier2 representation of a Transaction
@@ -53,7 +53,7 @@ class Tier2Transaction : public Transaction {
     nonce_size_ = nonce.size();
 
     if (nonce_size_ < minNonceSize()) {
-      throw DevcashMessageError("Invalid serialized T2 transaction, nonce is too small ("
+      throw DevvMessageError("Invalid serialized T2 transaction, nonce is too small ("
         + std::to_string(nonce_size_) + ")");
     }
 
@@ -74,12 +74,12 @@ class Tier2Transaction : public Transaction {
 
     canonical_.insert(std::end(canonical_), std::begin(nonce), std::end(nonce));
     std::vector<byte> msg(getMessageDigest());
-    Signature sig = SignBinary(eckey, DevcashHash(msg));
+    Signature sig = SignBinary(eckey, DevvHash(msg));
     std::vector<byte> sig_canon(sig.getCanonical());
     canonical_.insert(std::end(canonical_), std::begin(sig_canon), std::end(sig_canon));
     is_sound_ = isSound(keys);
     if (!is_sound_) {
-      throw DevcashMessageError("Invalid serialized T2 transaction, not sound!");
+      throw DevvMessageError("Invalid serialized T2 transaction, not sound!");
     }
   }
 
@@ -127,7 +127,7 @@ class Tier2Transaction : public Transaction {
     canonical_.insert(std::end(canonical_), std::begin(sig_canon), std::end(sig_canon));
     is_sound_ = isSound(keys);
     if (!is_sound_) {
-      throw DevcashMessageError("Invalid serialized T2 transaction, not sound!");
+      throw DevvMessageError("Invalid serialized T2 transaction, not sound!");
     }
   }
 
@@ -167,7 +167,7 @@ class Tier2Transaction : public Transaction {
 
     canonical_.insert(std::end(canonical_), std::begin(nonce), std::end(nonce));
     std::vector<byte> msg(getMessageDigest());
-    Signature signature = SignBinary(eckey, DevcashHash(msg));
+    Signature signature = SignBinary(eckey, DevvHash(msg));
     LOG_DEBUG << signature.getJSON();
     std::vector<byte> sig_canon(signature.getCanonical());
     canonical_.insert(std::end(canonical_), std::begin(sig_canon), std::end(sig_canon));
@@ -395,7 +395,7 @@ class Tier2Transaction : public Transaction {
       std::vector<byte> msg(getMessageDigest());
       Signature sig = getSignature();
 
-      if (!VerifyByteSig(eckey, DevcashHash(msg), sig)) {
+      if (!VerifyByteSig(eckey, DevvHash(msg), sig)) {
         std::string err = "TransactionError: transaction signature did not validate";
         LOG_DEBUG << "Transaction state is: " + getJSON();
         LOG_DEBUG << "Sender addr is: " + sender.getJSON();
@@ -534,6 +534,6 @@ class Tier2Transaction : public Transaction {
 };
 
 typedef std::unique_ptr<Tier2Transaction> Tier2TransactionPtr;
-}  // end namespace Devcash
+}  // end namespace Devv
 
-#endif  // DEVCASH_PRIMITIVES_TRANSACTION_H
+#endif  // DEVV_PRIMITIVES_TRANSACTION_H

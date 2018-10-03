@@ -13,7 +13,7 @@
 
 #include "common/ossladapter.h"
 
-using namespace Devcash;
+using namespace Devv;
 namespace fs = boost::filesystem;
 
 /**

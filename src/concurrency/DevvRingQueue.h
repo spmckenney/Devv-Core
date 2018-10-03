@@ -1,6 +1,6 @@
 /*
- * DevCashRingQueue.h implements a one-way ring queue for pointers to
- * DevcashMessage objects.
+ * DevvRingQueue.h implements a one-way ring queue for pointers to
+ * DevvMessage objects.
  *
  * This RingQueue is designed for distinct Producers and Consumers.
  * Producers and Consumers should share a reference to the queue,
@@ -13,19 +13,19 @@
  * the message after pushing it.
  *
  * The point lifecycle is as follows:
- * 1.  Producer creates DevcashMessage and unique_ptr to it.
+ * 1.  Producer creates DevvMessage and unique_ptr to it.
  * 2.  Producer moves unique_ptr into queue using push().
  * 3.  Producer's pointer is now null and it should release the message.
  * 4.  Consumer uses pop() to get pointer from queue.
  * 5.  Queue pointer is now null
- * 6.  Consumer deletes DevcashMessage when it is finished with it.
+ * 6.  Consumer deletes DevvMessage when it is finished with it.
  *
  *  Created on: Mar 14, 2018
  *      Author: Nick Williams
  */
 
-#ifndef CONCURRENCY_DEVCASHRINGQUEUE_H_
-#define CONCURRENCY_DEVCASHRINGQUEUE_H_
+#ifndef CONCURRENCY_DEVVRINGQUEUE_H_
+#define CONCURRENCY_DEVVRINGQUEUE_H_
 
 #include <array>
 #include <condition_variable>
@@ -34,24 +34,24 @@
 
 #include "common/logger.h"
 #include "common/util.h"
-#include "types/DevcashMessage.h"
+#include "types/DevvMessage.h"
 
-namespace Devcash {
+namespace Devv {
 
-class DevcashRingQueue {
+class DevvRingQueue {
  public:
   static const int kDEFAULT_RING_SIZE = 10;
 
   /* Constructors/Destructors */
-  DevcashRingQueue() :
+  DevvRingQueue() :
     kRingSize_(kDEFAULT_RING_SIZE), ptrRing_(kRingSize_) {
   }
-  virtual ~DevcashRingQueue() {}
-  DevcashRingQueue(size_t size) : kRingSize_(size), ptrRing_(kRingSize_) {}
+  virtual ~DevvRingQueue() {}
+  DevvRingQueue(size_t size) : kRingSize_(size), ptrRing_(kRingSize_) {}
 
   /* Disallow copy and assign */
-  DevcashRingQueue(DevcashRingQueue const&) = delete;
-  DevcashRingQueue& operator=(DevcashRingQueue const&) = delete;
+  DevvRingQueue(DevvRingQueue const&) = delete;
+  DevvRingQueue& operator=(DevvRingQueue const&) = delete;
 
   /** Push the pointer for a message to this queue.
    * @note once the pointer is moved the old variable becomes a nullptr.
@@ -59,7 +59,7 @@ class DevcashRingQueue {
    * @return true iff the unique_ptr was queued
    * @return false otherwise
    */
-  bool push(std::unique_ptr<DevcashMessage> pointer) {
+  bool push(std::unique_ptr<DevvMessage> pointer) {
     assert(pointer);
     CASH_TRY {
       std::unique_lock<std::mutex> lock(pushLock_);
@@ -86,13 +86,13 @@ class DevcashRingQueue {
       }
       return true;
     } CASH_CATCH (const std::exception& e) {
-      LOG_WARNING << FormatException(&e, "DevcashRingQueue.push");
+      LOG_WARNING << FormatException(&e, "DevvRingQueue.push");
       return false;
     }
   }
 
   /** A better place to block when waiting to pop this queue.
-   * @return unique_ptr to a DevcashMessage once one is queued.
+   * @return unique_ptr to a DevvMessage once one is queued.
    * @return nullptr, if any error
    */
   void popGuard() {
@@ -108,19 +108,19 @@ class DevcashRingQueue {
       if ((popAt_ + 1) == pushAt_) { isEmpty_ = true; }
       if ((popAt_ + 1) >= kRingSize_&& pushAt_ == 0) { isEmpty_ = true; }
     } CASH_CATCH (const std::exception& e) {
-      LOG_WARNING << FormatException(&e, "DevcashRingQueue.popGuard");
+      LOG_WARNING << FormatException(&e, "DevvRingQueue.popGuard");
     }
   }
 
   /** Pop a message pointer from this queue.
    * @note caller must call popGuard() before pop()
-   * @return unique_ptr to a DevcashMessage once one is queued.
+   * @return unique_ptr to a DevvMessage once one is queued.
    * @return nullptr, if any error
    */
-  std::unique_ptr<DevcashMessage> pop() {
+  std::unique_ptr<DevvMessage> pop() {
     CASH_TRY {
       std::unique_lock<std::mutex> eqLock(update_);
-      std::unique_ptr<DevcashMessage> out = std::move(ptrRing_.at(popAt_));
+      std::unique_ptr<DevvMessage> out = std::move(ptrRing_.at(popAt_));
       isFull_ = false;
       full_.notify_one();
       popAt_++;
@@ -134,13 +134,13 @@ class DevcashRingQueue {
       assert(out);
       return out;
     } CASH_CATCH (const std::exception& e) {
-      LOG_WARNING << FormatException(&e, "DevcashRingQueue.pop");
+      LOG_WARNING << FormatException(&e, "DevvRingQueue.pop");
       return nullptr;
     }
   }
 
   /** Notify all threads blocking on this queue that they should stop.
-   * @return unique_ptr to a DevcashMessage once one is queued.
+   * @return unique_ptr to a DevvMessage once one is queued.
    * @return nullptr, if any error
    */
   void clearBlockers() {
@@ -154,7 +154,7 @@ class DevcashRingQueue {
 
  private:
   int kRingSize_;
-  std::vector<std::unique_ptr<DevcashMessage>> ptrRing_;
+  std::vector<std::unique_ptr<DevvMessage>> ptrRing_;
   int pushAt_ = 0;
   int popAt_ = 0;
   std::mutex pushLock_; //orders access to push()
@@ -169,6 +169,6 @@ class DevcashRingQueue {
   bool stopNow_ = false;
 };
 
-} /* namespace Devcash */
+} /* namespace Devv */
 
-#endif /* CONCURRENCY_DEVCASHRINGQUEUE_H_ */
+#endif /* CONCURRENCY_DEVVRINGQUEUE_H_ */

@@ -7,7 +7,7 @@
 #include "ProposedBlock.h"
 #include "primitives/json_interface.h"
 
-namespace Devcash {
+namespace Devv {
 
 bool ProposedBlock::validate(const KeyRing& keys) const {
   LOG_DEBUG << "validate()";
@@ -25,7 +25,7 @@ bool ProposedBlock::validate(const KeyRing& keys) const {
 
   std::vector<byte> md = summary_.getCanonical();
   for (auto& sig : vals_.getValidationMap()) {
-    if (!VerifyByteSig(keys.getKey(sig.first), DevcashHash(md), sig.second)) {
+    if (!VerifyByteSig(keys.getKey(sig.first), DevvHash(md), sig.second)) {
       LOG_WARNING << "Invalid block signature";
       LOG_DEBUG << "Block state: " + GetJSON(*this);
       LOG_DEBUG << "Block Node Addr: " + sig.first.getJSON();
@@ -37,4 +37,4 @@ bool ProposedBlock::validate(const KeyRing& keys) const {
   return true;
 }
 
-} // namespace Devcash
+} // namespace Devv

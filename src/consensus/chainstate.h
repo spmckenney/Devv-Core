@@ -13,7 +13,7 @@
 
 #include "primitives/SmartCoin.h"
 
-namespace Devcash
+namespace Devv
 {
 
 class ChainState {
@@ -76,6 +76,6 @@ private:
  std::map<Address, std::map<uint64_t, int64_t>> state_map_;
 };
 
-} //namespace Devcash
+} //namespace Devv
 
 #endif /* SRC_CONSENSUS_STATESTUB_H_ */

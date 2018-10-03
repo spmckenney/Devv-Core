@@ -1,5 +1,5 @@
 /*
- * scanner.cpp the main class for a block scanner.
+ * devv-scanner.cpp the main class for a block scanner.
  * @note the mode must be set appropriately
  * Use T1 to scan a tier 1 chain, T2 to scan a T2 chain, and scan to scan raw transactions.
  *
@@ -21,13 +21,13 @@
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
 
-#include "common/devcash_context.h"
+#include "common/devv_context.h"
 #include "modules/BlockchainModule.h"
 #include "primitives/json_interface.h"
 #include "primitives/block_tools.h"
 #include "common/logger.h"
 
-using namespace Devcash;
+using namespace Devv;
 namespace fs = boost::filesystem;
 namespace bpt = boost::property_tree;
 
@@ -294,7 +294,7 @@ scan raw transactions.\n\
 \n\
 Required parameters");
     desc.add_options()
-        ("mode", po::value<std::string>(), "Devcash mode (T1|T2|scan)")
+        ("mode", po::value<std::string>(), "Devv mode (T1|T2|scan)")
         ("working-dir", po::value<std::string>(), "Directory where inputs are read and outputs are written")
         ("output", po::value<std::string>(), "Output file (JSON)")
         ;

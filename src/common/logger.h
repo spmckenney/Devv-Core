@@ -1,5 +1,5 @@
-#ifndef DEVCASH_LOGGER_H
-#define DEVCASH_LOGGER_H
+#ifndef DEVV_LOGGER_H
+#define DEVV_LOGGER_H
 
 #include <cstdlib>
 #include <thread>
@@ -27,7 +27,7 @@
 #include "common/minitrace.h"
 
 // the logs are also written to LOGFILE
-#define LOGFILE "/tmp/devcash.log"
+#define LOGFILE "/tmp/devv.log"
 
 //Narrow-char thread-safe logger.
 typedef boost::log::sources::severity_logger_mt<boost::log::trivial::severity_level> logger_t;
@@ -49,7 +49,7 @@ struct LoggerContext {
 };
 
 static boost::log::trivial::severity_level GetLogLevel() {
-  const char* env_p = std::getenv("DEVCASH_OUTPUT_LOGLEVEL");
+  const char* env_p = std::getenv("DEVV_OUTPUT_LOGLEVEL");
 
   if ( env_p == nullptr) {
     return boost::log::trivial::info;
@@ -191,4 +191,4 @@ static inline std::string file_cut(const char* file) {
 #define NOW std::chrono::high_resolution_clock::now()
 #define MILLI_SINCE(start) std::chrono::duration_cast<std::chrono::milliseconds>(NOW - start).count()
 
-#endif  // DEVCASH_LOGGER_H
+#endif  // DEVV_LOGGER_H
