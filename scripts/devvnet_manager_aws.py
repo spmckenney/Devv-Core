@@ -43,15 +43,31 @@ shard_repeaters.append([{'host':'10.0.1.20', 'protobuf-port':'50504'}])
 shard_repeaters.append([{'host':'10.0.2.20', 'protobuf-port':'50504'}])
 
 
+def get_ecs_instance(aws, ec2_instance_id):
+    ret = aws._ecs.list_container_instances(cluster=aws.get_cluster(), filter='ec2InstanceId == {}'.format(ec2_instance_id))
+    container_instance = ret['containerInstanceArns'][0]
+    return container_instance
+
+def get_ecs_tasks(aws, ec2_instance_id):
+    container_instance = get_ecs_instance(aws, ec2_instance_id)
+    ret = aws._ecs.list_tasks(cluster=aws.get_cluster(), containerInstance=container_instance)
+    return ret['taskArns']
+
+def summarize(aws):
+    ret = aws._ec2.describe_instances(Filters=[{'Name':'instance-state-name','Values':["running"]}])
+    res = ret['Reservations']
+    for r in res:
+        instance_0 = r['Instances'][0]
+        ip = instance_0['PrivateIpAddress']
+        state = instance_0['State']
+        print("{} {}".format(ip, state))
+
+
 def stop_task(aws, cluster, ip_address):
     ret = aws._ec2.describe_instances(Filters=[{'Name':'network-interface.addresses.private-ip-address','Values':[ip_address]}])
     ec2_instance_id = ret['Reservations'][0]['Instances'][0]['InstanceId']
 
-    ret = aws._ecs.list_container_instances(cluster=cluster, filter='ec2InstanceId == {}'.format(ec2_instance_id))
-    container_instance = ret['containerInstanceArns'][0]
-    ret = aws._ecs.list_tasks(cluster=cluster, containerInstance=container_instance)
-
-    task = ret['taskArns'][0]
+    task = get_ecs_tasks(aws, ec2_instance_id)[0]
     ret = aws._ecs.stop_task(cluster=cluster, task=task)
 
     return ret
@@ -72,11 +88,11 @@ class ECSTask(object):
         self._node_index = node_index
 
     def start_announcer(self):
-        self._task_ip_address = "10.0."+str(self._shard_index)+".10"
-        self._container_instance = self._aws.get_container_instance_by_ip(self._task_ip_address)
-
+        self._task_ip_address = shard_announcers[self._shard_index][0]['host']
         self._devv_bind_port = shard_announcers[self._shard_index][self._node_index]['port']
         self._devv_protobuf_port = shard_announcers[self._shard_index][self._node_index]['protobuf-port']
+
+        self._container_instance = self._aws.get_container_instance_by_ip(self._task_ip_address)
 
         task_role_arn = "arn:aws:iam:"+self._aws.get_iam_account()+":role/"+self._execution_role
 
@@ -86,10 +102,9 @@ class ECSTask(object):
         command = ["devv-announcer",
                    "--shard-index", str(self._shard_index),
 		   "--node-index", str(self._node_index),
-		   "--config", "/efs/devv/shard-1/etc/validator.conf",
-		   "--config", "/efs/devv/shard-1/etc/default_pass.conf",
-                   "--separate-ops", "true",
-                   "--start-delay", str(5),
+		   "--config", "/efs/devv/shard-{}/etc/devv.conf".format(self._shard_index),
+		   "--config", "/efs/devv/shard-{}/etc/devv-announcer.conf".format(self._shard_index),
+		   "--config", "/efs/devv/shard-{}/etc/test-key-pass.conf".format(self._shard_index),
 		   "--bind-endpoint", "tcp://*:{}".format(self._devv_bind_port),
                    "--protobuf-endpoint", "tcp://*:{}".format(self._devv_protobuf_port)]
 
@@ -103,11 +118,44 @@ class ECSTask(object):
                                              containerInstances=[self._container_instance])
         return ret
 
-    def start_devv_query(self):
-        self._task_ip_address = "10.0."+str(self._shard_index)+".20"
+    def start_devv_psql(self):
+        self._task_ip_address = shard_repeaters[self._shard_index][0]['host']
         self._container_instance = self._aws.get_container_instance_by_ip(self._task_ip_address)
 
+        for v in shard_validators[self._shard_index]:
+            self.add_host(v['host'], v['port'])
+
+        task_role_arn = "arn:aws:iam:"+self._aws.get_iam_account()+":role/"+self._execution_role
+
+        override_dict = {}
+        override_dict['name'] = self._docker_image_name
+
+        command = ["devv-psql",
+                   "--shard-index", str(self._shard_index),
+		   "--node-index", str(self._node_index),
+		   "--config", "/efs/devv/shard-{}/etc/devv.conf".format(self._shard_index),
+		   "--config", "/efs/devv/shard-{}/etc/devv-psql.conf".format(self._shard_index),
+		   "--config", "/efs/devv/shard-{}/etc/test-key-pass.conf".format(self._shard_index),
+		   "--config", "/efs/devv/shard-{}/etc/test-db-update-pass.conf".format(self._shard_index)]
+
+        for uri in self._host_list:
+            command.extend(["--host-list", "tcp://"+uri['host']+":"+uri['port']])
+
+        print("   Command: ", *command)
+        override_dict['command'] = command
+        or_param = {'containerOverrides':[override_dict]}
+        print(or_param)
+        ret = self._aws.get_ecs().start_task(cluster=self._aws.get_cluster(),
+                                             taskDefinition=self._task_definition,
+                                             overrides=or_param,
+                                             containerInstances=[self._container_instance])
+        return ret
+
+    def start_devv_query(self):
+        self._task_ip_address = shard_repeaters[self._shard_index][0]['host']
         self._devv_protobuf_port = shard_repeaters[self._shard_index][self._node_index]['protobuf-port']
+
+        self._container_instance = self._aws.get_container_instance_by_ip(self._task_ip_address)
 
         for v in shard_validators[self._shard_index]:
             self.add_host(v['host'], v['port'])
@@ -120,9 +168,9 @@ class ECSTask(object):
         command = ["devv-query",
                    "--shard-index", str(self._shard_index),
 		   "--node-index", str(self._node_index),
-		   "--config", "/efs/devv/shard-1/etc/validator.conf",
-		   "--config", "/efs/devv/shard-1/etc/default_pass.conf",
-                   "--working-dir", "/efs/devv/shard-{}".format(self._shard_index),
+		   "--config", "/efs/devv/shard-{}/etc/devv.conf".format(self._shard_index),
+		   "--config", "/efs/devv/shard-{}/etc/devv-query.conf".format(self._shard_index),
+		   "--config", "/efs/devv/shard-{}/etc/test-key-pass.conf".format(self._shard_index),
                    "--protobuf-endpoint", "tcp://*:{}".format(self._devv_protobuf_port)]
 
         for uri in self._host_list:
@@ -138,7 +186,7 @@ class ECSTask(object):
                                              containerInstances=[self._container_instance])
         return ret
 
-    def start_validator(self):
+    def start_devv_validator(self):
         self._task_ip_address = "10.0."+str(self._shard_index)+"."+str(100+self._node_index)
         self._container_instance = self._aws.get_container_instance_by_ip(self._task_ip_address)
 
@@ -153,8 +201,9 @@ class ECSTask(object):
         command = ["devv",
                    "--shard-index", str(self._shard_index),
 		   "--node-index", str(self._node_index),
-		   "--config", "/efs/devv/shard-1/etc/validator.conf",
-		   "--config", "/efs/devv/shard-1/etc/default_pass.conf",
+		   "--config", "/efs/devv/shard-{}/etc/devv.conf".format(self._shard_index),
+		   "--config", "/efs/devv/shard-{}/etc/devv-validator.conf".format(self._shard_index),
+		   "--config", "/efs/devv/shard-{}/etc/test-key-pass.conf".format(self._shard_index),
 		   "--bind-endpoint", "tcp://*:{}".format(self._devv_port)]
 
         for uri in self._host_list:
@@ -209,6 +258,10 @@ class AWS(object):
     def get_task_list(self):
         tasks = self._ecs.list_tasks(cluster=self._cluster)['taskArns']
         return tasks
+
+    def stop_all(self):
+        for t in self.get_task_list():
+            self._ecs.stop_task(cluster=self._cluster, task=t)
 
     def get_task(self, task_num):
         task_list = [self._ecs.list_tasks(cluster=self._cluster)['taskArns'][task_num]]
