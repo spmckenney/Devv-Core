@@ -91,7 +91,7 @@ int main(int argc, char* argv[]) {
 
     bool db_connected = false;
     std::unique_ptr<pqxx::connection> db_link = nullptr;
-    if ((options->db_host.size() > 0) && (options->db_user.size() > 0)) {
+    if (!options->db_host.empty() && !options->db_user.empty()) {
       const std::string db_params("dbname = "+options->db_name +
           " user = "+options->db_user+
           " password = "+options->db_pass +
@@ -361,7 +361,7 @@ Listens for FinalBlock messages and updates a database\n\
 
     if (vm.count("update-user")) {
       options->db_user = vm["update-user"].as<std::string>();
-      LOG_INFO << "Database user: " << options->db_host;
+      LOG_INFO << "Database user: " << options->db_user;
     } else {
       LOG_INFO << "Database user was not set.";
     }
@@ -375,7 +375,7 @@ Listens for FinalBlock messages and updates a database\n\
 
     if (vm.count("update-port")) {
       options->db_port = vm["update-port"].as<unsigned int>();
-      LOG_INFO << "Database pass: " << options->db_port;
+      LOG_INFO << "Database port: " << options->db_port;
     } else {
       LOG_INFO << "Database port was not set, default to 5432.";
       options->db_port = 5432;

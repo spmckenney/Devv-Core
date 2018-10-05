@@ -234,8 +234,6 @@ Listens for FinalBlock messages and saves them to a file\n\
          "Client URI (i.e. tcp://192.168.10.1:5005). Option can be repeated to connect to multiple nodes.")
         ("protobuf-endpoint", po::value<std::string>(), "Endpoint for protobuf server (i.e. tcp://*:5557)")
         ("working-dir", po::value<std::string>(), "Directory where inputs are read and outputs are written")
-        ("output", po::value<std::string>(), "Output path in binary JSON or CBOR")
-        ("trace-output", po::value<std::string>(), "Output path to JSON trace file (Chrome)")
         ("inn-keys", po::value<std::string>(), "Path to INN key file")
         ("node-keys", po::value<std::string>(), "Path to Node key file")
         ("key-pass", po::value<std::string>(), "Password for private keys")
