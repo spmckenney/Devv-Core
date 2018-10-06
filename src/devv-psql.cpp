@@ -170,7 +170,8 @@ int main(int argc, char* argv[]) {
             }
             pqxx::result uuid_result = stmt.prepared(kGET_UUID).exec();
             if (!uuid_result.empty()) {
-              stmt.prepared(kTX_INSERT)(uuid_result[0][0].as<std::string>())(options->shard_index)(chain_height)(coin_id)(send_amount)(sender_str).exec();
+              std::string tx_uuid = uuid_result[0][0].as<std::string>();
+              stmt.prepared(kTX_INSERT)(tx_uuid)(options->shard_index)(chain_height)(coin_id)(send_amount)(sender_str).exec();
               for (TransferPtr& one_xfer : xfers) {
                 int64_t amount = one_xfer->getAmount();
                 uint64_t delay = one_xfer->getDelay();
