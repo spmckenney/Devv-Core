@@ -53,7 +53,7 @@ static const std::string kNIL_UUID_PSQL = "'00000000-0000-0000-0000-000000000000
 static const std::string kGET_UUID = "get_uuid";
 static const std::string kGET_UUID_STATEMENT = "select devv_uuid()";
 static const std::string kTX_INSERT = "tx_insert";
-static const std::string kTX_INSERT_STATEMENT = "INSERT INTO tx (tx_id, shard_id, block_height, wallet_id, coin_id, amount) (select $1, $2, $3, wallet_id, $4, $5 from wallet where wallet_addr = $6)";
+static const std::string kTX_INSERT_STATEMENT = "INSERT INTO tx (tx_id, shard_id, block_height, wallet_id, coin_id, amount) (select cast($1 as uuid), $2, $3, wallet_id, $4, $5 from wallet where wallet_addr = $6)";
 static const std::string kRX_INSERT = "rx_insert";
 static const std::string kRX_INSERT_STATEMENT = "INSERT INTO rx (rx_id, shard_id, block_height, wallet_id, coin_id, amount, tx_id) (select devv_uuid(), $1, $2, wallet_id, $3, $4, $5 from wallet where wallet_addr = $6)";
 static const std::string kBALANCE_SELECT = "balance_select";
@@ -168,30 +168,34 @@ int main(int argc, char* argv[]) {
               int64_t new_balance = balance_result[0][0].as<int64_t>()-send_amount;
               stmt.prepared(kBALANCE_UPDATE)(new_balance)(chain_height)(sender_str)(coin_id).exec();
             }
-            pqxx::result tx_uuid = stmt.prepared(kGET_UUID).exec();
-            stmt.prepared(kTX_INSERT)(tx_uuid)(options->shard_index)(chain_height)(coin_id)(send_amount)(sender_str).exec();
-            for (TransferPtr& one_xfer : xfers) {
-              int64_t amount = one_xfer->getAmount();
-              uint64_t delay = one_xfer->getDelay();
-              //not a receiver
-              if (amount < 0) continue;
-              //there's a delay
-              //@todo(nick@devv.io) handle delayed settlements, tx in pending_tx
-              if (delay > 0) continue;
-              //update receiver balance
-              std::string receiver_str(one_xfer->getAddress().getCanonical().begin()
-                , one_xfer->getAddress().getCanonical().end());
-              pqxx::work rx_stmt(*db_link);
-              pqxx::result rx_balance = rx_stmt.prepared(kBALANCE_SELECT)(receiver_str)(coin_id).exec();
-              if (rx_balance.empty()) {
-                stmt.prepared(kBALANCE_INSERT)(coin_id)(kNIL_UUID_PSQL)(amount)(receiver_str).exec();
-              } else {
-                int64_t new_balance = balance_result[0][0].as<int64_t>()+amount;
-                stmt.prepared(kBALANCE_UPDATE)(new_balance)(chain_height)(receiver_str)(coin_id).exec();
-              }
-              stmt.prepared(kRX_INSERT)(options->shard_index)(chain_height)(coin_id)(send_amount)(tx_uuid)(receiver_str).exec();
-            } //end transfer loop
-	    stmt.commit();
+            pqxx::result uuid_result = stmt.prepared(kGET_UUID).exec();
+            if (!uuid_result.empty()) {
+              stmt.prepared(kTX_INSERT)(uuid_result[0][0].as<std::string>())(options->shard_index)(chain_height)(coin_id)(send_amount)(sender_str).exec();
+              for (TransferPtr& one_xfer : xfers) {
+                int64_t amount = one_xfer->getAmount();
+                uint64_t delay = one_xfer->getDelay();
+                //not a receiver
+                if (amount < 0) continue;
+                //there's a delay
+                //@todo(nick@devv.io) handle delayed settlements, tx in pending_tx
+                if (delay > 0) continue;
+                //update receiver balance
+                std::string receiver_str(one_xfer->getAddress().getCanonical().begin()
+                  , one_xfer->getAddress().getCanonical().end());
+                pqxx::work rx_stmt(*db_link);
+                pqxx::result rx_balance = rx_stmt.prepared(kBALANCE_SELECT)(receiver_str)(coin_id).exec();
+                if (rx_balance.empty()) {
+                  stmt.prepared(kBALANCE_INSERT)(coin_id)(kNIL_UUID_PSQL)(amount)(receiver_str).exec();
+                } else {
+                  int64_t new_balance = balance_result[0][0].as<int64_t>()+amount;
+                  stmt.prepared(kBALANCE_UPDATE)(new_balance)(chain_height)(receiver_str)(coin_id).exec();
+                }
+                stmt.prepared(kRX_INSERT)(options->shard_index)(chain_height)(coin_id)(send_amount)(tx_uuid)(receiver_str).exec();
+              } //end transfer loop
+            } else {
+              LOG_WARNING << "Failed to generate a UUID!";
+            }
+            stmt.commit();
           } //end transaction loop
         } else { //endif db connected?
           throw std::runtime_error("Database is not connected!");
