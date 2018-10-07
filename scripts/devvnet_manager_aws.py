@@ -277,7 +277,7 @@ class ECSTask(object):
         override_dict = {}
         override_dict['name'] = self._docker_image_name
         
-        command = ["devv",
+        command = ["devv-validator",
                    "--shard-index", str(self._shard_index),
 		   "--node-index", str(self._node_index),
 		   "--config", "/efs/devv/shard-{}/etc/devv.conf".format(self._shard_index),
