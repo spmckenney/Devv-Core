@@ -113,20 +113,23 @@ def summarize(aws):
             t_dict['desc'] = None
         t_list.extend([t_dict])
 
-    text_format = "{name:30} {prog:10} {ip:15} {bind:16} {pbuf_bind:16} {state:10} {instance}"
+    text_format = "{name:30} {prog:10} {ip:15} {bind:16} {pbuf_bind:16} {state:10} {instance} {task}"
     print(bcolors.BOLD + text_format.format(name="Name",
                                             prog="Program",
                                             ip="IPAddr",
                                             bind="DevvBind",
                                             pbuf_bind="PbufBind",
                                             state="State",
-                                            instance="InstanceID"))
+                                            instance="InstanceID",
+                                            task="Task"))
 
     for t in t_list:
         if t['desc']:
             cmd = t['desc']['tasks'][0]['overrides']['containerOverrides'][0]['command']
+            arn = t['desc']['tasks'][0]['taskArn']
         else:
             cmd = None
+            arn = None
         cmdinfo = get_devv_cmd_info(cmd)
         if t['state'] == 'stopped':
             color = bcolors.OKBLUE
@@ -142,7 +145,8 @@ def summarize(aws):
                                          bind=cmdinfo['bind'],
                                          pbuf_bind=cmdinfo['pbuf_bind'],
                                          state=t['state'],
-                                         instance=t['instance_id'][:8]))
+                                         instance=t['instance_id'][:8],
+                                         task=arn.split('/')[1] if arn else None))
 
 def stop_task(aws, cluster, ip_address):
     ret = aws._ec2.describe_instances(Filters=[{'Name':'network-interface.addresses.private-ip-address','Values':[ip_address]}])

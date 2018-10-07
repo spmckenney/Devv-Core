@@ -22,7 +22,7 @@ PATH=${HOME}/local/bin:${PATH}
 
 # Test
 set +e # disable errors because "devcash --help" returns 255 (-1)
-devv --help
+devv-validator --help
 set -e
 
 exit 0
