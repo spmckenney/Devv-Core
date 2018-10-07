@@ -374,7 +374,7 @@ class AWS(object):
         ip = self.get_instance(task_num)['PrivateIpAddress']
         return(ip)
 
-    def summarize(self):
+    def summarize(self, show_stopped=False):
         ret = self._ec2.describe_instances()
         res = ret['Reservations']
         t_list = []
@@ -391,7 +391,7 @@ class AWS(object):
                 t_dict['desc'] = None
             t_list.extend([t_dict])
 
-        text_format = "{name:30} {prog:10} {ip:15} {bind:16} {pbuf_bind:16} {state:10} {instance} {task}"
+        text_format = "{name:30} {prog:10} {ip:15} {bind:16} {pbuf_bind:16} {state:10} {instance:12} {task}"
         print(bcolors.BOLD + text_format.format(name="Name",
                                                 prog="Program",
                                                 ip="IPAddr",
@@ -399,9 +399,12 @@ class AWS(object):
                                                 pbuf_bind="PbufBind",
                                                 state="State",
                                                 instance="InstanceID",
-                                                task="Task"))
+                                                task="TaskID"))
 
         for t in t_list:
+            if show_stopped == False:
+                if t['state'] == 'stopped':
+                    continue
             if t['desc']:
                 cmd = t['desc']['tasks'][0]['overrides']['containerOverrides'][0]['command']
                 arn = t['desc']['tasks'][0]['taskArn']
