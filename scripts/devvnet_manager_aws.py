@@ -29,18 +29,27 @@ shard_announcers = []
 # shard0 announcers
 shard_announcers.append([{'host':'10.0.0.10', 'port':'50502', 'protobuf-port':'50503'}])
 # shard1 announcers
-shard_announcers.append([{'host':'10.0.1.10', 'port':'50502', 'protobuf-port':'50503'}])
+shard_announcers.append([{'host':'10.0.1.10', 'port':'50512', 'protobuf-port':'50513'}])
 # shard2 announcers
-shard_announcers.append([{'host':'10.0.2.10', 'port':'50502', 'protobuf-port':'50503'}])
+shard_announcers.append([{'host':'10.0.2.10', 'port':'50522', 'protobuf-port':'50523'}])
 
 # Create a list of lists holding repeaters
-shard_repeaters = []
+shard_devv_query_nodes = []
 # shard0 repeaters
-shard_repeaters.append([{'host':'10.0.0.20', 'protobuf-port':'50504'}])
+shard_devv_query_nodes.append([{'host':'10.0.0.20', 'protobuf-port':'50504'}])
 # shard1 repeaters
-shard_repeaters.append([{'host':'10.0.1.20', 'protobuf-port':'50504'}])
+shard_devv_query_nodes.append([{'host':'10.0.1.20', 'protobuf-port':'50514'}])
 # shard2 repeaters
-shard_repeaters.append([{'host':'10.0.2.20', 'protobuf-port':'50504'}])
+shard_devv_query_nodes.append([{'host':'10.0.2.20', 'protobuf-port':'50524'}])
+
+# Create a list of lists holding repeaters
+shard_devv_psql_nodes = []
+# shard0 repeaters
+shard_devv_psql_nodes.append([{'host':'10.0.0.30'}])
+# shard1 repeaters
+shard_devv_psql_nodes.append([{'host':'10.0.1.30'}])
+# shard2 repeaters
+shard_devv_psql_nodes.append([{'host':'10.0.2.30'}])
 
 
 def get_ecs_instance(aws, ec2_instance_id):
@@ -51,17 +60,89 @@ def get_ecs_instance(aws, ec2_instance_id):
 def get_ecs_tasks(aws, ec2_instance_id):
     container_instance = get_ecs_instance(aws, ec2_instance_id)
     ret = aws._ecs.list_tasks(cluster=aws.get_cluster(), containerInstance=container_instance)
+    #print(ret)
     return ret['taskArns']
 
-def summarize(aws):
-    ret = aws._ec2.describe_instances(Filters=[{'Name':'instance-state-name','Values':["running"]}])
-    res = ret['Reservations']
-    for r in res:
-        instance_0 = r['Instances'][0]
-        ip = instance_0['PrivateIpAddress']
-        state = instance_0['State']
-        print("{} {}".format(ip, state))
+def get_devv_cmd_info(cmd):
+    res={}
 
+    if cmd == None:
+        res['prog'] = '-'
+        res['bind'] = '-'
+        res['pbuf_bind'] = '-'
+        return(res)
+
+    res['prog'] = cmd[0]
+    try:
+        res['bind'] = cmd[cmd.index('--bind-endpoint')+1]
+    except:
+        res['bind'] = '0'
+
+    try:
+        res['pbuf_bind'] = cmd[cmd.index('--protobuf-endpoint')+1]
+    except:
+        res['pbuf_bind'] = '0'
+
+    return(res)
+
+
+class bcolors:
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
+
+def summarize(aws):
+    ret = aws._ec2.describe_instances()
+    res = ret['Reservations']
+    t_list = []
+    for r in res:
+        t_dict = {}
+        i0 = r['Instances'][0]
+        t_dict['ip'] = i0['PrivateIpAddress']
+        t_dict['state'] = i0['State']['Name']
+        t_dict['name'] = i0['Tags'][0]['Value']
+        t_dict['instance_id'] = i0['InstanceId']
+        try:
+            t_dict['desc'] = aws.describe_tasks(get_ecs_tasks(aws, t_dict['instance_id']))
+        except:
+            t_dict['desc'] = None
+        t_list.extend([t_dict])
+
+    text_format = "{name:30} {prog:10} {ip:15} {bind:16} {pbuf_bind:16} {state:10} {instance}"
+    print(bcolors.BOLD + text_format.format(name="Name",
+                                            prog="Program",
+                                            ip="IPAddr",
+                                            bind="DevvBind",
+                                            pbuf_bind="PbufBind",
+                                            state="State",
+                                            instance="InstanceID"))
+
+    for t in t_list:
+        if t['desc']:
+            cmd = t['desc']['tasks'][0]['overrides']['containerOverrides'][0]['command']
+        else:
+            cmd = None
+        cmdinfo = get_devv_cmd_info(cmd)
+        if t['state'] == 'stopped':
+            color = bcolors.OKBLUE
+        elif t['state'] == 'running':
+            if cmdinfo['prog'][:8] == '-':
+                color = bcolors.WARNING
+            else:
+                color = bcolors.OKGREEN
+
+        print(color + text_format.format(name=t['name'],
+                                         prog=cmdinfo['prog'][:8],
+                                         ip=t['ip'],
+                                         bind=cmdinfo['bind'],
+                                         pbuf_bind=cmdinfo['pbuf_bind'],
+                                         state=t['state'],
+                                         instance=t['instance_id'][:8]))
 
 def stop_task(aws, cluster, ip_address):
     ret = aws._ec2.describe_instances(Filters=[{'Name':'network-interface.addresses.private-ip-address','Values':[ip_address]}])
@@ -119,7 +200,7 @@ class ECSTask(object):
         return ret
 
     def start_devv_psql(self):
-        self._task_ip_address = shard_repeaters[self._shard_index][0]['host']
+        self._task_ip_address = shard_devv_psql_nodes[self._shard_index][0]['host']
         self._container_instance = self._aws.get_container_instance_by_ip(self._task_ip_address)
 
         for v in shard_validators[self._shard_index]:
@@ -132,10 +213,8 @@ class ECSTask(object):
 
         command = ["devv-psql",
                    "--shard-index", str(self._shard_index),
-		   "--node-index", str(self._node_index),
 		   "--config", "/efs/devv/shard-{}/etc/devv.conf".format(self._shard_index),
 		   "--config", "/efs/devv/shard-{}/etc/devv-psql.conf".format(self._shard_index),
-		   "--config", "/efs/devv/shard-{}/etc/test-key-pass.conf".format(self._shard_index),
 		   "--config", "/efs/devv/shard-{}/etc/test-db-update-pass.conf".format(self._shard_index)]
 
         for uri in self._host_list:
@@ -152,8 +231,8 @@ class ECSTask(object):
         return ret
 
     def start_devv_query(self):
-        self._task_ip_address = shard_repeaters[self._shard_index][0]['host']
-        self._devv_protobuf_port = shard_repeaters[self._shard_index][self._node_index]['protobuf-port']
+        self._task_ip_address = shard_devv_query_nodes[self._shard_index][0]['host']
+        self._devv_protobuf_port = shard_devv_query_nodes[self._shard_index][self._node_index]['protobuf-port']
 
         self._container_instance = self._aws.get_container_instance_by_ip(self._task_ip_address)
 
@@ -245,6 +324,10 @@ class AWS(object):
         self._ec2 = session.client('ec2')
         self._ecs = session.client('ecs')
         self._cluster = cluster
+
+    def describe_tasks(self, tasks):
+        tsks = self._ecs.describe_tasks(cluster=self._cluster, tasks=tasks)
+        return tsks
 
     def get_ip_by_index(index):
         pass
