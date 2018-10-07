@@ -136,10 +136,10 @@ set(devv_all_libs
 #
 # devv executable
 #
-add_executable(devv devv.cpp)
-target_link_libraries (devv ${devv_all_libs})
-target_include_directories(devv PRIVATE ${dcInclude})
-install (TARGETS devv DESTINATION bin)
+add_executable(devv-validator devv-validator.cpp)
+target_link_libraries (devv-validator ${devv_all_libs})
+target_include_directories(devv-validator PRIVATE ${dcInclude})
+install (TARGETS devv-validator DESTINATION bin)
 
 #
 # devv-scanner
