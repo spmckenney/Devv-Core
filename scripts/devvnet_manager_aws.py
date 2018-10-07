@@ -52,17 +52,6 @@ shard_devv_psql_nodes.append([{'host':'10.0.1.30'}])
 shard_devv_psql_nodes.append([{'host':'10.0.2.30'}])
 
 
-def get_ecs_instance(aws, ec2_instance_id):
-    ret = aws._ecs.list_container_instances(cluster=aws.get_cluster(), filter='ec2InstanceId == {}'.format(ec2_instance_id))
-    container_instance = ret['containerInstanceArns'][0]
-    return container_instance
-
-def get_ecs_tasks(aws, ec2_instance_id):
-    container_instance = get_ecs_instance(aws, ec2_instance_id)
-    ret = aws._ecs.list_tasks(cluster=aws.get_cluster(), containerInstance=container_instance)
-    #print(ret)
-    return ret['taskArns']
-
 def get_devv_cmd_info(cmd):
     res={}
 
@@ -96,57 +85,14 @@ class bcolors:
     BOLD = '\033[1m'
     UNDERLINE = '\033[4m'
 
-def summarize(aws):
+def get_task_by_name(aws, name):
     ret = aws._ec2.describe_instances()
     res = ret['Reservations']
-    t_list = []
     for r in res:
-        t_dict = {}
         i0 = r['Instances'][0]
-        t_dict['ip'] = i0['PrivateIpAddress']
-        t_dict['state'] = i0['State']['Name']
-        t_dict['name'] = i0['Tags'][0]['Value']
-        t_dict['instance_id'] = i0['InstanceId']
-        try:
-            t_dict['desc'] = aws.describe_tasks(get_ecs_tasks(aws, t_dict['instance_id']))
-        except:
-            t_dict['desc'] = None
-        t_list.extend([t_dict])
+        if i0['Tags'][0]['Value'] == name:
+            return i0
 
-    text_format = "{name:30} {prog:10} {ip:15} {bind:16} {pbuf_bind:16} {state:10} {instance} {task}"
-    print(bcolors.BOLD + text_format.format(name="Name",
-                                            prog="Program",
-                                            ip="IPAddr",
-                                            bind="DevvBind",
-                                            pbuf_bind="PbufBind",
-                                            state="State",
-                                            instance="InstanceID",
-                                            task="Task"))
-
-    for t in t_list:
-        if t['desc']:
-            cmd = t['desc']['tasks'][0]['overrides']['containerOverrides'][0]['command']
-            arn = t['desc']['tasks'][0]['taskArn']
-        else:
-            cmd = None
-            arn = None
-        cmdinfo = get_devv_cmd_info(cmd)
-        if t['state'] == 'stopped':
-            color = bcolors.OKBLUE
-        elif t['state'] == 'running':
-            if cmdinfo['prog'][:8] == '-':
-                color = bcolors.WARNING
-            else:
-                color = bcolors.OKGREEN
-
-        print(color + text_format.format(name=t['name'],
-                                         prog=cmdinfo['prog'][:8],
-                                         ip=t['ip'],
-                                         bind=cmdinfo['bind'],
-                                         pbuf_bind=cmdinfo['pbuf_bind'],
-                                         state=t['state'],
-                                         instance=t['instance_id'][:8],
-                                         task=arn.split('/')[1] if arn else None))
 
 def stop_task(aws, cluster, ip_address):
     ret = aws._ec2.describe_instances(Filters=[{'Name':'network-interface.addresses.private-ip-address','Values':[ip_address]}])
@@ -322,11 +268,13 @@ class AWS(object):
     _region = "us-east-2"
     _iam_account = "682078287735"
 
-    def __init__(self, session, cluster='devv-test-cluster-01', debug=False):
-        self._session = session
+    def __init__(self, profile_name, cluster='devv-test-cluster-01', debug=False):
+        import boto3
+        self._session = boto3.Session(profile_name=profile_name)
+
         self._debug = debug
-        self._ec2 = session.client('ec2')
-        self._ecs = session.client('ecs')
+        self._ec2 = self._session.client('ec2')
+        self._ecs = self._session.client('ecs')
         self._cluster = cluster
 
     def describe_tasks(self, tasks):
@@ -348,7 +296,11 @@ class AWS(object):
 
     def stop_all(self):
         for t in self.get_task_list():
-            self._ecs.stop_task(cluster=self._cluster, task=t)
+            print(t)
+            #self._ecs.stop_task(cluster=self._cluster, task=t)
+
+    def stop_task(self, task):
+        self._ecs.stop_task(cluster=self._cluster, task=task)
 
     def get_task(self, task_num):
         task_list = [self._ecs.list_tasks(cluster=self._cluster)['taskArns'][task_num]]
@@ -407,11 +359,73 @@ class AWS(object):
         
         return c_inst
     
+    def get_ecs_instance(self, ec2_instance_id):
+        ret = self._ecs.list_container_instances(cluster=self.get_cluster(), filter='ec2InstanceId == {}'.format(ec2_instance_id))
+        container_instance = ret['containerInstanceArns'][0]
+        return container_instance
+
+    def get_ecs_tasks(self, ec2_instance_id):
+        container_instance = self.get_ecs_instance(ec2_instance_id)
+        ret = self._ecs.list_tasks(cluster=self.get_cluster(), containerInstance=container_instance)
+        #print(ret)
+        return ret['taskArns']
+
     def get_ip(self, task_num):
         ip = self.get_instance(task_num)['PrivateIpAddress']
         return(ip)
 
-                             
+    def summarize(self):
+        ret = self._ec2.describe_instances()
+        res = ret['Reservations']
+        t_list = []
+        for r in res:
+            t_dict = {}
+            i0 = r['Instances'][0]
+            t_dict['ip'] = i0['PrivateIpAddress']
+            t_dict['state'] = i0['State']['Name']
+            t_dict['name'] = i0['Tags'][0]['Value']
+            t_dict['instance_id'] = i0['InstanceId']
+            try:
+                t_dict['desc'] = self.describe_tasks(self.get_ecs_tasks(t_dict['instance_id']))
+            except:
+                t_dict['desc'] = None
+            t_list.extend([t_dict])
+
+        text_format = "{name:30} {prog:10} {ip:15} {bind:16} {pbuf_bind:16} {state:10} {instance} {task}"
+        print(bcolors.BOLD + text_format.format(name="Name",
+                                                prog="Program",
+                                                ip="IPAddr",
+                                                bind="DevvBind",
+                                                pbuf_bind="PbufBind",
+                                                state="State",
+                                                instance="InstanceID",
+                                                task="Task"))
+
+        for t in t_list:
+            if t['desc']:
+                cmd = t['desc']['tasks'][0]['overrides']['containerOverrides'][0]['command']
+                arn = t['desc']['tasks'][0]['taskArn']
+            else:
+                cmd = None
+                arn = None
+            cmdinfo = get_devv_cmd_info(cmd)
+            if t['state'] == 'stopped':
+                color = bcolors.OKBLUE
+            elif t['state'] == 'running':
+                if cmdinfo['prog'][:8] == '-':
+                    color = bcolors.WARNING
+                else:
+                    color = bcolors.OKGREEN
+
+            print(color + text_format.format(name=t['name'],
+                                             prog=cmdinfo['prog'][:8],
+                                             ip=t['ip'],
+                                             bind=cmdinfo['bind'],
+                                             pbuf_bind=cmdinfo['pbuf_bind'],
+                                             state=t['state'],
+                                             instance=t['instance_id'][:8],
+                                             task=arn.split('/')[1] if arn else None))
+
 def get_devvnet(filename):
     with open(filename, "r") as f:
         buf = ''.join(f.readlines())
