@@ -1,0 +1,15 @@
+/*
+ * devv_version.cpp.in
+ *
+ *  Created on: 10/7/18
+ *      Author: mckenney
+ */
+
+#include "common/devv_version.h"
+
+using namespace Devv;
+
+const std::string Version::GIT_SHA1 = "@GIT_SHA1@";
+const std::string Version::GIT_DATE = "@GIT_DATE@";
+const std::string Version::GIT_COMMIT_SUBJECT = "@GIT_COMMIT_SUBJECT@";
+const std::string Version::GIT_BRANCH = "@GIT_BRANCH@";

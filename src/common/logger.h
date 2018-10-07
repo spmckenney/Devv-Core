@@ -23,8 +23,10 @@
 #include <boost/log/sinks/text_ostream_backend.hpp>
 #include <boost/log/sinks/syslog_backend.hpp>
 #include <boost/log/attributes/named_scope.hpp>
+#include <boost/log/attributes/current_thread_id.hpp>
 
 #include "common/minitrace.h"
+#include "common/devv_version.h"
 
 // the logs are also written to LOGFILE
 #define LOGFILE "/tmp/devv.log"
@@ -116,7 +118,8 @@ static void init_log(const LoggerContext& context) {
     sink->set_formatter
         (
             expr::stream
-                << std::hex << std::setw(6) << std::setfill('0') << line_id << std::dec << std::setfill(' ')
+                << Devv::Version::GIT_SHA1
+                << " " << std::hex << std::setw(6) << std::setfill('0') << line_id << std::dec << std::setfill(' ')
                 << " " << timestamp
                 << " " << severity
                 << " " << std::hex << std::setw(6) << thread_id
@@ -148,10 +151,7 @@ static void init_log(const LoggerContext& context) {
   boost::log::core::get()->set_filter(boost::log::trivial::severity >= GetLogLevel());
 }
 
-static void init_log() {
-  LoggerContext context;
-  init_log(context);
-}
+void init_log();
 
 static inline std::string file_cut(const char* file) {
   std::string s(file);

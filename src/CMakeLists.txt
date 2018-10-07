@@ -63,9 +63,44 @@ list(REMOVE_DUPLICATES dcInclude)
 ADD_LIBRARY(devvpbuf devv.pb.h devv.pb.cc)
 set_source_files_properties(devv.pb.h devv.pb.cc PROPERTIES GENERATED TRUE)
 
+find_package(Git)
+# the commit's SHA1, and whether the building workspace was dirty or not
+execute_process(COMMAND
+        "${GIT_EXECUTABLE}" describe --match=NeVeRmAtCh --always --abbrev=7 --dirty
+        WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+        OUTPUT_VARIABLE GIT_SHA1
+        ERROR_QUIET OUTPUT_STRIP_TRAILING_WHITESPACE)
+
+# the date of the commit
+execute_process(COMMAND
+        "${GIT_EXECUTABLE}" log -1 --format=%ad --date=local
+        WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+        OUTPUT_VARIABLE GIT_DATE
+        ERROR_QUIET OUTPUT_STRIP_TRAILING_WHITESPACE)
+
+# the subject of the commit
+execute_process(COMMAND
+        "${GIT_EXECUTABLE}" log -1 --format=%s
+        WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+        OUTPUT_VARIABLE GIT_COMMIT_SUBJECT
+        ERROR_QUIET OUTPUT_STRIP_TRAILING_WHITESPACE)
+
+# Get the current working branch
+execute_process(COMMAND
+        "${GIT_EXECUTABLE}" rev-parse --abbrev-ref HEAD
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        OUTPUT_VARIABLE GIT_BRANCH
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+
+# generate version.cc
+configure_file("${CMAKE_CURRENT_SOURCE_DIR}/common/devv_version.cpp.in" "${CMAKE_CURRENT_BINARY_DIR}/devv_version.cpp" @ONLY)
+
+list(APPEND generated_SRC "${CMAKE_CURRENT_BINARY_DIR}/devv_version.cpp" devv_version.h)
+
 # Build the common module objects
 file(GLOB common_SRC
-    "common/*.cpp" "common/*.c"
+    "common/*.cpp" "common/*.c" ${generated_SRC}
 )
 add_library(common ${common_SRC})
 
