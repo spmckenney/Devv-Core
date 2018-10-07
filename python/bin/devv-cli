@@ -6,7 +6,7 @@ sys.path.append(".")
 import argparse
 import subprocess
 import time
-import devv
+from devv import devv
 
 def get_sig(env, pkeyfile, key_pass, filename=None):
     print('size txs', str(len(env.txs)))

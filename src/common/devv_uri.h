@@ -14,7 +14,7 @@
 #include "primitives/Address.h"
 #include "primitives/Signature.h"
 
-namespace Devcash {
+namespace Devv {
 
 static const std::string kDEVV_PROTOCOL = "devv://";
 
@@ -97,5 +97,5 @@ static DevvUri ParseDevvUri(std::string uri) {
   return devv_uri;
 }
 
-}  // namespace Devcash
+}  // namespace Devv
 #endif  // DEVV_URI_H

@@ -19,7 +19,7 @@
 #include "consensus/KeyRing.h"
 #include "consensus/chainstate.h"
 
-namespace Devcash {
+namespace Devv {
 
 /// @todo (mckenney) move to constants file
 static const std::string kTYPE_TAG = "type";
@@ -209,6 +209,6 @@ class Transfer {
 
 typedef std::unique_ptr<Transfer> TransferPtr;
 
-}  // end namespace Devcash
+}  // end namespace Devv
 
 #endif /* PRIMITIVES_TRANSFER_H_ */

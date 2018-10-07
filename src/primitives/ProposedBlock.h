@@ -17,7 +17,7 @@
 
 #include "concurrency/TransactionCreationManager.h"
 
-namespace Devcash {
+namespace Devv {
 
 /**
  * Perform a deep copy of the vector of Transaction unique_ptrs
@@ -188,13 +188,13 @@ class ProposedBlock {
    * @return true iff the block was signed.
    * @return false otherwise
    */
-  bool signBlock(const KeyRing &keys, const DevcashContext& context) {
+  bool signBlock(const KeyRing &keys, const DevvContext& context) {
     MTR_SCOPE_FUNC();
     std::vector<byte> md = summary_.getCanonical();
     /// @todo (mckenney) need another solution for node_num with dynamic shards
     size_t node_num = context.get_current_node() % context.get_peer_count();
     Address node_addr = keys.getNodeAddr(node_num);
-    Signature node_sig = SignBinary(keys.getNodeKey(node_num), DevcashHash(md));
+    Signature node_sig = SignBinary(keys.getNodeKey(node_num), DevvHash(md));
     vals_.addValidation(node_addr, node_sig);
     val_count_++;
     num_bytes_ = MinSize() + tx_size_ + sum_size_ + (val_count_ * Validation::pairSize());
@@ -208,7 +208,7 @@ class ProposedBlock {
    * @return true iff this block has enough validations to finalize
    * @return false otherwise
    */
-  bool checkValidationData(InputBuffer& buffer, const DevcashContext& context) {
+  bool checkValidationData(InputBuffer& buffer, const DevvContext& context) {
     MTR_SCOPE_FUNC();
     if (buffer.size() < MinValidationSize()) {
       LOG_WARNING << "Invalid validation data, too small!";
@@ -462,6 +462,6 @@ inline ProposedBlock ProposedBlock::Create(InputBuffer &buffer,
 typedef std::unique_ptr<ProposedBlock> ProposedBlockPtr;
 typedef std::shared_ptr<ProposedBlock> ProposedBlockSharedPtr;
 
-}  // end namespace Devcash
+}  // end namespace Devv
 
 #endif /* PRIMITIVES_PROPOSEDBLOCK_H_ */

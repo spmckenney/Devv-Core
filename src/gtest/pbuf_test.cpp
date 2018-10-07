@@ -31,23 +31,23 @@ class PbufTransactionTest : public ::testing::Test {
   PbufTransactionTest()
       : t1_context_0_(0,
                       0,
-                      Devcash::eAppMode::T1,
+                      Devv::eAppMode::T1,
                       "", // "../opt/inn.key"
                       "", //"../opt/node.key"
                       "password"), transfers_(), keys_(t1_context_0_) {
     for (int i = 0; i < 4; ++i) {
-      keys_.addWalletKeyPair(t1_context_0_.kADDRs[i], t1_context_0_.kADDR_KEYs[i], "password");
+      keys_.addWalletKeyPair(kADDRs[i], kADDR_KEYs[i], "password");
     }
 
-    keys_.setInnKeyPair(t1_context_0_.kINN_ADDR, t1_context_0_.kINN_KEY, "password");
+    keys_.setInnKeyPair(kINN_ADDR, kINN_KEY, "password");
 
     for (int i = 0; i < 3; ++i) {
-      keys_.addNodeKeyPair(t1_context_0_.kNODE_ADDRs.at(i), t1_context_0_.kNODE_KEYs.at(i), "password");
+      keys_.addNodeKeyPair(kNODE_ADDRs.at(i), kNODE_KEYs.at(i), "password");
     }
 
-    Devcash::Transfer transfer1(keys_.getWalletAddr(0), 0, -10, 0);
+    Devv::Transfer transfer1(keys_.getWalletAddr(0), 0, -10, 0);
     transfers_.push_back(transfer1);
-    Devcash::Transfer transfer2(keys_.getWalletAddr(1), 0, 10, 0);
+    Devv::Transfer transfer2(keys_.getWalletAddr(1), 0, 10, 0);
     transfers_.push_back(transfer2);
   }
 
@@ -102,13 +102,13 @@ class PbufTransactionTest : public ::testing::Test {
 
 
   // Create a default context
-  Devcash::DevcashContext t1_context_0_;
+  Devv::DevvContext t1_context_0_;
 
   // default Transfer list
-  std::vector<Devcash::Transfer> transfers_;
+  std::vector<Devv::Transfer> transfers_;
 
   // keys
-  Devcash::KeyRing keys_;
+  Devv::KeyRing keys_;
 
   Devv::proto::Transaction pb_transaction_0_;
 };
@@ -180,7 +180,7 @@ TEST_F(PbufTransactionTest, createTransaction_0) {
     pb_transfer->set_delay(xfer.getDelay());
   }
 
-  auto transaction = Devcash::CreateTransaction(pb_transaction, keys_);
+  auto transaction = Devv::CreateTransaction(pb_transaction, keys_);
 
   EXPECT_EQ(transaction->getTransfers().size(), 4);
 }
@@ -192,8 +192,8 @@ TEST_F(PbufTransactionTest, createTransaction_1) {
 }
 
 TEST_F(PbufTransactionTest, createTransaction_2) {
-  auto transaction_0 = Devcash::CreateTransaction(pb_transaction_0_, keys_);
-  auto transaction_1 = Devcash::CreateTransaction(pb_transaction_0_, keys_, true);
+  auto transaction_0 = Devv::CreateTransaction(pb_transaction_0_, keys_);
+  auto transaction_1 = Devv::CreateTransaction(pb_transaction_0_, keys_, true);
 
   EXPECT_EQ(transaction_1->getTransfers().size(), 4);
 }
@@ -201,7 +201,7 @@ TEST_F(PbufTransactionTest, createTransaction_2) {
 TEST_F(PbufTransactionTest, createTransaction_empty_sig) {
   pb_transaction_0_.set_sig("");
   try {
-    auto transaction_0 = Devcash::CreateTransaction(pb_transaction_0_, keys_);
+    auto transaction_0 = Devv::CreateTransaction(pb_transaction_0_, keys_);
     FAIL() << "Expected std::runtime_error";
   }
   catch (std::runtime_error const& err) {
@@ -215,7 +215,7 @@ TEST_F(PbufTransactionTest, createTransaction_empty_sig) {
 TEST_F(PbufTransactionTest, createTransaction_sig_wrong_size) {
   pb_transaction_0_.set_sig("abc123");
   try {
-    auto transaction_0 = Devcash::CreateTransaction(pb_transaction_0_, keys_);
+    auto transaction_0 = Devv::CreateTransaction(pb_transaction_0_, keys_);
     FAIL() << "Expected std::runtime_error";
   }
   catch (std::runtime_error const& err) {
@@ -229,7 +229,7 @@ TEST_F(PbufTransactionTest, createTransaction_sig_wrong_size) {
 TEST_F(PbufTransactionTest, createTransaction_bad_sig) {
   pb_transaction_0_.set_sig(Bin2Str(Hex2Bin("deadbeef000BCFD89AE647DACA5A5D64FCEC0F66C66497F03449E8C6EEC239B1F94C1E5FC860CE5C37BBFC3142A4FFF2C857A8E55C023075918475133C249446114AC31D5DBD62AD74C254EDF1C9652D547CE906EF68504390ABC4724ADFB000B1C61454E871CC000000")));
   try {
-    auto transaction_0 = Devcash::CreateTransaction(pb_transaction_0_, keys_);
+    auto transaction_0 = Devv::CreateTransaction(pb_transaction_0_, keys_);
     FAIL() << "Expected std::runtime_error";
   }
   catch (std::runtime_error const& err) {
@@ -244,7 +244,7 @@ TEST_F(PbufTransactionTest, createTransaction_big_sig) {
   std::string big_sig(500000000, 'a');
   pb_transaction_0_.set_sig(Bin2Str(Hex2Bin(big_sig)));
   try {
-    auto transaction_0 = Devcash::CreateTransaction(pb_transaction_0_, keys_);
+    auto transaction_0 = Devv::CreateTransaction(pb_transaction_0_, keys_);
     FAIL() << "Expected std::runtime_error";
   }
   catch (std::runtime_error const& err) {
@@ -258,7 +258,7 @@ TEST_F(PbufTransactionTest, createTransaction_big_sig) {
 TEST_F(PbufTransactionTest, createTransaction_bad_amount) {
   pb_transaction_0_.mutable_xfers(1)->set_amount(100);
   try {
-    auto transaction_0 = Devcash::CreateTransaction(pb_transaction_0_, keys_);
+    auto transaction_0 = Devv::CreateTransaction(pb_transaction_0_, keys_);
     FAIL() << "Expected std::runtime_error";
   }
   catch (std::runtime_error const& err) {
@@ -272,7 +272,7 @@ TEST_F(PbufTransactionTest, createTransaction_bad_amount) {
 TEST_F(PbufTransactionTest, createTransaction_change_delay) {
   pb_transaction_0_.mutable_xfers(1)->set_delay(10);
   try {
-    auto transaction_0 = Devcash::CreateTransaction(pb_transaction_0_, keys_);
+    auto transaction_0 = Devv::CreateTransaction(pb_transaction_0_, keys_);
     FAIL() << "Expected std::runtime_error";
   }
   catch (std::runtime_error const& err) {
@@ -286,7 +286,7 @@ TEST_F(PbufTransactionTest, createTransaction_change_delay) {
 TEST_F(PbufTransactionTest, createTransaction_small_nonce) {
   pb_transaction_0_.set_nonce("1");
   try {
-    auto transaction_0 = Devcash::CreateTransaction(pb_transaction_0_, keys_, true);
+    auto transaction_0 = Devv::CreateTransaction(pb_transaction_0_, keys_, true);
     FAIL() << "Expected std::runtime_error";
   }
   catch (std::runtime_error const& err) {
@@ -300,7 +300,7 @@ TEST_F(PbufTransactionTest, createTransaction_small_nonce) {
 TEST_F(PbufTransactionTest, createTransaction_signature_validation) {
   pb_transaction_0_.set_nonce("1");
   try {
-    auto transaction_0 = Devcash::CreateTransaction(pb_transaction_0_, keys_);
+    auto transaction_0 = Devv::CreateTransaction(pb_transaction_0_, keys_);
     FAIL() << "Expected std::runtime_error";
   }
   catch (std::runtime_error const& err) {

@@ -110,21 +110,21 @@
         <UML:DataType isLeaf="false" isSpecification="false" isAbstract="false" elementReference="ujLC4hVuxq4Xi" namespace="Datatypes" visibility="public" isRoot="false" xmi.id="upHpc1SevjODp" name="io::TransactionServer&amp;"/>
         <UML:DataType isLeaf="false" isSpecification="false" isAbstract="false" elementReference="urNz6LUvQTHMD" namespace="Datatypes" visibility="public" isRoot="false" xmi.id="uNGeZFxwlSCDu" name="io::TransactionClient&amp;"/>
         <UML:DataType isLeaf="false" isSpecification="false" isAbstract="false" elementReference="uQFu8bZHgiLsQ" namespace="Datatypes" visibility="public" isRoot="false" xmi.id="unXxobl9ZFqvr" name="const KeyRing&amp;"/>
-        <UML:DataType isLeaf="false" isSpecification="false" isAbstract="false" elementReference="uAOnioYygobFz" namespace="Datatypes" visibility="public" isRoot="false" xmi.id="uO3QgvURMUkZG" name="DevcashContext&amp;"/>
+        <UML:DataType isLeaf="false" isSpecification="false" isAbstract="false" elementReference="uAOnioYygobFz" namespace="Datatypes" visibility="public" isRoot="false" xmi.id="uO3QgvURMUkZG" name="DevvContext&amp;"/>
         <UML:DataType isLeaf="false" isSpecification="false" isAbstract="false" elementReference="ueplV37wInVX1" namespace="Datatypes" visibility="public" isRoot="false" xmi.id="uJkTB5HCUiTa1" name="const ChainState&amp;"/>
         <UML:DataType isLeaf="false" isSpecification="false" isAbstract="false" elementReference="uwlSU1Xxs1NoB" namespace="Datatypes" visibility="public" isRoot="false" xmi.id="uS6FCMeiGqKA8" name="std::vector&lt; std :: vector &lt; byte > >"/>
         <UML:DataType isLeaf="false" isSpecification="false" isAbstract="false" elementReference="uwlSU1Xxs1NoB" namespace="Datatypes" visibility="public" isRoot="false" xmi.id="u3LSUHA6UaeNr" name="std::vector&lt; byte >"/>
-        <UML:DataType isLeaf="false" isSpecification="false" isAbstract="false" elementReference="uxjlC34qTJfe1" namespace="Datatypes" visibility="public" isRoot="false" xmi.id="uZuzkdxtFqD7X" name="std::unique_ptr&lt; DevcashMessage >"/>
+        <UML:DataType isLeaf="false" isSpecification="false" isAbstract="false" elementReference="uxjlC34qTJfe1" namespace="Datatypes" visibility="public" isRoot="false" xmi.id="uZuzkdxtFqD7X" name="std::unique_ptr&lt; DevvMessage >"/>
         <UML:DataType isLeaf="false" isSpecification="false" isAbstract="false" elementReference="umkLOd387YveQ" namespace="Datatypes" visibility="public" isRoot="false" xmi.id="ujJDcGqceg4Qf" name="const int"/>
-        <UML:DataType isLeaf="false" isSpecification="false" isAbstract="false" elementReference="u22RdKGsqkiTQ" namespace="Datatypes" visibility="public" isRoot="false" xmi.id="uyYuPAaW6oAGy" name="DevcashControllerWorker*"/>
-        <UML:DataType isLeaf="false" isSpecification="false" isAbstract="false" elementReference="u2uNv38dCwrTe" namespace="Datatypes" visibility="public" isRoot="false" xmi.id="uAqfmCGaa1LIu" name="DevcashMPMCQueue const&amp;"/>
-        <UML:DataType isLeaf="false" isSpecification="false" isAbstract="false" elementReference="uC2VR2Mel8cUM" namespace="Datatypes" visibility="public" isRoot="false" xmi.id="ucp9drfVmO2vR" name="DevcashMPMCQueue&amp;"/>
-        <UML:DataType isLeaf="false" isSpecification="false" isAbstract="false" elementReference="uRMAZLCjyCimo" namespace="Datatypes" visibility="public" isRoot="false" xmi.id="u6RiNBXMNnd5j" name="moodycamel::BlockingConcurrentQueue&lt; DevcashMessage * >"/>
-        <UML:DataType isLeaf="false" isSpecification="false" isAbstract="false" elementReference="uQFlrC4AmMCLW" namespace="Datatypes" visibility="public" isRoot="false" xmi.id="uv9GQAbKVugKR" name="DevcashSPSCQueue const&amp;"/>
-        <UML:DataType isLeaf="false" isSpecification="false" isAbstract="false" elementReference="uv7iLjuHYw6CF" namespace="Datatypes" visibility="public" isRoot="false" xmi.id="uN2GsLWIw93rQ" name="DevcashSPSCQueue&amp;"/>
-        <UML:DataType isLeaf="false" isSpecification="false" isAbstract="false" elementReference="ujjGxCeFyPLV6" namespace="Datatypes" visibility="public" isRoot="false" xmi.id="ubSICWrbY7TLW" name="DevcashController*"/>
-        <UML:DataType isLeaf="false" isSpecification="false" isAbstract="false" elementReference="unbou0yZjjpSR" namespace="Datatypes" visibility="public" isRoot="false" xmi.id="uGtvqivx55OZk" name="DevcashControllerWorker const&amp;"/>
-        <UML:DataType isLeaf="false" isSpecification="false" isAbstract="false" elementReference="u22RdKGsqkiTQ" namespace="Datatypes" visibility="public" isRoot="false" xmi.id="uOYlybNYdPXWz" name="DevcashControllerWorker&amp;"/>
+        <UML:DataType isLeaf="false" isSpecification="false" isAbstract="false" elementReference="u22RdKGsqkiTQ" namespace="Datatypes" visibility="public" isRoot="false" xmi.id="uyYuPAaW6oAGy" name="DevvControllerWorker*"/>
+        <UML:DataType isLeaf="false" isSpecification="false" isAbstract="false" elementReference="u2uNv38dCwrTe" namespace="Datatypes" visibility="public" isRoot="false" xmi.id="uAqfmCGaa1LIu" name="DevvMPMCQueue const&amp;"/>
+        <UML:DataType isLeaf="false" isSpecification="false" isAbstract="false" elementReference="uC2VR2Mel8cUM" namespace="Datatypes" visibility="public" isRoot="false" xmi.id="ucp9drfVmO2vR" name="DevvMPMCQueue&amp;"/>
+        <UML:DataType isLeaf="false" isSpecification="false" isAbstract="false" elementReference="uRMAZLCjyCimo" namespace="Datatypes" visibility="public" isRoot="false" xmi.id="u6RiNBXMNnd5j" name="moodycamel::BlockingConcurrentQueue&lt; DevvMessage * >"/>
+        <UML:DataType isLeaf="false" isSpecification="false" isAbstract="false" elementReference="uQFlrC4AmMCLW" namespace="Datatypes" visibility="public" isRoot="false" xmi.id="uv9GQAbKVugKR" name="DevvSPSCQueue const&amp;"/>
+        <UML:DataType isLeaf="false" isSpecification="false" isAbstract="false" elementReference="uv7iLjuHYw6CF" namespace="Datatypes" visibility="public" isRoot="false" xmi.id="uN2GsLWIw93rQ" name="DevvSPSCQueue&amp;"/>
+        <UML:DataType isLeaf="false" isSpecification="false" isAbstract="false" elementReference="ujjGxCeFyPLV6" namespace="Datatypes" visibility="public" isRoot="false" xmi.id="ubSICWrbY7TLW" name="DevvController*"/>
+        <UML:DataType isLeaf="false" isSpecification="false" isAbstract="false" elementReference="unbou0yZjjpSR" namespace="Datatypes" visibility="public" isRoot="false" xmi.id="uGtvqivx55OZk" name="DevvControllerWorker const&amp;"/>
+        <UML:DataType isLeaf="false" isSpecification="false" isAbstract="false" elementReference="u22RdKGsqkiTQ" namespace="Datatypes" visibility="public" isRoot="false" xmi.id="uOYlybNYdPXWz" name="DevvControllerWorker&amp;"/>
         <UML:DataType isLeaf="false" isSpecification="false" isAbstract="false" elementReference="uDGhFzgSe3xcb" namespace="Datatypes" visibility="public" isRoot="false" xmi.id="uspbYMjgfxU4V" name="TransactionCreationManager&amp;"/>
         <UML:DataType isLeaf="false" isSpecification="false" isAbstract="false" elementReference="uwlSU1Xxs1NoB" namespace="Datatypes" visibility="public" isRoot="false" xmi.id="uu8Pvzl5BlsSZ" name="const std::vector&lt; byte >&amp;"/>
         <UML:DataType isLeaf="false" isSpecification="false" isAbstract="false" elementReference="uwlSU1Xxs1NoB" namespace="Datatypes" visibility="public" isRoot="false" xmi.id="usEqa8ANYkQQb" name="std::vector&lt; TransactionPtr >&amp;"/>
@@ -149,7 +149,7 @@
         <UML:DataType isLeaf="false" isSpecification="false" isAbstract="false" elementReference="uwlSU1Xxs1NoB" namespace="Datatypes" visibility="public" isRoot="false" xmi.id="uh7eljPuTBEvL" name="std::vector&lt; TransactionPtr >"/>
         <UML:DataType isLeaf="false" isSpecification="false" isAbstract="false" elementReference="uAMYnbkmyOmh0" namespace="Datatypes" visibility="public" isRoot="false" xmi.id="usqnfKBYwaOX9" name="Summary&amp;"/>
         <UML:DataType isLeaf="false" isSpecification="false" isAbstract="false" elementReference="u9kV9iBr9VT7b" namespace="Datatypes" visibility="public" isRoot="false" xmi.id="ubs9aEu43MerN" name="const Hash&amp;"/>
-        <UML:DataType isLeaf="false" isSpecification="false" isAbstract="false" elementReference="uAOnioYygobFz" namespace="Datatypes" visibility="public" isRoot="false" xmi.id="udYwhXIpatTQy" name="const DevcashContext&amp;"/>
+        <UML:DataType isLeaf="false" isSpecification="false" isAbstract="false" elementReference="uAOnioYygobFz" namespace="Datatypes" visibility="public" isRoot="false" xmi.id="udYwhXIpatTQy" name="const DevvContext&amp;"/>
         <UML:DataType isLeaf="false" isSpecification="false" isAbstract="false" elementReference="u7iBgOmx1Xp2r" namespace="Datatypes" visibility="public" isRoot="false" xmi.id="u4iSACFmvyUtx" name="const FinalBlock"/>
         <UML:DataType isLeaf="false" isSpecification="false" isAbstract="false" elementReference="uIOcBI9JyJqcC" namespace="Datatypes" visibility="public" isRoot="false" xmi.id="upbXilqzuWdcZ" name="const ChainState"/>
         <UML:DataType isLeaf="false" isSpecification="false" isAbstract="false" elementReference="uxjlC34qTJfe1" namespace="Datatypes" visibility="public" isRoot="false" xmi.id="ufuTWcIwxUvZ0" name="std::unique_ptr&lt; MTRScopedTrace >"/>
@@ -162,7 +162,7 @@
         <UML:DataType isLeaf="false" isSpecification="false" isAbstract="false" elementReference="ujLC4hVuxq4Xi" namespace="Datatypes" visibility="public" isRoot="false" xmi.id="uNxUoACoup9UP" name="TransactionServer&amp;"/>
         <UML:DataType isLeaf="false" isSpecification="false" isAbstract="false" elementReference="uxjlC34qTJfe1" namespace="Datatypes" visibility="public" isRoot="false" xmi.id="ua2FhZ3zgPvCa" name="std::unique_ptr&lt; zmq :: socket_t >"/>
         <UML:DataType isLeaf="false" isSpecification="false" isAbstract="false" elementReference="uxjlC34qTJfe1" namespace="Datatypes" visibility="public" isRoot="false" xmi.id="ueJwea8UlhBnl" name="std::unique_ptr&lt; std :: thread >"/>
-        <UML:DataType isLeaf="false" isSpecification="false" isAbstract="false" elementReference="ujjGxCeFyPLV6" namespace="Datatypes" visibility="public" isRoot="false" xmi.id="udfjIqccnsidc" name="DevcashController&amp;"/>
+        <UML:DataType isLeaf="false" isSpecification="false" isAbstract="false" elementReference="ujjGxCeFyPLV6" namespace="Datatypes" visibility="public" isRoot="false" xmi.id="udfjIqccnsidc" name="DevvController&amp;"/>
         <UML:DataType isLeaf="false" isSpecification="false" isAbstract="false" elementReference="uT8uZgpjEyl5h" namespace="Datatypes" visibility="public" isRoot="false" xmi.id="uE9TyRggcQLLW" name="const FinalBlock&amp;"/>
         <UML:DataType isLeaf="false" isSpecification="false" isAbstract="false" elementReference="uZcCWFVG3qM4Y" namespace="Datatypes" visibility="public" isRoot="false" xmi.id="uoOBXoPnxhZuO" name="ProposedBlock&amp;"/>
         <UML:DataType isLeaf="false" isSpecification="false" isAbstract="false" elementReference="uAMYnbkmyOmh0" namespace="Datatypes" visibility="public" isRoot="false" xmi.id="ufULzYOCpF9zw" name="const Summary&amp;"/>
@@ -192,7 +192,7 @@
         <UML:DataType isLeaf="false" isSpecification="false" isAbstract="false" namespace="Datatypes" visibility="public" isRoot="false" xmi.id="ugfxOV3vafGZV" name="undef"/>
        </UML:Namespace.ownedElement>
       </UML:Package>
-      <UML:Package isLeaf="false" isSpecification="false" isAbstract="false" namespace="Logical_View" visibility="public" isRoot="false" xmi.id="ukbCAHCwBvxst" name="Devcash">
+      <UML:Package isLeaf="false" isSpecification="false" isAbstract="false" namespace="Logical_View" visibility="public" isRoot="false" xmi.id="ukbCAHCwBvxst" name="Devv">
        <UML:Namespace.ownedElement>
         <UML:Enumeration isLeaf="false" isSpecification="false" isAbstract="false" namespace="ukbCAHCwBvxst" stereotype="enum" visibility="public" isRoot="false" xmi.id="u25KsFym3iUb2" name="eDebugMode">
          <UML:Enumeration.literal>
@@ -201,7 +201,7 @@
           <UML:EnumerationLiteral isLeaf="false" isSpecification="false" isAbstract="false" namespace="u25KsFym3iUb2" visibility="public" isRoot="false" xmi.id="uXn7iFKEEDDG8" name="toy"/>
          </UML:Enumeration.literal>
         </UML:Enumeration>
-        <UML:Class isLeaf="false" isSpecification="false" isAbstract="false" namespace="ukbCAHCwBvxst" visibility="public" isRoot="false" xmi.id="uIUNBpgN7Ktie" name="devcash_options">
+        <UML:Class isLeaf="false" isSpecification="false" isAbstract="false" namespace="ukbCAHCwBvxst" visibility="public" isRoot="false" xmi.id="uIUNBpgN7Ktie" name="devv_options">
          <UML:Classifier.feature>
           <UML:Attribute isSpecification="false" type="ugfxOV3vafGZV" visibility="public" xmi.id="uXiBNeXfVMNIO" name="bind_endpoint"/>
           <UML:Attribute isSpecification="false" type="urPrm5hzmEmlL" visibility="public" xmi.id="uPP9cSgnftZ2Y" name="mode"/>
@@ -228,7 +228,7 @@
           </UML:Operation>
          </UML:Classifier.feature>
         </UML:Class>
-        <UML:Class isLeaf="false" isSpecification="false" isAbstract="false" namespace="ukbCAHCwBvxst" visibility="public" isRoot="false" xmi.id="uAOnioYygobFz" name="DevcashContext">
+        <UML:Class isLeaf="false" isSpecification="false" isAbstract="false" namespace="ukbCAHCwBvxst" visibility="public" isRoot="false" xmi.id="uAOnioYygobFz" name="DevvContext">
          <UML:Classifier.feature>
           <UML:Attribute isSpecification="false" type="uO1sxBS9zoo2J" visibility="public" xmi.id="uW6I6Ohsdbtal" name="kINN_KEY"/>
           <UML:Attribute isSpecification="false" type="uO1sxBS9zoo2J" visibility="public" xmi.id="uRHBwuGVIbVvj" name="kINN_ADDR"/>
@@ -240,14 +240,14 @@
           <UML:Attribute isSpecification="false" comment="Node index of this process" type="uIWGVUnm3DFPy" visibility="private" xmi.id="uKdq47GDnFgxi" name="current_node_"/>
           <UML:Attribute isSpecification="false" comment="Shard Index of this process" type="uIWGVUnm3DFPy" visibility="private" xmi.id="uTIXCq3r6DQLO" name="current_shard_"/>
           <UML:Attribute isSpecification="false" comment="Process mode" type="urPrm5hzmEmlL" visibility="private" xmi.id="uPNdHcQECzv17" name="app_mode_"/>
-          <UML:Attribute isSpecification="false" comment="Prefix for devcash uris" type="ugfxOV3vafGZV" visibility="private" xmi.id="uvJZp0kVpB8wW" name="uri_prefix_"/>
+          <UML:Attribute isSpecification="false" comment="Prefix for devv uris" type="ugfxOV3vafGZV" visibility="private" xmi.id="uvJZp0kVpB8wW" name="uri_prefix_"/>
           <UML:Attribute isSpecification="false" comment="This processes uri" type="ugfxOV3vafGZV" visibility="private" xmi.id="uvRAzwavArMZT" name="uri_"/>
           <UML:Attribute isSpecification="false" comment="key file paths" type="ugfxOV3vafGZV" visibility="private" xmi.id="uLqh0yXmfkCa5" name="inn_keys_"/>
           <UML:Attribute isSpecification="false" type="ugfxOV3vafGZV" visibility="private" xmi.id="uS3NBwj9UP5Tn" name="node_keys_"/>
           <UML:Attribute isSpecification="false" type="ugfxOV3vafGZV" visibility="private" xmi.id="uoIkpYX8j44cn" name="wallet_keys_"/>
           <UML:Attribute isSpecification="false" comment="Host the nodes will sync to" type="ugfxOV3vafGZV" visibility="private" xmi.id="u0HcwIReUXFlY" name="sync_host_"/>
           <UML:Attribute isSpecification="false" comment="Port the nodes will sync to" type="uIWGVUnm3DFPy" visibility="private" xmi.id="uIAfk0izYAP1O" name="sync_port_"/>
-          <UML:Operation isLeaf="false" isOverride="false" isSpecification="false" isAbstract="false" isQuery="false" stereotype="constructor" visibility="public" isRoot="false" xmi.id="uZBeRd6dvsXS5" name="DevcashContext">
+          <UML:Operation isLeaf="false" isOverride="false" isSpecification="false" isAbstract="false" isQuery="false" stereotype="constructor" visibility="public" isRoot="false" xmi.id="uZBeRd6dvsXS5" name="DevvContext">
            <UML:BehavioralFeature.parameter>
             <UML:Parameter isSpecification="false" type="uIWGVUnm3DFPy" value="" visibility="private" xmi.id="u9O4M20kCXbqd" name="current_node"/>
             <UML:Parameter isSpecification="false" type="uIWGVUnm3DFPy" value="" visibility="private" xmi.id="ua4OjYbNvUArE" name="current_shard"/>
@@ -360,7 +360,7 @@
           </UML:Operation>
          </UML:Classifier.feature>
         </UML:Class>
-        <UML:Class isLeaf="false" isSpecification="false" isAbstract="false" namespace="ukbCAHCwBvxst" visibility="public" isRoot="false" xmi.id="u22RdKGsqkiTQ" name="DevcashControllerWorker">
+        <UML:Class isLeaf="false" isSpecification="false" isAbstract="false" namespace="ukbCAHCwBvxst" visibility="public" isRoot="false" xmi.id="u22RdKGsqkiTQ" name="DevvControllerWorker">
          <UML:Classifier.feature>
           <UML:Attribute isSpecification="false" type="ujJDcGqceg4Qf" visibility="private" xmi.id="u1t8J2uOFZFpd" name="validator_num_"/>
           <UML:Attribute isSpecification="false" type="ujJDcGqceg4Qf" visibility="private" xmi.id="ugYzBnbpo1qCe" name="consensus_num_"/>
@@ -374,7 +374,7 @@
           <UML:Attribute isSpecification="false" comment="signals all threads to stop gracefully" type="ulS08sDXcaNqz" visibility="private" xmi.id="uUDYAIilV6FoE" name="continue_"/>
           <UML:Attribute isSpecification="false" type="ubSICWrbY7TLW" visibility="private" xmi.id="uw9QDrExWZuPh" name="controller_"/>
           <UML:Attribute isSpecification="false" type="uFc35aD7iETEe" visibility="private" xmi.id="uuSo8hOgBamWu" name="toy_mode_"/>
-          <UML:Operation isLeaf="false" isOverride="false" isSpecification="false" isAbstract="false" isQuery="false" stereotype="constructor" visibility="public" isRoot="false" xmi.id="uyKwmDnRTPemi" name="DevcashControllerWorker">
+          <UML:Operation isLeaf="false" isOverride="false" isSpecification="false" isAbstract="false" isQuery="false" stereotype="constructor" visibility="public" isRoot="false" xmi.id="uyKwmDnRTPemi" name="DevvControllerWorker">
            <UML:BehavioralFeature.parameter>
             <UML:Parameter isSpecification="false" type="ubSICWrbY7TLW" value="" visibility="private" xmi.id="uV4q2BQ90PZGc" name="control"/>
             <UML:Parameter isSpecification="false" type="ujJDcGqceg4Qf" value="" visibility="private" xmi.id="udCucMedFRvhR" name="validators"/>
@@ -382,8 +382,8 @@
             <UML:Parameter isSpecification="false" type="ujJDcGqceg4Qf" value="" visibility="private" xmi.id="uzYmq7mqHmtWM" name="shard_comms"/>
            </UML:BehavioralFeature.parameter>
           </UML:Operation>
-          <UML:Operation isLeaf="false" isOverride="false" isSpecification="false" isAbstract="false" isQuery="false" stereotype="destructor" visibility="public" isRoot="false" xmi.id="ueSarr45TZZlj" name="~ DevcashControllerWorker"/>
-          <UML:Operation isLeaf="false" isOverride="false" isSpecification="false" isAbstract="false" isQuery="false" stereotype="constructor" visibility="public" isRoot="false" xmi.id="uSuR1L7YdXIZQ" name="DevcashControllerWorker">
+          <UML:Operation isLeaf="false" isOverride="false" isSpecification="false" isAbstract="false" isQuery="false" stereotype="destructor" visibility="public" isRoot="false" xmi.id="ueSarr45TZZlj" name="~ DevvControllerWorker"/>
+          <UML:Operation isLeaf="false" isOverride="false" isSpecification="false" isAbstract="false" isQuery="false" stereotype="constructor" visibility="public" isRoot="false" xmi.id="uSuR1L7YdXIZQ" name="DevvControllerWorker">
            <UML:BehavioralFeature.parameter>
             <UML:Parameter isSpecification="false" type="uGtvqivx55OZk" value="" visibility="private" xmi.id="u7Dqzc0A9qkUo" name=""/>
            </UML:BehavioralFeature.parameter>
@@ -421,7 +421,7 @@
           <UML:Operation isLeaf="false" isOverride="false" isSpecification="false" isAbstract="false" isQuery="false" visibility="public" isRoot="false" xmi.id="uI7ovsjuTgeYJ" name="ShardCommsLoop"/>
          </UML:Classifier.feature>
         </UML:Class>
-        <UML:Class isLeaf="false" isSpecification="false" isAbstract="false" namespace="ukbCAHCwBvxst" visibility="public" isRoot="false" xmi.id="ujjGxCeFyPLV6" name="DevcashController">
+        <UML:Class isLeaf="false" isSpecification="false" isAbstract="false" namespace="ukbCAHCwBvxst" visibility="public" isRoot="false" xmi.id="ujjGxCeFyPLV6" name="DevvController">
          <UML:Classifier.feature>
           <UML:Attribute isSpecification="false" type="upHpc1SevjODp" visibility="private" xmi.id="u9q4jPVA7RANz" name="server_"/>
           <UML:Attribute isSpecification="false" type="uNGeZFxwlSCDu" visibility="private" xmi.id="u0MRBO8A972tC" name="peer_client_"/>
@@ -446,7 +446,7 @@
           <UML:Attribute isSpecification="false" type="u0QolIroqOSce" visibility="private" xmi.id="uHBfAsti7mmne" name="mutex_"/>
           <UML:Attribute isSpecification="false" type="uBRhGNNWj7Msh" visibility="private" xmi.id="uATOoechHSfo8" name="remote_blocks_"/>
           <UML:Attribute isSpecification="false" type="unOWSYSTmGrzG" visibility="private" xmi.id="upQMoUFw4oZTW" name="input_blocks_"/>
-          <UML:Operation isLeaf="false" isOverride="false" isSpecification="false" isAbstract="false" isQuery="false" stereotype="constructor" visibility="public" isRoot="false" xmi.id="uTCzkBaKoR2Zb" name="DevcashController">
+          <UML:Operation isLeaf="false" isOverride="false" isSpecification="false" isAbstract="false" isQuery="false" stereotype="constructor" visibility="public" isRoot="false" xmi.id="uTCzkBaKoR2Zb" name="DevvController">
            <UML:BehavioralFeature.parameter>
             <UML:Parameter isSpecification="false" type="upHpc1SevjODp" value="" visibility="private" xmi.id="uvecvN3fjtsG8" name="server"/>
             <UML:Parameter isSpecification="false" type="uNGeZFxwlSCDu" value="" visibility="private" xmi.id="uoqbD3v9zkN41" name="peer_client"/>
@@ -463,7 +463,7 @@
             <UML:Parameter isSpecification="false" type="ugfxOV3vafGZV" value="" visibility="private" xmi.id="uH7vPU0rmnW6I" name="scan_dir"/>
            </UML:BehavioralFeature.parameter>
           </UML:Operation>
-          <UML:Operation isLeaf="false" isOverride="false" isSpecification="false" isAbstract="false" isQuery="false" stereotype="destructor" visibility="public" isRoot="false" xmi.id="uhyfY8CepiJU9" name="~ DevcashController"/>
+          <UML:Operation isLeaf="false" isOverride="false" isSpecification="false" isAbstract="false" isQuery="false" stereotype="destructor" visibility="public" isRoot="false" xmi.id="uhyfY8CepiJU9" name="~ DevvController"/>
           <UML:Operation isLeaf="false" isOverride="false" isSpecification="false" isAbstract="false" isQuery="false" visibility="public" isRoot="false" xmi.id="uBJFN63Meau57" name="GenerateTransactions">
            <UML:BehavioralFeature.parameter>
             <UML:Parameter kind="return" type="uS6FCMeiGqKA8" xmi.id="ulOmWueEL1Nxs"/>
@@ -522,17 +522,17 @@
           </UML:Operation>
          </UML:Classifier.feature>
         </UML:Class>
-        <UML:Class isLeaf="false" isSpecification="false" isAbstract="false" comment="Multiple producer / multiple consumer queue." namespace="ukbCAHCwBvxst" visibility="public" isRoot="false" xmi.id="uC2VR2Mel8cUM" name="DevcashMPMCQueue">
+        <UML:Class isLeaf="false" isSpecification="false" isAbstract="false" comment="Multiple producer / multiple consumer queue." namespace="ukbCAHCwBvxst" visibility="public" isRoot="false" xmi.id="uC2VR2Mel8cUM" name="DevvMPMCQueue">
          <UML:Classifier.feature>
           <UML:Attribute isSpecification="false" type="u6RiNBXMNnd5j" visibility="private" xmi.id="uzEWCm4RoVNsX" name="queue_"/>
           <UML:Attribute isSpecification="false" type="uFc35aD7iETEe" visibility="private" xmi.id="uVlj0HpqXknMT" name="keep_popping_"/>
-          <UML:Operation isLeaf="false" isOverride="false" isSpecification="false" isAbstract="false" isQuery="false" stereotype="constructor" visibility="public" isRoot="false" xmi.id="uBoj7ls3e6ABL" name="DevcashMPMCQueue">
+          <UML:Operation isLeaf="false" isOverride="false" isSpecification="false" isAbstract="false" isQuery="false" stereotype="constructor" visibility="public" isRoot="false" xmi.id="uBoj7ls3e6ABL" name="DevvMPMCQueue">
            <UML:BehavioralFeature.parameter>
             <UML:Parameter isSpecification="false" type="unOWSYSTmGrzG" value="" visibility="private" xmi.id="urFEm8AasyToW" name="capacity"/>
            </UML:BehavioralFeature.parameter>
           </UML:Operation>
-          <UML:Operation isLeaf="false" isOverride="false" isSpecification="false" isAbstract="false" isQuery="false" stereotype="destructor" visibility="public" isRoot="false" xmi.id="utxB7M9jlioXR" name="~ DevcashMPMCQueue"/>
-          <UML:Operation isLeaf="false" isOverride="false" isSpecification="false" isAbstract="false" isQuery="false" stereotype="constructor" visibility="public" isRoot="false" xmi.id="uv0dxCmJaoMrm" name="DevcashMPMCQueue">
+          <UML:Operation isLeaf="false" isOverride="false" isSpecification="false" isAbstract="false" isQuery="false" stereotype="destructor" visibility="public" isRoot="false" xmi.id="utxB7M9jlioXR" name="~ DevvMPMCQueue"/>
+          <UML:Operation isLeaf="false" isOverride="false" isSpecification="false" isAbstract="false" isQuery="false" stereotype="constructor" visibility="public" isRoot="false" xmi.id="uv0dxCmJaoMrm" name="DevvMPMCQueue">
            <UML:BehavioralFeature.parameter>
             <UML:Parameter isSpecification="false" type="uAqfmCGaa1LIu" value="" visibility="private" xmi.id="uV7MfbswgxnZl" name=""/>
            </UML:BehavioralFeature.parameter>
@@ -557,12 +557,12 @@
           <UML:Operation isLeaf="false" isOverride="false" isSpecification="false" isAbstract="false" isQuery="false" visibility="public" isRoot="false" xmi.id="uvCKCXDbYnW9k" name="ClearBlockers"/>
          </UML:Classifier.feature>
         </UML:Class>
-        <UML:Class isLeaf="false" isSpecification="false" isAbstract="false" comment="Single producer / single consumer queue." namespace="ukbCAHCwBvxst" visibility="public" isRoot="false" xmi.id="uv7iLjuHYw6CF" name="DevcashSPSCQueue">
+        <UML:Class isLeaf="false" isSpecification="false" isAbstract="false" comment="Single producer / single consumer queue." namespace="ukbCAHCwBvxst" visibility="public" isRoot="false" xmi.id="uv7iLjuHYw6CF" name="DevvSPSCQueue">
          <UML:Classifier.feature>
           <UML:Attribute isSpecification="false" type="u6QF1Qpa3gEEr" visibility="private" xmi.id="uu2hUmN02Vhhk" name="spsc_queue_"/>
-          <UML:Operation isLeaf="false" isOverride="false" isSpecification="false" isAbstract="false" isQuery="false" stereotype="constructor" visibility="public" isRoot="false" xmi.id="uS4l04BpiAdEj" name="DevcashSPSCQueue"/>
-          <UML:Operation isLeaf="false" isOverride="false" isSpecification="false" isAbstract="false" isQuery="false" stereotype="destructor" visibility="public" isRoot="false" xmi.id="utQ3oM6jcVvCZ" name="~ DevcashSPSCQueue"/>
-          <UML:Operation isLeaf="false" isOverride="false" isSpecification="false" isAbstract="false" isQuery="false" stereotype="constructor" visibility="public" isRoot="false" xmi.id="ui0tpGjSLgjYy" name="DevcashSPSCQueue">
+          <UML:Operation isLeaf="false" isOverride="false" isSpecification="false" isAbstract="false" isQuery="false" stereotype="constructor" visibility="public" isRoot="false" xmi.id="uS4l04BpiAdEj" name="DevvSPSCQueue"/>
+          <UML:Operation isLeaf="false" isOverride="false" isSpecification="false" isAbstract="false" isQuery="false" stereotype="destructor" visibility="public" isRoot="false" xmi.id="utQ3oM6jcVvCZ" name="~ DevvSPSCQueue"/>
+          <UML:Operation isLeaf="false" isOverride="false" isSpecification="false" isAbstract="false" isQuery="false" stereotype="constructor" visibility="public" isRoot="false" xmi.id="ui0tpGjSLgjYy" name="DevvSPSCQueue">
            <UML:BehavioralFeature.parameter>
             <UML:Parameter isSpecification="false" type="uv9GQAbKVugKR" value="" visibility="private" xmi.id="utfkRDdnBtiqk" name=""/>
            </UML:BehavioralFeature.parameter>
@@ -996,7 +996,7 @@
           <UML:Package isLeaf="false" isSpecification="false" isAbstract="false" namespace="uUO3bkYDoSKcE" visibility="public" isRoot="false" xmi.id="ucUFgmIOsU8Uo" name="constants">
            <UML:Namespace.ownedElement/>
           </UML:Package>
-          <UML:Class isLeaf="false" isSpecification="false" isAbstract="false" namespace="uUO3bkYDoSKcE" stereotype="typedef" visibility="public" isRoot="false" xmi.id="uB3sX3Ka3whtw" name="DevcashMessageCallback"/>
+          <UML:Class isLeaf="false" isSpecification="false" isAbstract="false" namespace="uUO3bkYDoSKcE" stereotype="typedef" visibility="public" isRoot="false" xmi.id="uB3sX3Ka3whtw" name="DevvMessageCallback"/>
           <UML:Class isLeaf="false" isSpecification="false" isAbstract="false" comment="TransactionClient" namespace="uUO3bkYDoSKcE" visibility="public" isRoot="false" xmi.id="uxahpfCYfseJJ" name="final">
            <UML:Classifier.feature>
             <UML:Attribute isSpecification="false" comment="communication urls" type="uO1sxBS9zoo2J" visibility="private" xmi.id="ux5QBx228NbSt" name="bind_url_"/>
@@ -1040,7 +1040,7 @@
              </UML:BehavioralFeature.parameter>
             </UML:Operation>
             <UML:Operation isLeaf="false" isOverride="false" isSpecification="false" isAbstract="false" comment="Blocks indefinitely" isQuery="false" visibility="public" isRoot="false" xmi.id="uh9bvrGB2NVwA" name="Run"/>
-            <UML:Operation isLeaf="false" isOverride="false" isSpecification="false" isAbstract="false" comment="Add a devcash node to connect to" isQuery="false" visibility="public" isRoot="false" xmi.id="uwYRP8ThD1KPi" name="AddConnection">
+            <UML:Operation isLeaf="false" isOverride="false" isSpecification="false" isAbstract="false" comment="Add a devv node to connect to" isQuery="false" visibility="public" isRoot="false" xmi.id="uwYRP8ThD1KPi" name="AddConnection">
              <UML:BehavioralFeature.parameter>
               <UML:Parameter isSpecification="false" type="uU35aX40781ww" value="" visibility="private" xmi.id="uuONuKoYIQMdq" name="endpoint"/>
              </UML:BehavioralFeature.parameter>
@@ -1056,7 +1056,7 @@
           </UML:Class>
          </UML:Namespace.ownedElement>
         </UML:Package>
-        <UML:Class isLeaf="false" isSpecification="false" isAbstract="false" namespace="ukbCAHCwBvxst" visibility="public" isRoot="false" xmi.id="uCJ7uskYscBxd" name="DevcashNode">
+        <UML:Class isLeaf="false" isSpecification="false" isAbstract="false" namespace="ukbCAHCwBvxst" visibility="public" isRoot="false" xmi.id="uCJ7uskYscBxd" name="DevvNode">
          <UML:Classifier.feature>
           <UML:Attribute isSpecification="false" type="udfjIqccnsidc" visibility="private" xmi.id="uelVcCW8mobgA" name="control_"/>
           <UML:Attribute isSpecification="false" type="uO3QgvURMUkZG" visibility="private" xmi.id="uOzXh78A6eb0r" name="app_context_"/>
@@ -1067,9 +1067,9 @@
            </UML:BehavioralFeature.parameter>
           </UML:Operation>
           <UML:Operation isLeaf="false" isOverride="false" isSpecification="false" isAbstract="false" comment="Shut down immediately. " isQuery="false" visibility="public" isRoot="false" xmi.id="uoOkQkc8vrvdZ" name="Shutdown"/>
-          <UML:Operation isLeaf="false" isOverride="false" isSpecification="false" isAbstract="false" isQuery="false" stereotype="constructor" visibility="public" isRoot="false" xmi.id="undlQfNJbeLEG" name="DevcashNode">
+          <UML:Operation isLeaf="false" isOverride="false" isSpecification="false" isAbstract="false" isQuery="false" stereotype="constructor" visibility="public" isRoot="false" xmi.id="undlQfNJbeLEG" name="DevvNode">
            <UML:BehavioralFeature.parameter>
-            <UML:Parameter isSpecification="false" type="udfjIqccnsidc" value="" visibility="private" xmi.id="uVepNMUeBV9iD" name="devcash"/>
+            <UML:Parameter isSpecification="false" type="udfjIqccnsidc" value="" visibility="private" xmi.id="uVepNMUeBV9iD" name="devv"/>
             <UML:Parameter isSpecification="false" type="uO3QgvURMUkZG" value="" visibility="private" xmi.id="uorwDyFkDLumT" name="context"/>
            </UML:BehavioralFeature.parameter>
           </UML:Operation>
@@ -1088,7 +1088,7 @@
             <UML:Parameter kind="return" type="ugfxOV3vafGZV" xmi.id="uFGyByJM5o2Xx"/>
            </UML:BehavioralFeature.parameter>
           </UML:Operation>
-          <UML:Operation isLeaf="false" isOverride="false" isSpecification="false" isAbstract="false" comment="Devcash core main initialization.&#xa;@note Call Shutdown() if this function fails." isQuery="false" visibility="public" isRoot="false" xmi.id="uRk7doF4yngDY" name="RunNode">
+          <UML:Operation isLeaf="false" isOverride="false" isSpecification="false" isAbstract="false" comment="Devv core main initialization.&#xa;@note Call Shutdown() if this function fails." isQuery="false" visibility="public" isRoot="false" xmi.id="uRk7doF4yngDY" name="RunNode">
            <UML:BehavioralFeature.parameter>
             <UML:Parameter kind="return" type="u3LSUHA6UaeNr" xmi.id="uqQlibT5eLilb"/>
            </UML:BehavioralFeature.parameter>
@@ -2032,18 +2032,18 @@
          </UML:Enumeration.literal>
         </UML:Enumeration>
         <UML:Class isLeaf="false" isSpecification="false" isAbstract="false" namespace="ukbCAHCwBvxst" stereotype="typedef" visibility="public" isRoot="false" xmi.id="ulO6XEfr5RC6T" name="URI"/>
-        <UML:Class isLeaf="false" isSpecification="false" isAbstract="false" namespace="ukbCAHCwBvxst" visibility="public" isRoot="false" xmi.id="u2XM2gXQefN4C" name="DevcashMessage">
+        <UML:Class isLeaf="false" isSpecification="false" isAbstract="false" namespace="ukbCAHCwBvxst" visibility="public" isRoot="false" xmi.id="u2XM2gXQefN4C" name="DevvMessage">
          <UML:Classifier.feature>
           <UML:Attribute isSpecification="false" type="ulO6XEfr5RC6T" visibility="public" xmi.id="uSuRv1DshChcI" name="uri"/>
           <UML:Attribute isSpecification="false" type="ujvRqXwPdMzRy" visibility="public" xmi.id="uA3oYjIWgrfjy" name="message_type"/>
           <UML:Attribute isSpecification="false" type="ucGu4h2ZrJwKj" visibility="public" xmi.id="ugEL1MoJZSjKD" name="data"/>
           <UML:Attribute isSpecification="false" type="uR5FB8CS5lYKT" visibility="public" xmi.id="uGndGkkPZsFmx" name="index"/>
-          <UML:Operation isLeaf="false" isOverride="false" isSpecification="false" isAbstract="false" isQuery="false" stereotype="constructor" visibility="public" isRoot="false" xmi.id="u2M3IOExc9QtD" name="DevcashMessage">
+          <UML:Operation isLeaf="false" isOverride="false" isSpecification="false" isAbstract="false" isQuery="false" stereotype="constructor" visibility="public" isRoot="false" xmi.id="u2M3IOExc9QtD" name="DevvMessage">
            <UML:BehavioralFeature.parameter>
             <UML:Parameter isSpecification="false" type="umkLOd387YveQ" value="" visibility="private" xmi.id="uJL4DJAxwkjfB" name="index"/>
            </UML:BehavioralFeature.parameter>
           </UML:Operation>
-          <UML:Operation isLeaf="false" isOverride="false" isSpecification="false" isAbstract="false" isQuery="false" stereotype="constructor" visibility="public" isRoot="false" xmi.id="uKr2dVNrlviY8" name="DevcashMessage">
+          <UML:Operation isLeaf="false" isOverride="false" isSpecification="false" isAbstract="false" isQuery="false" stereotype="constructor" visibility="public" isRoot="false" xmi.id="uKr2dVNrlviY8" name="DevvMessage">
            <UML:BehavioralFeature.parameter>
             <UML:Parameter isSpecification="false" type="ulO6XEfr5RC6T" value="" visibility="private" xmi.id="uGBoailVKKy9x" name="uri"/>
             <UML:Parameter isSpecification="false" type="ujvRqXwPdMzRy" value="" visibility="private" xmi.id="uYK0QEFoNCT7h" name="msgType"/>
@@ -2051,7 +2051,7 @@
             <UML:Parameter isSpecification="false" type="umkLOd387YveQ" value="" visibility="private" xmi.id="uARMv5XPPvtsr" name="index"/>
            </UML:BehavioralFeature.parameter>
           </UML:Operation>
-          <UML:Operation isLeaf="false" isOverride="false" isSpecification="false" isAbstract="false" isQuery="false" stereotype="constructor" visibility="public" isRoot="false" xmi.id="uTw2zNtmD5ScE" name="DevcashMessage">
+          <UML:Operation isLeaf="false" isOverride="false" isSpecification="false" isAbstract="false" isQuery="false" stereotype="constructor" visibility="public" isRoot="false" xmi.id="uTw2zNtmD5ScE" name="DevvMessage">
            <UML:BehavioralFeature.parameter>
             <UML:Parameter isSpecification="false" type="u8uZXnbMTgOB5" value="" visibility="private" xmi.id="uKLhRv642VrKz" name="uri"/>
             <UML:Parameter isSpecification="false" type="ujvRqXwPdMzRy" value="" visibility="private" xmi.id="u5aAXWDSteC8d" name="msgType"/>
@@ -2072,7 +2072,7 @@
           </UML:Operation>
          </UML:Classifier.feature>
         </UML:Class>
-        <UML:Class isLeaf="false" isSpecification="false" isAbstract="false" namespace="ukbCAHCwBvxst" visibility="public" isRoot="false" xmi.id="ujKZFkyCI6s12" name="DevcashMessageUniquePtr"/>
+        <UML:Class isLeaf="false" isSpecification="false" isAbstract="false" namespace="ukbCAHCwBvxst" visibility="public" isRoot="false" xmi.id="ujKZFkyCI6s12" name="DevvMessageUniquePtr"/>
         <UML:Class isLeaf="false" isSpecification="false" isAbstract="true" namespace="ukbCAHCwBvxst" visibility="public" isRoot="false" xmi.id="urhYiDf5yPWRF" name="oracleInterface">
          <UML:Classifier.feature>
           <UML:Operation isLeaf="false" isOverride="false" isSpecification="false" isAbstract="false" isQuery="false" stereotype="constructor" visibility="public" isRoot="false" xmi.id="ugUhQVdxDN9XS" name="oracleInterface"/>
@@ -3378,10 +3378,10 @@
       <UML:Class isLeaf="false" isSpecification="false" isAbstract="false" namespace="Logical_View" visibility="public" isRoot="false" xmi.id="uwZO3S2gU5mJ7" name="Blockchain"/>
       <UML:Class isLeaf="false" isSpecification="false" isAbstract="false" namespace="Logical_View" visibility="public" isRoot="false" xmi.id="uPIkHh9SHk7aP" name="UnrecordedTransactionPool"/>
       <UML:Class isLeaf="false" isSpecification="false" isAbstract="false" namespace="Logical_View" visibility="public" isRoot="false" xmi.id="uBRhGNNWj7Msh" name="uint64_t"/>
-      <UML:Class isLeaf="false" isSpecification="false" isAbstract="false" namespace="Logical_View" visibility="public" isRoot="false" xmi.id="u2uNv38dCwrTe" name="DevcashMPMCQueue"/>
+      <UML:Class isLeaf="false" isSpecification="false" isAbstract="false" namespace="Logical_View" visibility="public" isRoot="false" xmi.id="u2uNv38dCwrTe" name="DevvMPMCQueue"/>
       <UML:Dependency isSpecification="false" supplier="ufx3l8rzpdxVK" client="uC2VR2Mel8cUM" namespace="Logical_View" visibility="public" xmi.id="u1o7gLapU9o9M" name=""/>
       <UML:Dependency isSpecification="false" supplier="ufx3l8rzpdxVK" client="uC2VR2Mel8cUM" namespace="Logical_View" visibility="public" xmi.id="u1eeDYIdiztNJ" name=""/>
-      <UML:Class isLeaf="false" isSpecification="false" isAbstract="false" namespace="Logical_View" visibility="public" isRoot="false" xmi.id="uQFlrC4AmMCLW" name="DevcashSPSCQueue"/>
+      <UML:Class isLeaf="false" isSpecification="false" isAbstract="false" namespace="Logical_View" visibility="public" isRoot="false" xmi.id="uQFlrC4AmMCLW" name="DevvSPSCQueue"/>
       <UML:Dependency isSpecification="false" supplier="ufx3l8rzpdxVK" client="uv7iLjuHYw6CF" namespace="Logical_View" visibility="public" xmi.id="u7EPwu9LBgsIE" name=""/>
       <UML:Dependency isSpecification="false" supplier="ufx3l8rzpdxVK" client="uv7iLjuHYw6CF" namespace="Logical_View" visibility="public" xmi.id="uZDiQnSaV3VBw" name=""/>
       <UML:Dependency isSpecification="false" supplier="ufx3l8rzpdxVK" client="uv7iLjuHYw6CF" namespace="Logical_View" visibility="public" xmi.id="usFi4Nbx08XaU" name=""/>
@@ -3405,7 +3405,7 @@
         </UML:Class>
        </UML:Namespace.ownedElement>
       </UML:Class>
-      <UML:Class isLeaf="false" isSpecification="false" isAbstract="false" namespace="Logical_View" visibility="public" isRoot="false" xmi.id="unbou0yZjjpSR" name="DevcashControllerWorker"/>
+      <UML:Class isLeaf="false" isSpecification="false" isAbstract="false" namespace="Logical_View" visibility="public" isRoot="false" xmi.id="unbou0yZjjpSR" name="DevvControllerWorker"/>
       <UML:Dependency isSpecification="false" supplier="ufx3l8rzpdxVK" client="u22RdKGsqkiTQ" namespace="Logical_View" visibility="public" xmi.id="uJfpH8RMS4vCt" name=""/>
       <UML:Dependency isSpecification="false" supplier="ufx3l8rzpdxVK" client="u22RdKGsqkiTQ" namespace="Logical_View" visibility="public" xmi.id="uFxqikSbQ825p" name=""/>
       <UML:Dependency isSpecification="false" supplier="ufx3l8rzpdxVK" client="u22RdKGsqkiTQ" namespace="Logical_View" visibility="public" xmi.id="uYPY9XzMkNOQv" name=""/>
@@ -4023,7 +4023,7 @@
       <UML:Dependency isSpecification="false" supplier="ufx3l8rzpdxVK" client="uCaw2IF6jD0MC" namespace="Logical_View" visibility="public" xmi.id="u4GXQLpUnKh6i" name=""/>
       <UML:Dependency isSpecification="false" supplier="uW2HuybeMsaHP" client="uCaw2IF6jD0MC" namespace="Logical_View" visibility="public" xmi.id="uACXD3jRQFw7s" name=""/>
       <UML:Dependency isSpecification="false" supplier="ufx3l8rzpdxVK" client="uCaw2IF6jD0MC" namespace="Logical_View" visibility="public" xmi.id="uKfmY2Lh9w9wX" name=""/>
-      <UML:Class isLeaf="false" isSpecification="false" isAbstract="false" namespace="Logical_View" visibility="public" isRoot="false" xmi.id="ujLxt4RqREohd" name="Devcash Function">
+      <UML:Class isLeaf="false" isSpecification="false" isAbstract="false" namespace="Logical_View" visibility="public" isRoot="false" xmi.id="ujLxt4RqREohd" name="Devv Function">
        <UML:Classifier.feature>
         <UML:Operation isLeaf="false" isOverride="false" isSpecification="false" isAbstract="false" isQuery="false" visibility="public" isRoot="false" xmi.id="uPKuREb6Yor80" name="CreateNextProposal"/>
         <UML:Operation isLeaf="false" isOverride="false" isSpecification="false" isAbstract="false" isQuery="false" visibility="public" isRoot="false" xmi.id="uf4KRFb8qA1cF" name="HandleProposalBlock"/>
@@ -4033,7 +4033,7 @@
        <UML:Classifier.feature>
         <UML:Operation isLeaf="false" isOverride="false" isSpecification="false" isAbstract="false" isQuery="false" visibility="public" isRoot="false" xmi.id="uvip7Tev4MWZk" name="callback">
          <UML:BehavioralFeature.parameter>
-          <UML:Parameter isSpecification="false" type="ujKZFkyCI6s12" value="" visibility="private" xmi.id="uXTkKJulBPr1w" name="devcash_message"/>
+          <UML:Parameter isSpecification="false" type="ujKZFkyCI6s12" value="" visibility="private" xmi.id="uXTkKJulBPr1w" name="devv_message"/>
          </UML:BehavioralFeature.parameter>
         </UML:Operation>
        </UML:Classifier.feature>
@@ -4121,7 +4121,7 @@
          <objectwidget drawasactor="0" usesdiagramfillcolor="0" fillcolor="#cfd2f9" linecolor="#000000" usesdiagramusefillcolor="1" autoresize="1" localid="u0GrGQEmZHPWU" showstereotype="1" y="80" font="Ubuntu,11,-1,5,50,0,0,0,0,0" xmi.id="unjHCeEFmd04r" height="27" isinstance="0" width="167" decon="0" instancename="final_chain" textcolor="#000000" x="-184.657" linewidth="0" multipleinstance="0" usefillcolor="1"/>
          <objectwidget drawasactor="0" usesdiagramfillcolor="0" fillcolor="#cfd2f9" linecolor="#000000" usesdiagramusefillcolor="1" autoresize="1" localid="uiKp82Nr6ICIy" showstereotype="1" y="80" font="Ubuntu,11,-1,5,50,0,0,0,0,0" xmi.id="u2n4EKKyRjqXc" height="27" isinstance="0" width="194" decon="0" instancename="callback" textcolor="#000000" x="705.333" linewidth="0" multipleinstance="0" usefillcolor="1"/>
          <objectwidget drawasactor="0" usesdiagramfillcolor="0" fillcolor="#cfd2f9" linecolor="#000000" usesdiagramusefillcolor="1" autoresize="1" localid="uYuIXmDywhv1N" showstereotype="1" y="80" font="Ubuntu,11,-1,5,50,0,0,0,0,0" xmi.id="uZcCWFVG3qM4Y" height="27" isinstance="0" width="199" decon="0" instancename="to_validate" textcolor="#000000" x="46.6667" linewidth="0" multipleinstance="0" usefillcolor="1"/>
-         <objectwidget drawasactor="0" usesdiagramfillcolor="0" fillcolor="#cfd2f9" linecolor="#000000" usesdiagramusefillcolor="1" autoresize="1" localid="uhEkL8SBy47WD" showstereotype="1" y="80" font="Ubuntu,11,-1,5,50,0,0,0,0,0" xmi.id="u2XM2gXQefN4C" height="27" isinstance="0" width="258" decon="0" instancename="devcash_message" textcolor="#000000" x="265.333" linewidth="0" multipleinstance="0" usefillcolor="1"/>
+         <objectwidget drawasactor="0" usesdiagramfillcolor="0" fillcolor="#cfd2f9" linecolor="#000000" usesdiagramusefillcolor="1" autoresize="1" localid="uhEkL8SBy47WD" showstereotype="1" y="80" font="Ubuntu,11,-1,5,50,0,0,0,0,0" xmi.id="u2XM2gXQefN4C" height="27" isinstance="0" width="258" decon="0" instancename="devv_message" textcolor="#000000" x="265.333" linewidth="0" multipleinstance="0" usefillcolor="1"/>
          <objectwidget drawasactor="0" usesdiagramfillcolor="0" fillcolor="#cfd2f9" linecolor="#000000" usesdiagramusefillcolor="1" autoresize="1" localid="uuyxHeh1r9XEE" showstereotype="1" y="80" font="Ubuntu,11,-1,5,50,0,0,0,0,0" xmi.id="ujLxt4RqREohd" height="27" isinstance="0" width="285" decon="0" instancename="HandleProposalBlock" textcolor="#000000" x="-497.334" linewidth="0" multipleinstance="0" usefillcolor="1"/>
          <objectwidget drawasactor="0" usesdiagramfillcolor="0" fillcolor="#cfd2f9" linecolor="#000000" usesdiagramusefillcolor="1" autoresize="1" localid="uGNv3USgBS87a" showstereotype="1" y="80" font="Ubuntu,11,-1,5,50,0,0,0,0,0" xmi.id="u22RdKGsqkiTQ" height="27" isinstance="0" width="326" decon="0" instancename="controller_worker_" textcolor="#000000" x="-1077" linewidth="0" multipleinstance="0" usefillcolor="1"/>
          <objectwidget drawasactor="0" usesdiagramfillcolor="0" fillcolor="#cfd2f9" linecolor="#000000" usesdiagramusefillcolor="1" autoresize="1" localid="uUPuqDiAtleFD" showstereotype="1" y="80" font="Ubuntu,11,-1,5,50,0,0,0,0,0" xmi.id="ujjGxCeFyPLV6" height="27" isinstance="0" width="214" decon="0" instancename="controller" textcolor="#000000" x="-723" linewidth="0" multipleinstance="0" usefillcolor="1"/>
@@ -4132,7 +4132,7 @@
           <floatingtext usesdiagramfillcolor="0" fillcolor="#cfd2f9" linecolor="#000000" usesdiagramusefillcolor="1" autoresize="1" localid="uHx7QaBCEPu85" pretext="" posttext="" showstereotype="1" y="279" font="Ubuntu,11,-1,5,50,0,0,0,0,0" xmi.id="uf2Xuoq1O8FCK" height="21" role="704" text="ProposedBlock()" isinstance="0" width="122" textcolor="none" x="-19" linewidth="0" usefillcolor="1"/>
          </messagewidget>
          <messagewidget usesdiagramfillcolor="0" fillcolor="#cfd2f9" linecolor="#000000" usesdiagramusefillcolor="1" autoresize="1" localid="u2ZuuZJ1o6Dqn" showstereotype="1" y="557" font="Ubuntu,11,-1,5,50,0,0,0,0,0" widgetaid="uuyxHeh1r9XEE" widgetbid="uhEkL8SBy47WD" textid="uEvyHSargns4b" xmi.id="uKr2dVNrlviY8" height="39" operation="uKr2dVNrlviY8" isinstance="0" width="756" textcolor="none" x="-354" linewidth="0" usefillcolor="1" seqnum="" sequencemessagetype="1000">
-          <floatingtext usesdiagramfillcolor="0" fillcolor="#cfd2f9" linecolor="#000000" usesdiagramusefillcolor="1" autoresize="1" localid="uq2hmmxiDkEBS" pretext="" posttext="" showstereotype="1" y="535" font="Ubuntu,11,-1,5,50,0,0,0,0,0" xmi.id="uEvyHSargns4b" height="21" role="704" text="DevcashMessage()" isinstance="0" width="135" textcolor="none" x="0" linewidth="0" usefillcolor="1"/>
+          <floatingtext usesdiagramfillcolor="0" fillcolor="#cfd2f9" linecolor="#000000" usesdiagramusefillcolor="1" autoresize="1" localid="uq2hmmxiDkEBS" pretext="" posttext="" showstereotype="1" y="535" font="Ubuntu,11,-1,5,50,0,0,0,0,0" xmi.id="uEvyHSargns4b" height="21" role="704" text="DevvMessage()" isinstance="0" width="135" textcolor="none" x="0" linewidth="0" usefillcolor="1"/>
          </messagewidget>
          <messagewidget usesdiagramfillcolor="0" fillcolor="#cfd2f9" linecolor="#000000" usesdiagramusefillcolor="1" autoresize="1" localid="uzJiA7VYmBvwk" showstereotype="1" y="367.333" font="Ubuntu,11,-1,5,50,0,0,0,0,0" widgetaid="uuyxHeh1r9XEE" widgetbid="uYuIXmDywhv1N" textid="u1V3M3N4u4Tqk" xmi.id="uEZSn0qFCD2l0" height="22" operation="uEZSn0qFCD2l0" isinstance="0" width="508" textcolor="none" x="-354" linewidth="0" usefillcolor="1" seqnum="" sequencemessagetype="1000">
           <floatingtext usesdiagramfillcolor="0" fillcolor="#cfd2f9" linecolor="#000000" usesdiagramusefillcolor="1" autoresize="1" localid="uTGOCMEBMPvIh" pretext="" posttext="" showstereotype="1" y="346" font="Ubuntu,11,-1,5,50,0,0,0,0,0" xmi.id="u1V3M3N4u4Tqk" height="21" role="704" text="validate() : bool" isinstance="0" width="114" textcolor="none" x="0" linewidth="0" usefillcolor="1"/>
@@ -4172,7 +4172,7 @@
           <floatingtext usesdiagramfillcolor="1" fillcolor="none" linecolor="#160f6e" usesdiagramusefillcolor="1" autoresize="1" localid="uJqo8dMGFeATd" pretext="" posttext="" showstereotype="1" y="267" font="Ubuntu,11,-1,5,50,0,0,0,0,0" xmi.id="uhPT4HDW5QnIF" height="21" role="704" text="pushShardComms()" isinstance="0" width="157" textcolor="none" x="-778" linewidth="0" usefillcolor="1"/>
          </messagewidget>
          <messagewidget usesdiagramfillcolor="1" fillcolor="none" linecolor="#160f6e" usesdiagramusefillcolor="1" autoresize="1" localid="uaFGJX65vesDt" showstereotype="1" y="418" font="Ubuntu,11,-1,5,50,0,0,0,0,0" widgetaid="uBuV8wsWzEkvI" widgetbid="uBuV8wsWzEkvI" textid="uKNZha6RHYXS1" xmi.id="uOc7MVv2xv6PR" height="10" yclicked="323" operation="uOc7MVv2xv6PR" isinstance="0" width="199" xclicked="-160" textcolor="none" x="-354" linewidth="0" usefillcolor="1" seqnum="5" sequencemessagetype="1003">
-          <floatingtext usesdiagramfillcolor="1" fillcolor="none" linecolor="#160f6e" usesdiagramusefillcolor="1" autoresize="1" localid="u3V6SIRcKWsCN" pretext="" posttext="" showstereotype="1" y="397" font="Ubuntu,11,-1,5,50,0,0,0,0,0" xmi.id="uKNZha6RHYXS1" height="21" role="705" text="pop() : DevcashMessageUniquePtr" isinstance="0" width="257" textcolor="none" x="-349" linewidth="0" usefillcolor="1"/>
+          <floatingtext usesdiagramfillcolor="1" fillcolor="none" linecolor="#160f6e" usesdiagramusefillcolor="1" autoresize="1" localid="u3V6SIRcKWsCN" pretext="" posttext="" showstereotype="1" y="397" font="Ubuntu,11,-1,5,50,0,0,0,0,0" xmi.id="uKNZha6RHYXS1" height="21" role="705" text="pop() : DevvMessageUniquePtr" isinstance="0" width="257" textcolor="none" x="-349" linewidth="0" usefillcolor="1"/>
          </messagewidget>
          <messagewidget usesdiagramfillcolor="1" fillcolor="none" linecolor="#160f6e" usesdiagramusefillcolor="1" autoresize="0" localid="u4QVB9LVq1b4g" showstereotype="1" y="215" font="Ubuntu,11,-1,5,50,0,0,0,0,0" widgetaid="uQVQcNbuteS6E" widgetbid="uInAo6JPf7uuM" textid="uhYoC9aMedN37" xmi.id="uxIVnFnhxlATV" height="272" operation="uxIVnFnhxlATV" isinstance="0" width="306" textcolor="none" x="-914" linewidth="0" usefillcolor="1" seqnum="1" sequencemessagetype="1000">
           <floatingtext usesdiagramfillcolor="1" fillcolor="none" linecolor="#160f6e" usesdiagramusefillcolor="1" autoresize="1" localid="uwLYXqmG8vA2H" pretext="" posttext="" showstereotype="1" y="194" font="Ubuntu,11,-1,5,50,0,0,0,0,0" xmi.id="uhYoC9aMedN37" height="21" role="704" text="ConsensusCallback()" isinstance="0" width="163" textcolor="none" x="-804" linewidth="0" usefillcolor="1"/>
@@ -4198,7 +4198,7 @@
        <UML:Namespace.ownedElement>
         <UML:Artifact isLeaf="false" isSpecification="false" isAbstract="false" drawas="1" namespace="um9vkKgXwClj2" visibility="public" isRoot="false" xmi.id="ubKwn1CPwNSUT" name="argument_parser.h"/>
         <UML:Artifact isLeaf="false" isSpecification="false" isAbstract="false" drawas="1" namespace="um9vkKgXwClj2" visibility="public" isRoot="false" xmi.id="uXFlsqoeHBj0R" name="ctpl.h"/>
-        <UML:Artifact isLeaf="false" isSpecification="false" isAbstract="false" comment=" devcashcontext.h runtime constants for this node&#xa;&#xa;  Created on: Mar 20, 2018&#xa;      Author: Nick Williams" drawas="1" namespace="um9vkKgXwClj2" visibility="public" isRoot="false" xmi.id="u8ZaPpG4CTbpN" name="devcash_context.h"/>
+        <UML:Artifact isLeaf="false" isSpecification="false" isAbstract="false" comment=" devv_context.h runtime constants for this node&#xa;&#xa;  Created on: Mar 20, 2018&#xa;      Author: Nick Williams" drawas="1" namespace="um9vkKgXwClj2" visibility="public" isRoot="false" xmi.id="u8ZaPpG4CTbpN" name="devv_context.h"/>
         <UML:Artifact isLeaf="false" isSpecification="false" isAbstract="false" drawas="1" namespace="um9vkKgXwClj2" visibility="public" isRoot="false" xmi.id="u9A2DVymQUUpu" name="logger.h"/>
         <UML:Artifact isLeaf="false" isSpecification="false" isAbstract="false" comment=" Minitrace" drawas="1" namespace="um9vkKgXwClj2" visibility="public" isRoot="false" xmi.id="uVE0dioZJgF8K" name="minitrace.h"/>
         <UML:Artifact isLeaf="false" isSpecification="false" isAbstract="false" comment=" ossladapter.h header only C-Style OpenSSL adapter for hashing and ECDSA.&#xa;&#xa;  Created on: Jan 10, 2018&#xa;  Author: Nick Williams" drawas="1" namespace="um9vkKgXwClj2" visibility="public" isRoot="false" xmi.id="upfPwlo36RnGY" name="ossladapter.h"/>
@@ -4209,11 +4209,11 @@
        <UML:Namespace.ownedElement>
         <UML:Artifact isLeaf="false" isSpecification="false" isAbstract="false" comment=" Provides an efficient blocking version of moodycamel::ConcurrentQueue." drawas="1" namespace="uVjMOncLzcPIa" visibility="public" isRoot="false" xmi.id="uZtUMraawDI6P" name="blockingconcurrentqueue.h"/>
         <UML:Artifact isLeaf="false" isSpecification="false" isAbstract="false" comment=" Provides a C++11 implementation of a multi-producer, multi-consumer lock-free queue." drawas="1" namespace="uVjMOncLzcPIa" visibility="public" isRoot="false" xmi.id="uzYWiSgrFBKuB" name="concurrentqueue.h"/>
-        <UML:Artifact isLeaf="false" isSpecification="false" isAbstract="false" comment=" DevcashController.h controls worker threads for the Devcash protocol.&#xa;&#xa;  Created on: Mar 21, 2018&#xa;      Author: Nick Williams" drawas="1" namespace="uVjMOncLzcPIa" visibility="public" isRoot="false" xmi.id="uaJY0MYUgW4N9" name="DevcashController.h"/>
-        <UML:Artifact isLeaf="false" isSpecification="false" isAbstract="false" comment=" DevCashMPMCQueue.h implements a ring queue for pointers to Devcash messages.&#xa;&#xa;  Created on: Mar 17, 2018&#xa;      Author: Shawn McKenny" drawas="1" namespace="uVjMOncLzcPIa" visibility="public" isRoot="false" xmi.id="uRbEGl37lKIum" name="DevcashMPMCQueue.h"/>
-        <UML:Artifact isLeaf="false" isSpecification="false" isAbstract="false" comment=" DevCashRingQueue.h implements a one-way ring queue for pointers to&#xa; DevcashMessage objects.&#xa;&#xa; This RingQueue is designed for distinct Producers and Consumers.&#xa; Producers and Consumers should share a reference to the queue,&#xa; but no object should ever call both push and pop for a given queue.&#xa; This RingQueue is only intended to work in one direction.&#xa; For bi-directional communication, construct a second queue.&#xa;&#xa; Note that this object cannot prevent the Producer from retaining access&#xa; to the message after it is sent. Producers should never modify or access&#xa; the message after pushing it.&#xa;&#xa; The point lifecycle is as follows:&#xa; 1.  Producer creates DevcashMessage and unique_ptr to it.&#xa; 2.  Producer moves unique_ptr into queue using push().&#xa; 3.  Producer's pointer is now null and it should release the message.&#xa; 4.  Consumer uses pop() to get pointer from queue.&#xa; 5.  Queue pointer is now null&#xa; 6.  Consumer deletes DevcashMessage when it is finished with it.&#xa;&#xa;  Created on: Mar 14, 2018&#xa;      Author: Nick Williams" drawas="1" namespace="uVjMOncLzcPIa" visibility="public" isRoot="false" xmi.id="ugqGJmw81N2gr" name="DevcashRingQueue.h"/>
-        <UML:Artifact isLeaf="false" isSpecification="false" isAbstract="false" comment=" DevCashSPSCQueue.h implements a ring queue for pointers to Devcash messages.&#xa;&#xa;  Created on: Mar 17, 2018&#xa;      Author: Shawn McKenny" drawas="1" namespace="uVjMOncLzcPIa" visibility="public" isRoot="false" xmi.id="ugtnJkgsOQ7ic" name="DevcashSPSCQueue.h"/>
-        <UML:Artifact isLeaf="false" isSpecification="false" isAbstract="false" comment=" DevcashWorker.h&#xa;&#xa;  Created on: Mar 26, 2018&#xa;      Author: Silver" drawas="1" namespace="uVjMOncLzcPIa" visibility="public" isRoot="false" xmi.id="u4WKC3WE6nW14" name="DevcashWorker.h"/>
+        <UML:Artifact isLeaf="false" isSpecification="false" isAbstract="false" comment=" DevvController.h controls worker threads for the Devv protocol.&#xa;&#xa;  Created on: Mar 21, 2018&#xa;      Author: Nick Williams" drawas="1" namespace="uVjMOncLzcPIa" visibility="public" isRoot="false" xmi.id="uaJY0MYUgW4N9" name="DevvController.h"/>
+        <UML:Artifact isLeaf="false" isSpecification="false" isAbstract="false" comment=" DevvMPMCQueue.h implements a ring queue for pointers to Devv messages.&#xa;&#xa;  Created on: Mar 17, 2018&#xa;      Author: Shawn McKenny" drawas="1" namespace="uVjMOncLzcPIa" visibility="public" isRoot="false" xmi.id="uRbEGl37lKIum" name="DevvMPMCQueue.h"/>
+        <UML:Artifact isLeaf="false" isSpecification="false" isAbstract="false" comment=" DevvRingQueue.h implements a one-way ring queue for pointers to&#xa; DevvMessage objects.&#xa;&#xa; This RingQueue is designed for distinct Producers and Consumers.&#xa; Producers and Consumers should share a reference to the queue,&#xa; but no object should ever call both push and pop for a given queue.&#xa; This RingQueue is only intended to work in one direction.&#xa; For bi-directional communication, construct a second queue.&#xa;&#xa; Note that this object cannot prevent the Producer from retaining access&#xa; to the message after it is sent. Producers should never modify or access&#xa; the message after pushing it.&#xa;&#xa; The point lifecycle is as follows:&#xa; 1.  Producer creates DevvMessage and unique_ptr to it.&#xa; 2.  Producer moves unique_ptr into queue using push().&#xa; 3.  Producer's pointer is now null and it should release the message.&#xa; 4.  Consumer uses pop() to get pointer from queue.&#xa; 5.  Queue pointer is now null&#xa; 6.  Consumer deletes DevvMessage when it is finished with it.&#xa;&#xa;  Created on: Mar 14, 2018&#xa;      Author: Nick Williams" drawas="1" namespace="uVjMOncLzcPIa" visibility="public" isRoot="false" xmi.id="ugqGJmw81N2gr" name="DevvRingQueue.h"/>
+        <UML:Artifact isLeaf="false" isSpecification="false" isAbstract="false" comment=" DevvSPSCQueue.h implements a ring queue for pointers to Devv messages.&#xa;&#xa;  Created on: Mar 17, 2018&#xa;      Author: Shawn McKenny" drawas="1" namespace="uVjMOncLzcPIa" visibility="public" isRoot="false" xmi.id="ugtnJkgsOQ7ic" name="DevvSPSCQueue.h"/>
+        <UML:Artifact isLeaf="false" isSpecification="false" isAbstract="false" comment=" DevvWorker.h&#xa;&#xa;  Created on: Mar 26, 2018&#xa;      Author: Silver" drawas="1" namespace="uVjMOncLzcPIa" visibility="public" isRoot="false" xmi.id="u4WKC3WE6nW14" name="DevvWorker.h"/>
         <UML:Artifact isLeaf="false" isSpecification="false" isAbstract="false" drawas="1" namespace="uVjMOncLzcPIa" visibility="public" isRoot="false" xmi.id="uB7JujebSxacc" name="TransactionCreationManager.h"/>
        </UML:Namespace.ownedElement>
       </UML:Package>
@@ -4221,20 +4221,20 @@
        <UML:Namespace.ownedElement>
         <UML:Artifact isLeaf="false" isSpecification="false" isAbstract="false" comment=" blockchain.h&#xa;  Classes to manage blockchains&#xa;&#xa;  Created on: Apr 8, 2018&#xa;      Author: Shawn McKenney &lt;shawn.mckenney@emmion.com" drawas="1" namespace="umcesrQcBsV5z" visibility="public" isRoot="false" xmi.id="u8OToE2K3xdQ0" name="blockchain.h"/>
         <UML:Artifact isLeaf="false" isSpecification="false" isAbstract="false" comment=" chainstate.h holds the state of the chain for each validating fork&#xa;&#xa;  Created on: Jan 12, 2018&#xa;  Author: Nick Williams" drawas="1" namespace="umcesrQcBsV5z" visibility="public" isRoot="false" xmi.id="uOJ1k44bikHKH" name="chainstate.h"/>
-        <UML:Artifact isLeaf="false" isSpecification="false" isAbstract="false" comment=" KeyRing.h definted key management for Devcash.&#xa;&#xa;  Created on: Mar 3, 2018&#xa;      Author: Nick Williams" drawas="1" namespace="umcesrQcBsV5z" visibility="public" isRoot="false" xmi.id="uqEqrJuRUXseE" name="KeyRing.h"/>
+        <UML:Artifact isLeaf="false" isSpecification="false" isAbstract="false" comment=" KeyRing.h definted key management for Devv.&#xa;&#xa;  Created on: Mar 3, 2018&#xa;      Author: Nick Williams" drawas="1" namespace="umcesrQcBsV5z" visibility="public" isRoot="false" xmi.id="uqEqrJuRUXseE" name="KeyRing.h"/>
         <UML:Artifact isLeaf="false" isSpecification="false" isAbstract="false" comment=" UnrecordedTransactionPool.h&#xa;&#xa;  Created on: Apr 20, 2018&#xa;      Author: Nick Williams" drawas="1" namespace="umcesrQcBsV5z" visibility="public" isRoot="false" xmi.id="uQVhGxJDso5fv" name="UnrecordedTransactionPool.h"/>
        </UML:Namespace.ownedElement>
       </UML:Package>
       <UML:Package isLeaf="false" isSpecification="false" isAbstract="false" namespace="Component_View" stereotype="folder" visibility="public" isRoot="false" xmi.id="uFp46rf0te2yE" name="home/mckenney/devcash-core/src/io">
        <UML:Namespace.ownedElement>
         <UML:Artifact isLeaf="false" isSpecification="false" isAbstract="false" comment=" message_service.h - Communication constants&#xa;&#xa;  Created on: Mar 3, 2018&#xa;  Created by: Shawn McKenney" drawas="1" namespace="uFp46rf0te2yE" visibility="public" isRoot="false" xmi.id="u41cBSn41yNVe" name="constants.h"/>
-        <UML:Artifact isLeaf="false" isSpecification="false" isAbstract="false" comment=" message_service.h - Sending and receiving Devcash messages&#xa;&#xa;  Created on: Mar 3, 2018&#xa;  Created by: Shawn McKenney" drawas="1" namespace="uFp46rf0te2yE" visibility="public" isRoot="false" xmi.id="uKNIfHlUjqouA" name="message_service.h"/>
+        <UML:Artifact isLeaf="false" isSpecification="false" isAbstract="false" comment=" message_service.h - Sending and receiving Devv messages&#xa;&#xa;  Created on: Mar 3, 2018&#xa;  Created by: Shawn McKenney" drawas="1" namespace="uFp46rf0te2yE" visibility="public" isRoot="false" xmi.id="uKNIfHlUjqouA" name="message_service.h"/>
         <UML:Artifact isLeaf="false" isSpecification="false" isAbstract="false" drawas="1" namespace="uFp46rf0te2yE" visibility="public" isRoot="false" xmi.id="uPsfu9OXQhZru" name="zhelpers.hpp"/>
        </UML:Namespace.ownedElement>
       </UML:Package>
       <UML:Package isLeaf="false" isSpecification="false" isAbstract="false" namespace="Component_View" stereotype="folder" visibility="public" isRoot="false" xmi.id="uuMZWYlVsHg5H" name="home/mckenney/devcash-core/src">
        <UML:Namespace.ownedElement>
-        <UML:Artifact isLeaf="false" isSpecification="false" isAbstract="false" comment=" devnode.h manages this node in the devcash network.&#xa;&#xa;  Created on: Mar 20, 2018&#xa;      Author: Nick Williams" drawas="1" namespace="uuMZWYlVsHg5H" visibility="public" isRoot="false" xmi.id="u42hLvTZNI5BS" name="devcashnode.h"/>
+        <UML:Artifact isLeaf="false" isSpecification="false" isAbstract="false" comment=" devnode.h manages this node in the devv network.&#xa;&#xa;  Created on: Mar 20, 2018&#xa;      Author: Nick Williams" drawas="1" namespace="uuMZWYlVsHg5H" visibility="public" isRoot="false" xmi.id="u42hLvTZNI5BS" name="devcashnode.h"/>
        </UML:Namespace.ownedElement>
       </UML:Package>
       <UML:Package isLeaf="false" isSpecification="false" isAbstract="false" namespace="Component_View" stereotype="folder" visibility="public" isRoot="false" xmi.id="uquA1M30tvihu" name="home/mckenney/devcash-core/src/primitives">
@@ -4252,7 +4252,7 @@
       </UML:Package>
       <UML:Package isLeaf="false" isSpecification="false" isAbstract="false" namespace="Component_View" stereotype="folder" visibility="public" isRoot="false" xmi.id="umxrfKKrdHq2E" name="home/mckenney/devcash-core/src/types">
        <UML:Namespace.ownedElement>
-        <UML:Artifact isLeaf="false" isSpecification="false" isAbstract="false" comment=" DevcashMessage.h&#xa;&#xa;  Created on: Mar 15, 2018" drawas="1" namespace="umxrfKKrdHq2E" visibility="public" isRoot="false" xmi.id="uFGWyHWrAgArd" name="DevcashMessage.h"/>
+        <UML:Artifact isLeaf="false" isSpecification="false" isAbstract="false" comment=" DevvMessage.h&#xa;&#xa;  Created on: Mar 15, 2018" drawas="1" namespace="umxrfKKrdHq2E" visibility="public" isRoot="false" xmi.id="uFGWyHWrAgArd" name="DevvMessage.h"/>
        </UML:Namespace.ownedElement>
       </UML:Package>
       <UML:Package isLeaf="false" isSpecification="false" isAbstract="false" namespace="Component_View" stereotype="folder" visibility="public" isRoot="false" xmi.id="ugTug9InqLzfF" name="home/mckenney/devcash-core/src/oracles">
@@ -4264,7 +4264,7 @@
         <UML:Artifact isLeaf="false" isSpecification="false" isAbstract="false" comment=" dnerowallet.h is an oracle to require dnero transactions.&#xa;&#xa;  Created on: Feb 23, 2018&#xa;  Author: Nick Williams&#xa;" drawas="1" namespace="ugTug9InqLzfF" visibility="public" isRoot="false" xmi.id="ujg6QXnuKPMMm" name="dneroavailable.h"/>
         <UML:Artifact isLeaf="false" isSpecification="false" isAbstract="false" comment=" dnerowallet.h is an oracle to require dnero transactions.&#xa;&#xa;  Created on: Feb 23, 2018&#xa;  Author: Nick Williams&#xa;" drawas="1" namespace="ugTug9InqLzfF" visibility="public" isRoot="false" xmi.id="uqes6EvNZs83i" name="dnerowallet.h"/>
         <UML:Artifact isLeaf="false" isSpecification="false" isAbstract="false" comment=" id.h is an oracle to track identities.&#xa;&#xa;  Created on: Feb 28, 2018&#xa;  Author: Nick Williams&#xa;" drawas="1" namespace="ugTug9InqLzfF" visibility="public" isRoot="false" xmi.id="uW4zIuuoIsA6D" name="id.h"/>
-        <UML:Artifact isLeaf="false" isSpecification="false" isAbstract="false" comment=" validation.h defines an interface for primitize Devcash oracles.&#xa; Devcash oracles further specify validation logic for particular&#xa; transaction types beyond the 'abstract' smartcoin transactions.&#xa; Note that smartcoin is not abstract as a C++ class,&#xa; rather it is a logical abstraction for all tokenized transactions.&#xa;&#xa;  Created on: Feb 23, 2018&#xa;  Author: Nick Williams&#xa;" drawas="1" namespace="ugTug9InqLzfF" visibility="public" isRoot="false" xmi.id="uIkvtPkxdEX4v" name="oracleInterface.h"/>
+        <UML:Artifact isLeaf="false" isSpecification="false" isAbstract="false" comment=" validation.h defines an interface for primitize Devv oracles.&#xa; Devv oracles further specify validation logic for particular&#xa; transaction types beyond the 'abstract' smartcoin transactions.&#xa; Note that smartcoin is not abstract as a C++ class,&#xa; rather it is a logical abstraction for all tokenized transactions.&#xa;&#xa;  Created on: Feb 23, 2018&#xa;  Author: Nick Williams&#xa;" drawas="1" namespace="ugTug9InqLzfF" visibility="public" isRoot="false" xmi.id="uIkvtPkxdEX4v" name="oracleInterface.h"/>
         <UML:Artifact isLeaf="false" isSpecification="false" isAbstract="false" comment=" vote.h is an oracle to handle arbitrary election processes.&#xa;&#xa;  Created on: Feb 28, 2018&#xa;  Author: Nick Williams&#xa;" drawas="1" namespace="ugTug9InqLzfF" visibility="public" isRoot="false" xmi.id="u48riNF4ynMfA" name="vote.h"/>
        </UML:Namespace.ownedElement>
       </UML:Package>

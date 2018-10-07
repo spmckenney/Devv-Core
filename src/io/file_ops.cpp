@@ -7,9 +7,9 @@
 
 #include "file_ops.h"
 
-#include "common/devcash_constants.h"
+#include "common/devv_constants.h"
 
-namespace Devcash {
+namespace Devv {
 
 std::vector<byte> ReadBinaryFile(const fs::path& path) {
   // open the file:
@@ -89,4 +89,4 @@ struct key_tuple ReadKeyFile(const fs::path& path) {
   return tuple;
 }
 
-} // namespace Devcash
+} // namespace Devv

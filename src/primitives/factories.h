@@ -8,9 +8,9 @@
 
 #include "primitives/Tier1Transaction.h"
 #include "primitives/Tier2Transaction.h"
-#include "common/devcash_exceptions.h"
+#include "common/devv_exceptions.h"
 
-namespace Devcash {
+namespace Devv {
 
 static std::unique_ptr<Transaction> CreateTransaction(InputBuffer& buffer,
                                                const KeyRing& keys,
@@ -27,4 +27,4 @@ static std::unique_ptr<Transaction> CreateTransaction(InputBuffer& buffer,
   }
 }
 
-} // namespace Devcash
+} // namespace Devv

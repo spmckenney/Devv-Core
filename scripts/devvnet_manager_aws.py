@@ -29,29 +29,76 @@ shard_announcers = []
 # shard0 announcers
 shard_announcers.append([{'host':'10.0.0.10', 'port':'50502', 'protobuf-port':'50503'}])
 # shard1 announcers
-shard_announcers.append([{'host':'10.0.1.10', 'port':'50502', 'protobuf-port':'50503'}])
+shard_announcers.append([{'host':'10.0.1.10', 'port':'50512', 'protobuf-port':'50513'}])
 # shard2 announcers
-shard_announcers.append([{'host':'10.0.2.10', 'port':'50502', 'protobuf-port':'50503'}])
+shard_announcers.append([{'host':'10.0.2.10', 'port':'50522', 'protobuf-port':'50523'}])
 
 # Create a list of lists holding repeaters
-shard_repeaters = []
+shard_devv_query_nodes = []
 # shard0 repeaters
-shard_repeaters.append([{'host':'10.0.0.20', 'port':'50504'}])
+shard_devv_query_nodes.append([{'host':'10.0.0.20', 'protobuf-port':'50504'}])
 # shard1 repeaters
-shard_repeaters.append([{'host':'10.0.1.20', 'port':'50504'}])
+shard_devv_query_nodes.append([{'host':'10.0.1.20', 'protobuf-port':'50514'}])
 # shard2 repeaters
-shard_repeaters.append([{'host':'10.0.2.20', 'port':'50504'}])
+shard_devv_query_nodes.append([{'host':'10.0.2.20', 'protobuf-port':'50524'}])
+
+# Create a list of lists holding repeaters
+shard_devv_psql_nodes = []
+# shard0 repeaters
+shard_devv_psql_nodes.append([{'host':'10.0.0.30'}])
+# shard1 repeaters
+shard_devv_psql_nodes.append([{'host':'10.0.1.30'}])
+# shard2 repeaters
+shard_devv_psql_nodes.append([{'host':'10.0.2.30'}])
+
+
+def get_devv_cmd_info(cmd):
+    res={}
+
+    if cmd == None:
+        res['prog'] = '-'
+        res['bind'] = '-'
+        res['pbuf_bind'] = '-'
+        return(res)
+
+    res['prog'] = cmd[0]
+    try:
+        res['bind'] = cmd[cmd.index('--bind-endpoint')+1]
+    except:
+        res['bind'] = '0'
+
+    try:
+        res['pbuf_bind'] = cmd[cmd.index('--protobuf-endpoint')+1]
+    except:
+        res['pbuf_bind'] = '0'
+
+    return(res)
+
+
+class bcolors:
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
+
+def get_task_by_name(aws, name):
+    ret = aws._ec2.describe_instances()
+    res = ret['Reservations']
+    for r in res:
+        i0 = r['Instances'][0]
+        if i0['Tags'][0]['Value'] == name:
+            return i0
 
 
 def stop_task(aws, cluster, ip_address):
     ret = aws._ec2.describe_instances(Filters=[{'Name':'network-interface.addresses.private-ip-address','Values':[ip_address]}])
     ec2_instance_id = ret['Reservations'][0]['Instances'][0]['InstanceId']
 
-    ret = aws._ecs.list_container_instances(cluster=cluster, filter='ec2InstanceId == {}'.format(ec2_instance_id))
-    container_instance = ret['containerInstanceArns'][0]
-    ret = aws._ecs.list_tasks(cluster=cluster, containerInstance=container_instance)
-
-    task = ret['taskArns'][0]
+    task = get_ecs_tasks(aws, ec2_instance_id)[0]
     ret = aws._ecs.stop_task(cluster=cluster, task=task)
 
     return ret
@@ -72,24 +119,23 @@ class ECSTask(object):
         self._node_index = node_index
 
     def start_announcer(self):
-        self._task_ip_address = "10.0."+str(self._shard_index)+".10"
-        self._container_instance = self._aws.get_container_instance_by_ip(self._task_ip_address)
-
+        self._task_ip_address = shard_announcers[self._shard_index][0]['host']
         self._devv_bind_port = shard_announcers[self._shard_index][self._node_index]['port']
         self._devv_protobuf_port = shard_announcers[self._shard_index][self._node_index]['protobuf-port']
+
+        self._container_instance = self._aws.get_container_instance_by_ip(self._task_ip_address)
 
         task_role_arn = "arn:aws:iam:"+self._aws.get_iam_account()+":role/"+self._execution_role
 
         override_dict = {}
         override_dict['name'] = self._docker_image_name
 
-        command = ["pb_announcer",
+        command = ["devv-announcer",
                    "--shard-index", str(self._shard_index),
 		   "--node-index", str(self._node_index),
-		   "--config", "/efs/devv/shard-1/etc/validator.conf",
-		   "--config", "/efs/devv/shard-1/etc/default_pass.conf",
-                   "--separate-ops", "true",
-                   "--start-delay", str(5),
+		   "--config", "/efs/devv/shard-{}/etc/devv.conf".format(self._shard_index),
+		   "--config", "/efs/devv/shard-{}/etc/devv-announcer.conf".format(self._shard_index),
+		   "--config", "/efs/devv/shard-{}/etc/test-key-pass.conf".format(self._shard_index),
 		   "--bind-endpoint", "tcp://*:{}".format(self._devv_bind_port),
                    "--protobuf-endpoint", "tcp://*:{}".format(self._devv_protobuf_port)]
 
@@ -103,8 +149,8 @@ class ECSTask(object):
                                              containerInstances=[self._container_instance])
         return ret
 
-    def start_repeater(self):
-        self._task_ip_address = "10.0."+str(self._shard_index)+".20"
+    def start_devv_psql(self):
+        self._task_ip_address = shard_devv_psql_nodes[self._shard_index][0]['host']
         self._container_instance = self._aws.get_container_instance_by_ip(self._task_ip_address)
 
         for v in shard_validators[self._shard_index]:
@@ -115,12 +161,11 @@ class ECSTask(object):
         override_dict = {}
         override_dict['name'] = self._docker_image_name
 
-        command = ["repeater",
+        command = ["devv-psql",
                    "--shard-index", str(self._shard_index),
-		   "--node-index", str(self._node_index),
-		   "--config", "/efs/devv/shard-1/etc/validator.conf",
-		   "--config", "/efs/devv/shard-1/etc/default_pass.conf",
-                   "--working-dir", "/efs/devv/shard-{}".format(self._shard_index)]
+		   "--config", "/efs/devv/shard-{}/etc/devv.conf".format(self._shard_index),
+		   "--config", "/efs/devv/shard-{}/etc/devv-psql.conf".format(self._shard_index),
+		   "--config", "/efs/devv/shard-{}/etc/test-db-update-pass.conf".format(self._shard_index)]
 
         for uri in self._host_list:
             command.extend(["--host-list", "tcp://"+uri['host']+":"+uri['port']])
@@ -135,7 +180,42 @@ class ECSTask(object):
                                              containerInstances=[self._container_instance])
         return ret
 
-    def start_validator(self):
+    def start_devv_query(self):
+        self._task_ip_address = shard_devv_query_nodes[self._shard_index][0]['host']
+        self._devv_protobuf_port = shard_devv_query_nodes[self._shard_index][self._node_index]['protobuf-port']
+
+        self._container_instance = self._aws.get_container_instance_by_ip(self._task_ip_address)
+
+        for v in shard_validators[self._shard_index]:
+            self.add_host(v['host'], v['port'])
+
+        task_role_arn = "arn:aws:iam:"+self._aws.get_iam_account()+":role/"+self._execution_role
+
+        override_dict = {}
+        override_dict['name'] = self._docker_image_name
+
+        command = ["devv-query",
+                   "--shard-index", str(self._shard_index),
+		   "--node-index", str(self._node_index),
+		   "--config", "/efs/devv/shard-{}/etc/devv.conf".format(self._shard_index),
+		   "--config", "/efs/devv/shard-{}/etc/devv-query.conf".format(self._shard_index),
+		   "--config", "/efs/devv/shard-{}/etc/test-key-pass.conf".format(self._shard_index),
+                   "--protobuf-endpoint", "tcp://*:{}".format(self._devv_protobuf_port)]
+
+        for uri in self._host_list:
+            command.extend(["--host-list", "tcp://"+uri['host']+":"+uri['port']])
+
+        print("   Command: ", *command)
+        override_dict['command'] = command
+        or_param = {'containerOverrides':[override_dict]}
+        print(or_param)
+        ret = self._aws.get_ecs().start_task(cluster=self._aws.get_cluster(),
+                                             taskDefinition=self._task_definition,
+                                             overrides=or_param,
+                                             containerInstances=[self._container_instance])
+        return ret
+
+    def start_devv_validator(self):
         self._task_ip_address = "10.0."+str(self._shard_index)+"."+str(100+self._node_index)
         self._container_instance = self._aws.get_container_instance_by_ip(self._task_ip_address)
 
@@ -147,11 +227,12 @@ class ECSTask(object):
         override_dict = {}
         override_dict['name'] = self._docker_image_name
         
-        command = ["devcash",
+        command = ["devv-validator",
                    "--shard-index", str(self._shard_index),
 		   "--node-index", str(self._node_index),
-		   "--config", "/efs/devv/shard-1/etc/validator.conf",
-		   "--config", "/efs/devv/shard-1/etc/default_pass.conf",
+		   "--config", "/efs/devv/shard-{}/etc/devv.conf".format(self._shard_index),
+		   "--config", "/efs/devv/shard-{}/etc/devv-validator.conf".format(self._shard_index),
+		   "--config", "/efs/devv/shard-{}/etc/test-key-pass.conf".format(self._shard_index),
 		   "--bind-endpoint", "tcp://*:{}".format(self._devv_port)]
 
         for uri in self._host_list:
@@ -187,12 +268,18 @@ class AWS(object):
     _region = "us-east-2"
     _iam_account = "682078287735"
 
-    def __init__(self, session, cluster='devv-test-cluster-01', debug=False):
-        self._session = session
+    def __init__(self, profile_name, cluster='devv-test-cluster-01', debug=False):
+        import boto3
+        self._session = boto3.Session(profile_name=profile_name)
+
         self._debug = debug
-        self._ec2 = session.client('ec2')
-        self._ecs = session.client('ecs')
+        self._ec2 = self._session.client('ec2')
+        self._ecs = self._session.client('ecs')
         self._cluster = cluster
+
+    def describe_tasks(self, tasks):
+        tsks = self._ecs.describe_tasks(cluster=self._cluster, tasks=tasks)
+        return tsks
 
     def get_ip_by_index(index):
         pass
@@ -206,6 +293,14 @@ class AWS(object):
     def get_task_list(self):
         tasks = self._ecs.list_tasks(cluster=self._cluster)['taskArns']
         return tasks
+
+    def stop_all(self):
+        for t in self.get_task_list():
+            print(t)
+            #self._ecs.stop_task(cluster=self._cluster, task=t)
+
+    def stop_task(self, task):
+        self._ecs.stop_task(cluster=self._cluster, task=task)
 
     def get_task(self, task_num):
         task_list = [self._ecs.list_tasks(cluster=self._cluster)['taskArns'][task_num]]
@@ -264,11 +359,76 @@ class AWS(object):
         
         return c_inst
     
+    def get_ecs_instance(self, ec2_instance_id):
+        ret = self._ecs.list_container_instances(cluster=self.get_cluster(), filter='ec2InstanceId == {}'.format(ec2_instance_id))
+        container_instance = ret['containerInstanceArns'][0]
+        return container_instance
+
+    def get_ecs_tasks(self, ec2_instance_id):
+        container_instance = self.get_ecs_instance(ec2_instance_id)
+        ret = self._ecs.list_tasks(cluster=self.get_cluster(), containerInstance=container_instance)
+        #print(ret)
+        return ret['taskArns']
+
     def get_ip(self, task_num):
         ip = self.get_instance(task_num)['PrivateIpAddress']
         return(ip)
 
-                             
+    def summarize(self, show_stopped=False):
+        ret = self._ec2.describe_instances()
+        res = ret['Reservations']
+        t_list = []
+        for r in res:
+            t_dict = {}
+            i0 = r['Instances'][0]
+            t_dict['ip'] = i0['PrivateIpAddress']
+            t_dict['state'] = i0['State']['Name']
+            t_dict['name'] = i0['Tags'][0]['Value']
+            t_dict['instance_id'] = i0['InstanceId']
+            try:
+                t_dict['desc'] = self.describe_tasks(self.get_ecs_tasks(t_dict['instance_id']))
+            except:
+                t_dict['desc'] = None
+            t_list.extend([t_dict])
+
+        text_format = "{name:30} {prog:10} {ip:15} {bind:16} {pbuf_bind:16} {state:10} {instance:12} {task}"
+        print(bcolors.BOLD + text_format.format(name="Name",
+                                                prog="Program",
+                                                ip="IPAddr",
+                                                bind="DevvBind",
+                                                pbuf_bind="PbufBind",
+                                                state="State",
+                                                instance="InstanceID",
+                                                task="TaskID"))
+
+        for t in t_list:
+            if show_stopped == False:
+                if t['state'] == 'stopped':
+                    continue
+            if t['desc']:
+                cmd = t['desc']['tasks'][0]['overrides']['containerOverrides'][0]['command']
+                arn = t['desc']['tasks'][0]['taskArn']
+            else:
+                cmd = None
+                arn = None
+            cmdinfo = get_devv_cmd_info(cmd)
+            if t['state'] == 'stopped':
+                color = bcolors.OKBLUE
+            elif t['state'] == 'running':
+                if cmdinfo['prog'][:8] == '-':
+                    color = bcolors.WARNING
+                else:
+                    color = bcolors.OKGREEN
+
+            print(color + text_format.format(name=t['name'],
+                                             prog=cmdinfo['prog'][:8],
+                                             ip=t['ip'],
+                                             bind=cmdinfo['bind'],
+                                             pbuf_bind=cmdinfo['pbuf_bind'],
+                                             state=t['state'],
+                                             instance=t['instance_id'][:8],
+                                             task=arn.split('/')[1] if arn else None))
+
 def get_devvnet(filename):
     with open(filename, "r") as f:
         buf = ''.join(f.readlines())
@@ -662,10 +822,10 @@ def get_nodes(yml_dict, host_index_map):
 
 
 def run_validator(node):
-    # ./devcash --node-index 0 --config ../opt/basic_shard.conf --config ../opt/default_pass.conf --host-list tcp://localhost:56551 --host-list tcp://localhost:56552 --host-list tcp://localhost:57550 --bind-endpoint tcp://*:56550
+    # ./devv --node-index 0 --config ../opt/basic_shard.conf --config ../opt/default_pass.conf --host-list tcp://localhost:56551 --host-list tcp://localhost:56552 --host-list tcp://localhost:57550 --bind-endpoint tcp://*:56550
 
     cmd = []
-    cmd.append("./devcash")
+    cmd.append("./devv")
     cmd.extend(["--shard-index", str(node.get_shard_index())])
     cmd.extend(["--node-index", str(node.get_index())])
     cmd.extend(["--num-consensus-threads", "1"])
@@ -680,10 +840,10 @@ def run_validator(node):
 
 
 def run_announcer(node):
-    # ./announcer --node-index 0 --shard-index 1 --mode T2 --stop-file /tmp/stop-devcash-announcer.ctl --inn-keys ../opt/inn.key --node-keys ../opt/node.key --bind-endpoint 'tcp://*:50020' --working-dir ../../tmp/working/input/laminar4/ --key-pass password --separate-ops true
+    # ./devv-announcer --node-index 0 --shard-index 1 --mode T2 --stop-file /tmp/stop-devv-announcer.ctl --inn-keys ../opt/inn.key --node-keys ../opt/node.key --bind-endpoint 'tcp://*:50020' --working-dir ../../tmp/working/input/laminar4/ --key-pass password --separate-ops true
 
     cmd = []
-    cmd.append("./pb_announcer")
+    cmd.append("./devv-announcer")
     cmd.extend(["--shard-index", str(node.get_shard_index())])
     cmd.extend(["--node-index", str(node.get_index())])
     cmd.extend(["--config", node.get_config_file()])
@@ -697,11 +857,11 @@ def run_announcer(node):
     return cmd
 
 
-def run_repeater(node):
-    # ./repeater --node-index 0 --shard-index 1 --mode T2 --stop-file /tmp/stop-devcash-repeater.ctl --inn-keys ../opt/inn.key --node-keys ../opt/node.key --working-dir ../../tmp/working/output/repeater --host-list tcp://localhost:56550 --key-pass password
+def run_devv_query(node):
+    # ./devv-query --node-index 0 --shard-index 1 --mode T2 --stop-file /tmp/stop-devv-query.ctl --inn-keys ../opt/inn.key --node-keys ../opt/node.key --working-dir ../../tmp/working/output/repeater --host-list tcp://localhost:56550 --key-pass password
 
     cmd = []
-    cmd.append("./repeater")
+    cmd.append("./devv-query")
     cmd.extend(["--shard-index", str(node.get_shard_index())])
     cmd.extend(["--node-index", str(node.get_index())])
     cmd.extend(["--num-consensus-threads", "1"])
@@ -747,7 +907,7 @@ if __name__ == '__main__':
             if n.get_name() == 'validator':
                 cmds.append(run_validator(n))
             elif n.get_name() == 'repeater':
-                cmds.append(run_repeater(n))
+                cmds.append(run_devv_query(n))
             elif n.get_name() == 'announcer':
                 cmds.append(run_announcer(n))
             logfiles.append(os.path.join(args.logdir,

@@ -1,5 +1,5 @@
 /*
- * devcash.cpp the main class.  Checks args and hands of to init.
+ * devv.cpp the main class.  Checks args and hands of to init.
  *
  *  Created on: Dec 8, 2017
  *  Author: Nick Williams
@@ -14,19 +14,19 @@
 #include <thread>
 
 #include "common/argument_parser.h"
-#include "common/devcash_context.h"
+#include "common/devv_context.h"
 #include "concurrency/ValidatorController.h"
 #include "modules/BlockchainModule.h"
 #include "io/message_service.h"
 #include "modules/ParallelExecutor.h"
 
-using namespace Devcash;
+using namespace Devv;
 
 int main(int argc, char* argv[])
 {
 
   try {
-    auto options = ParseDevcashOptions(argc, argv);
+    auto options = ParseDevvOptions(argc, argv);
 
     if (!options) {
       exit(-1);
@@ -38,7 +38,7 @@ int main(int argc, char* argv[])
 
     zmq::context_t zmq_context(1);
 
-    DevcashContext devcash_context(options->node_index
+    DevvContext devv_context(options->node_index
                                 , options->shard_index
                                 , options->mode
                                 , options->inn_keys
@@ -46,7 +46,7 @@ int main(int argc, char* argv[])
                                 , options->key_pass
                                 , options->batch_size
                                 , options->max_wait);
-    KeyRing keys(devcash_context);
+    KeyRing keys(devv_context);
     ChainState prior;
 
     auto server = io::CreateTransactionServer(options->bind_endpoint, zmq_context);
@@ -82,7 +82,7 @@ int main(int argc, char* argv[])
 
     {
       LOG_NOTICE << "Creating the BlockchainModule";
-      auto bcm = BlockchainModule::Create(*server, *peer_client, *loopback_client, keys, prior, options->mode, devcash_context, options->batch_size);
+      auto bcm = BlockchainModule::Create(*server, *peer_client, *loopback_client, keys, prior, options->mode, devv_context, options->batch_size);
       LOG_NOTICE << "Starting the BlockchainModule";
 
       bcm->start();
@@ -101,7 +101,7 @@ int main(int argc, char* argv[])
     mtr_flush();
     mtr_shutdown();
 
-    LOG_INFO << "DevCash Shutting Down";
+    LOG_INFO << "Devv Shutting Down";
 
     return(true);
   } catch (...) {

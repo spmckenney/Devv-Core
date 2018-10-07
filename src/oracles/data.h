@@ -17,7 +17,7 @@
 #include "consensus/chainstate.h"
 #include "consensus/KeyRing.h"
 
-using namespace Devcash;
+using namespace Devv;
 
 class data : public oracleInterface {
 

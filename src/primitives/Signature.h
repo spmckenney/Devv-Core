@@ -24,7 +24,7 @@
 #include <stdint.h>
 #include <algorithm>
 
-namespace Devcash {
+namespace Devv {
 
 static const size_t kWALLET_SIG_SIZE = 73;
 static const size_t kNODE_SIG_SIZE = 105;
@@ -189,6 +189,6 @@ class Signature {
   std::vector<byte> canonical_;
 };
 
-}  // end namespace Devcash
+}  // end namespace Devv
 
 #endif /* PRIMITIVES_SIGNATURE_H_ */

@@ -1,6 +1,6 @@
 
 /*
- * announcer.cpp reads Devcash transaction files from a directory
+ * announcer.cpp reads Devv transaction files from a directory
  * and annouonces them to nodes provided by the host-list arguments
  *
  *  Created on: May 29, 2018
@@ -17,14 +17,13 @@
 #include <boost/program_options.hpp>
 
 #include "common/logger.h"
-#include "common/devcash_context.h"
+#include "common/devv_context.h"
 #include "io/message_service.h"
 #include "modules/BlockchainModule.h"
 #include "primitives/block_tools.h"
-
 #include "pbuf/devv_pbuf.h"
 
-using namespace Devcash;
+using namespace Devv;
 
 namespace fs = boost::filesystem;
 
@@ -33,6 +32,7 @@ namespace fs = boost::filesystem;
 void ParallelPush(std::mutex& m, std::vector<std::vector<byte>>& array
     , const std::vector<byte>& elt) {
   std::lock_guard<std::mutex> guard(m);
+  LOG_DEBUG << "ParallelPush: Pushing size " << elt.size();
   array.push_back(elt);
 }
 
@@ -41,10 +41,10 @@ void ParallelPush(std::mutex& m, std::vector<std::vector<byte>>& array
  */
 struct announcer_options {
   std::string bind_endpoint;
+  std::string protobuf_endpoint;
   eAppMode mode;
   unsigned int node_index;
   unsigned int shard_index;
-  std::string working_dir;
   std::string inn_keys;
   std::string node_keys;
   std::string key_pass;
@@ -52,7 +52,6 @@ struct announcer_options {
   eDebugMode debug_mode;
   unsigned int batch_size;
   unsigned int start_delay;
-  unsigned int sleep_ms;
   bool distinct_ops;
 };
 
@@ -63,7 +62,6 @@ struct announcer_options {
  * @return
  */
 std::unique_ptr<struct announcer_options> ParseAnnouncerOptions(int argc, char** argv);
-
 
 int main(int argc, char* argv[]) {
   init_log();
@@ -78,136 +76,92 @@ int main(int argc, char* argv[]) {
 
     zmq::context_t context(1);
 
-    DevcashContext this_context(options->node_index, options->shard_index, options->mode, options->inn_keys,
-                                options->node_keys, options->key_pass);
+    DevvContext this_context(options->node_index,
+                                options->shard_index,
+                                options->mode,
+                                options->inn_keys,
+                                options->node_keys,
+                                options->key_pass);
+
     KeyRing keys(this_context);
 
-    LOG_DEBUG << "Loading transactions from " << options->working_dir;
     MTR_SCOPE_FUNC();
     std::vector<std::vector<byte>> transactions;
-    std::mutex tx_lock;
-
-    ChainState priori;
-
-    fs::path p(options->working_dir);
-
-    if (!is_directory(p)) {
-      LOG_ERROR << "Error opening dir: " << options->working_dir << " is not a directory";
-      return false;
-    }
-
-    std::vector<std::string> files;
-
-    unsigned int input_blocks_ = 0;
-    for (auto &entry : boost::make_iterator_range(fs::directory_iterator(p), {})) {
-      files.push_back(entry.path().string());
-    }
-
-    ThreadPool::ParallelFor(0, (int) files.size(), [&](int i) {
-      LOG_INFO << "Reading " << files.at(i);
-      std::ifstream file(files.at(i), std::ios::binary);
-      file.unsetf(std::ios::skipws);
-      std::streampos file_size;
-      file.seekg(0, std::ios::end);
-      file_size = file.tellg();
-      file.seekg(0, std::ios::beg);
-
-      std::vector<byte> raw;
-      raw.reserve(file_size);
-      raw.insert(raw.begin(), std::istream_iterator<byte>(file), std::istream_iterator<byte>());
-      std::vector<byte> batch;
-      assert(file_size > 0);
-      bool is_block = IsBlockData(raw);
-      bool is_transaction = IsTxData(raw);
-      if (is_block) { LOG_INFO << files.at(i) << " has blocks."; }
-      if (is_transaction) { LOG_INFO << files.at(i) << " has transactions."; }
-      if (!is_block && !is_transaction) { LOG_WARNING << files.at(i) << " contains unknown data."; }
-      unsigned int batch_blocks = 0;
-      unsigned char last_op = 99;
-      bool first_file_tx = true;
-
-      InputBuffer buffer(raw);
-      while (buffer.getOffset() < static_cast<size_t>(file_size)) {
-        //constructor increments offset by reference
-        if (is_block && options->mode == eAppMode::T1) {
-          FinalBlock one_block(FinalBlock::Create(buffer, priori));
-          const Summary &sum = one_block.getSummary();
-          Validation val(one_block.getValidation());
-          std::pair<Address, Signature> pair(val.getFirstValidation());
-          Tier1Transaction tx(sum, pair.second, pair.first, keys);
-          std::vector<byte> tx_canon(tx.getCanonical());
-          batch.insert(batch.end(), tx_canon.begin(), tx_canon.end());
-          input_blocks_++;
-        } else if (is_transaction && options->mode != eAppMode::T1) {
-          Tier2Transaction tx(Tier2Transaction::Create(buffer, keys, true));
-          std::vector<byte> tx_canon(tx.getCanonical());
-          if (options->distinct_ops) {
-             if ((!first_file_tx)
-                  && (tx.getOperation() != last_op)) {
-                LOG_DEBUG << "(!first_file_tx) && (tx.getOperation() != last_op): batch size: " << batch.size();
-                ParallelPush(tx_lock, transactions, batch);
-                batch.clear();
-                batch_blocks = 0;
-             } else {
-               LOG_DEBUG << "Setting first_file_tx to false";
-               first_file_tx = false;
-             }
-              last_op = tx.getOperation();
-          }
-          if (options->batch_size <= batch_blocks) {
-            ParallelPush(tx_lock, transactions, batch);
-            batch.clear();
-            batch_blocks = 0;
-          }
-          batch.insert(batch.end(), tx_canon.begin(), tx_canon.end());
-          input_blocks_++;
-          batch_blocks++;
-        } else {
-          LOG_WARNING << "Unsupported configuration: is_transaction: " << is_transaction
-                << " and mode: " << options->mode;
-          throw std::runtime_error("Unsupported configuration: is_transaction");
-        }
-      }
-
-      ParallelPush(tx_lock, transactions, batch);
-    }, 3);
-
-    LOG_INFO << "Loaded " << std::to_string(input_blocks_) << " transactions in " << transactions.size() << " batches.";
 
     auto server = io::CreateTransactionServer(options->bind_endpoint, context);
     server->startServer();
-    auto ms = options->sleep_ms;
-    unsigned int processed = 0;
+
+    zmq::socket_t socket (context, ZMQ_REP);
+    socket.bind (options->protobuf_endpoint);
 
     if (options->start_delay > 0) sleep(options->start_delay);
-    while (true) {
-      if (ms > 0) {
-        LOG_DEBUG << "Sleeping for " << ms << ": processed/batches (" << std::to_string(processed) << "/"
-                  << transactions.size() << ")";
-        sleep(ms);
+
+    bool keep_running = true;
+    unsigned int processed_total = 0;
+    while (keep_running) {
+      zmq::message_t transaction_message;
+      //  Wait for next request from client
+
+      LOG_INFO << "Waiting for envelope";
+      auto res = socket.recv(&transaction_message);
+      if (!res) {
+        LOG_ERROR << "socket.recv != true - exiting";
+        keep_running = false;
+      }
+      LOG_INFO << "Received envelope";
+
+      std::string tx_string = std::string(static_cast<char*>(transaction_message.data()),
+          transaction_message.size());
+
+      std::string response;
+      std::vector<TransactionPtr> ptrs;
+      try {
+        ptrs = DeserializeEnvelopeProtobufString(tx_string, keys);
+      } catch (std::runtime_error& e) {
+        response = "Deserialization error: " + std::string(e.what());
+        zmq::message_t reply(response.size());
+        memcpy(reply.data(), response.data(), response.size());
+        socket.send(reply);
+        continue;
       }
 
+      unsigned int processed = 0;
+      std::vector<DevvMessageUniquePtr> messages;
+      for (auto const& t2tx : ptrs) {
+        auto announce_msg = std::make_unique<DevvMessage>(
+            this_context.get_uri(),
+            TRANSACTION_ANNOUNCEMENT,
+            t2tx->getCanonical(),
+            DEBUG_TRANSACTION_INDEX);
 
-      /* Should we announce a transaction? */
-      if (processed < transactions.size()) {
-        auto announce_msg = std::make_unique<DevcashMessage>(this_context.get_uri(), TRANSACTION_ANNOUNCEMENT, transactions.at(processed),
-                                                               DEBUG_TRANSACTION_INDEX);
+        LOG_DEBUG << "Going to queue";
         server->queueMessage(std::move(announce_msg));
-        LOG_DEBUG << "Sent transaction batch #" << processed << ", size(" << transactions.at(processed).size() << ")";
+        LOG_DEBUG << "Sent transaction batch #" << processed;
         ++processed;
-        sleep(1);
-      } else {
-        LOG_INFO << "Finished announcing transactions.";
-        break;
+
+        if (fs::exists(options->stop_file)) {
+          LOG_INFO << "Shutdown file exists. Stopping pb_announcer...";
+          keep_running = false;
+        }
       }
-      LOG_INFO << "Finished 0";
+      processed_total += processed;
+      LOG_DEBUG << "Finished publishing transactions (processed/total) (" +
+            std::to_string(processed) + "/" +
+            std::to_string(processed_total) + ")";
+
+      response = "Successfully published " + std::to_string(processed) + " transactions.";
+
+      zmq::message_t reply(response.size());
+      memcpy(reply.data(), response.data(), response.size());
+      socket.send(reply);
     }
-    LOG_INFO << "Finished 1";
+
+    LOG_INFO << "Finished running";
+    sleep(1);
     server->stopServer();
     LOG_WARNING << "All done.";
     return (true);
-  }
-  catch (const std::exception& e) {
+  } catch (const std::exception& e) {
     std::exception_ptr p = std::current_exception();
     std::string err("");
     err += (p ? p.__cxa_exception_type()->name() : "null");
@@ -228,7 +182,7 @@ std::unique_ptr<struct announcer_options> ParseAnnouncerOptions(int argc, char**
     po::options_description general("General Options\n\
 " + std::string(argv[0]) + " [OPTIONS] \n\
 \n\
-Reads Devcash transaction files from a directory and \n\
+Reads Devv transaction files from a directory and \n\
 annouonces them to nodes provided by the host-list arguments.\n\
 \nAllowed options");
     general.add_options()
@@ -240,23 +194,16 @@ annouonces them to nodes provided by the host-list arguments.\n\
     po::options_description behavior("Identity and Behavior Options");
     behavior.add_options()
         ("debug-mode", po::value<std::string>(), "Debug mode (on|toy|perf) for testing")
-        ("mode", po::value<std::string>(), "Devcash mode (T1|T2|scan)")
+        ("mode", po::value<std::string>(), "Devv mode (T1|T2|scan)")
         ("node-index", po::value<unsigned int>(), "Index of this node")
         ("shard-index", po::value<unsigned int>(), "Index of this shard")
-        ("num-consensus-threads", po::value<unsigned int>(), "Number of consensus threads")
-        ("num-validator-threads", po::value<unsigned int>(), "Number of validation threads")
-        ("bind-endpoint", po::value<std::string>(), "Endpoint for server (i.e. tcp://*:5556)")
-        ("working-dir", po::value<std::string>(), "Directory where inputs are read and outputs are written")
-        ("output", po::value<std::string>(), "Output path in binary JSON or CBOR")
-        ("trace-output", po::value<std::string>(), "Output path to JSON trace file (Chrome)")
+        ("bind-endpoint", po::value<std::string>(), "Endpoint for validator server (i.e. tcp://*:5556)")
+        ("protobuf-endpoint", po::value<std::string>(), "Endpoint for protobuf server (i.e. tcp://*:5557)")
         ("inn-keys", po::value<std::string>(), "Path to INN key file")
         ("node-keys", po::value<std::string>(), "Path to Node key file")
         ("key-pass", po::value<std::string>(), "Password for private keys")
-        ("generate-tx", po::value<unsigned int>(), "Generate at least this many Transactions")
-        ("tx-batch-size", po::value<unsigned int>(), "Target size of transaction batches")
-        ("stop-file", po::value<std::string>(), "A file in working-dir indicating that this node should stop.")
+        ("stop-file", po::value<std::string>(), "When this file exists it indicates that this announcer should stop.")
         ("start-delay", po::value<unsigned int>(), "Sleep time before starting (millis)")
-        ("sleep-ms", po::value<unsigned int>(), "Sleep time between batches (millis)")
         ("separate-ops", po::value<bool>(), "Separate transactions with different operations into distinct batches?")
         ;
 
@@ -266,7 +213,7 @@ annouonces them to nodes provided by the host-list arguments.\n\
 
     po::variables_map vm;
     po::store(po::command_line_parser(argc, argv).
-                  options(all_options).
+                  options(all_options).allow_unregistered().
                   run(),
               vm);
 
@@ -287,11 +234,14 @@ annouonces them to nodes provided by the host-list arguments.\n\
           LOG_ERROR << "Error opening config file: " << config_filenames[i];
           return nullptr;
         }
-        po::store(po::parse_config_file(ifs, all_options), vm);
+        po::store(po::parse_config_file(ifs, all_options, true), vm);
       }
     }
 
-    po::store(po::parse_command_line(argc, argv, all_options), vm);
+   po::store(po::command_line_parser(argc, argv).
+                  options(all_options).allow_unregistered().
+                  run(),
+              vm);
     po::notify(vm);
 
     if (vm.count("mode")) {
@@ -345,11 +295,11 @@ annouonces them to nodes provided by the host-list arguments.\n\
       LOG_INFO << "Bind URI was not set";
     }
 
-    if (vm.count("working-dir")) {
-      options->working_dir = vm["working-dir"].as<std::string>();
-      LOG_INFO << "Working dir: " << options->working_dir;
+    if (vm.count("protobuf-endpoint")) {
+      options->protobuf_endpoint = vm["protobuf-endpoint"].as<std::string>();
+      LOG_INFO << "Protobuf Endpoint: " << options->protobuf_endpoint;
     } else {
-      LOG_INFO << "Working dir was not set.";
+      LOG_INFO << "Protobuf Endpoint was not set";
     }
 
     if (vm.count("inn-keys")) {
@@ -380,28 +330,12 @@ annouonces them to nodes provided by the host-list arguments.\n\
       LOG_INFO << "Stop file was not set. Use a signal to stop the node.";
     }
 
-    if (vm.count("tx-batch-size")) {
-      options->batch_size = vm["tx-batch-size"].as<unsigned int>();
-      LOG_INFO << "Batch size: " << options->batch_size;
-    } else {
-      LOG_INFO << "Batch size was not set (default to no restrictions).";
-      options->batch_size = 0;
-    }
-
     if (vm.count("start-delay")) {
       options->start_delay = vm["start-delay"].as<unsigned int>();
       LOG_INFO << "Start delay: " << options->start_delay;
     } else {
       LOG_INFO << "Start delay was not set (default to no delay).";
       options->start_delay = 0;
-    }
-
-    if (vm.count("sleep-ms")) {
-      options->sleep_ms = vm["sleep-ms"].as<unsigned int>();
-      LOG_INFO << "Sleep millis: " << options->sleep_ms;
-    } else {
-      LOG_INFO << "Sleep millis was not set (default to no waiting).";
-      options->sleep_ms = 0;
     }
 
     if (vm.count("separate-ops")) {

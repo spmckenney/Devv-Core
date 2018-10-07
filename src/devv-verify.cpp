@@ -1,12 +1,12 @@
 
 /*
- * verifier.cpp scans a directory for transactions and blocks.
+ * devv-verify.cpp scans a directory for transactions and blocks.
  * Then, it accumulates the states implied by all the sound transactions it finds
  * as well as getting the chain state implied by the blockchain(s) in the directory.
  * Finally, it compares these states and dumps them if they are not equal.
  *
  * If states are not equal, keep in mind that order and timing matter.
- * A transaction may be sound, but not valid when it is announced to the verifiers.
+ * A transaction may be sound, but not valid when it is provided to the verifier.
  * In this case, this transaction will be recorded in the chainstate implied by sound transactions,
  * but not the chainstate created in the actual chains and the chains may be correct even though
  * they are missing that transaction, which could not be processed when it was announced.
@@ -28,17 +28,17 @@
 #include <boost/filesystem.hpp>
 #include <boost/program_options.hpp>
 
-#include "common/devcash_context.h"
+#include "common/devv_context.h"
 #include "io/message_service.h"
 #include "modules/BlockchainModule.h"
 #include "primitives/json_interface.h"
 #include "primitives/block_tools.h"
 
-using namespace Devcash;
+using namespace Devv;
 
 namespace fs = boost::filesystem;
 
-struct verifier_options {
+struct verify_options {
   eAppMode mode  = eAppMode::T1;
   unsigned int node_index = 0;
   unsigned int shard_index = 0;
@@ -49,13 +49,13 @@ struct verifier_options {
   eDebugMode debug_mode;
 };
 
-std::unique_ptr<struct verifier_options> ParseVerifierOptions(int argc, char** argv);
+std::unique_ptr<struct verify_options> ParseVerifyOptions(int argc, char** argv);
 
 int main(int argc, char* argv[]) {
   init_log();
 
   CASH_TRY {
-    auto options = ParseVerifierOptions(argc, argv);
+    auto options = ParseVerifyOptions(argc, argv);
 
     if (!options) {
       exit(-1);
@@ -63,7 +63,7 @@ int main(int argc, char* argv[]) {
 
     zmq::context_t context(1);
 
-    DevcashContext this_context(options->node_index,
+    DevvContext this_context(options->node_index,
                                 options->shard_index,
                                 options->mode,
                                 options->inn_keys,
@@ -172,11 +172,11 @@ int main(int argc, char* argv[]) {
   }
 }
 
-std::unique_ptr<struct verifier_options> ParseVerifierOptions(int argc, char** argv) {
+std::unique_ptr<struct verify_options> ParseVerifyOptions(int argc, char** argv) {
 
   namespace po = boost::program_options;
 
-  auto options = std::make_unique<verifier_options>();
+  auto options = std::make_unique<verify_options>();
 
   try {
     po::options_description desc("\n\
@@ -188,7 +188,7 @@ as well as getting the chain state implied by the blockchain(s) in the directory
 Finally, it compares these states and dumps them if they are not equal.\n\
 \n\
 If states are not equal, keep in mind that order and timing matter.\n\
-A transaction may be sound, but not valid when it is announced to the verifiers.\n\
+A transaction may be sound, but not valid when it is provided to the verifier.\n\
 In this case, this transaction will be recorded in the chainstate implied by sound transactions,\n\
 but not the chainstate created in the actual chains and the chains may be correct even though\n\
 they are missing that transaction, which could not be processed when it was announced.\n\
@@ -199,7 +199,7 @@ different states from the one implied by the set of transactions themselves.\n\
 \n\
 Required parameters");
     desc.add_options()
-        ("mode", po::value<std::string>(), "Devcash mode (T1|T2|scan)")
+        ("mode", po::value<std::string>(), "Devv mode (T1|T2|scan)")
         ("node-index", po::value<unsigned int>(), "Index of this node")
         ("shard-index", po::value<unsigned int>(), "Index of this shard")
         ("working-dir", po::value<std::string>(), "Directory to be verified")

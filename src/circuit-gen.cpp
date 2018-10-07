@@ -1,29 +1,34 @@
 /*
- * turbulent.cpp
- * Creates generate_count transactions as follows:
- * 1.  INN transactions create coins for every address
- * 2.  Each peer address attempts to send a random number of coins up to tx_amount
- *     to a random address other than itself
- * 3.  Many transactions will be invalid, but valid transactions should also appear indefinitely
+ * circuit-gen.cpp
+ * Creates up to generate_count transactions as follows:
+ * 1.  INN transactions create addr_count coins for every address
+ * 2.  Each peer address sends 1 coin to every other address
+ * 3.  Each peer address returns addr_count coins to the INN
+ *
+ *  For perfect circuits,
+ *    make sure that generate_count is one more than a perfect square.
  *
  *  Created on: May 24, 2018
  *      Author: Nick Williams
  */
 
-#include <cstdlib>
-#include <ctime>
+#include <algorithm>
+#include <cmath>
 #include <fstream>
 #include <iostream>
 #include <string>
+#include <memory>
 
 #include <boost/program_options.hpp>
 
-#include "common/devcash_context.h"
+#include "common/devv_context.h"
+#include "common/logger.h"
+
 #include "modules/BlockchainModule.h"
 
-using namespace Devcash;
+using namespace Devv;
 
-struct turbulent_options {
+struct circuit_options {
   eAppMode mode  = eAppMode::T1;
   unsigned int node_index = 0;
   unsigned int shard_index = 0;
@@ -35,22 +40,22 @@ struct turbulent_options {
   unsigned int generate_count;
   uint64_t tx_amount;
   eDebugMode debug_mode;
+  bool clear_state;
 };
 
-std::unique_ptr<struct turbulent_options> ParseTurbulentOptions(int argc, char** argv);
+std::unique_ptr<struct circuit_options> ParseCircuitOptions(int argc, char** argv);
 
 int main(int argc, char* argv[]) {
   init_log();
 
   CASH_TRY {
-    auto options = ParseTurbulentOptions(argc, argv);
+    std::unique_ptr<circuit_options> options = ParseCircuitOptions(argc, argv);
 
     if (!options) {
-      LOG_ERROR << "ParseTurbulentOptions failed";
       exit(-1);
     }
 
-    DevcashContext this_context(options->node_index, options->shard_index, options->mode, options->inn_keys,
+    DevvContext this_context(options->node_index, options->shard_index, options->mode, options->inn_keys,
                                 options->node_keys, options->key_pass);
 
     KeyRing keys(this_context);
@@ -59,24 +64,32 @@ int main(int argc, char* argv[]) {
     std::vector<byte> out;
     EVP_MD_CTX* ctx;
     if (!(ctx = EVP_MD_CTX_create())) {
-      LOG_FATAL << "Could not create signature context!";
-      CASH_THROW("Could not create signature context!");
+      std::string err("Could not create signature context!");
+      throw std::runtime_error(err);
     }
 
     Address inn_addr = keys.getInnAddr();
 
-    size_t addr_count = keys.CountWallets();
+    if (options->generate_count < 2) {
+      LOG_FATAL << "Must generate at least 2 transactions for a complete circuit.";
+      CASH_THROW("Invalid number of transactions to generate.");
+    }
+    // Need sqrt(N-1) addresses (x) to create N circuits: 1+x(x-1)+2x=N
+    double need_addrs = std::sqrt(options->generate_count - 1);
+    // if sqrt(N-1) is not an int, circuits will be incomplete
+    if (std::floor(need_addrs) != need_addrs) {
+      LOG_WARNING << "For complete circuits generate a perfect square + 1 transactions (ie 2,5,10,17...)";
+    }
 
-    std::srand((unsigned)time(0));
+    size_t addr_count = std::min(keys.CountWallets(), static_cast<size_t>(need_addrs));
+
     size_t counter = 0;
 
     std::vector<Transfer> xfers;
-    Transfer inn_transfer(inn_addr, 0
-      , -1l*addr_count*(addr_count-1)*options->tx_amount, 0);
+    Transfer inn_transfer(inn_addr, 0, -1l * addr_count * (addr_count - 1) * options->tx_amount, 0);
     xfers.push_back(inn_transfer);
     for (size_t i = 0; i < addr_count; ++i) {
-      Transfer transfer(keys.getWalletAddr(i), 0
-        , (addr_count-1)*options->tx_amount, 0);
+      Transfer transfer(keys.getWalletAddr(i), 0, options->tx_amount * (addr_count - 1), 0);
       xfers.push_back(transfer);
     }
     uint64_t nonce = GetMillisecondsSinceEpoch() + (1000000
@@ -87,18 +100,17 @@ int main(int argc, char* argv[]) {
                             keys.getKey(inn_addr), keys);
     std::vector<byte> inn_canon(inn_tx.getCanonical());
     out.insert(out.end(), inn_canon.begin(), inn_canon.end());
-    LOG_DEBUG << "GenerateTransactions(): generated inn_tx with sig: " << inn_tx.getSignature().getJSON();
+    LOG_DEBUG << "Circuit test generated inn_tx with sig: " << inn_tx.getSignature().getJSON();
     counter++;
 
     while (counter < options->generate_count) {
-        for (size_t i = 0; i < addr_count; ++i) {
-          size_t j = std::rand() % addr_count;
-          size_t amount = std::rand() % options->tx_amount;
+      for (size_t i = 0; i < addr_count; ++i) {
+        for (size_t j = 0; j < addr_count; ++j) {
           if (i == j) { continue; }
           std::vector<Transfer> peer_xfers;
-          Transfer sender(keys.getWalletAddr(i), 0, -1l * amount, 0);
+          Transfer sender(keys.getWalletAddr(i), 0, -1l * options->tx_amount, 0);
           peer_xfers.push_back(sender);
-          Transfer receiver(keys.getWalletAddr(j), 0, amount, 0);
+          Transfer receiver(keys.getWalletAddr(j), 0, options->tx_amount, 0);
           peer_xfers.push_back(receiver);
           nonce_bin.clear();
           nonce = GetMillisecondsSinceEpoch() + (1000000
@@ -109,20 +121,43 @@ int main(int argc, char* argv[]) {
               keys.getWalletKey(i), keys);
           std::vector<byte> peer_canon(peer_tx.getCanonical());
           out.insert(out.end(), peer_canon.begin(), peer_canon.end());
+          LOG_TRACE << "Circuit test generated tx with sig: " << peer_tx.getSignature().getJSON();
+          counter++;
+          if (counter >= options->generate_count) { break; }
+        }  // end inner for
+        if (counter >= options->generate_count) { break; }
+      }  // end outer for
+      if (counter >= options->generate_count) { break; }
+      if (options->clear_state) {
+        for (size_t i = 0; i < addr_count; ++i) {
+          std::vector<Transfer> peer_xfers;
+          Transfer sender(keys.getWalletAddr(i), 0, -1l * (addr_count - 1) * options->tx_amount, 0);
+          peer_xfers.push_back(sender);
+          Transfer receiver(inn_addr, 0, (addr_count - 1) * options->tx_amount, 0);
+          peer_xfers.push_back(receiver);
+          nonce = GetMillisecondsSinceEpoch() + (1000000
+                       * (options->node_index + 1) * (i + 1) * (addr_count + 2));
+          Uint64ToBin(nonce, nonce_bin);
+          Tier2Transaction peer_tx(
+              eOpType::Exchange, peer_xfers, nonce_bin,
+              keys.getWalletKey(i), keys);
+          std::vector<byte> peer_canon(peer_tx.getCanonical());
+          out.insert(out.end(), peer_canon.begin(), peer_canon.end());
           LOG_TRACE << "GenerateTransactions(): generated tx with sig: " << peer_tx.getSignature().getJSON();
           counter++;
           if (counter >= options->generate_count) { break; }
-        }  // end for loop
-        if (counter >= options->generate_count) { break; }
+        }  // end outer for
+      }
+      if (counter >= options->generate_count) { break; }
     }  // end counter while
 
     LOG_INFO << "Generated " << counter << " transactions.";
 
     if (!options->write_file.empty()) {
-      std::ofstream outFile(options->write_file, std::ios::out | std::ios::binary);
-      if (outFile.is_open()) {
-        outFile.write((const char*)out.data(), out.size());
-        outFile.close();
+      std::ofstream out_file(options->write_file, std::ios::out | std::ios::binary);
+      if (out_file.is_open()) {
+        out_file.write((const char*) out.data(), out.size());
+        out_file.close();
       } else {
         LOG_FATAL << "Failed to open output file '" << options->write_file << "'.";
         return (false);
@@ -141,25 +176,27 @@ int main(int argc, char* argv[]) {
   }
 }
 
-std::unique_ptr<struct turbulent_options> ParseTurbulentOptions(int argc, char** argv) {
+std::unique_ptr<struct circuit_options> ParseCircuitOptions(int argc, char** argv) {
 
   namespace po = boost::program_options;
 
-  std::unique_ptr<turbulent_options> options(new turbulent_options());
+  std::unique_ptr<circuit_options> options(new circuit_options());
 
   try {
     po::options_description desc("\n\
 " + std::string(argv[0]) + " [OPTIONS] \n\
 \n\
-Creates generate_count transactions as follows:\n\
-1.  INN transactions create coins for every address\n\
-2.  Each peer address attempts to send a random number of coins up to tx_amount\n\
-    to a random address other than itself\n\
-3.  Many transactions will be invalid, but valid transactions should also appear indefinitely\n\
+Creates up to generate_count transactions as follows:\n\
+ 1.  INN transactions create addr_count coins for every address\n\
+ 2.  Each peer address sends 1 coin to every other address\n\
+ 3.  Each peer address returns addr_count coins to the INN\n\
+\n\
+For perfect circuits, make sure that generate_count is one more \n\
+than a perfect square.\n\
 \n\
 Required parameters");
     desc.add_options()
-        ("mode", po::value<std::string>(), "Devcash mode (T1|T2|scan)")
+        ("mode", po::value<std::string>(), "Devv mode (T1|T2|scan)")
         ("node-index", po::value<unsigned int>(), "Index of this node")
         ("shard-index", po::value<unsigned int>(), "Index of this shard")
         ("output", po::value<std::string>(), "Output path in binary JSON or CBOR")
@@ -174,6 +211,7 @@ Required parameters");
     po::options_description d2("Optional parameters");
     d2.add_options()
         ("help", "produce help message")
+        ("clear-state", po::value<bool>(), "Return coins to INN address?")
         ("debug-mode", po::value<std::string>(), "Debug mode (on|off|perf) for testing")
         ;
     desc.add(d2);
@@ -282,6 +320,14 @@ Required parameters");
     } else {
       options->tx_amount = 3210123;
       LOG_INFO << "Transaction amount was not set, defaulting to " << options->tx_amount;
+    }
+
+    if (vm.count("clear-state")) {
+      options->clear_state = vm["clear-state"].as<bool>();
+      LOG_INFO << "Clear state: " << options->clear_state;
+    } else {
+      options->clear_state = true;
+      LOG_INFO << "Clear state was not set, defaulting to " << options->clear_state;
     }
   }
   catch (std::exception& e) {

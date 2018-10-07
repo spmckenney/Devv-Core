@@ -4,7 +4,7 @@
 #include "Summary.h"
 #include "primitives/json_interface.h"
 
-namespace Devcash {
+namespace Devv {
 
 bool Summary::isSane() const {
   if (summary_.empty()) { return false; }

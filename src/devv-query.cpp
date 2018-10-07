@@ -1,6 +1,6 @@
 /*
- * repeater.cpp listens for FinalBlock messages and saves them to a file
- * @TODO(nick@cloudsolar.co): it also provides specific blocks by request.
+ * devv-query.cpp listens for FinalBlock messages and saves them to a file
+ * It responds to user requests to provide chain and block data.
  *
  *  Created on: June 25, 2018
  *  Author: Nick Williams
@@ -18,13 +18,13 @@
 #include <boost/program_options.hpp>
 
 #include "common/logger.h"
-#include "common/devcash_context.h"
+#include "common/devv_context.h"
 #include "common/devv_uri.h"
 #include "io/message_service.h"
 #include "modules/BlockchainModule.h"
 #include "pbuf/devv_pbuf.h"
 
-using namespace Devcash;
+using namespace Devv;
 
 namespace fs = boost::filesystem;
 
@@ -88,7 +88,7 @@ int main(int argc, char* argv[]) {
 
     zmq::context_t zmq_context(1);
 
-    DevcashContext this_context(options->node_index, options->shard_index, options->mode, options->inn_keys,
+    DevvContext this_context(options->node_index, options->shard_index, options->mode, options->inn_keys,
                                 options->node_keys, options->key_pass);
     KeyRing keys(this_context);
 
@@ -108,7 +108,7 @@ int main(int argc, char* argv[]) {
     unsigned int chain_height = 0;
 
     auto peer_listener = io::CreateTransactionClient(options->host_vector, zmq_context);
-    peer_listener->attachCallback([&](DevcashMessageUniquePtr p) {
+    peer_listener->attachCallback([&](DevvMessageUniquePtr p) {
       if (p->message_type == eMessageType::FINAL_BLOCK) {
         //write final chain to file
         std::string shard_dir(options->working_dir+"/"+this_context.get_shard_uri());
@@ -225,7 +225,7 @@ Listens for FinalBlock messages and saves them to a file\n\
     po::options_description behavior("Identity and Behavior Options");
     behavior.add_options()
         ("debug-mode", po::value<std::string>(), "Debug mode (on|toy|perf) for testing")
-        ("mode", po::value<std::string>(), "Devcash mode (T1|T2|scan)")
+        ("mode", po::value<std::string>(), "Devv mode (T1|T2|scan)")
         ("node-index", po::value<unsigned int>(), "Index of this node")
         ("shard-index", po::value<unsigned int>(), "Index of this shard")
         ("num-consensus-threads", po::value<unsigned int>(), "Number of consensus threads")
@@ -234,8 +234,6 @@ Listens for FinalBlock messages and saves them to a file\n\
          "Client URI (i.e. tcp://192.168.10.1:5005). Option can be repeated to connect to multiple nodes.")
         ("protobuf-endpoint", po::value<std::string>(), "Endpoint for protobuf server (i.e. tcp://*:5557)")
         ("working-dir", po::value<std::string>(), "Directory where inputs are read and outputs are written")
-        ("output", po::value<std::string>(), "Output path in binary JSON or CBOR")
-        ("trace-output", po::value<std::string>(), "Output path to JSON trace file (Chrome)")
         ("inn-keys", po::value<std::string>(), "Path to INN key file")
         ("node-keys", po::value<std::string>(), "Path to Node key file")
         ("key-pass", po::value<std::string>(), "Password for private keys")
