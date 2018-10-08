@@ -54,7 +54,7 @@ CoinRequest(std::string data) : oracleInterface(data) {};
  * @return false otherwise
  */
   bool isSound() override {
-    coin_ = BinToUint64(raw_data_, 0);
+    coin_ = BinToUint64(Str2Bin(raw_data_), 0);
     addr_ = Str2Bin(raw_data_.substr(8));
     return true;
   }
