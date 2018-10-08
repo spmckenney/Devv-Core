@@ -18,6 +18,7 @@
 #include <boost/filesystem.hpp>
 #include <boost/program_options.hpp>
 #include <pqxx/pqxx>
+#include <pqxx/nontransaction>
 
 #include "common/logger.h"
 #include "common/devv_context.h"
@@ -164,84 +165,90 @@ int main(int argc, char* argv[]) {
           std::vector<TransactionPtr> txs = one_block.CopyTransactions();
 
           for (TransactionPtr& one_tx : txs) {
-
-            pqxx::work stmt(*db_link);
-            std::vector<TransferPtr> xfers = one_tx->getTransfers();
+            pqxx::nontransaction stmt(*db_link);
+            stmt.exec("begin;");
+            stmt.exec("savepoint tx_savepoint;");
             std::string sig_hex = one_tx->getSignature().getJSON();
-            std::string sender_hex;
-            uint64_t coin_id = 0;
-            int64_t send_amount = 0;
+            try {
+              std::vector<TransferPtr> xfers = one_tx->getTransfers();
+              std::string sender_hex;
+              uint64_t coin_id = 0;
+              int64_t send_amount = 0;
 
-            for (TransferPtr& one_xfer : xfers) {
-              if (one_xfer->getAmount() < 0) {
-                if (!sender_hex.empty()) {
-                  LOG_WARNING << "Multiple senders in transaction '"+sig_hex+"'?!";
-                }
-                sender_hex = one_xfer->getAddress().getJSON();
-                coin_id = one_xfer->getCoin();
-                send_amount = one_xfer->getAmount();
-                break;
-              }
-            } //end sender search loop
-
-            //update sender balance
-            pqxx::result balance_result = stmt.prepared(kBALANCE_SELECT)(sender_hex)(coin_id).exec();
-            if (balance_result.empty()) {
-              stmt.prepared(kBALANCE_INSERT)(chain_height)(coin_id)(send_amount)(sender_hex).exec();
-              LOG_INFO << "Unknown sender '"+sender_hex+"' sent coins '"+sig_hex+"'?!";
-            } else {
-              int64_t new_balance = balance_result[0][0].as<int64_t>()+send_amount;
-              stmt.prepared(kBALANCE_UPDATE)(new_balance)(chain_height)(sender_hex)(coin_id).exec();
-            }
-
-            //copy transfers
-            pqxx::result pending_result = stmt.prepared(kSELECT_PENDING_TX)(sig_hex).exec();
-            if (!pending_result.empty()) {
-              std::string pending_uuid = pending_result[0][0].as<std::string>();
-              stmt.prepared(kTX_CONFIRM)(options->shard_index)(chain_height)(blocktime)(sender_hex)(pending_uuid).exec();
               for (TransferPtr& one_xfer : xfers) {
-                if (one_xfer->getAmount() > 0) {
-                  std::string rcv_addr = one_xfer->getAddress().getJSON();
-                  pqxx::result rx_result = stmt.prepared(kSELECT_PENDING_RX)(sig_hex)(rcv_addr).exec();
-                  if (!rx_result.empty()) {
-                    std::string rx_uuid = rx_result[0][0].as<std::string>();
-                    stmt.prepared(kRX_CONFIRM)(options->shard_index)(chain_height)(blocktime)(rx_uuid).exec();
-                  } else {
-                    LOG_WARNING << "Pending tx missing corresponding rx '"+sig_hex+"'!";
+                if (one_xfer->getAmount() < 0) {
+                  if (!sender_hex.empty()) {
+                    LOG_WARNING << "Multiple senders in transaction '"+sig_hex+"'?!";
                   }
+                  sender_hex = one_xfer->getAddress().getJSON();
+                  coin_id = one_xfer->getCoin();
+                  send_amount = one_xfer->getAmount();
+                  break;
                 }
-              } //end rx copy loop
-            } else { //no pending exists, so create new transaction
-              pqxx::result uuid_result = stmt.prepared(kSELECT_UUID).exec();
-              if (!uuid_result.empty()) {
-                std::string tx_uuid = uuid_result[0][0].as<std::string>();
-                stmt.prepared(kTX_INSERT)(tx_uuid)(options->shard_index)(chain_height)(blocktime)(coin_id)(send_amount)(sender_hex).exec();
-                for (TransferPtr& one_xfer : xfers) {
-                  //only do receivers
-                  int64_t rcv_amount = one_xfer->getAmount();
-                  if (rcv_amount < 0) continue;
-                  std::string rcv_addr = one_xfer->getAddress().getJSON();
-                  uint64_t rcv_coin_id = one_xfer->getCoin();
-                  uint64_t delay = one_xfer->getDelay();
+              } //end sender search loop
 
-                  stmt.prepared(kRX_INSERT)(options->shard_index)(chain_height)(blocktime)(rcv_coin_id)(rcv_amount)(delay)(tx_uuid)(sender_hex)(rcv_addr).exec();
-
-                  //update receiver balance
-                  pqxx::work rx_stmt(*db_link);
-                  pqxx::result rx_balance = rx_stmt.prepared(kBALANCE_SELECT)(rcv_addr)(rcv_coin_id).exec();
-                  if (rx_balance.empty()) {
-                    LOG_INFO << "Unknown receiver: '"+rcv_addr+"'.";
-                    stmt.prepared(kBALANCE_INSERT)(chain_height)(rcv_coin_id)(rcv_amount)(rcv_addr).exec();
-                  } else {
-                    int64_t new_balance = balance_result[0][0].as<int64_t>()+rcv_amount;
-                    stmt.prepared(kBALANCE_UPDATE)(new_balance)(chain_height)(rcv_addr)(rcv_coin_id).exec();
-                  }
-                } //end transfer loop
+              //update sender balance
+              pqxx::result balance_result = stmt.prepared(kBALANCE_SELECT)(sender_hex)(coin_id).exec();
+              if (balance_result.empty()) {
+                stmt.prepared(kBALANCE_INSERT)(chain_height)(coin_id)(send_amount)(sender_hex).exec();
+                LOG_INFO << "Unknown sender '"+sender_hex+"' sent coins '"+sig_hex+"'?!";
               } else {
-                LOG_WARNING << "Failed to generate a UUID!";
+                int64_t new_balance = balance_result[0][0].as<int64_t>()+send_amount;
+                stmt.prepared(kBALANCE_UPDATE)(new_balance)(chain_height)(sender_hex)(coin_id).exec();
               }
+
+              //copy transfers
+              pqxx::result pending_result = stmt.prepared(kSELECT_PENDING_TX)(sig_hex).exec();
+              if (!pending_result.empty()) {
+                std::string pending_uuid = pending_result[0][0].as<std::string>();
+                stmt.prepared(kTX_CONFIRM)(options->shard_index)(chain_height)(blocktime)(sender_hex)(pending_uuid).exec();
+                for (TransferPtr& one_xfer : xfers) {
+                  if (one_xfer->getAmount() > 0) {
+                    std::string rcv_addr = one_xfer->getAddress().getJSON();
+                    pqxx::result rx_result = stmt.prepared(kSELECT_PENDING_RX)(sig_hex)(rcv_addr).exec();
+                    if (!rx_result.empty()) {
+                      std::string rx_uuid = rx_result[0][0].as<std::string>();
+                      stmt.prepared(kRX_CONFIRM)(options->shard_index)(chain_height)(blocktime)(rx_uuid).exec();
+                    } else {
+                      LOG_WARNING << "Pending tx missing corresponding rx '"+sig_hex+"'!";
+                    }
+                  }
+                } //end rx copy loop
+              } else { //no pending exists, so create new transaction
+                pqxx::result uuid_result = stmt.prepared(kSELECT_UUID).exec();
+                if (!uuid_result.empty()) {
+                  std::string tx_uuid = uuid_result[0][0].as<std::string>();
+                  stmt.prepared(kTX_INSERT)(tx_uuid)(options->shard_index)(chain_height)(blocktime)(coin_id)(send_amount)(sender_hex).exec();
+                  for (TransferPtr& one_xfer : xfers) {
+                    //only do receivers
+                    int64_t rcv_amount = one_xfer->getAmount();
+                    if (rcv_amount < 0) continue;
+                    std::string rcv_addr = one_xfer->getAddress().getJSON();
+                    uint64_t rcv_coin_id = one_xfer->getCoin();
+                    uint64_t delay = one_xfer->getDelay();
+
+                    stmt.prepared(kRX_INSERT)(options->shard_index)(chain_height)(blocktime)(rcv_coin_id)(rcv_amount)(delay)(tx_uuid)(sender_hex)(rcv_addr).exec();
+
+                    //update receiver balance
+                    pqxx::work rx_stmt(*db_link);
+                    pqxx::result rx_balance = rx_stmt.prepared(kBALANCE_SELECT)(rcv_addr)(rcv_coin_id).exec();
+                    if (rx_balance.empty()) {
+                      LOG_INFO << "Unknown receiver: '"+rcv_addr+"'.";
+                      stmt.prepared(kBALANCE_INSERT)(chain_height)(rcv_coin_id)(rcv_amount)(rcv_addr).exec();
+                    } else {
+                      int64_t new_balance = balance_result[0][0].as<int64_t>()+rcv_amount;
+                      stmt.prepared(kBALANCE_UPDATE)(new_balance)(chain_height)(rcv_addr)(rcv_coin_id).exec();
+                    }
+                  } //end transfer loop
+                } else {
+                  LOG_WARNING << "Failed to generate a UUID!";
+                }
+              }
+              stmt.exec("commit;");
+            } catch (const std::exception& e) {
+              LOG_WARNING << FormatException(&e, "Exception updating database for transaction, rollback: "+sig_hex);
+              stmt.exec("rollback to savepoint tx_savepoint;");
             }
-            stmt.commit();
           } //end transaction loop
         } else { //endif db connected?
           throw std::runtime_error("Database is not connected!");
