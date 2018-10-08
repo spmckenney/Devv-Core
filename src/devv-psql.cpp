@@ -58,7 +58,7 @@ static const std::string kSELECT_PENDING_TX_STATEMENT = "select pending_tx_id fr
 static const std::string kSELECT_PENDING_RX = "select_pending_rx";
 static const std::string kSELECT_PENDING_RX_STATEMENT = "select p.pending_rx_id from pending_rx p, wallet rx where p.sig = $1 and rx.wallet_id = $2";
 static const std::string kTX_INSERT = "tx_insert";
-static const std::string kTX_INSERT_STATEMENT = "INSERT INTO tx (tx_id, shard_id, block_height, block_time, tx_wallet, coin_id, amount) (select cast($1 as uuid), $2, $3, $4, tx.wallet_id, $4, $5 from wallet tx where tx.wallet_addr = $6)";
+static const std::string kTX_INSERT_STATEMENT = "INSERT INTO tx (tx_id, shard_id, block_height, block_time, tx_wallet, coin_id, amount) (select cast($1 as uuid), $2, $3, $4, tx.wallet_id, $5, $6 from wallet tx where tx.wallet_addr = $7)";
 static const std::string kTX_CONFIRM = "tx_confirm";
 static const std::string kTX_CONFIRM_STATEMENT = "INSERT INTO tx (tx_id, shard_id, block_height, block_time, tx_wallet, coin_id, amount, comment) (select p.uuid, $1, $2, $3, p.tx_wallet, p.coin_id, p.amount, p.comment from pending_tx p where tx.wallet_addr = $4 and p.pending_tx_id = $5)";
 static const std::string kRX_INSERT = "rx_insert";
@@ -107,16 +107,16 @@ int main(int argc, char* argv[]) {
     if (!options->db_host.empty() && !options->db_user.empty()) {
       std::string db_params("dbname = "+options->db_name +
           " user = "+options->db_user+
-          " password = "+options->db_pass;
+          " password = "+options->db_pass);
       if (!options->db_host.empty()) {
         db_params += " host = "+options->db_host;
       } else if (!options->db_ip.empty()) {
         db_params += " hostaddr = "+options->db_ip;
       } else {
         LOG_FATAL << "Database hostname or IP is required!";
-        throw new std::exception("Database hostname or IP is required!");
+        throw std::runtime_error("Database hostname or IP is required!");
       }
-      db_params += " port = "+std::to_string(options->db_port));
+      db_params += " port = "+std::to_string(options->db_port);
       LOG_NOTICE << "Using db connection params: "+db_params;
       try {
         //throws an exception if the connection failes

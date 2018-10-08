@@ -173,8 +173,8 @@ std::vector<TransactionPtr> DecomposeProposal(const Devv::proto::Proposal& propo
                                              , const KeyRing& keys) {
   std::vector<TransactionPtr> ptrs;
   std::string oracle_name = proposal.oraclename();
-  if (oracle_name == coin_request::getOracleName()) {
-    CoinRequest(proposal.data());
+  if (oracle_name == CoinRequest::getOracleName()) {
+    CoinRequest oracle(proposal.data());
     std::vector<TransactionPtr> actions = validateOracle(oracle, chain, keys);
     ptrs.insert(ptrs.end(), std::make_move_iterator(actions.begin()), std::make_move_iterator(actions.end()));
   } else if (oracle_name == api::getOracleName()) {

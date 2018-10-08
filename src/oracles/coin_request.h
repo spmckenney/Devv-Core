@@ -23,6 +23,9 @@ class CoinRequest : public oracleInterface {
 
  public:
 
+
+CoinRequest(std::string data) : oracleInterface(data) {};
+
 /**
  *  @return the string name that invokes this oracle
  */
@@ -41,7 +44,7 @@ class CoinRequest : public oracleInterface {
  *  @return the coin type used by this oracle
  */
   static uint64_t getCoinIndex() {
-    return(coin_);
+    return(0);
   }
 
 /** Checks if this proposal is objectively sound according to this oracle.
@@ -51,7 +54,7 @@ class CoinRequest : public oracleInterface {
  * @return false otherwise
  */
   bool isSound() override {
-    coin_ = BinToUint64(canonical_, 0);
+    coin_ = BinToUint64(Str2Bin(raw_data_), 0);
     addr_ = Str2Bin(raw_data_.substr(8));
     return true;
   }
@@ -101,7 +104,7 @@ class CoinRequest : public oracleInterface {
     xfers.push_back(settle);
     std::vector<byte> nonce(Str2Bin(raw_data_));
     Tier2Transaction inn_tx(eOpType::Create, xfers, nonce,
-                            keys.getKey(inn_addr), keys);
+                            keys.getKey(keys.getInnAddr()), keys);
     std::vector<Tier2Transaction> txs;
     txs.push_back(std::move(inn_tx));
     std::pair<uint64_t, std::vector<Tier2Transaction>> p(getShardIndex(), std::move(txs));
