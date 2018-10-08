@@ -1,15 +1,15 @@
 /*
- * data.h is an oracle to handle data storage on chain.
+ * request.h is a testnet oracle to request coins from the INN.
  *
- * Internal format is addr|signature|data
+ * Proposal format is coin|addr
  *
- *  Created on: Mar 1, 2018
+ *  Created on: Oct 8, 2018
  *  Author: Nick Williams
  *
  */
 
-#ifndef ORACLES_DATA_H_
-#define ORACLES_DATA_H_
+#ifndef ORACLES_REQUEST_H_
+#define ORACLES_REQUEST_H_
 
 #include <string>
 
@@ -19,19 +19,9 @@
 
 using namespace Devv;
 
-class data : public oracleInterface {
+class CoinRequest : public oracleInterface {
 
  public:
-
-  const int kBYTES_PER_COIN = 10240;
-
-  data(std::string data) : oracleInterface(data) {};
-
-  static Address getDataSinkAddress() {
-    std::vector<byte> bin(kNODE_ADDR_SIZE, 0);
-    Address sink(bin);
-    return sink;
-  }
 
 /**
  *  @return the string name that invokes this oracle
@@ -108,14 +98,14 @@ class data : public oracleInterface {
     return(error_msg_);
   }
 
+/** Generate the transactions to encode the effect of this propsal on chain.
+ *
+ * @pre This transaction must be valid.
+ * @params context the blockchain of the shard that provides context for this oracle
+ * @return a map of shard indicies to transactions to encode in each shard
+ */
   std::map<uint64_t, std::vector<Tier2Transaction>>
-      getNextTrace(const Blockchain& context) override {
-    std::map<uint64_t, std::vector<Tier2Transaction>> out;
-    return out;
-  }
-
-  std::map<uint64_t, std::vector<Tier2Transaction>>
-      getNextTransactions(const Blockchain& context, const KeyRing& keys) override {
+      getTransactions(const Blockchain& context) override {
     std::map<uint64_t, std::vector<Tier2Transaction>> out;
     if (!isValid(context)) return out;
     size_t addr_size = Address::getSizeByType(raw_data_.at(0));
@@ -167,8 +157,34 @@ class data : public oracleInterface {
     return out;
   }
 
-  std::vector<byte> Sign() override {
-    return getCanonical();
+/** Generate the appropriate signature(s) for this proposal.
+ *
+ * @params address - the address corresponding to this key
+ * @params key - an ECDSA key, AES encrypted with ASCII armor
+ * @params aes_password - the AES password for the key
+ * @return the signed oracle data
+ */
+  std::string Sign(std::string address
+        , std::string key, std::string aes_password) override {
+    EC_KEY* key_ptr = LoadEcKey(address, key, aes_password);
+
+    size_t data_size = raw_data_.size();
+    int64_t coins_needed = ceil(data_size/kBYTES_PER_COIN);
+    std::vector<Transfer> xfers;
+    Address client(Str2Bin(address));
+    Transfer pay(client, getCoinIndex(), -1*coins_needed, 0);
+    Transfer settle(getDataSinkAddress(), getCoinIndex(), coins_needed, 0);
+    xfers.push_back(pay);
+    xfers.push_back(settle);
+
+    Tier2Transaction the_tx((byte) eOpType::Exchange, xfers
+                           , Str2Bin(raw_data_), key_ptr);
+    std::vector<byte> sig = the_tx.getSignature().getCanonical();
+    std::vector<byte> bin_addr = client.getCanonical();
+    //note that these inserts are on the front of the raw data
+    raw_data_.insert(std::begin(raw_data_), std::begin(sig), std::end(sig));
+    raw_data_.insert(std::begin(raw_data_), std::begin(bin_addr), std::end(bin_addr));
+    return raw_data_;
   }
 
 /**

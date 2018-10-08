@@ -84,10 +84,9 @@ JNIEXPORT jbyteArray JNICALL Java_io_devv_test_DevvTestMain_CreateProposal
       key_str.push_back(key_pbuf_body[i]);
     }
 
-    std::string new_prop_data = SignProposal(prop_in, addr, key_str, pass);
     Devv::proto::Proposal prop_out;
     prop_out.set_oraclename(oracle);
-    prop_out.set_data(new_prop_data);
+    prop_out.set_data(pbuf_str);
 
     size_t final_prop_len = prop_out.ByteSizeLong();
     void* buffer = malloc(final_prop_len);

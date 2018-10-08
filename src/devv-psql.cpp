@@ -44,6 +44,7 @@ struct psql_options {
   std::string db_user;
   std::string db_pass;
   std::string db_host;
+  std::string db_ip;
   std::string db_name;
   unsigned int db_port = 5432;
 };
@@ -69,7 +70,7 @@ static const std::string kBALANCE_SELECT_STATEMENT = "select wc.balance from wal
 static const std::string kWALLET_INSERT = "wallet_insert";
 static const std::string kWALLET_INSERT_STATEMENT = "INSERT INTO wallet (wallet_id, wallet_addr, account_id, wallet_name, shard_id) (select devv_uuid(), $1, '"+kNIL_UUID+"', 'None', $2)";
 static const std::string kBALANCE_INSERT = "balance_insert";
-static const std::string kBALANCE_INSERT_STATEMENT = "INSERT INTO wallet_coin (wallet_coin_id, wallet_id, coin_id, account_id, balance, block_height) (select devv_uuid(), wallet_id, $1, $2, $3, $4 from wallet where wallet_addr = $5)";
+static const std::string kBALANCE_INSERT_STATEMENT = "INSERT INTO wallet_coin (wallet_coin_id, wallet_id, block_height, coin_id, balance) (select devv_uuid(), wallet_id, $1, $2, $3 from wallet where wallet_addr = $4)";
 static const std::string kBALANCE_UPDATE = "balance_update";
 static const std::string kBALANCE_UPDATE_STATEMENT = "UPDATE wallet_coin set balance = $1, block_height = $2 where wallet_id in (select wallet_id from wallet where wallet_addr = $3) and coin_id = $4";
 static const std::string kSHARD_SELECT = "shard_select";
@@ -104,11 +105,18 @@ int main(int argc, char* argv[]) {
     bool db_connected = false;
     std::unique_ptr<pqxx::connection> db_link = nullptr;
     if (!options->db_host.empty() && !options->db_user.empty()) {
-      const std::string db_params("dbname = "+options->db_name +
+      std::string db_params("dbname = "+options->db_name +
           " user = "+options->db_user+
-          " password = "+options->db_pass +
-          " hostaddr = "+options->db_host +
-          " port = "+std::to_string(options->db_port));
+          " password = "+options->db_pass;
+      if (!options->db_host.empty()) {
+        db_params += " host = "+options->db_host;
+      } else if (!options->db_ip.empty()) {
+        db_params += " hostaddr = "+options->db_ip;
+      } else {
+        LOG_FATAL << "Database hostname or IP is required!";
+        throw new std::exception("Database hostname or IP is required!");
+      }
+      db_params += " port = "+std::to_string(options->db_port));
       LOG_NOTICE << "Using db connection params: "+db_params;
       try {
         //throws an exception if the connection failes
@@ -179,10 +187,10 @@ int main(int argc, char* argv[]) {
             //update sender balance
             pqxx::result balance_result = stmt.prepared(kBALANCE_SELECT)(sender_hex)(coin_id).exec();
             if (balance_result.empty()) {
-              stmt.prepared(kBALANCE_INSERT)(coin_id)(kNIL_UUID_PSQL)(send_amount)(chain_height)(sender_hex).exec();
-              LOG_WARNING << "Unknown address '"+sender_hex+"' sent coins '"+sig_hex+"'?!";
+              stmt.prepared(kBALANCE_INSERT)(chain_height)(coin_id)(send_amount)(sender_hex).exec();
+              LOG_INFO << "Unknown sender '"+sender_hex+"' sent coins '"+sig_hex+"'?!";
             } else {
-              int64_t new_balance = balance_result[0][0].as<int64_t>()-send_amount;
+              int64_t new_balance = balance_result[0][0].as<int64_t>()+send_amount;
               stmt.prepared(kBALANCE_UPDATE)(new_balance)(chain_height)(sender_hex)(coin_id).exec();
             }
 
@@ -222,8 +230,8 @@ int main(int argc, char* argv[]) {
                   pqxx::work rx_stmt(*db_link);
                   pqxx::result rx_balance = rx_stmt.prepared(kBALANCE_SELECT)(rcv_addr)(rcv_coin_id).exec();
                   if (rx_balance.empty()) {
-                    LOG_WARNING << "Unknown receiver: '"+rcv_addr+"'.";
-                    stmt.prepared(kBALANCE_INSERT)(rcv_coin_id)(kNIL_UUID_PSQL)(rcv_amount)(rcv_addr).exec();
+                    LOG_INFO << "Unknown receiver: '"+rcv_addr+"'.";
+                    stmt.prepared(kBALANCE_INSERT)(chain_height)(rcv_coin_id)(rcv_amount)(rcv_addr).exec();
                   } else {
                     int64_t new_balance = balance_result[0][0].as<int64_t>()+rcv_amount;
                     stmt.prepared(kBALANCE_UPDATE)(new_balance)(chain_height)(rcv_addr)(rcv_coin_id).exec();
@@ -299,7 +307,8 @@ Listens for FinalBlock messages and updates a database\n\
         ("host-list,host", po::value<std::vector<std::string>>(),
          "Client URI (i.e. tcp://192.168.10.1:5005). Option can be repeated to connect to multiple nodes.")
         ("stop-file", po::value<std::string>(), "A file indicating that this process should stop.")
-        ("update-host", po::value<std::string>(), "Host of database to update.")
+        ("update-host", po::value<std::string>(), "DNS host of database to update.")
+        ("update-ip", po::value<std::string>(), "IP Address of database to update.")
         ("update-db", po::value<std::string>(), "Database name to update.")
         ("update-user", po::value<std::string>(), "Database username to use for updates.")
         ("update-pass", po::value<std::string>(), "Database password to use for updates.")
@@ -397,6 +406,13 @@ Listens for FinalBlock messages and updates a database\n\
       LOG_INFO << "Database host: " << options->db_host;
     } else {
       LOG_INFO << "Database host was not set.";
+    }
+
+    if (vm.count("update-ip")) {
+      options->db_ip = vm["update-ip"].as<std::string>();
+      LOG_INFO << "Database IP: " << options->db_ip;
+    } else {
+      LOG_INFO << "Database IP was not set.";
     }
 
     if (vm.count("update-db")) {
