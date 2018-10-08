@@ -14,6 +14,7 @@
 #include "consensus/blockchain.h"
 #include "primitives/Tier2Transaction.h"
 #include "oracles/api.h"
+#include "oracles/coin_request.h"
 #include "oracles/data.h"
 #include "oracles/dcash.h"
 #include "oracles/dnero.h"
