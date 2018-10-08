@@ -107,16 +107,16 @@ int main(int argc, char* argv[]) {
     if (!options->db_host.empty() && !options->db_user.empty()) {
       std::string db_params("dbname = "+options->db_name +
           " user = "+options->db_user+
-          " password = "+options->db_pass;
+          " password = "+options->db_pass);
       if (!options->db_host.empty()) {
         db_params += " host = "+options->db_host;
       } else if (!options->db_ip.empty()) {
         db_params += " hostaddr = "+options->db_ip;
       } else {
         LOG_FATAL << "Database hostname or IP is required!";
-        throw new std::exception("Database hostname or IP is required!");
+        throw std::runtime_error("Database hostname or IP is required!");
       }
-      db_params += " port = "+std::to_string(options->db_port));
+      db_params += " port = "+std::to_string(options->db_port);
       LOG_NOTICE << "Using db connection params: "+db_params;
       try {
         //throws an exception if the connection failes
