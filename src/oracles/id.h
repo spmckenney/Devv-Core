@@ -76,7 +76,7 @@ class id : public oracleInterface {
   }
 
   std::map<uint64_t, std::vector<Tier2Transaction>>
-      getNextTrace(const Blockchain& context) override {
+      getTrace(const Blockchain& context) override {
     std::map<uint64_t, std::vector<Tier2Transaction>> out;
     return out;
   }
