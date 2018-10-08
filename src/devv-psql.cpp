@@ -187,16 +187,13 @@ int main(int argc, char* argv[]) {
             }
 
             //copy transfers
-            pqxx::result pending_result = stmt.prepared(kSELECT_PENDING_TX).exec()(sig_str);
+            pqxx::result pending_result = stmt.prepared(kSELECT_PENDING_TX).exec()(sig_hex);
             if (!pending_result.empty()) {
               std::string pending_uuid = pending_result[0][0].as<std::string>();
-              stmt.prepared(kTX_CONFIRM)(options->shard_index)(chain_height)(blocktime)(sender_str)(pending_uuid).exec();
+              stmt.prepared(kTX_CONFIRM)(options->shard_index)(chain_height)(blocktime)(sender_hex)(pending_uuid).exec();
               for (TransferPtr& one_xfer : xfers) {
                 if (one_xfer->getAmount() > 0) {
                   std::string rcv_addr = one_xfer->getAddress().getJSON();
-                  uint64_t rcv_coin_id = one_xfer->getCoin();
-                  int64_t rcv_amount = one_xfer->getAmount();
-                  uint64_t delay = one_xfer->getDelay();
                   pqxx::result rx_result = stmt.prepared(kSELECT_PENDING_RX).exec()(sig_str)(rcv_addr).exec();
                   if (!rx_result.empty()) {
                     std::string rx_uuid = rx_result[0][0].as<std::string>();
@@ -212,12 +209,13 @@ int main(int argc, char* argv[]) {
                 std::string tx_uuid = uuid_result[0][0].as<std::string>();
                 stmt.prepared(kTX_INSERT)(tx_uuid)(options->shard_index)(chain_height)(blocktime)(coin_id)(send_amount)(sender_hex).exec();
                 for (TransferPtr& one_xfer : xfers) {
+                  //only do receivers
+                  int64_t rcv_amount = one_xfer->getAmount();
+                  if (rcv_amount < 0) continue;
                   std::string rcv_addr = one_xfer->getAddress().getJSON();
                   uint64_t rcv_coin_id = one_xfer->getCoin();
-                  int64_t rcv_amount = one_xfer->getAmount();
                   uint64_t delay = one_xfer->getDelay();
-                  //not a receiver
-                  if (amount < 0) continue;
+
                   stmt.prepared(kRX_INSERT)(options->shard_index)(chain_height)(blocktime)(rcv_coin_id)(rcv_amount)(delay)(tx_uuid)(sender_hex)(rcv_addr).exec();
 
                   //update receiver balance
@@ -227,7 +225,7 @@ int main(int argc, char* argv[]) {
                     LOG_WARNING << "Unknown receiver: '"+rcv_addr+"'.";
                     stmt.prepared(kBALANCE_INSERT)(rcv_coin_id)(kNIL_UUID_PSQL)(rcv_amount)(rcv_addr).exec();
                   } else {
-                    int64_t new_balance = balance_result[0][0].as<int64_t>()+amount;
+                    int64_t new_balance = balance_result[0][0].as<int64_t>()+rcv_amount;
                     stmt.prepared(kBALANCE_UPDATE)(new_balance)(chain_height)(rcv_addr)(rcv_coin_id).exec();
                   }
                 } //end transfer loop
