@@ -194,7 +194,7 @@ int main(int argc, char* argv[]) {
               for (TransferPtr& one_xfer : xfers) {
                 if (one_xfer->getAmount() > 0) {
                   std::string rcv_addr = one_xfer->getAddress().getJSON();
-                  pqxx::result rx_result = stmt.prepared(kSELECT_PENDING_RX).exec()(sig_hex)(rcv_addr).exec();
+                  pqxx::result rx_result = stmt.prepared(kSELECT_PENDING_RX)(sig_hex)(rcv_addr).exec();
                   if (!rx_result.empty()) {
                     std::string rx_uuid = rx_result[0][0].as<std::string>();
                     stmt.prepared(kRX_CONFIRM)(options->shard_index)(chain_height)(blocktime)(rx_uuid).exec();
