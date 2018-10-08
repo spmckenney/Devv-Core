@@ -187,14 +187,14 @@ int main(int argc, char* argv[]) {
             }
 
             //copy transfers
-            pqxx::result pending_result = stmt.prepared(kSELECT_PENDING_TX).exec()(sig_hex);
+            pqxx::result pending_result = stmt.prepared(kSELECT_PENDING_TX)(sig_hex).exec();
             if (!pending_result.empty()) {
               std::string pending_uuid = pending_result[0][0].as<std::string>();
               stmt.prepared(kTX_CONFIRM)(options->shard_index)(chain_height)(blocktime)(sender_hex)(pending_uuid).exec();
               for (TransferPtr& one_xfer : xfers) {
                 if (one_xfer->getAmount() > 0) {
                   std::string rcv_addr = one_xfer->getAddress().getJSON();
-                  pqxx::result rx_result = stmt.prepared(kSELECT_PENDING_RX).exec()(sig_str)(rcv_addr).exec();
+                  pqxx::result rx_result = stmt.prepared(kSELECT_PENDING_RX).exec()(sig_hex)(rcv_addr).exec();
                   if (!rx_result.empty()) {
                     std::string rx_uuid = rx_result[0][0].as<std::string>();
                     stmt.prepared(kRX_CONFIRM)(options->shard_index)(chain_height)(blocktime)(rx_uuid).exec();
