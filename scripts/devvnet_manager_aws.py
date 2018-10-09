@@ -111,12 +111,13 @@ class ECSTask(object):
     _docker_image_name = "devvio-prod"
     _region = "us-east-2"
 
-    def __init__(self, aws, shard_index, node_index):
+    def __init__(self, aws, shard_index, node_index, debug=False):
         self._aws = aws
         self._task_definition = "arn:aws:ecs:"+self._region+":"+aws.get_iam_account()+":task-definition/"+self._task_name
         self._host_list = []
         self._shard_index = shard_index
         self._node_index = node_index
+        self._debug = debug
 
     def start_announcer(self):
         self._task_ip_address = shard_announcers[self._shard_index][0]['host']
@@ -138,11 +139,12 @@ class ECSTask(object):
 		   "--config", "/efs/devv/shard-{}/etc/test-key-pass.conf".format(self._shard_index),
 		   "--bind-endpoint", "tcp://*:{}".format(self._devv_bind_port),
                    "--protobuf-endpoint", "tcp://*:{}".format(self._devv_protobuf_port)]
-
-        print("   Command: ", *command)
+        if self._debug:
+            print("   Command: ", *command)
         override_dict['command'] = command
         or_param = {'containerOverrides':[override_dict]}
-        print(or_param)
+        if self._debug:
+            print(or_param)
         ret = self._aws.get_ecs().start_task(cluster=self._aws.get_cluster(),
                                              taskDefinition=self._task_definition,
                                              overrides=or_param,
@@ -170,10 +172,12 @@ class ECSTask(object):
         for uri in self._host_list:
             command.extend(["--host-list", "tcp://"+uri['host']+":"+uri['port']])
 
-        print("   Command: ", *command)
+        if self._debug:
+            print("   Command: ", *command)
         override_dict['command'] = command
         or_param = {'containerOverrides':[override_dict]}
-        print(or_param)
+        if self._debug:
+            print(or_param)
         ret = self._aws.get_ecs().start_task(cluster=self._aws.get_cluster(),
                                              taskDefinition=self._task_definition,
                                              overrides=or_param,
@@ -205,10 +209,12 @@ class ECSTask(object):
         for uri in self._host_list:
             command.extend(["--host-list", "tcp://"+uri['host']+":"+uri['port']])
 
-        print("   Command: ", *command)
+        if self._debug:
+            print("   Command: ", *command)
         override_dict['command'] = command
         or_param = {'containerOverrides':[override_dict]}
-        print(or_param)
+        if self._debug:
+            print(or_param)
         ret = self._aws.get_ecs().start_task(cluster=self._aws.get_cluster(),
                                              taskDefinition=self._task_definition,
                                              overrides=or_param,
@@ -223,10 +229,10 @@ class ECSTask(object):
         print(self._host_list)
 
         task_role_arn = "arn:aws:iam:"+self._aws.get_iam_account()+":role/"+self._execution_role
-        
+
         override_dict = {}
         override_dict['name'] = self._docker_image_name
-        
+
         command = ["devv-validator",
                    "--shard-index", str(self._shard_index),
 		   "--node-index", str(self._node_index),
@@ -238,10 +244,12 @@ class ECSTask(object):
         for uri in self._host_list:
             command.extend(["--host-list", "tcp://"+uri['host']+":"+uri['port']])
 
-        print("   Command: ", *command)
+        if self._debug:
+            print("   Command: ", *command)
         override_dict['command'] = command
         or_param = {'containerOverrides':[override_dict]}
-        print(or_param)
+        if self._debug:
+            print(or_param)
         ret = self._aws.get_ecs().start_task(cluster=self._aws.get_cluster(),
                                              taskDefinition=self._task_definition,
                                              overrides=or_param,
@@ -297,7 +305,32 @@ class AWS(object):
     def stop_all(self):
         for t in self.get_task_list():
             print(t)
-            #self._ecs.stop_task(cluster=self._cluster, task=t)
+            self._ecs.stop_task(cluster=self._cluster, task=t)
+
+    def start_all(self):
+        # devv-validators
+        task = ECSTask(self, 1, 0)
+        task.start_devv_validator()
+        task = ECSTask(self, 1, 1)
+        task.start_devv_validator()
+        task = ECSTask(self, 1, 2)
+        task.start_devv_validator()
+
+        task = ECSTask(self, 1, 0)
+        task.start_announcer()
+        task = ECSTask(self, 1, 0)
+        task.start_devv_query()
+        task = ECSTask(self, 1, 0)
+        task.start_devv_psql()
+
+    def reset(self):
+        self.stop_all()
+        time.sleep(1)
+        self.summarize(show_stopped=False)
+        time.sleep(1)
+        self.start_all()
+        time.sleep(1)
+        self.summarize(show_stopped=False)
 
     def stop_task(self, task):
         self._ecs.stop_task(cluster=self._cluster, task=task)
@@ -333,15 +366,15 @@ class AWS(object):
             ec2_instance_ids.append(desc['ec2InstanceId'])
             container_instance_dict[desc['ec2InstanceId']] = desc['containerInstanceArn']
 
-        print("map:")
-        print(container_instance_dict)
-        
+        if self._debug:
+            print("map:")
+            print(container_instance_dict)
+
         inst_desc_list = self._ec2.describe_instances(InstanceIds=ec2_instance_ids)['Reservations']
 
         c_inst = None
         for inst in inst_desc_list:
             trimmed = inst['Instances'][0]
-            print("checking "+trimmed['PrivateIpAddress'] +" " + ip_address)
             if trimmed['PrivateIpAddress'] == ip_address:
                 if c_inst:
                     raise LookupError("PrivateIpAddress found more than once")
@@ -356,9 +389,9 @@ class AWS(object):
 
         if c_inst == None:
             raise LookupError("Container for IP Address '"+ip_address+"' not found'")
-        
+
         return c_inst
-    
+
     def get_ecs_instance(self, ec2_instance_id):
         ret = self._ecs.list_container_instances(cluster=self.get_cluster(), filter='ec2InstanceId == {}'.format(ec2_instance_id))
         container_instance = ret['containerInstanceArns'][0]
@@ -381,7 +414,8 @@ class AWS(object):
         for r in res:
             t_dict = {}
             i0 = r['Instances'][0]
-            t_dict['ip'] = i0['PrivateIpAddress']
+            t_dict['private_ip'] = i0['PrivateIpAddress']
+            t_dict['public_ip'] = i0.get('PublicIpAddress')
             t_dict['state'] = i0['State']['Name']
             t_dict['name'] = i0['Tags'][0]['Value']
             t_dict['instance_id'] = i0['InstanceId']
@@ -391,10 +425,11 @@ class AWS(object):
                 t_dict['desc'] = None
             t_list.extend([t_dict])
 
-        text_format = "{name:30} {prog:10} {ip:15} {bind:16} {pbuf_bind:16} {state:10} {instance:12} {task}"
+        text_format = "{name:30} {prog:10} {private_ip:15} {public_ip:15} {bind:16} {pbuf_bind:16} {state:10} {instance:12} {task}"
         print(bcolors.BOLD + text_format.format(name="Name",
                                                 prog="Program",
-                                                ip="IPAddr",
+                                                private_ip="Private IP",
+                                                public_ip="Public IP",
                                                 bind="DevvBind",
                                                 pbuf_bind="PbufBind",
                                                 state="State",
@@ -422,12 +457,14 @@ class AWS(object):
 
             print(color + text_format.format(name=t['name'],
                                              prog=cmdinfo['prog'][:8],
-                                             ip=t['ip'],
+                                             private_ip=t['private_ip'],
+                                             public_ip=t['public_ip'],
                                              bind=cmdinfo['bind'],
                                              pbuf_bind=cmdinfo['pbuf_bind'],
                                              state=t['state'],
                                              instance=t['instance_id'][:8],
                                              task=arn.split('/')[1] if arn else None))
+        print(bcolors.ENDC)
 
 def get_devvnet(filename):
     with open(filename, "r") as f:
@@ -893,7 +930,7 @@ if __name__ == '__main__':
     print("devvnet: " + args.devvnet)
 
     #print(validator_json_string)
-    
+
     devvnet = get_devvnet(args.devvnet)
     d = Devvnet(devvnet)
     num_nodes = d.get_num_nodes()
