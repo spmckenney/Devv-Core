@@ -1,4 +1,4 @@
-#include "io_devv_test_DevvTestMain.h"
+#include "jni_devv_test_DevvTestMain.h"
 #include "devv.pb.h"
 #include "pbuf/devv_pbuf.h"
 
