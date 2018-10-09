@@ -169,7 +169,7 @@ int main(int argc, char* argv[]) {
           GenerateBadSyntaxResponse("RepeaterRequeste Deserialization error: "
           + std::string(e.what()));
         std::stringstream response_ss;
-        Devv::proto::RepeaterResponse pbuf_response = SerializeRepeaterResponse(std::move(response_ptr));
+        devv::proto::RepeaterResponse pbuf_response = SerializeRepeaterResponse(std::move(response_ptr));
         pbuf_response.SerializeToOstream(&response_ss);
         response = response_ss.str();
         zmq::message_t reply(response.size());
@@ -179,7 +179,7 @@ int main(int argc, char* argv[]) {
       }
 
       RepeaterResponsePtr response_ptr = HandleRepeaterRequest(std::move(request_ptr), options->working_dir);
-      Devv::proto::RepeaterResponse pbuf_response = SerializeRepeaterResponse(std::move(response_ptr));
+      devv::proto::RepeaterResponse pbuf_response = SerializeRepeaterResponse(std::move(response_ptr));
       LOG_INFO << "Generated RepeaterResponse, Serializing";
       std::stringstream response_ss;
       pbuf_response.SerializeToOstream(&response_ss);
@@ -551,7 +551,7 @@ RepeaterResponsePtr HandleRepeaterRequest(const RepeaterRequestPtr& request, con
         ChainState state;
         FinalBlock one_block(FinalBlock::Create(buffer, state));
         std::stringstream block_stream;
-        Devv::proto::FinalBlock proto_block = SerializeFinalBlock(one_block);
+        devv::proto::FinalBlock proto_block = SerializeFinalBlock(one_block);
         proto_block.SerializeToOstream(&block_stream);
         std::string proto_block_str = block_stream.str();
         std::vector<byte> pbuf_block(proto_block_str.begin(), proto_block_str.end());
@@ -568,7 +568,7 @@ RepeaterResponsePtr HandleRepeaterRequest(const RepeaterRequestPtr& request, con
             ChainState state;
             FinalBlock one_block(FinalBlock::Create(buffer, state));
             std::stringstream block_stream;
-            Devv::proto::FinalBlock proto_block = SerializeFinalBlock(one_block);
+            devv::proto::FinalBlock proto_block = SerializeFinalBlock(one_block);
             proto_block.SerializeToOstream(&block_stream);
             std::string proto_block_str = block_stream.str();
             std::vector<byte> pbuf_block(proto_block_str.begin(), proto_block_str.end());
@@ -587,7 +587,7 @@ RepeaterResponsePtr HandleRepeaterRequest(const RepeaterRequestPtr& request, con
           ChainState state;
           FinalBlock one_block(FinalBlock::Create(buffer, state));
           std::stringstream block_stream;
-          Devv::proto::FinalBlock proto_block = SerializeFinalBlock(one_block);
+          devv::proto::FinalBlock proto_block = SerializeFinalBlock(one_block);
           proto_block.SerializeToOstream(&block_stream);
           std::string proto_block_str = block_stream.str();
           std::vector<byte> pbuf_block(proto_block_str.begin(), proto_block_str.end());
@@ -617,7 +617,7 @@ RepeaterResponsePtr HandleRepeaterRequest(const RepeaterRequestPtr& request, con
           if (tx->getSignature() == id.sig) {
             InputBuffer buffer(tx->getCanonical());
             std::stringstream tx_stream;
-            Devv::proto::Transaction pbuf_tx;
+            devv::proto::Transaction pbuf_tx;
             SerializeTransaction(Tier2Transaction::QuickCreate(buffer), pbuf_tx);
             pbuf_tx.SerializeToOstream(&tx_stream);
             std::string proto_tx_str = tx_stream.str();
@@ -664,7 +664,7 @@ RepeaterResponsePtr HandleRepeaterRequest(const RepeaterRequestPtr& request, con
         }
         std::vector<std::vector<byte>> txs = SearchForAddress(id.shard, id.block_height, id.addr, working_dir);
         std::stringstream pbuf_stream;
-        Devv::proto::Envelope envelope = SerializeEnvelopeFromBinaryTransactions(txs);
+        devv::proto::Envelope envelope = SerializeEnvelopeFromBinaryTransactions(txs);
         envelope.SerializeToOstream(&pbuf_stream);
         std::string proto_str = pbuf_stream.str();
         std::vector<byte> pbuf_vector(proto_str.begin(), proto_str.end());

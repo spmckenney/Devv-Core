@@ -68,7 +68,7 @@ struct RepeaterResponse {
 };
 typedef std::unique_ptr<RepeaterResponse> RepeaterResponsePtr;
 
-TransactionPtr CreateTransaction(const Devv::proto::Transaction& transaction, const KeyRing& keys, bool do_sign = false) {
+TransactionPtr CreateTransaction(const devv::proto::Transaction& transaction, const KeyRing& keys, bool do_sign = false) {
   auto operation = transaction.operation();
   auto pb_xfers = transaction.xfers();
 
@@ -115,7 +115,7 @@ TransactionPtr CreateTransaction(const Devv::proto::Transaction& transaction, co
   }
 }
 
-Tier2TransactionPtr CreateTransaction(const Devv::proto::Transaction& transaction
+Tier2TransactionPtr CreateTransaction(const devv::proto::Transaction& transaction
     , std::string pk, std::string pk_pass) {
   auto operation = transaction.operation();
   auto pb_xfers = transaction.xfers();
@@ -167,7 +167,7 @@ std::vector<TransactionPtr> validateOracle(oracleInterface& oracle
   return out;
 }
 
-std::string SignProposal(const Devv::proto::Proposal& proposal
+std::string SignProposal(const devv::proto::Proposal& proposal
           , std::string addr , std::string pk, std::string pk_pass) {
   std::string oracle_name = proposal.oraclename();
   if (oracle_name == api::getOracleName()) {
@@ -200,7 +200,7 @@ std::string SignProposal(const Devv::proto::Proposal& proposal
   return "";
 }
 
-std::vector<TransactionPtr> DecomposeProposal(const Devv::proto::Proposal& proposal, const Blockchain& chain) {
+std::vector<TransactionPtr> DecomposeProposal(const devv::proto::Proposal& proposal, const Blockchain& chain) {
   std::vector<TransactionPtr> ptrs;
   std::string oracle_name = proposal.oraclename();
   if (oracle_name == api::getOracleName()) {
@@ -242,7 +242,7 @@ std::vector<TransactionPtr> DecomposeProposal(const Devv::proto::Proposal& propo
 }
 
 std::vector<TransactionPtr> DeserializeEnvelopeProtobufString(const std::string& pb_envelope, const KeyRing& keys) {
-  Devv::proto::Envelope envelope;
+  devv::proto::Envelope envelope;
   envelope.ParseFromString(pb_envelope);
 
   std::vector<TransactionPtr> ptrs;
@@ -266,7 +266,7 @@ std::vector<TransactionPtr> DeserializeEnvelopeProtobufString(const std::string&
 
 TransactionPtr DeserializeTxProtobufString(const std::string& pb_tx, const KeyRing& keys, bool do_sign = false) {
 
-  Devv::proto::Transaction tx;
+  devv::proto::Transaction tx;
   tx.ParseFromString(pb_tx);
 
   auto t2tx_ptr = CreateTransaction(tx, keys, do_sign);
@@ -274,12 +274,12 @@ TransactionPtr DeserializeTxProtobufString(const std::string& pb_tx, const KeyRi
   return t2tx_ptr;
 }
 
-Devv::proto::AnnouncerResponse SerializeAnnouncerResponse(const AnnouncerResponsePtr& response_ptr) {
-  Devv::proto::AnnouncerResponse response;
+devv::proto::AnnouncerResponse SerializeAnnouncerResponse(const AnnouncerResponsePtr& response_ptr) {
+  devv::proto::AnnouncerResponse response;
   response.set_return_code(response_ptr->return_code);
   response.set_message(response_ptr->message);
   for (auto const& pending_ptr : response_ptr->pending) {
-    Devv::proto::PendingTransaction* one_pending_tx = response.add_txs();
+    devv::proto::PendingTransaction* one_pending_tx = response.add_txs();
     std::string raw_sig(std::begin(pending_ptr->sig.getCanonical())
                       , std::end(pending_ptr->sig.getCanonical()));
     one_pending_tx->set_signature(raw_sig);
@@ -290,7 +290,7 @@ Devv::proto::AnnouncerResponse SerializeAnnouncerResponse(const AnnouncerRespons
 }
 
 RepeaterRequestPtr DeserializeRepeaterRequest(const std::string& pb_request) {
-  Devv::proto::RepeaterRequest incoming_request;
+  devv::proto::RepeaterRequest incoming_request;
   incoming_request.ParseFromString(pb_request);
 
   RepeaterRequest request;
@@ -300,8 +300,8 @@ RepeaterRequestPtr DeserializeRepeaterRequest(const std::string& pb_request) {
   return std::make_unique<RepeaterRequest>(request);
 }
 
-Devv::proto::RepeaterResponse SerializeRepeaterResponse(const RepeaterResponsePtr& response_ptr) {
-  Devv::proto::RepeaterResponse response;
+devv::proto::RepeaterResponse SerializeRepeaterResponse(const RepeaterResponsePtr& response_ptr) {
+  devv::proto::RepeaterResponse response;
   response.set_request_timestamp(response_ptr->request_timestamp);
   response.set_operation(response_ptr->operation);
   response.set_return_code(response_ptr->return_code);
@@ -312,14 +312,14 @@ Devv::proto::RepeaterResponse SerializeRepeaterResponse(const RepeaterResponsePt
   return response;
 }
 
-Devv::proto::Transaction SerializeTransaction(const Tier2Transaction& one_tx
-      , Devv::proto::Transaction& tx) {
-  tx.set_operation(static_cast<Devv::proto::eOpType>(one_tx.getOperation()));
+devv::proto::Transaction SerializeTransaction(const Tier2Transaction& one_tx
+      , devv::proto::Transaction& tx) {
+  tx.set_operation(static_cast<devv::proto::eOpType>(one_tx.getOperation()));
   std::vector<byte> nonce = one_tx.getNonce();
   std::string nonce_str(std::begin(nonce), std::end(nonce));
   tx.set_nonce(nonce_str);
   for (auto const& xfer : one_tx.getTransfers()) {
-    Devv::proto::Transfer* transfer = tx.add_xfers();
+    devv::proto::Transfer* transfer = tx.add_xfers();
     std::string addr(std::begin(xfer->getAddress().getCanonical())
                     ,std::end(xfer->getAddress().getCanonical()));
     transfer->set_address(addr);
@@ -334,8 +334,8 @@ Devv::proto::Transaction SerializeTransaction(const Tier2Transaction& one_tx
   return tx;
 }
 
-Devv::proto::FinalBlock SerializeFinalBlock(const FinalBlock& block) {
-  Devv::proto::FinalBlock final_block;
+devv::proto::FinalBlock SerializeFinalBlock(const FinalBlock& block) {
+  devv::proto::FinalBlock final_block;
   final_block.set_version(block.getVersion());
   final_block.set_num_bytes(block.getNumBytes());
   final_block.set_block_time(block.getBlockTime());
@@ -348,8 +348,8 @@ Devv::proto::FinalBlock SerializeFinalBlock(const FinalBlock& block) {
   final_block.set_val_count(block.getNumValidations());
   for (auto const& one_tx : block.getRawTransactions()) {
     InputBuffer buffer(one_tx);
-    Devv::proto::Transaction* tx = final_block.add_txs();
-    Devv::proto::Transaction pbuf_tx = SerializeTransaction(Tier2Transaction::QuickCreate(buffer), *tx);
+    devv::proto::Transaction* tx = final_block.add_txs();
+    devv::proto::Transaction pbuf_tx = SerializeTransaction(Tier2Transaction::QuickCreate(buffer), *tx);
   }
   std::vector<byte> summary(block.getSummary().getCanonical());
   std::string summary_str(std::begin(summary), std::end(summary));
@@ -360,12 +360,12 @@ Devv::proto::FinalBlock SerializeFinalBlock(const FinalBlock& block) {
   return final_block;
 }
 
-Devv::proto::Envelope SerializeEnvelopeFromBinaryTransactions(const std::vector<std::vector<byte>>& txs) {
-  Devv::proto::Envelope envelope;
+devv::proto::Envelope SerializeEnvelopeFromBinaryTransactions(const std::vector<std::vector<byte>>& txs) {
+  devv::proto::Envelope envelope;
   for (auto const& one_tx : txs) {
     InputBuffer buffer(one_tx);
-    Devv::proto::Transaction* tx = envelope.add_txs();
-    Devv::proto::Transaction pbuf_tx = SerializeTransaction(Tier2Transaction::QuickCreate(buffer), *tx);
+    devv::proto::Transaction* tx = envelope.add_txs();
+    devv::proto::Transaction pbuf_tx = SerializeTransaction(Tier2Transaction::QuickCreate(buffer), *tx);
   }
 
   return envelope;
