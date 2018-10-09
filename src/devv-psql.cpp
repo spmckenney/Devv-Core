@@ -230,8 +230,7 @@ int main(int argc, char* argv[]) {
                     stmt.prepared(kRX_INSERT)(options->shard_index)(chain_height)(blocktime)(rcv_coin_id)(rcv_amount)(delay)(tx_uuid)(sender_hex)(rcv_addr).exec();
 
                     //update receiver balance
-                    pqxx::work rx_stmt(*db_link);
-                    pqxx::result rx_balance = rx_stmt.prepared(kBALANCE_SELECT)(rcv_addr)(rcv_coin_id).exec();
+                    pqxx::result rx_balance = stmt.prepared(kBALANCE_SELECT)(rcv_addr)(rcv_coin_id).exec();
                     if (rx_balance.empty()) {
                       LOG_INFO << "Unknown receiver: '"+rcv_addr+"'.";
                       stmt.prepared(kBALANCE_INSERT)(chain_height)(rcv_coin_id)(rcv_amount)(rcv_addr).exec();
