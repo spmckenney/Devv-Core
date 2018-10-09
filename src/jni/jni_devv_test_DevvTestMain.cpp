@@ -2,7 +2,7 @@
 #include "devv.pb.h"
 #include "pbuf/devv_pbuf.h"
 
-JNIEXPORT jbyteArray JNICALL Java_io_devv_test_DevvTestMain_SignTransaction
+JNIEXPORT jbyteArray JNICALL Java_jni_devv_test_DevvTestMain_SignTransaction
   (JNIEnv* env, jobject obj, jbyteArray proto_tx
   , jstring password, jbyteArray private_key) {
 
@@ -52,7 +52,7 @@ JNIEXPORT jbyteArray JNICALL Java_io_devv_test_DevvTestMain_SignTransaction
     return ret;
   }
 
-JNIEXPORT jbyteArray JNICALL Java_io_devv_test_DevvTestMain_CreateProposal
+JNIEXPORT jbyteArray JNICALL Java_jni_devv_test_DevvTestMain_CreateProposal
   (JNIEnv* env, jobject obj, jstring oracle_name, jbyteArray proto_proposal
   , jstring address, jstring password, jbyteArray private_key) {
 
