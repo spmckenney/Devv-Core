@@ -129,7 +129,7 @@ int main(int argc, char* argv[]) {
       std::vector<DevvMessageUniquePtr> messages;
       for (auto const& t2tx : ptrs) {
         auto announce_msg = std::make_unique<DevvMessage>(
-            this_context.get_uri(),
+            this_context.get_shard_uri(),
             TRANSACTION_ANNOUNCEMENT,
             t2tx->getCanonical(),
             DEBUG_TRANSACTION_INDEX);
