@@ -209,7 +209,7 @@ int main(int argc, char* argv[]) {
 
           for (TransactionPtr& one_tx : txs) {
             pqxx::nontransaction stmt(*db_link);
-            LOG_DEBUG << "Begin processing transaction.";
+            LOG_INFO << "Begin processing transaction.";
             stmt.exec("begin;");
             stmt.exec("savepoint tx_savepoint;");
             std::string sig_hex = one_tx->getSignature().getJSON();
@@ -231,13 +231,13 @@ int main(int argc, char* argv[]) {
                 }
               } //end sender search loop
 
-              LOG_DEBUG << "Update sender balance.";
+              LOG_INFO << "Update sender balance.";
               update_balance(stmt, sender_hex, chain_height, coin_id, send_amount, options->shard_index);
 
               //copy transfers
               pqxx::result pending_result = stmt.prepared(kSELECT_PENDING_TX)(sig_hex).exec();
               if (!pending_result.empty()) {
-                LOG_DEBUG << "Pending transaction exists.";
+                LOG_INFO << "Pending transaction exists.";
                 std::string pending_uuid = pending_result[0][0].as<std::string>();
                 stmt.prepared(kTX_CONFIRM)(options->shard_index)(chain_height)(blocktime)(sender_hex)(pending_uuid).exec();
                 stmt.exec("commit;");
@@ -245,7 +245,7 @@ int main(int argc, char* argv[]) {
                   if (one_xfer->getAmount() > 0) {
                     std::string rcv_addr = one_xfer->getAddress().getHexString();
                     try {
-                      LOG_DEBUG << "Begin processing transfer.";
+                      LOG_INFO << "Begin processing transfer.";
                       stmt.exec("begin;");
                       stmt.exec("savepoint rx_savepoint;");
                       //update receiver balance
@@ -260,7 +260,7 @@ int main(int argc, char* argv[]) {
                         LOG_WARNING << "Pending tx missing corresponding rx '"+sig_hex+"'!";
                       }
                       stmt.exec("commit;");
-                      LOG_DEBUG << "Transfer committed.";
+                      LOG_INFO << "Transfer committed.";
                     } catch (const std::exception& e) {
                       LOG_WARNING << FormatException(&e, "Exception updating database for transfer, rollback: "+sig_hex);
                       stmt.exec("rollback to savepoint rx_savepoint;");
@@ -273,13 +273,13 @@ int main(int argc, char* argv[]) {
                   std::string tx_uuid = uuid_result[0][0].as<std::string>();
                   stmt.prepared(kTX_INSERT)(tx_uuid)(options->shard_index)(chain_height)(blocktime)(coin_id)(send_amount)(sender_hex).exec();
                   stmt.exec("commit;");
-                  LOG_DEBUG << "Pending transaction does not exist.";
+                  LOG_INFO << "Pending transaction does not exist.";
                   for (TransferPtr& one_xfer : xfers) {
                     //only do receivers
                     int64_t rcv_amount = one_xfer->getAmount();
                     if (rcv_amount < 0) continue;
                     try {
-                      LOG_DEBUG << "Begin processing transfer.";
+                      LOG_INFO << "Begin processing transfer.";
                       stmt.exec("begin;");
                       stmt.exec("savepoint rx_savepoint;");
                       std::string rcv_addr = one_xfer->getAddress().getHexString();
@@ -291,7 +291,7 @@ int main(int argc, char* argv[]) {
                       stmt.prepared(kRX_INSERT)(options->shard_index)(chain_height)(blocktime)(rcv_coin_id)(rcv_amount)(delay)(tx_uuid)(sender_hex)(rcv_addr).exec();
 
                       stmt.exec("commit;");
-                      LOG_DEBUG << "Transfer committed.";
+                      LOG_INFO << "Transfer committed.";
                     } catch (const std::exception& e) {
                       LOG_WARNING << FormatException(&e, "Exception updating database for transfer, rollback: "+sig_hex);
                       stmt.exec("rollback to savepoint rx_savepoint;");
