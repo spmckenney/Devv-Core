@@ -219,15 +219,6 @@ int main(int argc, char* argv[]) {
                       LOG_DEBUG << "Begin processing transfer.";
                       stmt.exec("begin;");
                       stmt.exec("savepoint rx_savepoint;");
-                      pqxx::result rx_result = stmt.prepared(kSELECT_PENDING_RX)(sig_hex)(rcv_addr).exec();
-                      if (!rx_result.empty()) {
-                        std::string rx_uuid = rx_result[0][0].as<std::string>();
-                        stmt.prepared(kRX_CONFIRM)(options->shard_index)(chain_height)(blocktime)(rx_uuid).exec();
-
-                        stmt.prepared(kDELETE_PENDING_RX)(rx_uuid).exec();
-                      } else {
-                        LOG_WARNING << "Pending tx missing corresponding rx '"+sig_hex+"'!";
-                      }
                       //update receiver balance
                       pqxx::result rx_balance = stmt.prepared(kBALANCE_SELECT)(rcv_addr)(coin_id).exec();
                       if (rx_balance.empty()) {
@@ -237,6 +228,15 @@ int main(int argc, char* argv[]) {
                       } else {
                         int64_t new_balance = balance_result[0][0].as<int64_t>()-send_amount;
                         stmt.prepared(kBALANCE_UPDATE)(new_balance)(chain_height)(rcv_addr)(coin_id).exec();
+                      }
+                      pqxx::result rx_result = stmt.prepared(kSELECT_PENDING_RX)(sig_hex)(rcv_addr).exec();
+                      if (!rx_result.empty()) {
+                        std::string rx_uuid = rx_result[0][0].as<std::string>();
+                        stmt.prepared(kRX_CONFIRM)(options->shard_index)(chain_height)(blocktime)(rx_uuid).exec();
+
+                        stmt.prepared(kDELETE_PENDING_RX)(rx_uuid).exec();
+                      } else {
+                        LOG_WARNING << "Pending tx missing corresponding rx '"+sig_hex+"'!";
                       }
                       stmt.exec("commit;");
                       LOG_DEBUG << "Transfer committed.";
@@ -265,8 +265,6 @@ int main(int argc, char* argv[]) {
                       uint64_t rcv_coin_id = one_xfer->getCoin();
                       uint64_t delay = one_xfer->getDelay();
 
-                      stmt.prepared(kRX_INSERT)(options->shard_index)(chain_height)(blocktime)(rcv_coin_id)(rcv_amount)(delay)(tx_uuid)(sender_hex)(rcv_addr).exec();
-
                       //update receiver balance
                       pqxx::result rx_balance = stmt.prepared(kBALANCE_SELECT)(rcv_addr)(rcv_coin_id).exec();
                       if (rx_balance.empty()) {
@@ -277,6 +275,9 @@ int main(int argc, char* argv[]) {
                         int64_t new_balance = balance_result[0][0].as<int64_t>()+rcv_amount;
                         stmt.prepared(kBALANCE_UPDATE)(new_balance)(chain_height)(rcv_addr)(rcv_coin_id).exec();
                       }
+
+                      stmt.prepared(kRX_INSERT)(options->shard_index)(chain_height)(blocktime)(rcv_coin_id)(rcv_amount)(delay)(tx_uuid)(sender_hex)(rcv_addr).exec();
+
                       stmt.exec("commit;");
                       LOG_DEBUG << "Transfer committed.";
                     } catch (const std::exception& e) {
