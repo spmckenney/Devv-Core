@@ -81,6 +81,11 @@ class id : public oracleInterface {
     return out;
   }
 
+  uint64_t getCurrentDepth(const Blockchain& context) override {
+    //@TODO(nick) scan pre-existing chain for this oracle instance.
+    return(0);
+  }
+
   std::map<uint64_t, std::vector<Tier2Transaction>>
       getNextTransactions(const Blockchain& context, const KeyRing& keys) override {
     std::map<uint64_t, std::vector<Tier2Transaction>> out;

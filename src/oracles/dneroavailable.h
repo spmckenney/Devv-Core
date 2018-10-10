@@ -1,5 +1,5 @@
 /*
- * dnerowallet.h is an oracle to require dnero transactions.
+ * dneroavailable.h is an oracle to allow dnero transactions.
  *
  *  Created on: Feb 23, 2018
  *  Author: Nick Williams
@@ -75,6 +75,11 @@ class dneroavailable : public oracleInterface {
       getTrace(const Blockchain& context) override {
     std::map<uint64_t, std::vector<Tier2Transaction>> out;
     return out;
+  }
+
+  uint64_t getCurrentDepth(const Blockchain& context) override {
+    //@TODO(nick) scan pre-existing chain for this oracle instance.
+    return(0);
   }
 
   std::map<uint64_t, std::vector<Tier2Transaction>>
