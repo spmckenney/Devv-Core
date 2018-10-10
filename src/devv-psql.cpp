@@ -107,7 +107,7 @@ int64_t update_balance(pqxx::nontransaction& stmt, std::string hex_addr
   int64_t new_balance = delta;
   pqxx::result wallet_result = stmt.prepared(kWALLET_SELECT)(hex_addr).exec();
   if (wallet_result.empty()) {
-    wallet_id = stmt.prepared(kSELECT_UUID).exec();
+    pqxx::result uuid_result = stmt.prepared(kSELECT_UUID).exec();
     if (!uuid_result.empty()) {
       wallet_id = uuid_result[0][0].as<std::string>();
       stmt.prepared(kWALLET_INSERT)(wallet_id)(hex_addr)(shard).exec();
@@ -116,7 +116,7 @@ int64_t update_balance(pqxx::nontransaction& stmt, std::string hex_addr
       return 0;
 	}
   }
-  pqxx::result balance_result = stmt.prepared(kBALANCE_SELECT)(wallet_id)(coin_id).exec();
+  pqxx::result balance_result = stmt.prepared(kBALANCE_SELECT)(wallet_id)(coin).exec();
   if (balance_result.empty()) {
     stmt.prepared(kBALANCE_INSERT)(wallet_id)(chain_height)(coin)(delta).exec();
   } else {
