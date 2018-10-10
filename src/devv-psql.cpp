@@ -67,7 +67,7 @@ static const std::string kRX_INSERT_STATEMENT = "INSERT INTO rx (rx_id, shard_id
 static const std::string kRX_CONFIRM = "rx_confirm";
 static const std::string kRX_CONFIRM_STATEMENT = "INSERT INTO rx (rx_id, shard_id, block_height, block_time, tx_wallet, rx_wallet, coin_id, amount, delay, comment, tx_id) (select devv_uuid(), $1, $2, $3, p.tx_wallet, p.rx_wallet, p.coin_id, p.amount, p.delay, p.comment, p.pending_tx_id from pending_rx p where p.pending_rx_id = $4);";
 static const std::string kBALANCE_SELECT = "balance_select";
-static const std::string kBALANCE_SELECT_STATEMENT = "select balance from wallet_coin where wallet_id = $1 and wc.coin_id = $2;";
+static const std::string kBALANCE_SELECT_STATEMENT = "select balance from wallet_coin where wallet_id = $1 and coin_id = $2;";
 static const std::string kWALLET_SELECT = "wallet_select";
 static const std::string kWALLET_SELECT_STATEMENT = "select wallet_id from wallet where wallet_addr = $1;";
 static const std::string kWALLET_INSERT = "wallet_insert";
