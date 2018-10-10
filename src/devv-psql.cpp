@@ -109,7 +109,7 @@ int main(int argc, char* argv[]) {
 
     bool db_connected = false;
     std::unique_ptr<pqxx::connection> db_link = nullptr;
-    if ((!options->db_host.empty() || options->db_ip.empty()) && !options->db_user.empty()) {
+    if ((!options->db_host.empty() || !options->db_ip.empty()) && !options->db_user.empty()) {
       std::string db_params("dbname = "+options->db_name +
           " user = "+options->db_user+
           " password = "+options->db_pass);
