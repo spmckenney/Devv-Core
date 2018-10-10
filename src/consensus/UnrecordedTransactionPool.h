@@ -326,6 +326,7 @@ class UnrecordedTransactionPool {
     LOG_DEBUG << "FinalizeRemoteBlock()";
     MTR_SCOPE_FUNC();
     FinalBlock final(buffer, prior, keys, tcm_);
+    RemoveTransactions(final);
     return final;
   }
 
@@ -448,6 +449,20 @@ class UnrecordedTransactionPool {
               << txs_size << "/"
               << txs_.size() << ")";
     return true;
+  }
+
+  /** Removes Transactions in a FinalBlock from this pool
+   *  @param final_block - the FinalBlock containing Transactions to remove
+   */
+  void RemoveTransactions(const FinalBlock& final_block) {
+    std::lock_guard<std::mutex> guard(txs_mutex_);
+    size_t txs_size = txs_.size();
+    for (auto const& item : final_block.getTransactions()) {
+      txs_.erase(item->getSignature());
+    }
+    LOG_DEBUG << "RemoveTransactions: (size pre/size post) ("
+              << txs_size << "/"
+              << txs_.size() << ")";
   }
 
   /** Finalize a ProposedBlock
