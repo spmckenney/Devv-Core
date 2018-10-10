@@ -57,31 +57,31 @@ static const std::string kSELECT_UUID_STATEMENT = "select devv_uuid();";
 static const std::string kSELECT_PENDING_TX = "select_pending_tx";
 static const std::string kSELECT_PENDING_TX_STATEMENT = "select pending_tx_id from pending_tx where sig = $1;";
 static const std::string kSELECT_PENDING_RX = "select_pending_rx";
-static const std::string kSELECT_PENDING_RX_STATEMENT = "select p.pending_rx_id from pending_rx p, wallet rx where p.sig = $1 and rx.wallet_id = $2;";
+static const std::string kSELECT_PENDING_RX_STATEMENT = "select p.pending_rx_id from pending_rx p, wallet rx where p.sig = $1 and rx.wallet_id = cast($2 as uuid);";
 static const std::string kTX_INSERT = "tx_insert";
 static const std::string kTX_INSERT_STATEMENT = "INSERT INTO tx (tx_id, shard_id, block_height, block_time, tx_wallet, coin_id, amount) (select cast($1 as uuid), $2, $3, $4, tx.wallet_id, $5, $6 from wallet tx where tx.wallet_addr = $7);";
 static const std::string kTX_CONFIRM = "tx_confirm";
-static const std::string kTX_CONFIRM_STATEMENT = "INSERT INTO tx (tx_id, shard_id, block_height, block_time, tx_wallet, coin_id, amount, comment) (select p.pending_tx_id, $1, $2, $3, p.tx_wallet, p.coin_id, p.amount, p.comment from pending_tx p where tx.wallet_addr = $4 and p.pending_tx_id = $5);";
+static const std::string kTX_CONFIRM_STATEMENT = "INSERT INTO tx (tx_id, shard_id, block_height, block_time, tx_wallet, coin_id, amount, comment) (select p.pending_tx_id, $1, $2, $3, p.tx_wallet, p.coin_id, p.amount, p.comment from pending_tx p where tx.wallet_addr = $4 and p.pending_tx_id = cast($5 as uuid));";
 static const std::string kRX_INSERT = "rx_insert";
 static const std::string kRX_INSERT_STATEMENT = "INSERT INTO rx (rx_id, shard_id, block_height, block_time, tx_wallet, rx_wallet, coin_id, amount, delay, tx_id) (select devv_uuid(), $1, $2, $3, tx.wallet_id, rx.wallet_id, $4, $5, $6, cast($7 as uuid) from wallet tx, wallet rx where tx.wallet_addr = $8 and rx.wallet_addr = $9);";
 static const std::string kRX_CONFIRM = "rx_confirm";
-static const std::string kRX_CONFIRM_STATEMENT = "INSERT INTO rx (rx_id, shard_id, block_height, block_time, tx_wallet, rx_wallet, coin_id, amount, delay, comment, tx_id) (select devv_uuid(), $1, $2, $3, p.tx_wallet, p.rx_wallet, p.coin_id, p.amount, p.delay, p.comment, p.pending_tx_id from pending_rx p where p.pending_rx_id = $4);";
+static const std::string kRX_CONFIRM_STATEMENT = "INSERT INTO rx (rx_id, shard_id, block_height, block_time, tx_wallet, rx_wallet, coin_id, amount, delay, comment, tx_id) (select devv_uuid(), $1, $2, $3, p.tx_wallet, p.rx_wallet, p.coin_id, p.amount, p.delay, p.comment, p.pending_tx_id from pending_rx p where p.pending_rx_id = cast($4 as uuid));";
 static const std::string kBALANCE_SELECT = "balance_select";
-static const std::string kBALANCE_SELECT_STATEMENT = "select balance from wallet_coin where wallet_id = $1 and coin_id = $2;";
+static const std::string kBALANCE_SELECT_STATEMENT = "select balance from wallet_coin where wallet_id = cast($1 as uuid) and coin_id = $2;";
 static const std::string kWALLET_SELECT = "wallet_select";
 static const std::string kWALLET_SELECT_STATEMENT = "select wallet_id from wallet where wallet_addr = $1;";
 static const std::string kWALLET_INSERT = "wallet_insert";
-static const std::string kWALLET_INSERT_STATEMENT = "INSERT INTO wallet (wallet_id, wallet_addr, account_id, wallet_name, shard_id) (select cast($1 as uuid), $2, '"+kNIL_UUID+"', 'None', $3);";
+static const std::string kWALLET_INSERT_STATEMENT = "INSERT INTO wallet (wallet_id, wallet_addr, account_id, wallet_name, shard_id) (select cast($1 as uuid), $2, cast('"+kNIL_UUID+"' as uuid), 'None', $3);";
 static const std::string kBALANCE_INSERT = "balance_insert";
-static const std::string kBALANCE_INSERT_STATEMENT = "INSERT INTO wallet_coin (wallet_coin_id, wallet_id, block_height, coin_id, balance) (select devv_uuid(), $1, $2, $3, $4);";
+static const std::string kBALANCE_INSERT_STATEMENT = "INSERT INTO wallet_coin (wallet_coin_id, wallet_id, block_height, coin_id, balance) (select devv_uuid(), cast($1 as uuid), $2, $3, $4);";
 static const std::string kBALANCE_UPDATE = "balance_update";
-static const std::string kBALANCE_UPDATE_STATEMENT = "UPDATE wallet_coin set balance = $1, block_height = $2 where wallet_id = $3 and coin_id = $4;";
+static const std::string kBALANCE_UPDATE_STATEMENT = "UPDATE wallet_coin set balance = $1, block_height = $2 where wallet_id = cast($3 as uuid) and coin_id = $4;";
 static const std::string kSHARD_SELECT = "shard_select";
 static const std::string kSHARD_SELECT_STATEMENT = "select shard_id from shard where shard_name = $1;";
 static const std::string kDELETE_PENDING_TX = "delete_pending_tx";
-static const std::string kDELETE_PENDING_TX_STATEMENT = "delete from pending_tx_id where pending_tx_id = $1;";
+static const std::string kDELETE_PENDING_TX_STATEMENT = "delete from pending_tx_id where pending_tx_id = cast($1 as uuid);";
 static const std::string kDELETE_PENDING_RX = "delete_pending_rx";
-static const std::string kDELETE_PENDING_RX_STATEMENT = "delete from pending_rx_id where pending_rx_id = $1;";
+static const std::string kDELETE_PENDING_RX_STATEMENT = "delete from pending_rx_id where pending_rx_id = cast($1 as uuid);";
 
 /**
  * Parse command-line options
@@ -114,7 +114,9 @@ int64_t update_balance(pqxx::nontransaction& stmt, std::string hex_addr
     } else {
       LOG_WARNING << "Failed to generate a UUID for new wallet!";
       return 0;
-	}
+    }
+  } else {
+    wallet_id = wallet_result[0][0].as<std::string>();
   }
   pqxx::result balance_result = stmt.prepared(kBALANCE_SELECT)(wallet_id)(coin).exec();
   if (balance_result.empty()) {
