@@ -111,19 +111,23 @@ int64_t update_balance(pqxx::nontransaction& stmt, std::string hex_addr
     if (!uuid_result.empty()) {
       wallet_id = uuid_result[0][0].as<std::string>();
       stmt.prepared(kWALLET_INSERT)(wallet_id)(hex_addr)(shard).exec();
+      LOG_INFO << "Generate a UUID for wallet!";
     } else {
       LOG_WARNING << "Failed to generate a UUID for new wallet!";
       return 0;
     }
   } else {
     wallet_id = wallet_result[0][0].as<std::string>();
+    LOG_INFO << "wallet_id: " + wallet_id;
   }
   pqxx::result balance_result = stmt.prepared(kBALANCE_SELECT)(wallet_id)(coin).exec();
   if (balance_result.empty()) {
     stmt.prepared(kBALANCE_INSERT)(wallet_id)(chain_height)(coin)(delta).exec();
+    LOG_INFO << "a) " << kBALANCE_INSERT;
   } else {
     new_balance = balance_result[0][0].as<int64_t>()+delta;
     stmt.prepared(kBALANCE_UPDATE)(new_balance)(chain_height)(wallet_id)(coin).exec();
+    LOG_INFO << "b) " << kBALANCE_INSERT;
   }
   return new_balance;
 }
@@ -265,6 +269,7 @@ int main(int argc, char* argv[]) {
                     stmt.exec("commit;");
                     LOG_INFO << "Transfer committed.";
                   } catch (const std::exception& e) {
+                    LOG_WARNING << "Exception updating database for transfer, rollback: "+sig_hex;
                     LOG_WARNING << FormatException(&e, "Exception updating database for transfer, rollback: "+sig_hex);
                     stmt.exec("rollback to savepoint rx_savepoint;");
                   }
