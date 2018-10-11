@@ -1,3 +1,11 @@
+#!/usr/bin/env python
+"""
+Tool to run an entire Devv shard and its supporting processes on AWS.
+"""
+
+__copyright__ = "Copyright 2018, Devvio Inc"
+__email__ = "security@devv.io"
+
 import yaml
 import argparse
 import sys

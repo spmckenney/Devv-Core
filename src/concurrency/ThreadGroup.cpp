@@ -1,8 +1,7 @@
 /*
- * ThreadGroup.cpp
+ * ThreadGroup.cpp supports concurrency for Devv.
  *
- *  Created on: June 21, 2018
- *      Author: Shawn McKenney
+ * @copywrite  2018 Devvio Inc
  */
 #include "ThreadGroup.h"
 #include "common/logger.h"

@@ -1,8 +1,7 @@
 /*
- * primitives/block.h
+ * block.h provides header information for a block.
  *
- *  Created on: Jun 6, 2018
- *      Author: Shawn McKenney
+ * @copywrite  2018 Devvio Inc
  */
 #pragma once
 

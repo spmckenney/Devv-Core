@@ -1,8 +1,8 @@
 /*
- * ProposedBlock.h
+ * FinalBlock.cpp
+ * Implements tools to Create proposed blocks
  *
- *  Created on: Jun 19, 2018
- *      Author: Shawn McKenney
+ * @copywrite  2018 Devvio Inc
  */
 #include "ProposedBlock.h"
 #include "primitives/json_interface.h"

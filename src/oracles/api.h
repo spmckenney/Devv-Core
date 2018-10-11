@@ -2,8 +2,7 @@
  * api.h is an oracle to handle permissions for external extensions to
  * these oracles.
  *
- *  Created on: Mar 1, 2018
- *  Author: Nick Williams
+ * @copywrite  2018 Devvio Inc
  *
  */
 

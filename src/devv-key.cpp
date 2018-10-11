@@ -1,8 +1,7 @@
 /*
  * devv-key.cpp generates a public/private keypair
  *
- *  Created on: 9/13/18
- *      Author: Shawn McKenney
+ * @copywrite  2018 Devvio Inc
  */
 
 #include <cstdio>

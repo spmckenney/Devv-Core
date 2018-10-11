@@ -1,8 +1,7 @@
 /*
- * ThreadGroup.cpp
+ * ThreadGroup.h supports concurrency for Devv.
  *
- *  Created on: 6/21/18
- *      Author: Shawn McKenney
+ * @copywrite  2018 Devvio Inc
  */
 #pragma once
 #include <boost/thread/thread.hpp>

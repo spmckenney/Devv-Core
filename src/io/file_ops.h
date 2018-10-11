@@ -1,8 +1,7 @@
 /*
- * file_ops.h
+ * file_ops.h structure to read files associated with Devv.
  *
- *  Created on: 8/9/18
- *      Author: Shawn McKenney
+ * @copywrite  2018 Devvio Inc
  */
 #pragma once
 

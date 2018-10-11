@@ -20,8 +20,8 @@
  * 5.  Queue pointer is now null
  * 6.  Consumer deletes DevvMessage when it is finished with it.
  *
- *  Created on: Mar 14, 2018
- *      Author: Nick Williams
+ *
+ * @copywrite  2018 Devvio Inc
  */
 
 #ifndef CONCURRENCY_DEVVRINGQUEUE_H_

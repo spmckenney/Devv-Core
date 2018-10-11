@@ -1,3 +1,11 @@
+#!/usr/bin/env python
+"""
+Subscription client to sniff Devv network messages.
+"""
+
+__copyright__ = "Copyright 2018, Devvio Inc"
+__email__ = "security@devv.io"
+
 import sys
 import zmq
 import struct

@@ -1,3 +1,9 @@
+/*
+ * logger.cpp implements logger
+ *
+ * @copywrite  2018 Devvio Inc
+ */
+
 #include "common/logger.h"
 
 // This seems to be needed to prevent undefined references

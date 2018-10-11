@@ -1,8 +1,7 @@
 /*
  * devv_uri.h provides tools for Devv URI strings.
  *
- *  Created on: September 6, 2018
- *  Author: Nick Williams
+ * @copywrite  2018 Devvio Inc
  */
 
 #ifndef DEVV_URI_H

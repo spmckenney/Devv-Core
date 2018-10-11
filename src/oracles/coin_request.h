@@ -3,8 +3,7 @@
  *
  * Proposal format is coin|addr
  *
- *  Created on: Oct 8, 2018
- *  Author: Nick Williams
+ * @copywrite  2018 Devvio Inc
  *
  */
 

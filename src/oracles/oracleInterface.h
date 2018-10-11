@@ -9,8 +9,7 @@
  * Note that smartcoin is not abstract as a C++ class,
  * rather it is a logical abstraction for all tokenized transactions.
  *
- *  Updated: Aug 13, 2018
- *  Author: Nick Williams
+ * @copywrite  2018 Devvio Inc
  *
  */
 

@@ -1,8 +1,7 @@
 /*
  * devv_version.h
  *
- *  Created on: 10/7/18
- *      Author: mckenney
+ * @copywrite  2018 Devvio Inc
  */
 #pragma once
 #include <string>

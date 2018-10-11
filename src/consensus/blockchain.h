@@ -1,9 +1,8 @@
 /**
  * blockchain.h
- *  Classes to manage blockchains
+ * Provides access to blockchain structures.
  *
- *  Created on: Apr 8, 2018
- *      Author: Shawn McKenney <shawn.mckenney@emmion.com
+ * @copywrite  2018 Devvio Inc
  */
 #pragma once
 

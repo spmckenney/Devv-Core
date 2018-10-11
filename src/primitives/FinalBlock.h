@@ -1,8 +1,8 @@
 /*
  * FinalBlock.h
+ * Defines the structure of a Devv final block.
  *
- *  Created on: Apr 21, 2018
- *      Author: Nick Williams
+ * @copywrite  2018 Devvio Inc
  */
 #ifndef PRIMITIVES_FINALBLOCK_H_
 #define PRIMITIVES_FINALBLOCK_H_

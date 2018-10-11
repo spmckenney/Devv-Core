@@ -1,3 +1,10 @@
+/*
+ * t1_example.cpp - tests connectivity between T2 and T1 shards.
+ *
+ *
+ * @copywrite  2018 Devvio Inc
+ */
+
 #include <exception>
 #include <iostream>
 #include <string>

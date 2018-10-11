@@ -1,8 +1,7 @@
 /*
  * dcash.h is an oracle to validate basic dcash transactions.
  *
- *  Created on: Feb 23, 2018
- *  Author: Nick Williams
+ * @copywrite  2018 Devvio Inc
  *
  */
 

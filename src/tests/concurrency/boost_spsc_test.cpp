@@ -1,3 +1,10 @@
+/*
+ * boost_spsc_test.cpp - tests the single producer single consumer queue.
+ *
+ *
+ * @copywrite  2018 Devvio Inc
+ */
+
 #include <boost/thread/thread.hpp>
 #include <boost/lockfree/spsc_queue.hpp>
 #include <iostream>

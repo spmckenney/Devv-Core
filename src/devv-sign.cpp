@@ -1,8 +1,7 @@
 /*
  * devv-sign.cpp signs a transaction using a given private key
  *
- *  Created on: 8/8/18
- *      Author: Shawn McKenney
+ * @copywrite  2018 Devvio Inc
  */
 
 #include <cstdio>

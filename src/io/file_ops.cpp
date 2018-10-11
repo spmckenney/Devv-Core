@@ -1,8 +1,7 @@
 /*
- * file_ops.cpp
+ * file_ops.cpp structure to read files associated with Devv.
  *
- *  Created on: 8/9/18
- *      Author: Shawn McKenney
+ * @copywrite  2018 Devvio Inc
  */
 
 #include "file_ops.h"

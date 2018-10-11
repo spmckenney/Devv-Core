@@ -1,6 +1,9 @@
-//
-// Created by mckenney on 6/11/18.
-//
+/*
+ * primitives_test.cpp tests Devv primitve structures
+ * for consistency of their canonical form.
+ *
+ * @copywrite  2018 Devvio Inc
+ */
 
 #include <cstdint>
 

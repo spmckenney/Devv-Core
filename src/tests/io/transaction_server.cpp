@@ -1,3 +1,11 @@
+/*
+ * transaction_server.cpp - implements a server for connectivity tests
+ * between T2 and T1 shards.
+ *
+ *
+ * @copywrite  2018 Devvio Inc
+ */
+
 #include <unistd.h>
 #include <chrono>
 #include <thread>

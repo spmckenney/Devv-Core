@@ -1,8 +1,7 @@
 /*
  * devv_exceptions.h
  *
- *  Created on: Jun 19, 2018
- *      Author: Shawn McKenney
+ * @copywrite  2018 Devvio Inc
  */
 #pragma once
 

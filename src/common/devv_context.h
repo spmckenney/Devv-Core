@@ -1,8 +1,7 @@
 /*
- * DevvContext.h runtime constants for this node
+ * DevvContext.h runtime constants for a Devv shard.
  *
- *  Created on: Mar 20, 2018
- *      Author: Nick Williams
+ * @copywrite  2018 Devvio Inc
  */
 
 #ifndef COMMON_DEVV_CONTEXT_H_

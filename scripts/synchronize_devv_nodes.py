@@ -1,4 +1,10 @@
-#!/usr/bin/python3
+#!/usr/bin/env python
+"""
+Tool to synchronize Devv validator instances for benchmarking and timing.
+"""
+
+__copyright__ = "Copyright 2018, Devvio Inc"
+__email__ = "security@devv.io"
 
 import time
 import zmq

@@ -1,7 +1,7 @@
-
 /*
  * reset-db.cpp resets the chain state of a shard
  * by truncating tables in a devv postgres-compliant database.
+ * @copywrite  2018 Devvio Inc
  */
 
 #include <fstream>

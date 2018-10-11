@@ -1,8 +1,8 @@
 /*
- * FinalBlock.h
+ * factories.h provides methods to generate Transactions
+ * and/or other primitize Devv types.
  *
- *  Created on: Jun 20, 2018
- *      Author: Shawn McKenney
+ * @copywrite  2018 Devvio Inc
  */
 #pragma once
 

@@ -1,6 +1,8 @@
-//
-// Created by mckenney on 6/29/18.
-//
+/*
+ * consensus_test.cpp tests consensus logic of Devv validators.
+ *
+ * @copywrite  2018 Devvio Inc
+ */
 
 #include "gtest/gtest.h"
 
