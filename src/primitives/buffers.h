@@ -10,6 +10,8 @@
 #include "common/binary_converters.h"
 #include "common/devv_constants.h"
 #include "common/devv_types.h"
+#include "primitives/Address.h"
+#include "primitives/Signature.h"
 
 namespace Devv {
 

@@ -28,8 +28,6 @@
 #include "common/devv_constants.h"
 #include "common/logger.h"
 #include "common/minitrace.h"
-#include "primitives/Address.h"
-#include "primitives/Signature.h"
 
 namespace Devv
 {

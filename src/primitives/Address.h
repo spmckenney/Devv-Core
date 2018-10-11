@@ -51,7 +51,9 @@ class Address {
         && vec.at(0) == kNODE_ADDR_SIZE) {
       //already good, copied from argument
     } else {
-      LOG_ERROR << "Invalid Address size.";
+      LOG_ERROR << "Invalid Address size: "
+            + std::to_string(vec.size()) + " : " + Bin2Str(vec);
+
     }
   }
 

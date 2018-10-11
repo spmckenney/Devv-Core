@@ -22,6 +22,7 @@
 
 #include <stdint.h>
 #include <algorithm>
+#include "common/binary_converters.h"
 
 namespace Devv {
 
@@ -66,7 +67,8 @@ class Signature {
       }
     } else {
       /// @todo (mckenney) Don't throw from constructor
-      std::string err = "Invalid Signature size: " + std::to_string(vec.size());
+      std::string err = "Invalid Signature size: "
+                        + std::to_string(vec.size()) + " : " + Bin2Str(vec);
       throw std::runtime_error(err);
     }
   }

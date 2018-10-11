@@ -16,6 +16,8 @@
 
 #include "common/binary_converters.h"
 #include "common/util.h"
+#include "primitives/Address.h"
+#include "primitives/Signature.h"
 
 /** Gets the EC_GROUP for normal transactions.
  *  @return a pointer to the EC_GROUP
