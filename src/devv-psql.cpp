@@ -189,10 +189,10 @@ void handle_inn_tx(pqxx::nontransaction& stmt, int shard, unsigned int chain_hei
     for (size_t i=0; i < inn_result.size(); ++i) {
       try {
         std::string pending_uuid = inn_result[i][0].as<std::string>();
-        std::string uuid = inn_result[i][0].as<std::string>();
-        std::string rx_wallet = inn_result[i][1].as<std::string>();
-        uint64_t coin = inn_result[i][2].as<uint64_t>();
-        int64_t amount = inn_result[i][3].as<int64_t>();
+        std::string uuid = inn_result[i][1].as<std::string>();
+        std::string rx_wallet = inn_result[i][2].as<std::string>();
+        uint64_t coin = inn_result[i][3].as<uint64_t>();
+        int64_t amount = inn_result[i][4].as<int64_t>();
         pqxx::result addr_result = stmt.prepared(kSELECT_ADDR).exec();
         if (addr_result.empty()) {
           LOG_WARNING << "wallet id '"+rx_wallet+"' has no address?";
