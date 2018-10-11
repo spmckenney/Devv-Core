@@ -125,6 +125,8 @@ int64_t update_balance(pqxx::nontransaction& stmt, std::string hex_addr
           if (s) LOG_ERROR << "Query was: " << s->query() << std::endl;
         } catch (const std::exception& e) {
           LOG_WARNING << FormatException(&e, "Exception inserting new wallet");
+        } catch (...) {
+          LOG_WARNING << "caught (...)";
         }
         LOG_INFO << "Inserted wallet.";
       } else {
@@ -141,7 +143,10 @@ int64_t update_balance(pqxx::nontransaction& stmt, std::string hex_addr
     if (s) LOG_ERROR << "Query was: " << s->query() << std::endl;
   } catch (const std::exception& e) {
     LOG_WARNING << FormatException(&e, "Exception selecting wallet");
+  } catch (...) {
+    LOG_WARNING << "caught (...)";
   }
+
 
   try {
     pqxx::result balance_result = stmt.prepared(kBALANCE_SELECT)(wallet_id)(coin).exec();
@@ -160,7 +165,10 @@ int64_t update_balance(pqxx::nontransaction& stmt, std::string hex_addr
     if (s) LOG_ERROR << "Query was: " << s->query() << std::endl;
   } catch (const std::exception& e) {
     LOG_WARNING << FormatException(&e, "Exception selecting balance");
+  } catch (...) {
+    LOG_WARNING << "caught (...)";
   }
+
 
   LOG_INFO << "balance updated to: "+std::to_string(new_balance);
   return new_balance;
@@ -283,7 +291,10 @@ int main(int argc, char* argv[]) {
                 if (s) LOG_ERROR << "Query was: " << s->query() << std::endl;
               } catch (const std::exception& e) {
                 LOG_WARNING << FormatException(&e, "Exception updating database for transfer, no rollback: "+sig_hex);
+              } catch (...) {
+                LOG_WARNING << "caught (...)";
               }
+
 
               if (!pending_result.empty()) {
                 LOG_INFO << "Pending transaction exists.";
@@ -319,7 +330,10 @@ int main(int argc, char* argv[]) {
                   } catch (const std::exception& e) {
                     LOG_WARNING << FormatException(&e, "Exception updating database for transfer, rollback: "+sig_hex);
                     stmt.exec("rollback to savepoint rx_savepoint;");
+                  } catch (...) {
+                    LOG_WARNING << "caught (...)";
                   }
+
                 } //end rx copy loop
                 LOG_INFO << "Delete pending transaction.";
                 stmt.exec("begin;");
@@ -353,7 +367,10 @@ int main(int argc, char* argv[]) {
                         LOG_ERROR << e.base().what() << std::endl;
                       } catch (const std::exception& e) {
                         LOG_WARNING << FormatException(&e, "Exception updating balance");
+                      } catch (...) {
+                        LOG_WARNING << "caught (...)";
                       }
+
                       LOG_INFO << "Insert rx row.";
                       stmt.prepared(kRX_INSERT)(options->shard_index)(chain_height)(blocktime)(rcv_coin_id)(rcv_amount)(delay)(tx_uuid)(sender_hex)(rcv_addr).exec();
 
@@ -361,7 +378,10 @@ int main(int argc, char* argv[]) {
                       LOG_INFO << "Transfer committed.";
                     } catch (const std::exception& e) {
                       LOG_WARNING << FormatException(&e, "Exception updating database for transfer, no rollback: "+sig_hex);
+                    } catch (...) {
+                      LOG_WARNING << "caught (...)";
                     }
+
                   } //end transfer loop
                 } else {
                   LOG_WARNING << "Failed to generate a UUID!";
@@ -373,7 +393,10 @@ int main(int argc, char* argv[]) {
               if (s) LOG_ERROR << "Query was: " << s->query() << std::endl;
             } catch (const std::exception& e) {
               LOG_WARNING << FormatException(&e, "Exception updating database for transfer, no rollback: "+sig_hex);
+            } catch (...) {
+              LOG_WARNING << "caught (...)";
             }
+
             LOG_DEBUG << "Finished processing transaction.";
           } //end transaction loop
         } else { //endif db connected?
@@ -407,7 +430,10 @@ int main(int argc, char* argv[]) {
     err += (p ? p.__cxa_exception_type()->name() : "null");
     LOG_FATAL << "Error: " + err;
     return (false);
+  } catch (...) {
+    LOG_WARNING << "caught (...)";
   }
+
 }
 
 
