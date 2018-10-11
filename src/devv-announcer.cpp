@@ -120,6 +120,7 @@ int main(int argc, char* argv[]) {
         ptrs = DeserializeEnvelopeProtobufString(tx_string, keys);
       } catch (std::runtime_error& e) {
         response = "Deserialization error: " + std::string(e.what());
+        LOG_ERROR << response;
         zmq::message_t reply(response.size());
         memcpy(reply.data(), response.data(), response.size());
         socket.send(reply);
