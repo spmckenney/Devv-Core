@@ -119,7 +119,7 @@ int64_t update_balance(pqxx::nontransaction& stmt, std::string hex_addr
         try {
           stmt.prepared(kWALLET_INSERT)(wallet_id)(hex_addr)(shard).exec();
         } catch (const pqxx::pqxx_exception& e) {
-          std::cerr << e.base().what() << std::endl;
+          LOG_ERROR << e.base().what() << std::endl;
           const pqxx::sql_error* s = dynamic_cast<const pqxx::sql_error*>(&e.base());
           if (s) LOG_ERROR << "Query was: " << s->query() << std::endl;
         } catch (const std::exception& e) {
@@ -135,7 +135,7 @@ int64_t update_balance(pqxx::nontransaction& stmt, std::string hex_addr
       LOG_INFO << "Got wallet ID: " + wallet_id;
     }
   } catch (const pqxx::pqxx_exception& e) {
-    std::cerr << e.base().what() << std::endl;
+    LOG_ERROR << e.base().what() << std::endl;
     const pqxx::sql_error* s = dynamic_cast<const pqxx::sql_error*>(&e.base());
     if (s) LOG_ERROR << "Query was: " << s->query() << std::endl;
   } catch (const std::exception& e) {
@@ -153,7 +153,7 @@ int64_t update_balance(pqxx::nontransaction& stmt, std::string hex_addr
       stmt.prepared(kBALANCE_UPDATE)(new_balance)(chain_height)(wallet_id)(coin).exec();
     }
   } catch (const pqxx::pqxx_exception& e) {
-    std::cerr << e.base().what() << std::endl;
+    LOG_ERROR << e.base().what() << std::endl;
     const pqxx::sql_error* s = dynamic_cast<const pqxx::sql_error*>(&e.base());
     if (s) LOG_ERROR << "Query was: " << s->query() << std::endl;
   } catch (const std::exception& e) {
@@ -276,7 +276,7 @@ int main(int argc, char* argv[]) {
               try {
                 pending_result = stmt.prepared(kSELECT_PENDING_TX)(sig_hex).exec();
               } catch (const pqxx::pqxx_exception &e) {
-                std::cerr << e.base().what() << std::endl;
+                LOG_ERROR << e.base().what() << std::endl;
                 const pqxx::sql_error *s=dynamic_cast<const pqxx::sql_error*>(&e.base());
                 if (s) LOG_ERROR << "Query was: " << s->query() << std::endl;
               } catch (const std::exception& e) {
@@ -312,7 +312,7 @@ int main(int argc, char* argv[]) {
                     stmt.exec("commit;");
                     LOG_INFO << "Transfer committed.";
                   } catch (const pqxx::pqxx_exception& e) {
-                    std::cerr << e.base().what() << std::endl;
+                    LOG_ERROR << e.base().what() << std::endl;
                   } catch (const std::exception& e) {
                     LOG_WARNING << FormatException(&e, "Exception updating database for transfer, rollback: "+sig_hex);
                     stmt.exec("rollback to savepoint rx_savepoint;");
@@ -347,7 +347,7 @@ int main(int argc, char* argv[]) {
                       try {
                         update_balance(stmt, rcv_addr, chain_height, rcv_coin_id, rcv_amount, options->shard_index);
                       } catch (const pqxx::pqxx_exception& e) {
-                        std::cerr << e.base().what() << std::endl;
+                        LOG_ERROR << e.base().what() << std::endl;
                       } catch (const std::exception& e) {
                         LOG_WARNING << FormatException(&e, "Exception updating balance");
                       }
@@ -365,7 +365,7 @@ int main(int argc, char* argv[]) {
                 }
               }
             } catch (const pqxx::pqxx_exception &e) {
-              std::cerr << e.base().what() << std::endl;
+              LOG_ERROR << e.base().what() << std::endl;
               const pqxx::sql_error *s=dynamic_cast<const pqxx::sql_error*>(&e.base());
               if (s) LOG_ERROR << "Query was: " << s->query() << std::endl;
             } catch (const std::exception& e) {
