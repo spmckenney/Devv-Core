@@ -110,10 +110,10 @@ int64_t update_balance(pqxx::nontransaction& stmt, std::string hex_addr
   try {
     pqxx::result wallet_result = stmt.prepared(kWALLET_SELECT)(hex_addr).exec();
     if (wallet_result.empty()) {
-      LOG_INFO << "No result";
+      LOG_INFO << "wallet_result.empty()";
       pqxx::result uuid_result = stmt.prepared(kSELECT_UUID).exec();
       if (!uuid_result.empty()) {
-        LOG_INFO << "Got uuid";
+        LOG_INFO << "!uuid_result.empty():";
         wallet_id = uuid_result[0][0].as<std::string>();
         LOG_INFO << "UUID is: " + wallet_id;
         try {
@@ -407,7 +407,8 @@ int main(int argc, char* argv[]) {
       }
     });
     peer_listener->listenTo(get_shard_uri(options->shard_index));
-    peer_listener->startClient();
+    peer_listener->run();
+    //peer_listener->startClient();
     LOG_INFO << "devv-psql is listening to shard: "+get_shard_uri(options->shard_index);
 
     auto ms = kMAIN_WAIT_INTERVAL;
