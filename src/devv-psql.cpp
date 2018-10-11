@@ -243,6 +243,7 @@ int main(int argc, char* argv[]) {
 
               LOG_INFO << "Update sender balance.";
               update_balance(stmt, sender_hex, chain_height, coin_id, send_amount, options->shard_index);
+              LOG_INFO << "Updated sender balance.";
 
               //copy transfers
               pqxx::result pending_result = stmt.prepared(kSELECT_PENDING_TX)(sig_hex).exec();
@@ -324,9 +325,10 @@ int main(int argc, char* argv[]) {
                   LOG_WARNING << "Failed to generate a UUID!";
                 }
               }
-            } catch (const std::exception& e) {
-              LOG_WARNING << FormatException(&e, "Exception updating database for transaction, rollback: "+sig_hex);
-              stmt.exec("rollback to savepoint tx_savepoint;");
+            } catch (const pqxx::pqxx_exception &e) {
+              std::cerr << e.base().what() << std::endl;
+              const pqxx::sql_error *s=dynamic_cast<const pqxx::sql_error*>(&e.base());
+              if (s) std::cerr << "Query was: " << s->query() << std::endl;
             }
             LOG_DEBUG << "Finished processing transaction.";
           } //end transaction loop
