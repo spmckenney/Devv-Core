@@ -1,16 +1,8 @@
-/**
- * Copyright (C) 2018 Devvio, Inc - All Rights Reserved
- * You may use, distribute and modify this code under the
- * terms of the MIT license, which unfortunately won't be
- * written for another century.
+/*
+ * tier2_message_handlers.cpp implement consensus logic for Tier2 validators.
  *
- * You should have received a copy of the MIT license with
- * this file. If not, please visit http://www.devv.io
- *
- *   Created on: Jun 1, 2018
- *       Author: Nick Williams <nick@cloudsolar.co>
- *       Author: Shawn McKenney <shawn.mckenney@emmion.com>
-**/
+ * @copywrite  2018 Devvio Inc
+ */
 
 #include "consensus/tier2_message_handlers.h"
 #include "primitives/buffers.h"
@@ -19,12 +11,12 @@
 
 namespace fs = boost::filesystem;
 
-namespace Devcash {
+namespace Devv {
 
 std::vector<byte> CreateNextProposal(const KeyRing& keys,
                         Blockchain& final_chain,
                         UnrecordedTransactionPool& utx_pool,
-                        const DevcashContext& context) {
+                        const DevvContext& context) {
   MTR_SCOPE_FUNC();
   size_t block_height = final_chain.size();
 
@@ -34,11 +26,11 @@ std::vector<byte> CreateNextProposal(const KeyRing& keys,
 
   if (!utx_pool.HasProposal() && utx_pool.HasPendingTransactions()) {
     if (block_height > 0) {
-      Hash prev_hash = DevcashHash(final_chain.back()->getCanonical());
+      Hash prev_hash = DevvHash(final_chain.back()->getCanonical());
       ChainState prior = final_chain.getHighestChainState();
       utx_pool.ProposeBlock(prev_hash, prior, keys, context);
     } else {
-      Hash prev_hash = DevcashHash({'G', 'e', 'n', 'e', 's', 'i', 's'});
+      Hash prev_hash = DevvHash({'G', 'e', 'n', 'e', 's', 'i', 's'});
       ChainState prior;
       utx_pool.ProposeBlock(prev_hash, prior, keys, context);
     }
@@ -51,19 +43,19 @@ std::vector<byte> CreateNextProposal(const KeyRing& keys,
   return utx_pool.getProposal();
 }
 
-bool HandleFinalBlock(DevcashMessageUniquePtr ptr,
-                      const DevcashContext& context,
+bool HandleFinalBlock(DevvMessageUniquePtr ptr,
+                      const DevvContext& context,
                       const KeyRing& keys,
                       Blockchain& final_chain,
                       UnrecordedTransactionPool& utx_pool,
-                      std::function<void(DevcashMessageUniquePtr)> callback) {
+                      std::function<void(DevvMessageUniquePtr)> callback) {
   MTR_SCOPE_FUNC();
   //Make the incoming block final
   //if pending proposal, makes sure it is still valid
   //if no pending proposal, check if should make one
 
   InputBuffer buffer(ptr->data);
-  LogDevcashMessageSummary(*ptr, "HandleFinalBlock()");
+  LogDevvMessageSummary(*ptr, "HandleFinalBlock()");
 
   ChainState prior = final_chain.getHighestChainState();
   FinalPtr top_block = std::make_shared<FinalBlock>(utx_pool.FinalizeRemoteBlock(
@@ -79,7 +71,7 @@ bool HandleFinalBlock(DevcashMessageUniquePtr ptr,
 
   if (utx_pool.HasProposal()) {
     ChainState current = top_block->getChainState();
-    Hash prev_hash = DevcashHash(top_block->getCanonical());
+    Hash prev_hash = DevvHash(top_block->getCanonical());
     utx_pool.ReverifyProposal(prev_hash, current, keys, context);
   }
 
@@ -93,12 +85,12 @@ bool HandleFinalBlock(DevcashMessageUniquePtr ptr,
       if (!ProposedBlock::isNullProposal(proposal)) {
         // Create message
         auto propose_msg =
-            std::make_unique<DevcashMessage>(context.get_shard_uri(),
+            std::make_unique<DevvMessage>(context.get_shard_uri(),
                                              PROPOSAL_BLOCK,
                                              proposal,
                                              ((block_height + 1) + (context.get_current_node() + 1) * 1000000));
         // FIXME (spm): define index value somewhere
-        LogDevcashMessageSummary(*propose_msg, "CreateNextProposal");
+        LogDevvMessageSummary(*propose_msg, "CreateNextProposal");
         callback(std::move(propose_msg));
         sent_message = true;
       }
@@ -111,18 +103,18 @@ bool HandleFinalBlock(DevcashMessageUniquePtr ptr,
   return sent_message;
 }
 
-bool HandleProposalBlock(DevcashMessageUniquePtr ptr,
-                         const DevcashContext& context,
+bool HandleProposalBlock(DevvMessageUniquePtr ptr,
+                         const DevvContext& context,
                          const KeyRing& keys,
                          Blockchain& final_chain,
                          TransactionCreationManager& tcm,
-                         std::function<void(DevcashMessageUniquePtr)> callback) {
+                         std::function<void(DevvMessageUniquePtr)> callback) {
   MTR_SCOPE_FUNC();
   //validate block
   //if valid, push VALID message
-  DevcashMessage msg(*ptr.get());
+  DevvMessage msg(*ptr.get());
 
-  LogDevcashMessageSummary(*ptr, "HandleProposalBlock() -> Incoming");
+  LogDevvMessageSummary(*ptr, "HandleProposalBlock() -> Incoming");
 
   ChainState prior = final_chain.getHighestChainState();
   InputBuffer buffer(msg.data);
@@ -138,24 +130,24 @@ bool HandleProposalBlock(DevcashMessageUniquePtr ptr,
   LOG_DEBUG << "Proposed block is valid.";
   std::vector<byte> validation(to_validate.getValidationData());
 
-  auto valid = std::make_unique<DevcashMessage>(context.get_shard_uri(),
+  auto valid = std::make_unique<DevvMessage>(context.get_shard_uri(),
                                                 VALID,
                                                 validation,
                                                 ptr->index);
-  LogDevcashMessageSummary(*valid, "HandleProposalBlock() -> Validation");
+  LogDevvMessageSummary(*valid, "HandleProposalBlock() -> Validation");
   callback(std::move(valid));
   return true;
 }
 
-bool HandleValidationBlock(DevcashMessageUniquePtr ptr,
-                           const DevcashContext& context,
+bool HandleValidationBlock(DevvMessageUniquePtr ptr,
+                           const DevvContext& context,
                            Blockchain& final_chain,
                            UnrecordedTransactionPool& utx_pool,
-                           std::function<void(DevcashMessageUniquePtr)> callback) {
+                           std::function<void(DevvMessageUniquePtr)> callback) {
   MTR_SCOPE_FUNC();
   bool sent_message = false;
   InputBuffer buffer(ptr->data);
-  LogDevcashMessageSummary(*ptr, "HandleValidationBlock() -> Incoming");
+  LogDevvMessageSummary(*ptr, "HandleValidationBlock() -> Incoming");
 
   if (utx_pool.CheckValidation(buffer, context)) {
     //block can be finalized, so finalize
@@ -169,8 +161,8 @@ bool HandleValidationBlock(DevcashMessageUniquePtr ptr,
 
     std::vector<byte> final_msg = top_block->getCanonical();
 
-    auto final_block = std::make_unique<DevcashMessage>(context.get_shard_uri(), FINAL_BLOCK, final_msg, ptr->index);
-    LogDevcashMessageSummary(*final_block, "HandleValidationBlock() -> Final block");
+    auto final_block = std::make_unique<DevvMessage>(context.get_shard_uri(), FINAL_BLOCK, final_msg, ptr->index);
+    LogDevvMessageSummary(*final_block, "HandleValidationBlock() -> Final block");
     callback(std::move(final_block));
     sent_message = true;
   }
@@ -178,12 +170,12 @@ bool HandleValidationBlock(DevcashMessageUniquePtr ptr,
   return sent_message;
 }
 
-bool HandleBlocksSinceRequest(DevcashMessageUniquePtr ptr,
+bool HandleBlocksSinceRequest(DevvMessageUniquePtr ptr,
                               Blockchain& final_chain,
-                              const DevcashContext& context,
+                              const DevvContext& context,
                               const KeyRing& keys,
-                              std::function<void(DevcashMessageUniquePtr)> callback) {
-  LogDevcashMessageSummary(*ptr, "HandleBlocksSinceRequest() -> Incoming");
+                              std::function<void(DevvMessageUniquePtr)> callback) {
+  LogDevvMessageSummary(*ptr, "HandleBlocksSinceRequest() -> Incoming");
   if (ptr->data.size() < 16) {
     LOG_WARNING << "BlockSinceRequest is too small!";
     return false;
@@ -221,7 +213,7 @@ bool HandleBlocksSinceRequest(DevcashMessageUniquePtr ptr,
       std::vector<byte> tx_canon(tx.getCanonical());
       tier1_data.insert(tier1_data.end(), tx_canon.begin(), tx_canon.end());
     }
-    auto response = std::make_unique<DevcashMessage>(context.get_uri_from_index(node),
+    auto response = std::make_unique<DevvMessage>(context.get_uri_from_index(node),
                                                      TRANSACTION_ANNOUNCEMENT,
                                                      tier1_data,
                                                      ptr->index);
@@ -233,7 +225,7 @@ bool HandleBlocksSinceRequest(DevcashMessageUniquePtr ptr,
     Uint64ToBin(covered_height, bin_height);
     //put height at beginning of message
     raw.insert(raw.begin(), bin_height.begin(), bin_height.end());
-    auto response = std::make_unique<DevcashMessage>(context.get_uri_from_index(node),
+    auto response = std::make_unique<DevvMessage>(context.get_uri_from_index(node),
                                                      BLOCKS_SINCE,
                                                      raw,
                                                      ptr->index);
@@ -245,13 +237,13 @@ bool HandleBlocksSinceRequest(DevcashMessageUniquePtr ptr,
   return false;
 }
 
-bool HandleBlocksSince(DevcashMessageUniquePtr ptr,
+bool HandleBlocksSince(DevvMessageUniquePtr ptr,
                               Blockchain& final_chain,
-                              DevcashContext context,
+                              DevvContext context,
                               const KeyRing& keys,
                               const UnrecordedTransactionPool&,
                               uint64_t& remote_blocks) {
-  LogDevcashMessageSummary(*ptr, "HandleBlocksSince() -> Incoming");
+  LogDevvMessageSummary(*ptr, "HandleBlocksSince() -> Incoming");
 
   InputBuffer buffer(ptr->data);
   if (buffer.size() < 8) {
@@ -282,4 +274,4 @@ bool HandleBlocksSince(DevcashMessageUniquePtr ptr,
   return false;
 }
 
-}  // namespace Devcash
+}  // namespace Devv

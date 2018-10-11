@@ -2,8 +2,7 @@
  * api.h is an oracle to handle permissions for external extensions to
  * these oracles.
  *
- *  Created on: Mar 1, 2018
- *  Author: Nick Williams
+ * @copywrite  2018 Devvio Inc
  *
  */
 
@@ -15,7 +14,7 @@
 #include "oracleInterface.h"
 #include "common/logger.h"
 
-using namespace Devcash;
+using namespace Devv;
 
 class api : public oracleInterface {
 
@@ -72,14 +71,19 @@ class api : public oracleInterface {
     return("WARNING: This oracle is a stub.");
   }
 
-/** Generate the transactions to encode the effect of this propsal on chain.
- *
- * @pre This transaction must be valid.
- * @params context the blockchain of the shard that provides context for this oracle
- * @return a map of shard indicies to transactions to encode in each shard
- */
   std::map<uint64_t, std::vector<Tier2Transaction>>
-      getTransactions(const Blockchain& context) override {
+      getTrace(const Blockchain& context) override {
+    std::map<uint64_t, std::vector<Tier2Transaction>> out;
+    return out;
+  }
+
+  uint64_t getCurrentDepth(const Blockchain& context) override {
+    //@TODO(nick) scan pre-existing chain for this oracle instance.
+    return(0);
+  }
+
+  std::map<uint64_t, std::vector<Tier2Transaction>>
+      getNextTransactions(const Blockchain& context, const KeyRing& keys) override {
     std::map<uint64_t, std::vector<Tier2Transaction>> out;
     return out;
   }
@@ -121,16 +125,8 @@ class api : public oracleInterface {
     return json;
   }
 
-/** Generate the appropriate signature(s) for this proposal.
- *
- * @params address - the address corresponding to this key
- * @params key - an ECDSA key, AES encrypted with ASCII armor
- * @params aes_password - the AES password for the key
- * @return the signed oracle data
- */
-  std::string Sign(std::string address
-        , std::string key, std::string aes_password) override {
-    return raw_data_;
+  std::vector<byte> Sign() override {
+    return getCanonical();
   }
 
 };

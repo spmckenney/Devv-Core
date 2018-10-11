@@ -1,9 +1,8 @@
 /**
  * blockchain.h
- *  Classes to manage blockchains
+ * Provides access to blockchain structures.
  *
- *  Created on: Apr 8, 2018
- *      Author: Shawn McKenney <shawn.mckenney@emmion.com
+ * @copywrite  2018 Devvio Inc
  */
 #pragma once
 
@@ -12,7 +11,7 @@
 
 #include "primitives/FinalBlock.h"
 
-namespace Devcash {
+namespace Devv {
 
 class Blockchain {
 public:
@@ -36,7 +35,7 @@ public:
 
     LOG_NOTICE << name_ << "- Updating Final Blockchain - (size/ntxs)" <<
                " (" << chain_size_ << "/" << num_transactions_ << ")" <<
-          " this (" << ToHex(DevcashHash(block->getCanonical()), 8) << ")" <<
+          " this (" << ToHex(DevvHash(block->getCanonical()), 8) << ")" <<
           " prev (" << ToHex(block->getPreviousHash(), 8) << ")";
   }
 
@@ -136,4 +135,4 @@ private:
   std::atomic<int> num_transactions_;
 };
 
-} // namespace Devcash
+} // namespace Devv

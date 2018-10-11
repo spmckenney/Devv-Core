@@ -1,12 +1,12 @@
 cmake_minimum_required(VERSION 2.8.2 FATAL_ERROR)
 set(CMAKE_LEGACY_CYGWIN_WIN32 0)
 
-project("DevcashJava" C CXX)
+project("DevvJava" C CXX)
 
 set (CMAKE_CXX_STANDARD 14)
 set (CMAKE_CXX_STANDARD_REQUIRED ON)
-set (DevCash_VERSION_MAJOR 0)
-set (DevCash_VERSION_MINOR 2)
+set (Devv_VERSION_MAJOR 0)
+set (Devv_VERSION_MINOR 2)
 
 enable_testing()
 
@@ -65,7 +65,7 @@ foreach (_headerFile ${dcHeaders})
 endforeach()
 list(REMOVE_DUPLICATES dcInclude)
 
-#Protobuf generated library
+# Protobuf generated library
 ADD_LIBRARY(devvpbuf devv.pb.h devv.pb.cc)
 set_source_files_properties(devv.pb.h devv.pb.cc PROPERTIES GENERATED TRUE)
 
@@ -104,9 +104,10 @@ add_library(primitives
   )
 
 # Add BlockchainModule.cpp
-add_library(devcash_node modules/BlockchainModule.cpp)
+add_library(modules modules/BlockchainModule.cpp)
+add_dependencies(modules devvpbuf)
 
-set(devcash_core_libs devcash_node common concurrency consensus io primitives devvpbuf)
+set(devv_core_libs modules common concurrency consensus io primitives devvpbuf)
 
 option(WITH_THREAD_TESTING "Enable thread testing" OFF)
 
@@ -114,39 +115,37 @@ if(WITH_THREAD_TESTING)
   add_definitions(-DTEST_THREADS)
 endif()
 
-add_executable(devcash devcash.cpp ${dcInclude})
-
+# Find OpenSSL and setup variables
 find_package (OpenSSL REQUIRED)
-if (OPENSSL_FOUND)
-  include_directories(${OPENSSL_INCLUDE_DIR})
-  target_link_libraries (devcash ${OPENSSL_LIBRARIES})
-endif (OPENSSL_FOUND)
 
-find_package(Threads)
-target_link_libraries(devcash ${CMAKE_THREAD_LIBS_INIT})
+# Find thread library and setup variables
+find_package(Threads REQUIRED)
 
+# Find boost and setup variables
 find_package(Boost COMPONENTS date_time filesystem thread
   system program_options log REQUIRED)
-if(Boost_FOUND)
-  include_directories(${Boost_INCLUDE_DIRS})
-  target_link_libraries(devcash ${Boost_LIBRARIES})
-endif(Boost_FOUND)
+
+set(CONFIGURED_ONCE TRUE CACHE INTERNAL
+    "A flag showing that CMake has configured at least once.")
 
 # Convenience variable containing all linker libs
 set(devv_all_libs
-        ${devcash_core_libs}
+        ${devv_core_libs}
         ${ZMQ}
         ${PROTOBUF_LIBRARY}
         ${OPENSSL_LIBRARIES}
         ${CMAKE_THREAD_LIBS_INIT}
         ${Boost_LIBRARIES}
+        ${PQXX}
         )
 
-target_link_libraries (devcash
-  ${devv_all_libs}
-  )
-
-target_include_directories(devcash PRIVATE ${dcInclude})
+#
+# devv executable
+#
+add_executable(devv devv.cpp)
+target_link_libraries (devv ${devv_all_libs})
+target_include_directories(devv PRIVATE ${dcInclude})
+install (TARGETS devv DESTINATION bin)
 
 # JNI library
 file(GLOB devvjni_SRC
@@ -162,15 +161,21 @@ target_link_libraries(devvjni ${devv_all_libs})
 set(CONFIGURED_ONCE TRUE CACHE INTERNAL
     "A flag showing that CMake has configured at least once.")
 
-install (TARGETS devcash DESTINATION bin)
+#
+# devv-scanner
+#
+add_executable(devv-scanner devv-scanner.cpp ${dcInclude})
+target_link_libraries (devv-scanner ${devv_all_libs})
+target_include_directories(devv-scanner PRIVATE ${dcInclude})
+install (TARGETS devv-scanner DESTINATION bin)
 
 #
-# Scanner
+# devv-key
 #
-add_executable(scanner scanner.cpp ${dcInclude})
-target_link_libraries (scanner ${devv_all_libs})
-target_include_directories(scanner PRIVATE ${dcInclude})
-install (TARGETS scanner DESTINATION bin)
+add_executable(devv-key devv-key.cpp ${dcInclude} ${PROTO_SRCS} ${PROTO_HDRS})
+target_link_libraries (devv-key ${devv_all_libs})
+target_include_directories(devv-key PRIVATE ${dcInclude})
+install (TARGETS devv-key DESTINATION bin)
 
 #
 # devv-sign
@@ -181,108 +186,60 @@ target_include_directories(devv-sign PRIVATE ${dcInclude})
 install (TARGETS devv-sign DESTINATION bin)
 
 #
-# annnouncer
+# devv-annnouncer
 #
-add_executable(announcer announcer.cpp ${dcInclude} ${PROTO_SRCS} ${PROTO_HDRS})
-target_link_libraries (announcer ${devv_all_libs})
-target_include_directories(announcer PRIVATE ${dcInclude})
-install (TARGETS announcer DESTINATION bin)
-
-#
-# pb_annnouncer
-#
-add_executable(pb_announcer pb_announcer.cpp ${dcInclude} ${PROTO_SRCS} ${PROTO_HDRS})
-target_link_libraries (pb_announcer ${devv_all_libs})
-target_include_directories(pb_announcer PRIVATE ${dcInclude})
-install (TARGETS pb_announcer DESTINATION bin)
+add_executable(devv-announcer devv-announcer.cpp ${dcInclude} ${PROTO_SRCS} ${PROTO_HDRS})
+target_link_libraries (devv-announcer ${devv_all_libs})
+target_include_directories(devv-announcer PRIVATE ${dcInclude})
+install (TARGETS devv-announcer DESTINATION bin)
 
 #
-# Repeater
+# devv-query
 #
-add_executable(repeater repeater.cpp ${dcInclude})
-target_link_libraries (repeater ${devv_all_libs} ${PQXX})
-target_include_directories(repeater PRIVATE ${dcInclude})
-install (TARGETS repeater DESTINATION bin)
+add_executable(devv-query devv-query.cpp ${dcInclude})
+target_link_libraries (devv-query ${devv_all_libs})
+target_include_directories(devv-query PRIVATE ${dcInclude})
+install (TARGETS devv-query DESTINATION bin)
 
 #
-# Chain state Tests
+# devv-psql
 #
-add_executable(circuit circuit.cpp ${dcInclude})
-target_link_libraries (circuit
-        ${devcash_core_libs}
-        ${ZMQ}
-        ${CMAKE_THREAD_LIBS_INIT}
-        ${OPENSSL_LIBRARIES}
-        ${Boost_LIBRARIES}
-        )
-target_include_directories(circuit PRIVATE ${dcInclude})
-install (TARGETS circuit DESTINATION bin)
+add_executable(devv-psql devv-psql.cpp ${dcInclude})
+target_link_libraries (devv-psql ${devv_all_libs})
+target_include_directories(devv-psql PRIVATE ${dcInclude})
+install (TARGETS devv-psql DESTINATION bin)
 
-add_executable(laminar laminar.cpp ${dcInclude})
-target_link_libraries (laminar
-  ${devcash_core_libs}
-  ${ZMQ}
-  )
+#
+# circuit-gen
+#
+add_executable(circuit-gen circuit-gen.cpp ${dcInclude})
+target_link_libraries (circuit-gen ${devv_all_libs})
+target_include_directories(circuit-gen PRIVATE ${dcInclude})
+install (TARGETS circuit-gen DESTINATION bin)
 
-if (OPENSSL_FOUND)
-  include_directories(${OPENSSL_INCLUDE_DIR})
-  target_link_libraries (laminar ${OPENSSL_LIBRARIES})
-endif (OPENSSL_FOUND)
+#
+# laminar-gen
+#
+add_executable(laminar-gen laminar-gen.cpp ${dcInclude})
+target_link_libraries (laminar-gen ${devv_all_libs})
+target_include_directories(laminar-gen PRIVATE ${dcInclude})
+install (TARGETS laminar-gen DESTINATION bin)
 
-target_link_libraries(laminar ${CMAKE_THREAD_LIBS_INIT})
+#
+# turbulent-gen
+#
+add_executable(turbulent-gen turbulent-gen.cpp ${dcInclude})
+target_link_libraries (turbulent-gen ${devv_all_libs})
+target_include_directories(turbulent-gen PRIVATE ${dcInclude})
+install (TARGETS turbulent-gen DESTINATION bin)
 
-if(Boost_FOUND)
-  include_directories(${Boost_INCLUDE_DIRS})
-  target_link_libraries(laminar ${Boost_LIBRARIES})
-endif(Boost_FOUND)
-
-target_include_directories(laminar PRIVATE ${dcInclude})
-
-install (TARGETS laminar DESTINATION bin)
-
-add_executable(turbulent turbulent.cpp ${dcInclude})
-target_link_libraries (turbulent
-  ${devcash_core_libs}
-  ${ZMQ}
-  )
-
-if (OPENSSL_FOUND)
-  include_directories(${OPENSSL_INCLUDE_DIR})
-  target_link_libraries (turbulent ${OPENSSL_LIBRARIES})
-endif (OPENSSL_FOUND)
-
-target_link_libraries(turbulent ${CMAKE_THREAD_LIBS_INIT})
-
-if(Boost_FOUND)
-  include_directories(${Boost_INCLUDE_DIRS})
-  target_link_libraries(turbulent ${Boost_LIBRARIES})
-endif(Boost_FOUND)
-
-target_include_directories(turbulent PRIVATE ${dcInclude})
-
-install (TARGETS turbulent DESTINATION bin)
-
-add_executable(verifier verifier.cpp ${dcInclude})
-target_link_libraries (verifier
-  ${devcash_core_libs}
-  ${ZMQ}
-  )
-
-if (OPENSSL_FOUND)
-  include_directories(${OPENSSL_INCLUDE_DIR})
-  target_link_libraries (verifier ${OPENSSL_LIBRARIES})
-endif (OPENSSL_FOUND)
-
-target_link_libraries(verifier ${CMAKE_THREAD_LIBS_INIT})
-
-if(Boost_FOUND)
-  include_directories(${Boost_INCLUDE_DIRS})
-  target_link_libraries(verifier ${Boost_LIBRARIES})
-endif(Boost_FOUND)
-
-target_include_directories(verifier PRIVATE ${dcInclude})
-
-install (TARGETS verifier DESTINATION bin)
+#
+# devv-verify
+#
+add_executable(devv-verify devv-verify.cpp ${dcInclude})
+target_link_libraries (devv-verify ${devv_all_libs})
+target_include_directories(devv-verify PRIVATE ${dcInclude})
+install (TARGETS devv-verify DESTINATION bin)
 
 #
 # i/o Tests
@@ -292,7 +249,7 @@ add_executable(ring_queue_test
   )
 
 target_link_libraries(ring_queue_test
-  ${devcash_core_libs}
+  ${devv_core_libs}
   ${OPENSSL_LIBRARIES}
   ${CMAKE_THREAD_LIBS_INIT}
   ${Boost_LIBRARIES}
@@ -300,19 +257,19 @@ target_link_libraries(ring_queue_test
 
 install (TARGETS ring_queue_test DESTINATION bin)
 
-# # # devcash_spsc_queue_test
-add_executable(devcash_spsc_queue_test
-  tests/concurrency/devcash_spsc_queue_test.cpp
+# # # devv_spsc_queue_test
+add_executable(devv_spsc_queue_test
+  tests/concurrency/devv_spsc_queue_test.cpp
   )
 
-target_link_libraries(devcash_spsc_queue_test
-  ${devcash_core_libs}
+target_link_libraries(devv_spsc_queue_test
+  ${devv_core_libs}
   ${OPENSSL_LIBRARIES}
   ${CMAKE_THREAD_LIBS_INIT}
   ${Boost_LIBRARIES}
   )
 
-install (TARGETS devcash_spsc_queue_test DESTINATION bin)
+install (TARGETS devv_spsc_queue_test DESTINATION bin)
 
 # # # boost_spsc_test
 add_executable(boost_spsc_test
@@ -320,7 +277,7 @@ add_executable(boost_spsc_test
   )
 
 target_link_libraries(boost_spsc_test
-  ${devcash_core_libs}
+  ${devv_core_libs}
   ${CMAKE_THREAD_LIBS_INIT}
   ${Boost_LIBRARIES}
   )
@@ -333,7 +290,7 @@ add_executable(io_server_test
   )
 
 target_link_libraries(io_server_test
-  ${devcash_core_libs}
+  ${devv_core_libs}
   ${ZMQ}
   ${OPENSSL_LIBRARIES}
   ${CMAKE_THREAD_LIBS_INIT}
@@ -346,7 +303,7 @@ add_executable(io_client_test
   )
 
 target_link_libraries(io_client_test
-  ${devcash_core_libs}
+  ${devv_core_libs}
   ${ZMQ}
   ${OPENSSL_LIBRARIES}
   ${CMAKE_THREAD_LIBS_INIT}

@@ -1,8 +1,7 @@
 /*
  * chainstate.h holds the state of the chain for each validating fork
  *
- *  Created on: Jan 12, 2018
- *  Author: Nick Williams
+ * @copywrite  2018 Devvio Inc
  */
 
 #ifndef SRC_CONSENSUS_STATESTUB_H_
@@ -13,7 +12,7 @@
 
 #include "primitives/SmartCoin.h"
 
-namespace Devcash
+namespace Devv
 {
 
 class ChainState {
@@ -76,6 +75,6 @@ private:
  std::map<Address, std::map<uint64_t, int64_t>> state_map_;
 };
 
-} //namespace Devcash
+} //namespace Devv
 
 #endif /* SRC_CONSENSUS_STATESTUB_H_ */

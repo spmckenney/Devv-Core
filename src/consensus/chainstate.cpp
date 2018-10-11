@@ -1,8 +1,7 @@
 /*
- * chainstate.h holds state for a validating fork
+ * chainstate.cpp holds the state of the chain for each validating fork
  *
- *  Created on: Jan 12, 2018
- *  Author: Nick Williams
+ * @copywrite  2018 Devvio Inc
  */
 
 #include "chainstate.h"
@@ -13,10 +12,10 @@
 
 #include "primitives/Summary.h"
 
-namespace Devcash
+namespace Devv
 {
 
-using namespace Devcash;
+using namespace Devv;
 
 bool ChainState::addCoin(const SmartCoin& coin) {
   bool no_error = true;
@@ -42,4 +41,4 @@ long ChainState::getAmount(uint64_t type, const Address& addr) const {
   return(0);
 }
 
-} //end namespace Devcash
+} //end namespace Devv

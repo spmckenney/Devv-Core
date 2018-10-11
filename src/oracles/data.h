@@ -1,10 +1,9 @@
 /*
  * data.h is an oracle to handle data storage on chain.
  *
- * Internal format is addr|signature|data
+ * Proposal.data format is addr|signature|data
  *
- *  Created on: Mar 1, 2018
- *  Author: Nick Williams
+ * @copywrite  2018 Devvio Inc
  *
  */
 
@@ -17,7 +16,7 @@
 #include "consensus/chainstate.h"
 #include "consensus/KeyRing.h"
 
-using namespace Devcash;
+using namespace Devv;
 
 class data : public oracleInterface {
 
@@ -108,14 +107,19 @@ class data : public oracleInterface {
     return(error_msg_);
   }
 
-/** Generate the transactions to encode the effect of this propsal on chain.
- *
- * @pre This transaction must be valid.
- * @params context the blockchain of the shard that provides context for this oracle
- * @return a map of shard indicies to transactions to encode in each shard
- */
   std::map<uint64_t, std::vector<Tier2Transaction>>
-      getTransactions(const Blockchain& context) override {
+      getTrace(const Blockchain& context) override {
+    std::map<uint64_t, std::vector<Tier2Transaction>> out;
+    return out;
+  }
+
+  uint64_t getCurrentDepth(const Blockchain& context) override {
+    //@TODO(nick) scan pre-existing chain for this oracle instance.
+    return(0);
+  }
+
+  std::map<uint64_t, std::vector<Tier2Transaction>>
+      getNextTransactions(const Blockchain& context, const KeyRing& keys) override {
     std::map<uint64_t, std::vector<Tier2Transaction>> out;
     if (!isValid(context)) return out;
     size_t addr_size = Address::getSizeByType(raw_data_.at(0));
@@ -167,34 +171,8 @@ class data : public oracleInterface {
     return out;
   }
 
-/** Generate the appropriate signature(s) for this proposal.
- *
- * @params address - the address corresponding to this key
- * @params key - an ECDSA key, AES encrypted with ASCII armor
- * @params aes_password - the AES password for the key
- * @return the signed oracle data
- */
-  std::string Sign(std::string address
-        , std::string key, std::string aes_password) override {
-    EC_KEY* key_ptr = LoadEcKey(address, key, aes_password);
-
-    size_t data_size = raw_data_.size();
-    int64_t coins_needed = ceil(data_size/kBYTES_PER_COIN);
-    std::vector<Transfer> xfers;
-    Address client(Str2Bin(address));
-    Transfer pay(client, getCoinIndex(), -1*coins_needed, 0);
-    Transfer settle(getDataSinkAddress(), getCoinIndex(), coins_needed, 0);
-    xfers.push_back(pay);
-    xfers.push_back(settle);
-
-    Tier2Transaction the_tx((byte) eOpType::Exchange, xfers
-                           , Str2Bin(raw_data_), key_ptr);
-    std::vector<byte> sig = the_tx.getSignature().getCanonical();
-    std::vector<byte> bin_addr = client.getCanonical();
-    //note that these inserts are on the front of the raw data
-    raw_data_.insert(std::begin(raw_data_), std::begin(sig), std::end(sig));
-    raw_data_.insert(std::begin(raw_data_), std::begin(bin_addr), std::end(bin_addr));
-    return raw_data_;
+  std::vector<byte> Sign() override {
+    return getCanonical();
   }
 
 /**

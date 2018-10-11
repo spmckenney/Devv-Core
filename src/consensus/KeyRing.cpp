@@ -1,8 +1,7 @@
 /*
- * KeyRing.cpp implements key management for Devcash.
+ * KeyRing.cpp implements crypto key management for Devv.
  *
- *  Created on: Mar 3, 2018
- *      Author: Nick Williams
+ * @copywrite  2018 Devvio Inc
  */
 
 #include "KeyRing.h"
@@ -10,7 +9,7 @@
 #include <map>
 #include <string>
 
-namespace Devcash {
+namespace Devv {
 
 Address KeyRing::InsertAddress(std::string hex, EC_KEY* key) {
   std::vector<byte> addr(Hex2Bin(hex));
@@ -20,7 +19,7 @@ Address KeyRing::InsertAddress(std::string hex, EC_KEY* key) {
   return to_insert;
 }
 
-KeyRing::KeyRing(const DevcashContext& context)
+KeyRing::KeyRing(const DevvContext& context)
   : key_map_(), node_list_(), inn_addr_()
 {
   CASH_TRY {
@@ -195,4 +194,4 @@ std::vector<Address> KeyRing::getDesignatedWallets(int index) const {
   return out;
 }
 
-} /* namespace Devcash */
+} /* namespace Devv */

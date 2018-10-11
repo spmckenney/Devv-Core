@@ -1,3 +1,11 @@
+/*
+ * TransactionCreationManager.h supports concurrency for Devv
+ * by providing means to create or prase multiple transactions
+ * in parallel.
+ *
+ * @copywrite  2018 Devvio Inc
+ */
+
 #ifndef CONCURRENCY_TRANSACTIONCREATIONMANAGER_H_
 #define CONCURRENCY_TRANSACTIONCREATIONMANAGER_H_
 
@@ -9,9 +17,9 @@
 #include "primitives/buffers.h"
 #include "primitives/factories.h"
 
-using namespace Devcash;
+using namespace Devv;
 
-namespace Devcash
+namespace Devv
 {
 
 typedef boost::packaged_task<bool> task_t;

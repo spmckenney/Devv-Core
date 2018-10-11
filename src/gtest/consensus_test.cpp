@@ -1,6 +1,8 @@
-//
-// Created by mckenney on 6/29/18.
-//
+/*
+ * consensus_test.cpp tests consensus logic of Devv validators.
+ *
+ * @copywrite  2018 Devvio Inc
+ */
 
 #include "gtest/gtest.h"
 
@@ -23,15 +25,15 @@ namespace {
  */
 class ChainStateTest : public ::testing::Test {
  protected:
-  ChainStateTest() : t1_context_0_(0, 0, Devcash::eAppMode::T1,
+  ChainStateTest() : t1_context_0_(0, 0, Devv::eAppMode::T1,
                                    "", "", "")
   , keys_(t1_context_0_) {
     for (int i = 0; i < 4; ++i) {
-      keys_.addWalletKeyPair(t1_context_0_.kADDRs.at(i), t1_context_0_.kADDR_KEYs.at(i), "password");
+      keys_.addWalletKeyPair(kADDRs.at(i), kADDR_KEYs.at(i), "password");
     }
-    keys_.setInnKeyPair(t1_context_0_.kINN_ADDR, t1_context_0_.kINN_KEY, "password");
+    keys_.setInnKeyPair(kINN_ADDR, kINN_KEY, "password");
     for (int i = 0; i < 3; ++i) {
-      keys_.addNodeKeyPair(t1_context_0_.kNODE_ADDRs.at(i), t1_context_0_.kNODE_KEYs.at(i), "password");
+      keys_.addNodeKeyPair(kNODE_ADDRs.at(i), kNODE_KEYs.at(i), "password");
     }
   }
 
@@ -48,8 +50,8 @@ class ChainStateTest : public ::testing::Test {
   }
 
   // Create a default context
-  Devcash::DevcashContext t1_context_0_;
-  Devcash::KeyRing keys_;
+  Devv::DevvContext t1_context_0_;
+  Devv::KeyRing keys_;
 };
 
 TEST_F(ChainStateTest, constructor_0) {

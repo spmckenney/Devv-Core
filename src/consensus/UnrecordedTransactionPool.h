@@ -1,8 +1,8 @@
 /*
  * UnrecordedTransactionPool.h
+ * tracks Transactions that have not yet been encoded in the blockchain.
  *
- *  Created on: Apr 20, 2018
- *      Author: Nick Williams
+ * @copywrite  2018 Devvio Inc
  */
 
 #ifndef CONSENSUS_UNRECORDEDTRANSACTIONPOOL_H_
@@ -15,7 +15,7 @@
 #include "primitives/FinalBlock.h"
 #include "primitives/factories.h"
 
-namespace Devcash
+namespace Devv
 {
 typedef std::pair<uint8_t, TransactionPtr> SharedTransaction;
 typedef std::map<Signature, SharedTransaction> TxMap;
@@ -211,14 +211,14 @@ class UnrecordedTransactionPool {
    *  @param prev_hash - the hash of the previous block
    *  @param prior_state - the chainstate prior to this proposal
    *  @param keys - the directory of Addresses and EC keys
-   *  @param context - the Devcash context of this shard
+   *  @param context - the Devv context of this shard
    *  @return true, iff this pool created a new ProposedBlock
    *  @return false, if anything went wrong
    */
   bool ProposeBlock(const Hash& prev_hash,
                     const ChainState& prior_state,
                     const KeyRing& keys,
-                    const DevcashContext& context) {
+                    const DevvContext& context) {
     LOG_DEBUG << "ProposeBlock()";
     MTR_SCOPE_FUNC();
     ChainState new_state(prior_state);
@@ -268,7 +268,7 @@ class UnrecordedTransactionPool {
   bool ReverifyProposal(const Hash& prev_hash,
                         const ChainState& prior,
                         const KeyRing& keys,
-                        const DevcashContext& context) {
+                        const DevvContext& context) {
     LOG_DEBUG << "ReverifyProposal()";
     MTR_SCOPE_FUNC();
     std::lock_guard<std::mutex> proposal_guard(pending_proposal_mutex_);
@@ -285,13 +285,13 @@ class UnrecordedTransactionPool {
   /**
    *  Checks a remote validation against this pool's ProposedBlock
    *  @param remote - a binary representation of the remote Validation
-   *  @param context - the Devcash context of this shard
+   *  @param context - the Devv context of this shard
    *  @return true, iff the Validation validates this pool's ProposedBlock
    *  @return false, otherwise including if this pool has no ProposedBlock,
    *                 the Validation is for a different ProposedBlock,
    *                 or the Validation signature did not verify
    */
-  bool CheckValidation(InputBuffer& buffer, const DevcashContext& context) {
+  bool CheckValidation(InputBuffer& buffer, const DevvContext& context) {
     LOG_DEBUG << "CheckValidation()";
     std::lock_guard<std::mutex> proposal_guard(pending_proposal_mutex_);
     if (pending_proposal_.isNull()) { return false; }
@@ -326,6 +326,7 @@ class UnrecordedTransactionPool {
     LOG_DEBUG << "FinalizeRemoteBlock()";
     MTR_SCOPE_FUNC();
     FinalBlock final(buffer, prior, keys, tcm_);
+    RemoveTransactions(final);
     return final;
   }
 
@@ -379,7 +380,7 @@ class UnrecordedTransactionPool {
    *  @return a vector of unrecorded valid transactions
    */
   std::vector<TransactionPtr> CollectValidTransactions(ChainState& state
-      , const KeyRing& keys, Summary& summary, const DevcashContext& context) {
+      , const KeyRing& keys, Summary& summary, const DevvContext& context) {
     LOG_DEBUG << "CollectValidTransactions()";
     std::vector<TransactionPtr> valid;
     MTR_SCOPE_FUNC();
@@ -450,6 +451,20 @@ class UnrecordedTransactionPool {
     return true;
   }
 
+  /** Removes Transactions in a FinalBlock from this pool
+   *  @param final_block - the FinalBlock containing Transactions to remove
+   */
+  void RemoveTransactions(const FinalBlock& final_block) {
+    std::lock_guard<std::mutex> guard(txs_mutex_);
+    size_t txs_size = txs_.size();
+    for (auto const& item : final_block.getTransactions()) {
+      txs_.erase(item->getSignature());
+    }
+    LOG_DEBUG << "RemoveTransactions: (size pre/size post) ("
+              << txs_size << "/"
+              << txs_.size() << ")";
+  }
+
   /** Finalize a ProposedBlock
    *  @param proposed - the ProposedBlock to finalize
    *  @return the FinalBlock based on the provided ProposedBlock
@@ -464,7 +479,7 @@ class UnrecordedTransactionPool {
 
 };
 
-} //end namespace Devcash
+} //end namespace Devv
 
 
 #endif /* CONSENSUS_UNRECORDEDTRANSACTIONPOOL_H_ */

@@ -1,8 +1,7 @@
 /*
- * devvsign.cpp signs a transaction using a given private key
+ * devv-sign.cpp signs a transaction using a given private key
  *
- *  Created on: 8/8/18
- *      Author: Shawn McKenney
+ * @copywrite  2018 Devvio Inc
  */
 
 #include <cstdio>
@@ -11,13 +10,13 @@
 #include <boost/filesystem.hpp>
 #include <boost/program_options.hpp>
 
-#include "common/devcash_context.h"
+#include "common/devv_context.h"
 #include "io/file_ops.h"
 #include "consensus/KeyRing.h"
 #include "pbuf/devv_pbuf.h"
 #include "common/ossladapter.h"
 
-using namespace Devcash;
+using namespace Devv;
 namespace fs = boost::filesystem;
 
 /**
@@ -49,7 +48,7 @@ std::unique_ptr<struct devvsign_options> ParseDevvsignOptions(int argc, char** a
 void TestSign(EC_KEY& ec_key) {
   std::vector<byte> msg = {'h', 'e', 'l', 'l', 'o'};
   Hash test_hash;
-  test_hash = DevcashHash(msg);
+  test_hash = DevvHash(msg);
 
   Signature sig = SignBinary(&ec_key, test_hash);
   if (!VerifyByteSig(&ec_key, test_hash, sig)) {
