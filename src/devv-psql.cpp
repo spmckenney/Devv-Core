@@ -191,9 +191,10 @@ void handle_inn_tx(pqxx::nontransaction& stmt, int shard, unsigned int chain_hei
         std::string pending_uuid = inn_result[i][0].as<std::string>();
         std::string uuid = inn_result[i][1].as<std::string>();
         std::string rx_wallet = inn_result[i][2].as<std::string>();
+        LOG_INFO << "Handle inn transaction for: "+rx_wallet;
         uint64_t coin = inn_result[i][3].as<uint64_t>();
         int64_t amount = inn_result[i][4].as<int64_t>();
-        pqxx::result addr_result = stmt.prepared(kSELECT_ADDR).exec();
+        pqxx::result addr_result = stmt.prepared(kSELECT_ADDR)(rx_wallet).exec();
         if (addr_result.empty()) {
           LOG_WARNING << "wallet id '"+rx_wallet+"' has no address?";
           continue;
@@ -210,6 +211,7 @@ void handle_inn_tx(pqxx::nontransaction& stmt, int shard, unsigned int chain_hei
         uint64_t delay = 0;
         stmt.prepared(kRX_INSERT_COMMENT)(shard)(chain_height)(blocktime)(coin)(amount)(delay)(kREQUEST_COMMENT)(uuid)(kNIL_UUID)(rx_addr).exec();
         stmt.exec("commit;");
+        LOG_INFO << "Updated rx table";
         stmt.prepared(kDELETE_PENDING_RX)(pending_uuid).exec();
         stmt.prepared(kDELETE_PENDING_TX)(uuid).exec();
         stmt.exec("commit;");
