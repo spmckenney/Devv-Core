@@ -242,31 +242,38 @@ int main(int argc, char* argv[]) {
                 stmt.prepared(kTX_CONFIRM)(options->shard_index)(chain_height)(blocktime)(sender_hex)(pending_uuid).exec();
                 stmt.exec("commit;");
                 for (TransferPtr& one_xfer : xfers) {
-                  if (one_xfer->getAmount() > 0) {
-                    std::string rcv_addr = one_xfer->getAddress().getHexString();
-                    try {
-                      LOG_INFO << "Begin processing transfer.";
-                      stmt.exec("begin;");
-                      stmt.exec("savepoint rx_savepoint;");
-                      //update receiver balance
-                      update_balance(stmt, sender_hex, chain_height, coin_id, send_amount, options->shard_index);
-                      pqxx::result rx_result = stmt.prepared(kSELECT_PENDING_RX)(sig_hex)(rcv_addr).exec();
-                      if (!rx_result.empty()) {
-                        std::string rx_uuid = rx_result[0][0].as<std::string>();
-                        stmt.prepared(kRX_CONFIRM)(options->shard_index)(chain_height)(blocktime)(rx_uuid).exec();
-
-                        stmt.prepared(kDELETE_PENDING_RX)(rx_uuid).exec();
-                      } else {
-                        LOG_WARNING << "Pending tx missing corresponding rx '"+sig_hex+"'!";
-                      }
-                      stmt.exec("commit;");
-                      LOG_INFO << "Transfer committed.";
-                    } catch (const std::exception& e) {
-                      LOG_WARNING << FormatException(&e, "Exception updating database for transfer, rollback: "+sig_hex);
-                      stmt.exec("rollback to savepoint rx_savepoint;");
+                  int64_t rcv_amount = one_xfer->getAmount();
+                  if (rcv_amount < 0) continue;
+                  std::string rcv_addr = one_xfer->getAddress().getHexString();
+                  uint64_t rcv_coin_id = one_xfer->getCoin();
+                  try {
+                    LOG_INFO << "Begin processing transfer.";
+                    stmt.exec("begin;");
+                    stmt.exec("savepoint rx_savepoint;");
+                    LOG_INFO << "Update receiver balance.";
+                    update_balance(stmt, rcv_addr, chain_height, rcv_coin_id, rcv_amount, options->shard_index);
+                    pqxx::result rx_result = stmt.prepared(kSELECT_PENDING_RX)(sig_hex)(rcv_addr).exec();
+                    if (!rx_result.empty()) {
+                      std::string rx_uuid = rx_result[0][0].as<std::string>();
+                      LOG_INFO << "Insert rx row.";
+                      stmt.prepared(kRX_CONFIRM)(options->shard_index)(chain_height)(blocktime)(rx_uuid).exec();
+                      LOG_INFO << "Delete pending rx.";
+                      stmt.prepared(kDELETE_PENDING_RX)(rx_uuid).exec();
+                    } else {
+                      LOG_WARNING << "Pending tx missing corresponding rx '"+sig_hex+"'!";
                     }
+                    stmt.exec("commit;");
+                    LOG_INFO << "Transfer committed.";
+                  } catch (const std::exception& e) {
+                    LOG_WARNING << FormatException(&e, "Exception updating database for transfer, rollback: "+sig_hex);
+                    stmt.exec("rollback to savepoint rx_savepoint;");
                   }
                 } //end rx copy loop
+                LOG_INFO << "Delete pending transaction.";
+                stmt.exec("begin;");
+                stmt.exec("savepoint delete_savepoint;");
+                stmt.prepared(kDELETE_PENDING_TX)(pending_uuid).exec();
+                stmt.exec("commit;");
               } else { //no pending exists, so create new transaction
                 pqxx::result uuid_result = stmt.prepared(kSELECT_UUID).exec();
                 if (!uuid_result.empty()) {
@@ -287,7 +294,9 @@ int main(int argc, char* argv[]) {
                       uint64_t delay = one_xfer->getDelay();
 
                       //update receiver balance
-                      update_balance(stmt, sender_hex, chain_height, coin_id, send_amount, options->shard_index);
+                      LOG_INFO << "Update receiver balance.";
+                      update_balance(stmt, rcv_addr, chain_height, rcv_coin_id, rcv_amount, options->shard_index);
+                      LOG_INFO << "Insert rx row.";
                       stmt.prepared(kRX_INSERT)(options->shard_index)(chain_height)(blocktime)(rcv_coin_id)(rcv_amount)(delay)(tx_uuid)(sender_hex)(rcv_addr).exec();
 
                       stmt.exec("commit;");
