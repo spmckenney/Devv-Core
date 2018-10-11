@@ -5,7 +5,6 @@
  *
  * @copywrite  2018 Devvio Inc
  */
- */
 
 #ifndef PRIMITIVES_TRANSFER_H_
 #define PRIMITIVES_TRANSFER_H_
