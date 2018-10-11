@@ -117,8 +117,11 @@ int64_t update_balance(pqxx::nontransaction& stmt, std::string hex_addr
         wallet_id = uuid_result[0][0].as<std::string>();
         LOG_INFO << "UUID is: " + wallet_id;
         try {
+          LOG_WARNING << "one";
           stmt.prepared(kWALLET_INSERT)(wallet_id)(hex_addr)(shard).exec();
+          LOG_WARNING << "two";
           stmt.exec("commit;");
+          LOG_WARNING << "three";
         } catch (const pqxx::pqxx_exception& e) {
           LOG_ERROR << e.base().what() << std::endl;
           const pqxx::sql_error* s = dynamic_cast<const pqxx::sql_error*>(&e.base());
