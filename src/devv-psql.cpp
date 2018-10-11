@@ -246,7 +246,17 @@ int main(int argc, char* argv[]) {
               LOG_INFO << "Updated sender balance.";
 
               //copy transfers
-              pqxx::result pending_result = stmt.prepared(kSELECT_PENDING_TX)(sig_hex).exec();
+              pqxx::result pending_result;
+              try {
+                pending_result = stmt.prepared(kSELECT_PENDING_TX)(sig_hex).exec();
+              } catch (const pqxx::pqxx_exception &e) {
+                std::cerr << e.base().what() << std::endl;
+                const pqxx::sql_error *s=dynamic_cast<const pqxx::sql_error*>(&e.base());
+                if (s) LOG_ERROR << "Query was: " << s->query() << std::endl;
+              } catch (const std::exception& e) {
+                LOG_WARNING << FormatException(&e, "Exception updating database for transfer, no rollback: "+sig_hex);
+              }
+
               if (!pending_result.empty()) {
                 LOG_INFO << "Pending transaction exists.";
                 std::string pending_uuid = pending_result[0][0].as<std::string>();
@@ -306,7 +316,13 @@ int main(int argc, char* argv[]) {
 
                       //update receiver balance
                       LOG_INFO << "Update receiver balance.";
-                      update_balance(stmt, rcv_addr, chain_height, rcv_coin_id, rcv_amount, options->shard_index);
+                      try {
+                        update_balance(stmt, rcv_addr, chain_height, rcv_coin_id, rcv_amount, options->shard_index);
+                      } catch (const pqxx::pqxx_exception &e) {
+                        std::cerr << e.base().what() << std::endl;
+                      } catch (const std::exception& e) {
+                        LOG_WARNING << FormatException(&e, "Exception updating balance");
+                      }
                       LOG_INFO << "Insert rx row.";
                       stmt.prepared(kRX_INSERT)(options->shard_index)(chain_height)(blocktime)(rcv_coin_id)(rcv_amount)(delay)(tx_uuid)(sender_hex)(rcv_addr).exec();
 
@@ -314,7 +330,6 @@ int main(int argc, char* argv[]) {
                       LOG_INFO << "Transfer committed.";
                     } catch (const std::exception& e) {
                       LOG_WARNING << FormatException(&e, "Exception updating database for transfer, no rollback: "+sig_hex);
-                      //stmt.exec("rollback to savepoint rx_savepoint;");
                     }
                   } //end transfer loop
                 } else {
@@ -324,7 +339,7 @@ int main(int argc, char* argv[]) {
             } catch (const pqxx::pqxx_exception &e) {
               std::cerr << e.base().what() << std::endl;
               const pqxx::sql_error *s=dynamic_cast<const pqxx::sql_error*>(&e.base());
-              if (s) std::cerr << "Query was: " << s->query() << std::endl;
+              if (s) LOG_ERROR << "Query was: " << s->query() << std::endl;
             } catch (const std::exception& e) {
               LOG_WARNING << FormatException(&e, "Exception updating database for transfer, no rollback: "+sig_hex);
             }
@@ -359,8 +374,7 @@ int main(int argc, char* argv[]) {
     std::exception_ptr p = std::current_exception();
     std::string err("");
     err += (p ? p.__cxa_exception_type()->name() : "null");
-    LOG_FATAL << "Error: " + err << std::endl;
-    std::cerr << err << std::endl;
+    LOG_FATAL << "Error: " + err;
     return (false);
   }
 }
