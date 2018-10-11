@@ -115,7 +115,15 @@ int64_t update_balance(pqxx::nontransaction& stmt, std::string hex_addr
       LOG_INFO << "Got uuid";
       wallet_id = uuid_result[0][0].as<std::string>();
       LOG_INFO << "UUID is: "+wallet_id;
-      stmt.prepared(kWALLET_INSERT)(wallet_id)(hex_addr)(shard).exec();
+      try {
+        stmt.prepared(kWALLET_INSERT)(wallet_id)(hex_addr)(shard).exec();
+      } catch (const pqxx::pqxx_exception &e) {
+        std::cerr << e.base().what() << std::endl;
+        const pqxx::sql_error *s=dynamic_cast<const pqxx::sql_error*>(&e.base());
+        if (s) LOG_ERROR << "Query was: " << s->query() << std::endl;
+      } catch (const std::exception& e) {
+        LOG_WARNING << FormatException(&e, "Exception inserting new wallet");
+      }
       LOG_INFO << "Inserted wallet.";
     } else {
       LOG_WARNING << "Failed to generate a UUID for new wallet!";
@@ -285,6 +293,8 @@ int main(int argc, char* argv[]) {
                     }
                     stmt.exec("commit;");
                     LOG_INFO << "Transfer committed.";
+                  } catch (const pqxx::pqxx_exception& e) {
+                    std::cerr << e.base().what() << std::endl;
                   } catch (const std::exception& e) {
                     LOG_WARNING << FormatException(&e, "Exception updating database for transfer, rollback: "+sig_hex);
                     stmt.exec("rollback to savepoint rx_savepoint;");
@@ -318,7 +328,7 @@ int main(int argc, char* argv[]) {
                       LOG_INFO << "Update receiver balance.";
                       try {
                         update_balance(stmt, rcv_addr, chain_height, rcv_coin_id, rcv_amount, options->shard_index);
-                      } catch (const pqxx::pqxx_exception &e) {
+                      } catch (const pqxx::pqxx_exception& e) {
                         std::cerr << e.base().what() << std::endl;
                       } catch (const std::exception& e) {
                         LOG_WARNING << FormatException(&e, "Exception updating balance");
