@@ -48,20 +48,28 @@ struct psql_options {
   unsigned int db_port = 5432;
 };
 
+static const std::string kREQUEST_COMMENT = "Test Devv from the INN";
+
 static const std::string kNIL_UUID = "00000000-0000-0000-0000-000000000000";
 static const std::string kNIL_UUID_PSQL = "'00000000-0000-0000-0000-000000000000'::uuid";
 static const std::string kSELECT_UUID = "select_uuid";
 static const std::string kSELECT_UUID_STATEMENT = "select devv_uuid();";
 static const std::string kSELECT_PENDING_TX = "select_pending_tx";
 static const std::string kSELECT_PENDING_TX_STATEMENT = "select pending_tx_id from pending_tx where sig = lower($1);";
+static const std::string kSELECT_ADDR = "select_addr";
+static const std::string kSELECT_ADDR_STATEMENT = "select wallet_addr from wallet where wallet_id = cast($1 as uuid)";
 static const std::string kSELECT_PENDING_RX = "select_pending_rx";
 static const std::string kSELECT_PENDING_RX_STATEMENT = "select p.pending_rx_id from pending_rx p, wallet rx where p.sig = lower($1) and rx.wallet_id = cast($2 as uuid);";
+static const std::string kSELECT_PENDING_INN = "select_pending_inn";
+static const std::string kSELECT_PENDING_INN_STATEMENT = "select pending_rx_id, sig, rx_wallet, coin_id, amount from pending_rx where comment = '"+kREQUEST_COMMENT+"'";
 static const std::string kTX_INSERT = "tx_insert";
 static const std::string kTX_INSERT_STATEMENT = "INSERT INTO tx (tx_id, shard_id, block_height, block_time, tx_wallet, coin_id, amount) (select cast($1 as uuid), $2, $3, $4, tx.wallet_id, $5, $6 from wallet tx where tx.wallet_addr = lower($7));";
 static const std::string kTX_CONFIRM = "tx_confirm";
 static const std::string kTX_CONFIRM_STATEMENT = "INSERT INTO tx (tx_id, shard_id, block_height, block_time, tx_wallet, coin_id, amount, comment) (select p.pending_tx_id, $1, $2, $3, p.tx_wallet, p.coin_id, p.amount, p.comment from pending_tx p where tx.wallet_addr = lower($4) and p.pending_tx_id = cast($5 as uuid));";
 static const std::string kRX_INSERT = "rx_insert";
 static const std::string kRX_INSERT_STATEMENT = "INSERT INTO rx (rx_id, shard_id, block_height, block_time, tx_wallet, rx_wallet, coin_id, amount, delay, tx_id) (select devv_uuid(), $1, $2, $3, tx.wallet_id, rx.wallet_id, $4, $5, $6, cast($7 as uuid) from wallet tx, wallet rx where tx.wallet_addr = lower($8) and rx.wallet_addr = lower($9));";
+static const std::string kRX_INSERT_COMMENT = "rx_insert_comment";
+static const std::string kRX_INSERT_COMMENT_STATEMENT = "INSERT INTO rx (rx_id, shard_id, block_height, block_time, tx_wallet, rx_wallet, coin_id, amount, delay, comment, tx_id) (select devv_uuid(), $1, $2, $3, tx.wallet_id, rx.wallet_id, $4, $5, $6, $7, cast($8 as uuid) from wallet tx, wallet rx where tx.wallet_addr = lower($9) and rx.wallet_addr = lower($10));";
 static const std::string kRX_CONFIRM = "rx_confirm";
 static const std::string kRX_CONFIRM_STATEMENT = "INSERT INTO rx (rx_id, shard_id, block_height, block_time, tx_wallet, rx_wallet, coin_id, amount, delay, comment, tx_id) (select devv_uuid(), $1, $2, $3, p.tx_wallet, p.rx_wallet, p.coin_id, p.amount, p.delay, p.comment, p.pending_tx_id from pending_rx p where p.pending_rx_id = cast($4 as uuid));";
 static const std::string kBALANCE_SELECT = "balance_select";
@@ -175,6 +183,48 @@ int64_t update_balance(pqxx::nontransaction& stmt, std::string hex_addr
   return new_balance;
 }
 
+void handle_inn_tx(pqxx::nontransaction& stmt, int shard, unsigned int chain_height, uint64_t blocktime) {
+  pqxx::result inn_result = stmt.prepared(kSELECT_PENDING_INN).exec();
+  if (!inn_result.empty()) {
+    for (size_t i=0; i < inn_result.size(); ++i) {
+      try {
+        std::string pending_uuid = inn_result[i][0].as<std::string>();
+        std::string uuid = inn_result[i][0].as<std::string>();
+        std::string rx_wallet = inn_result[i][1].as<std::string>();
+        uint64_t coin = inn_result[i][2].as<uint64_t>();
+        int64_t amount = inn_result[i][3].as<int64_t>();
+        pqxx::result addr_result = stmt.prepared(kSELECT_ADDR).exec();
+        if (addr_result.empty()) {
+          LOG_WARNING << "wallet id '"+rx_wallet+"' has no address?";
+          continue;
+        }
+        if (amount < 0) {
+          LOG_WARNING << "Negative coin request.  Ignore.";
+          continue;
+        }
+        std::string rx_addr = addr_result[0][0].as<std::string>();
+        stmt.prepared(kTX_INSERT)(uuid)(shard)(chain_height)(blocktime)(coin)(-1*amount)(kNIL_UUID).exec();
+        stmt.exec("commit;");
+        update_balance(stmt, rx_addr, chain_height, coin, amount, shard);
+        LOG_INFO << "Receiver balance updated.";
+        uint64_t delay = 0;
+        stmt.prepared(kRX_INSERT_COMMENT)(shard)(chain_height)(blocktime)(coin)(amount)(delay)(kREQUEST_COMMENT)(uuid)(kNIL_UUID)(rx_addr).exec();
+        stmt.exec("commit;");
+        stmt.prepared(kDELETE_PENDING_RX)(pending_uuid).exec();
+        stmt.prepared(kDELETE_PENDING_TX)(uuid).exec();
+        stmt.exec("commit;");
+      } catch (const pqxx::pqxx_exception& e) {
+        LOG_ERROR << e.base().what() << std::endl;
+        const pqxx::sql_error* s = dynamic_cast<const pqxx::sql_error*>(&e.base());
+        if (s) LOG_ERROR << "Query was: " << s->query() << std::endl;
+      } catch (const std::exception& e) {
+        LOG_WARNING << FormatException(&e, "Exception selecting wallet");
+      }
+    } //end for pending request loop
+  } //endif result not empty
+  //if result is empty, it was probably handled already, do nothing
+}
+
 int main(int argc, char* argv[]) {
   init_log();
 
@@ -223,6 +273,8 @@ int main(int argc, char* argv[]) {
       db_link->prepare(kSELECT_UUID, kSELECT_UUID_STATEMENT);
       db_link->prepare(kSELECT_PENDING_TX, kSELECT_PENDING_TX_STATEMENT);
       db_link->prepare(kSELECT_PENDING_RX, kSELECT_PENDING_RX_STATEMENT);
+      db_link->prepare(kSELECT_PENDING_INN, kSELECT_PENDING_INN_STATEMENT);
+      db_link->prepare(kSELECT_ADDR, kSELECT_ADDR_STATEMENT);
       db_link->prepare(kBALANCE_UPDATE, kBALANCE_UPDATE_STATEMENT);
       db_link->prepare(kTX_INSERT, kTX_INSERT_STATEMENT);
       db_link->prepare(kTX_CONFIRM, kTX_CONFIRM_STATEMENT);
@@ -260,6 +312,10 @@ int main(int argc, char* argv[]) {
             stmt.exec("begin;");
             stmt.exec("savepoint tx_savepoint;");
             std::string sig_hex = one_tx->getSignature().getJSON();
+            if (one_tx->getSignature().isNodeSignature()) {
+              handle_inn_tx(stmt, options->shard_index, chain_height, blocktime);
+              continue;
+            }
             try {
               std::vector<TransferPtr> xfers = one_tx->getTransfers();
               std::string sender_hex;
