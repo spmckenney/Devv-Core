@@ -118,6 +118,7 @@ int64_t update_balance(pqxx::nontransaction& stmt, std::string hex_addr
         LOG_INFO << "UUID is: " + wallet_id;
         try {
           stmt.prepared(kWALLET_INSERT)(wallet_id)(hex_addr)(shard).exec();
+          stmt.exec("commit;");
         } catch (const pqxx::pqxx_exception& e) {
           LOG_ERROR << e.base().what() << std::endl;
           const pqxx::sql_error* s = dynamic_cast<const pqxx::sql_error*>(&e.base());
@@ -152,6 +153,7 @@ int64_t update_balance(pqxx::nontransaction& stmt, std::string hex_addr
       LOG_INFO << "New balance is: " + std::to_string(new_balance);
       stmt.prepared(kBALANCE_UPDATE)(new_balance)(chain_height)(wallet_id)(coin).exec();
     }
+    stmt.exec("commit;");
   } catch (const pqxx::pqxx_exception& e) {
     LOG_ERROR << e.base().what() << std::endl;
     const pqxx::sql_error* s = dynamic_cast<const pqxx::sql_error*>(&e.base());
@@ -304,12 +306,13 @@ int main(int argc, char* argv[]) {
                       std::string rx_uuid = rx_result[0][0].as<std::string>();
                       LOG_INFO << "Insert rx row.";
                       stmt.prepared(kRX_CONFIRM)(options->shard_index)(chain_height)(blocktime)(rx_uuid).exec();
+                      stmt.exec("commit;");
                       LOG_INFO << "Delete pending rx.";
                       stmt.prepared(kDELETE_PENDING_RX)(rx_uuid).exec();
+                      stmt.exec("commit;");
                     } else {
                       LOG_WARNING << "Pending tx missing corresponding rx '"+sig_hex+"'!";
                     }
-                    stmt.exec("commit;");
                     LOG_INFO << "Transfer committed.";
                   } catch (const pqxx::pqxx_exception& e) {
                     LOG_ERROR << e.base().what() << std::endl;
