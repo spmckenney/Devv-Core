@@ -344,12 +344,13 @@ int main(int argc, char* argv[]) {
                 stmt.prepared(kDELETE_PENDING_TX)(pending_uuid).exec();
                 stmt.exec("commit;");
               } else { //no pending exists, so create new transaction
+                LOG_INFO << "Pending transaction does not exist.";
                 pqxx::result uuid_result = stmt.prepared(kSELECT_UUID).exec();
                 if (!uuid_result.empty()) {
+                  LOG_INFO << "!uuid_result.empty()";
                   std::string tx_uuid = uuid_result[0][0].as<std::string>();
                   stmt.prepared(kTX_INSERT)(tx_uuid)(options->shard_index)(chain_height)(blocktime)(coin_id)(send_amount)(sender_hex).exec();
                   stmt.exec("commit;");
-                  LOG_INFO << "Pending transaction does not exist.";
                   for (TransferPtr& one_xfer : xfers) {
                     //only do receivers
                     int64_t rcv_amount = one_xfer->getAmount();
