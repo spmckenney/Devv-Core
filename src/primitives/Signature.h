@@ -14,8 +14,7 @@
  *  73 -> raw Wallet Signature (secp256k1) follows, 73 bytes
  *  105 -> raw Node Signature (secp384r1) follows, 105 bytes
  *
- *  Created on: July 15, 2018
- *      Author: Nick Williams
+ * @copywrite  2018 Devvio Inc
  */
 
 #ifndef PRIMITIVES_SIGNATURE_H_

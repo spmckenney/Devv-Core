@@ -1,6 +1,8 @@
-//
-// Created by mckenney on 6/15/18.
-//
+/*
+ * buffers.h provides methods to track and utilize Devv binary data
+ *
+ * @copywrite  2018 Devvio Inc
+ */
 #ifndef DEVV_BUFFERS_H
 #define DEVV_BUFFERS_H
 

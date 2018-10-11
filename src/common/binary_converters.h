@@ -1,6 +1,8 @@
-//
-// Created by mckenney on 6/13/18.
-//
+/*
+ * binary_converters.h includes functions for common conversions.
+ *
+ * @copywrite  2018 Devvio Inc
+ */
 #ifndef DEVV_BINARY_CONVERTERS_H
 #define DEVV_BINARY_CONVERTERS_H
 

@@ -1,3 +1,9 @@
+/*
+ * logger.h logging system for Devv
+ *
+ * @copywrite  2018 Devvio Inc
+ */
+
 #ifndef DEVV_LOGGER_H
 #define DEVV_LOGGER_H
 

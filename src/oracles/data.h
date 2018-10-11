@@ -1,10 +1,9 @@
 /*
  * data.h is an oracle to handle data storage on chain.
  *
- * Internal format is addr|signature|data
+ * Proposal.data format is addr|signature|data
  *
- *  Created on: Mar 1, 2018
- *  Author: Nick Williams
+ * @copywrite  2018 Devvio Inc
  *
  */
 

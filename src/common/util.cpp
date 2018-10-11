@@ -1,8 +1,7 @@
 /*
  * util.cpp general utilities.
  *
- *  Created on: Dec 27, 2017
- *  Author: Nick Williams
+ * @copywrite  2018 Devvio Inc
  */
 
 #include "util.h"

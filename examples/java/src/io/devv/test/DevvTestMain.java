@@ -1,3 +1,10 @@
+/*
+ * Example a Java integration using Devv Proposals and Transactions
+ * to communicate with the Devv blockchain through Protobufs and JNI.
+ *
+ * @copywrite  2018 Devvio Inc
+ */
+
 package io.devv.test;
 
 import org.zeromq.ZMQ;
@@ -77,7 +84,7 @@ public class DevvTestMain {
 	 * @params delay - a delay (in seconds) before this transaction settles and can be reversed
 	 * @params nonce - arbitrary contextual binary data associated with this transaction
 	 * @params sig - the sender's signature using the hash of rest of this transaction in canonical form as a message digest
-	 * @note use the JNI SignTransaction method to generate a signed version of this transaction for the given key 
+	 * @note use the JNI SignTransaction method to generate a signed version of this transaction for the given key
 	 * @return a binary proposal including the signature(s) as needed
 	 */
 	public Transaction getTransaction(ByteString sender, ByteString receiver, long coin, long amount, long delay, byte[] nonce, byte[] sig) {
@@ -124,7 +131,7 @@ public class DevvTestMain {
 
 	        ZMQ.Socket repeater = context.socket(ZMQ.REQ);
 	        repeater.connect(REPEATER_URL);
-        
+
 			DevvTestMain test = new DevvTestMain();
 			Transaction tx = test.getTransaction(ByteString.copyFrom(hexStringToByteArray(ADDR_1)),
 					ByteString.copyFrom(hexStringToByteArray(ADDR_2)),
@@ -142,7 +149,7 @@ public class DevvTestMain {
 	          RepeaterRequest request = RepeaterRequest.newBuilder()
 	        		  .setTimestamp(System.currentTimeMillis())
 	        		  .setOperation(CHECK_TRANSACTION)
-	        		  .setUri("devv://shard-1/0/"+bytesToHex(tx2.getSig().toByteArray()))	        		 
+	        		  .setUri("devv://shard-1/0/"+bytesToHex(tx2.getSig().toByteArray()))
 	        		  .build();
 	          repeater.send(request.toByteArray(), 0);
 	          RepeaterResponse response = RepeaterResponse.parseFrom(repeater.recv(0));
@@ -151,7 +158,7 @@ public class DevvTestMain {
 	        	RepeaterRequest blockRequest = RepeaterRequest.newBuilder()
 		        		  .setTimestamp(System.currentTimeMillis())
 		        		  .setOperation(GET_BLOCK_AS_PBUF)
-		        		  .setUri("devv://shard-1/"+response.getRawResponse().toString())        		 
+		        		  .setUri("devv://shard-1/"+response.getRawResponse().toString())
 		        		  .build();
 		        repeater.send(blockRequest.toByteArray(), 0);
 		        RepeaterResponse blockResponse = RepeaterResponse.parseFrom(repeater.recv(0));
@@ -163,7 +170,7 @@ public class DevvTestMain {
 		            }
 		          }
 		        } else {
-		          System.out.println("Error (#"+response.getReturnCode()+"): "+response.getMessage());	
+		          System.out.println("Error (#"+response.getReturnCode()+"): "+response.getMessage());
 		        }
 	          } else {
 	        	System.out.println("Error (#"+response.getReturnCode()+"): "+response.getMessage());
@@ -176,6 +183,6 @@ public class DevvTestMain {
 	        context.term();
 		} catch (Exception e) {
 			System.err.println(e.getClass()+": "+e.getMessage());
-		}  
-	}	
+		}
+	}
 }

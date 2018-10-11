@@ -6,8 +6,7 @@
  * Scans and checks public keys without using any private keys.
  * Handles each file independently, so blockchains should be in a single file.
  *
- *  Created on: May 20, 2018
- *  Author: Nick Williams
+ * @copywrite  2018 Devvio Inc
  */
 
 #include <string>

@@ -1,10 +1,11 @@
-
 /*
- * announcer.cpp reads Devv transaction files from a directory
- * and annouonces them to nodes provided by the host-list arguments
+ * devv-announcer.cpp listens for Devv Protobuf envelopes.
+ * These envelopes include transaction files that devv-announcer
+ * annouonces to nodes provided by the host-list arguments.
+ * The envelopes also contain oracle proposals that are used
+ * to invoke oracle logic.
  *
- *  Created on: May 29, 2018
- *  Author: Nick Williams
+ * @copywrite  2018 Devvio Inc
  */
 
 #include <fstream>

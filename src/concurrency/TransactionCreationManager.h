@@ -1,3 +1,11 @@
+/*
+ * TransactionCreationManager.h supports concurrency for Devv
+ * by providing means to create or prase multiple transactions
+ * in parallel.
+ *
+ * @copywrite  2018 Devvio Inc
+ */
+
 #ifndef CONCURRENCY_TRANSACTIONCREATIONMANAGER_H_
 #define CONCURRENCY_TRANSACTIONCREATIONMANAGER_H_
 

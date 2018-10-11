@@ -1,3 +1,11 @@
+/*
+ * Devv_spsc_queue_test.cpp - tests Devv implementation of the single producer
+ * single consumer queue.
+ *
+ *
+ * @copywrite  2018 Devvio Inc
+ */
+
 #include <memory>
 #include "concurrency/DevvSPSCQueue.h"
 #include "types/DevvMessage.h"

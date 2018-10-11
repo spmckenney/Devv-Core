@@ -1,8 +1,8 @@
 /**
- * ${Filename}
+ * ConsensusController.cpp controls callbacks for the
+ * consensus process between Devv validators.
  *
- *  Created on: 6/22/18
- *      Author: mckenney
+ * @copywrite  2018 Devvio Inc
  */
 #include "ConsensusController.h"
 #include "consensus/tier2_message_handlers.h"

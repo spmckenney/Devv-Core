@@ -1,8 +1,8 @@
 /*
  * ProposedBlock.h
+ * Defines the strcuture of a proposed block, prior to consensus.
  *
- *  Created on: Apr 20, 2018
- *      Author: Nick Williams
+ * @copywrite  2018 Devvio Inc
  */
 #ifndef PRIMITIVES_PROPOSEDBLOCK_H_
 #define PRIMITIVES_PROPOSEDBLOCK_H_

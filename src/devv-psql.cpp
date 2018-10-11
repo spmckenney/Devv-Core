@@ -1,11 +1,9 @@
-
 /*
  * devv-psql.cpp listens for FinalBlock messages and updates an INN database
  * based on the transactions in those blocks.
  * This process is designed to integrate with a postgres database.
  *
- *  Created on: September 6, 2018
- *  Author: Nick Williams
+ * @copywrite  2018 Devvio Inc
  */
 
 #include <fstream>

@@ -1,8 +1,8 @@
 /*
- * message_service.h - Communication constants
+ * constants.h tests
+ * tracks constants for the Devv networking and IO module.
  *
- *  Created on: Mar 3, 2018
- *  Created by: Shawn McKenney
+ * @copywrite  2018 Devvio Inc
  */
 #pragma once
 

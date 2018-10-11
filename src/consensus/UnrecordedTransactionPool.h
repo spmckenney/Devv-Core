@@ -1,8 +1,8 @@
 /*
  * UnrecordedTransactionPool.h
+ * tracks Transactions that have not yet been encoded in the blockchain.
  *
- *  Created on: Apr 20, 2018
- *      Author: Nick Williams
+ * @copywrite  2018 Devvio Inc
  */
 
 #ifndef CONSENSUS_UNRECORDEDTRANSACTIONPOOL_H_

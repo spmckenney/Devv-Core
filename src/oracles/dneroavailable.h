@@ -1,8 +1,7 @@
 /*
  * dneroavailable.h is an oracle to allow dnero transactions.
  *
- *  Created on: Feb 23, 2018
- *  Author: Nick Williams
+ * @copywrite  2018 Devvio Inc
  *
  */
 

@@ -1,9 +1,8 @@
-/*
- * ConsensusController.h
+/**
+ * ConsensusController.h controls callbacks for the
+ * consensus process between Devv validators.
  *
- *  Created on: 6/22/18
- *      Authors: Shawn McKenney
- *               Nick Williams
+ * @copywrite  2018 Devvio Inc
  */
 #pragma once
 

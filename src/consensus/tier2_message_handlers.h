@@ -1,16 +1,8 @@
-/**
- * Copyright (C) 2018 Devvio, Inc - All Rights Reserved
- * You may use, distribute and modify this code under the
- * terms of the MIT license, which unfortunately won't be
- * written for another century.
+/*
+ * tier2_message_handlers.h structure consensus logic for Tier2 validators.
  *
- * You should have received a copy of the MIT license with
- * this file. If not, please visit http://www.devv.io
- *
- *   Created on: Jun 1, 2018
- *       Author: Nick Williams <nick@cloudsolar.co>
- *       Author: Shawn McKenney <shawn.mckenney@emmion.com>
-**/
+ * @copywrite  2018 Devvio Inc
+ */
 #include "types/DevvMessage.h"
 #include "common/devv_context.h"
 #include "common/logger.h"

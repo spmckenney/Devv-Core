@@ -16,8 +16,7 @@
  *
  *
  *
- *  Created on: July 13, 2018
- *      Author: Nick Williams
+ * @copywrite  2018 Devvio Inc
  */
 
 #ifndef PRIMITIVES_ADDRESS_H_

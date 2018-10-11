@@ -1,8 +1,7 @@
 /*
  * vote.h is an oracle to handle arbitrary election processes.
  *
- *  Created on: Feb 28, 2018
- *  Author: Nick Williams
+ * @copywrite  2018 Devvio Inc
  *
  */
 

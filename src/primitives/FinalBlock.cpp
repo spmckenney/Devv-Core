@@ -1,8 +1,8 @@
 /*
  * FinalBlock.cpp
+ * Implements tools to Create final blocks
  *
- *  Created on: Jun 20, 2018
- *      Author: Shawn McKenney
+ * @copywrite  2018 Devvio Inc
  */
 #include "primitives/FinalBlock.h"
 #include "common/devv_exceptions.h"

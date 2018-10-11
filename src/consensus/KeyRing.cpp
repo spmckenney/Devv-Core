@@ -1,8 +1,7 @@
 /*
- * KeyRing.cpp implements key management for Devv.
+ * KeyRing.cpp implements crypto key management for Devv.
  *
- *  Created on: Mar 3, 2018
- *      Author: Nick Williams
+ * @copywrite  2018 Devvio Inc
  */
 
 #include "KeyRing.h"

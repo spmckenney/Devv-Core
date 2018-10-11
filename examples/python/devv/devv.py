@@ -1,4 +1,10 @@
-#!/usr/bin/python3
+#!/usr/bin/env python
+"""
+Tools to send Devv transactions and proposals in Google Protobuf format.
+"""
+
+__copyright__ = "Copyright 2018, Devvio Inc"
+__email__ = "security@devv.io"
 
 import zmq
 from . import devv_pb2 as dpb

@@ -2,8 +2,7 @@
  * devv-query.cpp listens for FinalBlock messages and saves them to a file
  * It responds to user requests to provide chain and block data.
  *
- *  Created on: June 25, 2018
- *  Author: Nick Williams
+ * @copywrite  2018 Devvio Inc
  */
 
 #include <fstream>

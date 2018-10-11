@@ -1,8 +1,7 @@
 /*
- * types/devv_types.h
+ * devv_types.h typedefs and enums for Devv.
  *
- *  Created on: Jun 6, 2018
- *      Author: Shawn McKenney
+ * @copywrite  2018 Devvio Inc
  */
 #pragma once
 

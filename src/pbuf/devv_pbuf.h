@@ -1,8 +1,7 @@
 /*
- * ${Filename}
+ * devv_pbuf.h tools for integration with Protobuf formatted data.
  *
- *  Created on: 8/6/18
- *      Author: mckenney
+ * @copywrite  2018 Devvio Inc
  */
 #ifndef DEVV_PBUF_H
 #define DEVV_PBUF_H

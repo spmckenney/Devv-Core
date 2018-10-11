@@ -1,8 +1,7 @@
 /*
- * devv.cpp the main class.  Checks args and hands of to init.
+ * devv-validator.cpp the main class for a Devv core validator.
  *
- *  Created on: Dec 8, 2017
- *  Author: Nick Williams
+ * @copywrite  2018 Devvio Inc
  */
 
 #include <stdlib.h>
