@@ -1,3 +1,10 @@
+/*
+ * producer_consumer_queue_test.cpp - tests the producer consumer queue.
+ *
+ *
+ * @copywrite  2018 Devvio Inc
+ */
+
 #include <memory>
 #include "queues/DevvRingQueue.h"
 #include "types/DevvMessage.h"

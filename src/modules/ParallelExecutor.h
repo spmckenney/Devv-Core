@@ -1,8 +1,7 @@
 /*
- * ParallelExecutor.h
+ * ParallelExecutor.h executes controllers in parallel
  *
- *  Created on: 6/21/18
- *      Author: Shawn McKenney <shawn.mckenney@emmion.com>
+ * @copywrite  2018 Devvio Inc
  */
 #pragma once
 

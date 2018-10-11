@@ -1,8 +1,7 @@
 /*
- * message_service.h - Sending and receiving Devv messages
+ * message_service.h Sends and receives Devv messages using ZMQ.
  *
- *  Created on: Mar 3, 2018
- *  Created by: Shawn McKenney
+ * @copywrite  2018 Devvio Inc
  */
 #pragma once
 

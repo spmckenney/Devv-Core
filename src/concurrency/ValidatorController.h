@@ -1,8 +1,7 @@
 /*
- * ValidatorController.h controls worker threads for the Devv protocol.
+ * ValidatorController.h controls consensus worker threads for the Devv protocol.
  *
- *  Created on: Mar 21, 2018
- *      Author: Nick Williams
+ * @copywrite  2018 Devvio Inc
  */
 #ifndef CONCURRENCY_VALIDATORCONTROLLER_H_
 #define CONCURRENCY_VALIDATORCONTROLLER_H_

@@ -1,8 +1,8 @@
-/*
- * ${Filename}
+/**
+ * InternetworkController.h controls callbacks for
+ * communications to and from processes outside the Devv shard peers.
  *
- *  Created on: 6/22/18
- *      Author: mckenney
+ * @copywrite  2018 Devvio Inc
  */
 #pragma once
 

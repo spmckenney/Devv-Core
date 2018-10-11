@@ -1,8 +1,7 @@
 /*
- * message_service.cpp - implements messaging
+ * message_service.cpp Sends and receives Devv messages using ZMQ.
  *
- *  Created on: Mar 3, 2018
- *  Author: Shawn McKenney
+ * @copywrite  2018 Devvio Inc
  */
 #include <io/message_service.h>
 

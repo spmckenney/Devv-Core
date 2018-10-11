@@ -2,8 +2,7 @@
  * Tier1Transaction.h defines the structure of the transaction section of a block
  * for Tier 1 shards.
  *
- *  Created on: May 4, 2018
- *  Author: Nick Williams
+ * @copywrite  2018 Devvio Inc
  *
  */
 

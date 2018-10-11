@@ -1,3 +1,11 @@
+/*
+ * transaction_client.cpp - implements a client for connectivity tests
+ * between T2 and T1 shards.
+ *
+ *
+ * @copywrite  2018 Devvio Inc
+ */
+
 #include <string>
 #include <vector>
 

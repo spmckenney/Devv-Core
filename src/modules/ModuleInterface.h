@@ -1,8 +1,7 @@
 /*
  * ModuleInterface
  *
- *  Created on: 6/22/18
- *      Author: Shawn McKenney <shawn.mckenney@emmion.com>
+ * @copywrite  2018 Devvio Inc
  */
 #pragma once
 

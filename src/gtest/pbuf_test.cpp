@@ -1,8 +1,8 @@
 /*
- * pbuf_test.cpp
+ * pbuf_test.cpp tests serialization and deserialization
+ * of Devv objects in Protobuf format.
  *
- *  Created on: 8/20/18
- *      Author: mckenney
+ * @copywrite  2018 Devvio Inc
  */
 #include <cstdint>
 

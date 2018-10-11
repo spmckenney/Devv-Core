@@ -8,8 +8,9 @@
  *  For perfect circuits,
  *    make sure that generate_count is one more than a perfect square.
  *
- *  Created on: May 24, 2018
- *      Author: Nick Williams
+ *
+ *
+ * @copywrite  2018 Devvio Inc
  */
 
 #include <algorithm>

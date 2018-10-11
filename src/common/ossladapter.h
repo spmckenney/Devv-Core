@@ -1,8 +1,7 @@
 /*
  * ossladapter.h header only C-Style OpenSSL adapter for hashing and ECDSA.
  *
- *  Created on: Jan 10, 2018
- *  Author: Nick Williams
+ * @copywrite  2018 Devvio Inc
  */
 
 #ifndef SRC_COMMON_OSSLADAPTER_H_

@@ -1,46 +1,49 @@
 /*
- * api.h is an oracle to handle permissions for external extensions to
- * these oracles.
+ * coin_request.h is a testnet oracle to request coins from the INN.
+ *
+ * Proposal format is coin|addr
  *
  * @copywrite  2018 Devvio Inc
  *
  */
 
-#ifndef ORACLES_API_H_
-#define ORACLES_API_H_
+#ifndef ORACLES_REQUEST_H_
+#define ORACLES_REQUEST_H_
 
 #include <string>
 
 #include "oracleInterface.h"
-#include "common/logger.h"
+#include "consensus/chainstate.h"
+#include "consensus/KeyRing.h"
 
 using namespace Devv;
 
-class api : public oracleInterface {
+class CoinRequest : public oracleInterface {
 
  public:
 
-  api(std::string data) : oracleInterface(data) {};
+
+CoinRequest(std::string data) : oracleInterface(data) {};
 
 /**
  *  @return the string name that invokes this oracle
  */
   static std::string getOracleName() {
-    return("io.devv.api");
+    return("io.devv.coin_request");
   }
 
 /**
  *  @return the shard used by this oracle
  */
   static uint64_t getShardIndex() {
-    return(5);
+    return(1);
   }
 
 /**
  *  @return the coin type used by this oracle
  */
   static uint64_t getCoinIndex() {
-    return(5);
+    return(0);
   }
 
 /** Checks if this proposal is objectively sound according to this oracle.
@@ -50,8 +53,9 @@ class api : public oracleInterface {
  * @return false otherwise
  */
   bool isSound() override {
-    //todo (nick) check API key with INN
-    return false;
+    coin_ = BinToUint64(Str2Bin(raw_data_), 0);
+    addr_ = Str2Bin(raw_data_.substr(8));
+    return true;
   }
 
 /** Checks if this proposal is valid according to this oracle
@@ -61,16 +65,26 @@ class api : public oracleInterface {
  * @return false otherwise
  */
   bool isValid(const Blockchain& context) override {
-    return isSound();
+    if (!isSound()) return false;
+    if (addr_.isNull()) {
+      error_msg_ = "Recipient address is null";
+      return false;
+    }
+    if (coin_ != 0) {
+      error_msg_ = "Only allowed to request Devv.";
+      return false;
+    }
+	return true;
   }
 
 /**
  *  @return if not valid or not sound, return an error message
  */
   std::string getErrorMessage() override {
-    return("WARNING: This oracle is a stub.");
+    return(error_msg_);
   }
 
+  //always empty for now
   std::map<uint64_t, std::vector<Tier2Transaction>>
       getTrace(const Blockchain& context) override {
     std::map<uint64_t, std::vector<Tier2Transaction>> out;
@@ -85,12 +99,26 @@ class api : public oracleInterface {
   std::map<uint64_t, std::vector<Tier2Transaction>>
       getNextTransactions(const Blockchain& context, const KeyRing& keys) override {
     std::map<uint64_t, std::vector<Tier2Transaction>> out;
+    if (!isValid(context)) return out;
+    int64_t coins = 50;
+    std::vector<Transfer> xfers;
+    Transfer pay(keys.getInnAddr(), coin_, -1*coins, 0);
+    Transfer settle(addr_, coin_, coins, 0);
+    xfers.push_back(pay);
+    xfers.push_back(settle);
+    std::vector<byte> nonce(Str2Bin(raw_data_));
+    Tier2Transaction inn_tx(eOpType::Create, xfers, nonce,
+                            keys.getKey(keys.getInnAddr()), keys);
+    std::vector<Tier2Transaction> txs;
+    txs.push_back(std::move(inn_tx));
+    std::pair<uint64_t, std::vector<Tier2Transaction>> p(getShardIndex(), std::move(txs));
+    out.insert(std::move(p));
     return out;
   }
 
 /** Recursively generate the state of this oracle and all dependent oracles.
  *
- * @pre This transaction must be valid.
+ * @pre This proposal must be valid.
  * @params context the blockchain of the shard that provides context for this oracle
  * @return a map of oracles to data
  */
@@ -105,11 +133,11 @@ class api : public oracleInterface {
 
 /** Recursively generate the state of this oracle and all dependent oracles.
  *
- * @pre This transaction must be valid.
+ * @pre This proposal must be valid.
  * @params context the blockchain of the shard that provides context for this oracle
  * @return a map of oracles to data encoded in JSON
  */
-  virtual std::map<std::string, std::string>
+  std::map<std::string, std::string>
       getDecompositionMapJSON(const Blockchain& context) override {
     std::map<std::string, std::string> out;
     std::pair<std::string, std::string> p(getOracleName(), getJSON());
@@ -117,18 +145,28 @@ class api : public oracleInterface {
     return out;
   }
 
+/** Generate the appropriate signature(s) for this proposal.
+ *
+ * Oracle data to sign.
+ */
+  std::vector<byte> Sign() override {
+    return Str2Bin(raw_data_);
+  }
+
 /**
  * @return the internal state of this oracle in JSON.
  */
   std::string getJSON() override {
-    std::string json("{\"key\":\""+ToHex(raw_data_)+"\"}");
+    std::string json("{\"addr\":\""+addr_.getJSON()+"\",");
+    json += "\"coin\":"+std::to_string(coin_)+"}";
     return json;
   }
 
-  std::vector<byte> Sign() override {
-    return getCanonical();
-  }
+private:
+ std::string error_msg_;
+ uint64_t coin_;
+ Address addr_;
 
 };
 
-#endif /* ORACLES_API_H_ */
+#endif /* ORACLES_DATA_H_ */

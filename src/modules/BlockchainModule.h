@@ -1,9 +1,9 @@
 /*
  * BlockchainModule.h manages this node in the devv network.
  *
- *  Created on: Mar 20, 2018
- *      Author: Nick Williams
+ * @copywrite  2018 Devvio Inc
  */
+
 #pragma once
 
 #include <string>

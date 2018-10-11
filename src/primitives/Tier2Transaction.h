@@ -2,9 +2,7 @@
  * Tier2Transaction.h defines the structure of the transaction section of a block
  * for Tier 2 shards.
  *
- *  Created on: Dec 11, 2017
- *  Author: Nick Williams
- *
+ * @copywrite  2018 Devvio Inc
  *
  */
 

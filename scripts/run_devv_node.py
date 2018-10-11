@@ -1,4 +1,10 @@
-#!/usr/bin/python3
+#!/usr/bin/env python
+"""
+Tool to run one or several Devv validators nodes for testing.
+"""
+
+__copyright__ = "Copyright 2018, Devvio Inc"
+__email__ = "security@devv.io"
 
 import sys
 

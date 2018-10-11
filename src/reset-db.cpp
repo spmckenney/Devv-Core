@@ -1,7 +1,7 @@
-
 /*
- * reset-db.cpp resets the chain state of a shard 
+ * reset-db.cpp resets the chain state of a shard
  * by truncating tables in a devv postgres-compliant database.
+ * @copywrite  2018 Devvio Inc
  */
 
 #include <fstream>
@@ -28,6 +28,7 @@ struct reset_options {
   std::string db_user;
   std::string db_pass;
   std::string db_host;
+  std::string db_ip;
   std::string db_name;
   unsigned int db_port = 5432;
 };
@@ -60,11 +61,18 @@ int main(int argc, char* argv[]) {
     bool db_connected = false;
     std::unique_ptr<pqxx::connection> db_link = nullptr;
     if ((options->db_host.size() > 0) && (options->db_user.size() > 0)) {
-      const std::string db_params("dbname = "+options->db_name +
+      std::string db_params("dbname = "+options->db_name +
           " user = "+options->db_user+
-          " password = "+options->db_pass +
-          " hostaddr = "+options->db_host +
-          " port = "+std::to_string(options->db_port));
+          " password = "+options->db_pass);
+      if (!options->db_host.empty()) {
+        db_params += " host = "+options->db_host;
+      } else if (!options->db_ip.empty()) {
+        db_params += " hostaddr = "+options->db_ip;
+      } else {
+        LOG_FATAL << "Database hostname or IP is required!";
+        throw std::runtime_error("Database hostname or IP is required!");
+      }
+      db_params += " port = "+std::to_string(options->db_port);
       LOG_NOTICE << "Using db connection params: "+db_params;
       try {
         //throws an exception if the connection failes
@@ -120,7 +128,8 @@ Updates a database to reset chainstate\n\
 
     po::options_description behavior("Identity and Behavior Options");
     behavior.add_options()
-        ("update-host", po::value<std::string>(), "Host of database to update.")
+        ("update-host", po::value<std::string>(), "DNS host of database to update.")
+        ("update-ip", po::value<std::string>(), "IP Address of database to update.")
         ("update-db", po::value<std::string>(), "Database name to update.")
         ("update-user", po::value<std::string>(), "Database username to use for updates.")
         ("update-pass", po::value<std::string>(), "Database password to use for updates.")
@@ -166,6 +175,13 @@ Updates a database to reset chainstate\n\
       LOG_INFO << "Database host: " << options->db_host;
     } else {
       LOG_INFO << "Database host was not set.";
+    }
+
+    if (vm.count("update-ip")) {
+      options->db_ip = vm["update-ip"].as<std::string>();
+      LOG_INFO << "Database IP: " << options->db_ip;
+    } else {
+      LOG_INFO << "Database IP was not set.";
     }
 
     if (vm.count("update-db")) {

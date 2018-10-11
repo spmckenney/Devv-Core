@@ -1,8 +1,6 @@
 /*
  * validation.h defines the structure of the validation section of a block.
  *
- *  Created on: Jan 3, 2018
- *  Author: Nick Williams
  *
  *  **Validation Structure**
  *  The validation block has two parts.
@@ -16,6 +14,8 @@
  *  3. In 'exchange' operations, for each sender, xfer.amount must exactly equal the current sum of its onchain coins.
  *  4. In 'create','modify','delete' operations, each sender addr must be part of the INN.
  *
+ *
+ * @copywrite  2018 Devvio Inc
  */
 
 #ifndef SRC_PRIMITIVES_VALIDATION_H_

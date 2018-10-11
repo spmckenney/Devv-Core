@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setuptools.setup(
-    name="devv",
+    name="devv-cli",
     version="0.0.1",
     author="Shawn McKenney",
     author_email="shawn.mckenney@emmion.com",

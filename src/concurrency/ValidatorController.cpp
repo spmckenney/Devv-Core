@@ -1,8 +1,7 @@
 /*
- * ValidatorController.cpp
+ * ValidatorController.cpp controls consensus worker threads for the Devv protocol.
  *
- *  Created on: Mar 23, 2018
- *      Author: Nick Williams
+ * @copywrite  2018 Devvio Inc
  */
 
 #include "ValidatorController.h"

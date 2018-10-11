@@ -1,3 +1,9 @@
+/*
+ * argument-parser.h parses arguments for a Devv core validator.
+ *
+ * @copywrite  2018 Devvio Inc
+ */
+
 #pragma once
 
 #ifndef COMMON_ARGUMENT_PARSER_H_

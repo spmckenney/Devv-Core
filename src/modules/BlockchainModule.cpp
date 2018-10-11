@@ -2,9 +2,7 @@
  * BlockchainModule.cpp handles orchestration of modules, startup, shutdown,
  * and response to signals.
  *
- *  Created on: Mar 20, 2018
- *  Author: Nick Williams
- *          Shawn McKenney
+ * @copywrite  2018 Devvio Inc
  */
 
 #include "BlockchainModule.h"

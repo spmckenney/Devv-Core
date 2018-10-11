@@ -1,8 +1,8 @@
 /*
- * primitives/block_tools.h
+ * block_tools.cpp implements tools for
+ * utilizing blocks
  *
- *  Created on: July 2, 2018
- *      Author: Shawn McKenney
+ * @copywrite  2018 Devvio Inc
  */
 #include "block_tools.h"
 

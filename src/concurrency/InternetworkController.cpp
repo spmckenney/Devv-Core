@@ -1,9 +1,8 @@
-/*
- * InternetworkController.cpp
+/**
+ * InternetworkController.cpp controls callbacks for
+ * communications to and from processes outside the Devv shard peers.
  *
- *  Created on: 6/22/18
- *      Authors: Nick Williams
- *               Shawn McKenney
+ * @copywrite  2018 Devvio Inc
  */
 #include "concurrency/InternetworkController.h"
 

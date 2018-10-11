@@ -1,8 +1,7 @@
 /*
- * chainstate.h holds state for a validating fork
+ * chainstate.cpp holds the state of the chain for each validating fork
  *
- *  Created on: Jan 12, 2018
- *  Author: Nick Williams
+ * @copywrite  2018 Devvio Inc
  */
 
 #include "chainstate.h"

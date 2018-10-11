@@ -13,7 +13,7 @@ mkdir build
 cd build
 
 # Configure and build
-cmake -DCMAKE_INSTALL_PREFIX=${HOME}/local ../src
+cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_INSTALL_PREFIX=${HOME}/local ../src
 make -j4
 make test
 sudo make install

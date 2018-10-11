@@ -15,8 +15,7 @@
  * If there are transactions being distributed among multiple chains, the chains may arrive at
  * different states from the one implied by the set of transactions themselves.
  *
- *  Created on: May 31, 2018
- *  Author: Nick Williams
+ * @copywrite  2018 Devvio Inc
  */
 
 #include <fstream>

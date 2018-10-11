@@ -1,7 +1,9 @@
 /*
  * DevvMessage.h
+ * defines the types of messages Devv peers can exchange.
  *
- *  Created on: Mar 15, 2018
+ *
+ * @copywrite  2018 Devvio Inc
  */
 
 #ifndef TYPES_DEVVMESSAGE_H_

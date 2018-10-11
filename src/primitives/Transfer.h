@@ -2,8 +2,8 @@
  * Transfer.h - structure to represent the movement of
  * SmartCoins from one address to another
  *
- *  Created on: Apr 17, 2018
- *      Author: Nick Williams
+ *
+ * @copywrite  2018 Devvio Inc
  */
 
 #ifndef PRIMITIVES_TRANSFER_H_

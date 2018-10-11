@@ -1,8 +1,7 @@
 /*
  * DevvMPMCQueue.h implements a ring queue for pointers to Devv messages.
  *
- *  Created on: Mar 17, 2018
- *      Author: Shawn McKenny
+ * @copywrite  2018 Devvio Inc
  */
 
 #ifndef CONCURRENCY_DEVVMPMCQUEUE_H_
