@@ -107,41 +107,59 @@ int64_t update_balance(pqxx::nontransaction& stmt, std::string hex_addr
   std::string wallet_id = "";
   int64_t new_balance = delta;
   LOG_INFO << "Get wallet: "+hex_addr;
-  pqxx::result wallet_result = stmt.prepared(kWALLET_SELECT)(hex_addr).exec();
-  if (wallet_result.empty()) {
-    LOG_INFO << "No result";
-    pqxx::result uuid_result = stmt.prepared(kSELECT_UUID).exec();
-    if (!uuid_result.empty()) {
-      LOG_INFO << "Got uuid";
-      wallet_id = uuid_result[0][0].as<std::string>();
-      LOG_INFO << "UUID is: "+wallet_id;
-      try {
-        stmt.prepared(kWALLET_INSERT)(wallet_id)(hex_addr)(shard).exec();
-      } catch (const pqxx::pqxx_exception &e) {
-        std::cerr << e.base().what() << std::endl;
-        const pqxx::sql_error *s=dynamic_cast<const pqxx::sql_error*>(&e.base());
-        if (s) LOG_ERROR << "Query was: " << s->query() << std::endl;
-      } catch (const std::exception& e) {
-        LOG_WARNING << FormatException(&e, "Exception inserting new wallet");
+  try {
+    pqxx::result wallet_result = stmt.prepared(kWALLET_SELECT)(hex_addr).exec();
+    if (wallet_result.empty()) {
+      LOG_INFO << "No result";
+      pqxx::result uuid_result = stmt.prepared(kSELECT_UUID).exec();
+      if (!uuid_result.empty()) {
+        LOG_INFO << "Got uuid";
+        wallet_id = uuid_result[0][0].as<std::string>();
+        LOG_INFO << "UUID is: " + wallet_id;
+        try {
+          stmt.prepared(kWALLET_INSERT)(wallet_id)(hex_addr)(shard).exec();
+        } catch (const pqxx::pqxx_exception& e) {
+          std::cerr << e.base().what() << std::endl;
+          const pqxx::sql_error* s = dynamic_cast<const pqxx::sql_error*>(&e.base());
+          if (s) LOG_ERROR << "Query was: " << s->query() << std::endl;
+        } catch (const std::exception& e) {
+          LOG_WARNING << FormatException(&e, "Exception inserting new wallet");
+        }
+        LOG_INFO << "Inserted wallet.";
+      } else {
+        LOG_WARNING << "Failed to generate a UUID for new wallet!";
+        return 0;
       }
-      LOG_INFO << "Inserted wallet.";
     } else {
-      LOG_WARNING << "Failed to generate a UUID for new wallet!";
-      return 0;
+      wallet_id = wallet_result[0][0].as<std::string>();
+      LOG_INFO << "Got wallet ID: " + wallet_id;
     }
-  } else {
-    wallet_id = wallet_result[0][0].as<std::string>();
-    LOG_INFO << "Got wallet ID: "+wallet_id;
+  } catch (const pqxx::pqxx_exception& e) {
+    std::cerr << e.base().what() << std::endl;
+    const pqxx::sql_error* s = dynamic_cast<const pqxx::sql_error*>(&e.base());
+    if (s) LOG_ERROR << "Query was: " << s->query() << std::endl;
+  } catch (const std::exception& e) {
+    LOG_WARNING << FormatException(&e, "Exception selecting wallet");
   }
-  pqxx::result balance_result = stmt.prepared(kBALANCE_SELECT)(wallet_id)(coin).exec();
-  if (balance_result.empty()) {
-    LOG_INFO << "No balance, insert wallet_coin";
-    stmt.prepared(kBALANCE_INSERT)(wallet_id)(chain_height)(coin)(delta).exec();
-  } else {
-    new_balance = balance_result[0][0].as<int64_t>()+delta;
-    LOG_INFO << "New balance is: "+std::to_string(new_balance);
-    stmt.prepared(kBALANCE_UPDATE)(new_balance)(chain_height)(wallet_id)(coin).exec();
+
+  try {
+    pqxx::result balance_result = stmt.prepared(kBALANCE_SELECT)(wallet_id)(coin).exec();
+    if (balance_result.empty()) {
+      LOG_INFO << "No balance, insert wallet_coin";
+      stmt.prepared(kBALANCE_INSERT)(wallet_id)(chain_height)(coin)(delta).exec();
+    } else {
+      new_balance = balance_result[0][0].as<int64_t>() + delta;
+      LOG_INFO << "New balance is: " + std::to_string(new_balance);
+      stmt.prepared(kBALANCE_UPDATE)(new_balance)(chain_height)(wallet_id)(coin).exec();
+    }
+  } catch (const pqxx::pqxx_exception& e) {
+    std::cerr << e.base().what() << std::endl;
+    const pqxx::sql_error* s = dynamic_cast<const pqxx::sql_error*>(&e.base());
+    if (s) LOG_ERROR << "Query was: " << s->query() << std::endl;
+  } catch (const std::exception& e) {
+    LOG_WARNING << FormatException(&e, "Exception selecting balance");
   }
+
   LOG_INFO << "balance updated to: "+std::to_string(new_balance);
   return new_balance;
 }
