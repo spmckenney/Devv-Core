@@ -134,7 +134,7 @@ int64_t update_balance(pqxx::nontransaction& stmt, std::string hex_addr
     LOG_INFO << "New balance is: "+std::to_string(new_balance);
     stmt.prepared(kBALANCE_UPDATE)(new_balance)(chain_height)(wallet_id)(coin).exec();
   }
-  LOG_INFO << "balance updated to: "+std_to_string(new_balance);
+  LOG_INFO << "balance updated to: "+std::to_string(new_balance);
   return new_balance;
 }
 
