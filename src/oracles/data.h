@@ -39,7 +39,7 @@ class data : public oracleInterface {
     return("io.devv.data");
   }
   std::string getInstanceName() override {
-    return data::getOracleName();
+    return("io.devv.data");
   }
 
 /**

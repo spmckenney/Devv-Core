@@ -30,7 +30,7 @@ class dcash : public oracleInterface {
     return("io.devv.dcash");
   }
   std::string getInstanceName() override {
-    return dcash::getOracleName();
+    return("io.devv.dcash");
   }
 
 /**

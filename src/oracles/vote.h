@@ -40,7 +40,7 @@ class vote : public oracleInterface {
     return("io.devv.vote");
   }
   std::string getInstanceName() override {
-    return vote::getOracleName();
+    return("io.devv.vote");
   }
 
 /**
