@@ -39,9 +39,6 @@ class vote : public oracleInterface {
   static std::string getOracleName() {
     return("io.devv.vote");
   }
-  std::string getInstanceName() override {
-    return vote::getOracleName();
-  }
 
 /**
  *  @return the shard used by this oracle

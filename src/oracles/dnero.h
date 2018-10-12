@@ -32,9 +32,6 @@ class dnero : public oracleInterface {
   static std::string getOracleName() {
     return("io.devv.dnero");
   }
-  std::string getInstanceName() override {
-    return dnero::getOracleName();
-  }
 
 /**
  *  @return the shard used by this oracle

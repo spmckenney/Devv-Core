@@ -31,9 +31,6 @@ CoinRequest(std::string data) : oracleInterface(data) {};
   static std::string getOracleName() {
     return("io.devv.coin_request");
   }
-  std::string getInstanceName() override {
-    return CoinRequest::getOracleName();
-  }
 
 /**
  *  @return the shard used by this oracle
