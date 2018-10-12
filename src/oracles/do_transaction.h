@@ -98,7 +98,8 @@ DoTransaction(std::string data) : oracleInterface(data) {};
       getNextTransactions(const Blockchain& context, const KeyRing& keys) override {
     std::map<uint64_t, std::vector<Tier2Transaction>> out;
     if (!isValid(context)) return out;
-    std::vector<byte> serial = Hex2Bin(raw_data);
+    std::string hex = Bin2Str(getCanonical());
+    std::vector<byte> serial = Hex2Bin(hex);
     InputBuffer buffer(serial);
     Tier2Transaction the_tx = Tier2Transaction::Create(buffer, keys, true);
     std::vector<Tier2Transaction> txs;
@@ -117,7 +118,7 @@ DoTransaction(std::string data) : oracleInterface(data) {};
   std::map<std::string, std::vector<byte>>
       getDecompositionMap(const Blockchain& context) override {
     std::map<std::string, std::vector<byte>> out;
-    std::vector<byte> data(Hex2Bin(raw_data_));
+    std::vector<byte> data(Str2Bin(raw_data_));
     std::pair<std::string, std::vector<byte>> p(getOracleName(), data);
     out.insert(p);
     return out;
@@ -142,14 +143,14 @@ DoTransaction(std::string data) : oracleInterface(data) {};
  * Oracle data to sign.
  */
   std::vector<byte> Sign() override {
-    return Str2Bin(raw_data_);
+    return getCanonical();
   }
 
 /**
  * @return the internal state of this oracle in JSON.
  */
   std::string getJSON() override {
-    std::string json("{\"hex\":\""+raw_data_+"\"}";
+    std::string json("{\"hex\":\""+Bin2Str(getCanonical())+"\"}";
     return json;
   }
 
