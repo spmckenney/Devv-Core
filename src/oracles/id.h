@@ -28,11 +28,18 @@ class id : public oracleInterface {
 /**
  *  @return the string name that invokes this oracle
  */
-  static std::string getOracleName() {
-    return("io.devv.id");
+  virtual std::string getOracleName() override {
+    return(id::GetOracleName());
   }
 
 /**
+ *  @return the string name that invokes this oracle
+ */
+  static std::string GetOracleName() {
+    return("io.devv.id");
+  }
+
+  /**
  *  @return the shard used by this oracle
  */
   static uint64_t getShardIndex() {

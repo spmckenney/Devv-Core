@@ -25,11 +25,18 @@ class dneroavailable : public oracleInterface {
 /**
  *  @return the string name that invokes this oracle
  */
-  static std::string getOracleName() {
-    return("io.devv.dneroavailable");
+  virtual std::string getOracleName() override {
+    return(dneroavailable::GetOracleName());
   }
 
 /**
+ *  @return the string name that invokes this oracle
+ */
+  static std::string GetOracleName() {
+    return("io.devv.dneroavailable");
+  }
+
+  /**
  *  @return the shard used by this oracle
  */
   static uint64_t getShardIndex() {

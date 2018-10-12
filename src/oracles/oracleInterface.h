@@ -37,7 +37,7 @@ class oracleInterface {
 /**
  *  @return the string name that invokes this oracle
  */
-  static std::string getOracleName();
+  virtual std::string getOracleName() = 0;
 
 /**
  *  @return the shard used by this oracle
@@ -148,6 +148,13 @@ class oracleInterface {
   std::string raw_data_;
 
 };
+
+/*
+template <typename T>
+std::string GetOracleName<T>() {
+  return T::getOracleName();
+}
+*/
 
 } //end namespace Devv
 
