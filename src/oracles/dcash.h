@@ -26,7 +26,14 @@ class dcash : public oracleInterface {
 /**
  *  @return the string name that invokes this oracle
  */
-  static std::string getOracleName() {
+  virtual std::string getOracleName() override {
+    return(dcash::GetOracleName());
+  }
+
+/**
+ *  @return the string name that invokes this oracle
+ */
+  static std::string GetOracleName() {
     return("io.devv.dcash");
   }
 
