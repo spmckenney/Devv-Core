@@ -33,7 +33,7 @@ DoTransaction(std::string data) : oracleInterface(data) {};
     return("io.devv.do_transaction");
   }
   std::string getInstanceName() override {
-    return("io.devv.do_transaction");
+    return DoTransaction::getOracleName();
   }
 
 /**

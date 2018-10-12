@@ -30,7 +30,7 @@ class dnerowallet : public oracleInterface {
     return("io.devv.dnerowallet");
   }
   std::string getInstanceName() override {
-    return("io.devv.dnerowallet");
+    return dnerowallet::getOracleName();
   }
 
 /**

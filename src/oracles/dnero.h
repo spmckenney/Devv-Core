@@ -33,7 +33,7 @@ class dnero : public oracleInterface {
     return("io.devv.dnero");
   }
   std::string getInstanceName() override {
-    return("io.devv.dnero");
+    return dnero::getOracleName();
   }
 
 /**

@@ -28,8 +28,8 @@ class api : public oracleInterface {
   static std::string getOracleName() {
     return("io.devv.api");
   }
-  std::string getInstanceName() override {
-    return("io.devv.api");
+  std::string getInstanceName() {
+    return api::getOracleName();
   }
 
 /**

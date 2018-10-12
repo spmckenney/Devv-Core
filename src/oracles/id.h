@@ -32,7 +32,7 @@ class id : public oracleInterface {
     return("io.devv.id");
   }
   std::string getInstanceName() override {
-    return("io.devv.id");
+    return id::getOracleName();
   }
 
 /**

@@ -29,7 +29,7 @@ class dneroavailable : public oracleInterface {
     return("io.devv.dneroavailable");
   }
   std::string getInstanceName() override {
-    return("io.devv.dneroavailable");
+    return dneroavailable::getOracleName();
   }
 
 /**

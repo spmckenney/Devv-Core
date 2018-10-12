@@ -32,7 +32,7 @@ CoinRequest(std::string data) : oracleInterface(data) {};
     return("io.devv.coin_request");
   }
   std::string getInstanceName() override {
-    return("io.devv.coin_request");
+    return CoinRequest::getOracleName();
   }
 
 /**
