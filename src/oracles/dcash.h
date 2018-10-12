@@ -29,6 +29,9 @@ class dcash : public oracleInterface {
   static std::string getOracleName() {
     return("io.devv.dcash");
   }
+  std::string getInstanceName() override {
+    return dcash::getOracleName();
+  }
 
 /**
  *  @return the shard used by this oracle

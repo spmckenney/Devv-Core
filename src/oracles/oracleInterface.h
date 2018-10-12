@@ -38,6 +38,7 @@ class oracleInterface {
  *  @return the string name that invokes this oracle
  */
   static std::string getOracleName();
+  virtual std::string getInstanceName();
 
 /**
  *  @return the shard used by this oracle

@@ -165,7 +165,7 @@ std::vector<TransactionPtr> validateOracle(oracleInterface& oracle
     for (auto& it : oracle_actions) {
       //TODO (nick) forward transactions for other shards to those shards
       for (auto& tx : it.second) {
-        LOG_INFO << "Oracle: "+oracle.getOracleName()+" creates transaction: "+tx.getJSON();
+        LOG_INFO << "Oracle: "+oracle.getInstanceName()+" creates transaction: "+tx.getJSON();
         TransactionPtr t2tx_ptr = tx.clone();
         out.push_back(std::move(t2tx_ptr));
       }

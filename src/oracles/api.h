@@ -28,6 +28,9 @@ class api : public oracleInterface {
   static std::string getOracleName() {
     return("io.devv.api");
   }
+  std::string getInstanceName() {
+    return api::getOracleName();
+  }
 
 /**
  *  @return the shard used by this oracle

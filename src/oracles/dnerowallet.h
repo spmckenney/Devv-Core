@@ -29,6 +29,9 @@ class dnerowallet : public oracleInterface {
   static std::string getOracleName() {
     return("io.devv.dnerowallet");
   }
+  std::string getInstanceName() override {
+    return dnerowallet::getOracleName();
+  }
 
 /**
  *  @return the shard used by this oracle

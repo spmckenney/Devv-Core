@@ -38,6 +38,9 @@ class data : public oracleInterface {
   static std::string getOracleName() {
     return("io.devv.data");
   }
+  std::string getInstanceName() override {
+    return data::getOracleName();
+  }
 
 /**
  *  @return the shard used by this oracle
