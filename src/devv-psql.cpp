@@ -87,9 +87,9 @@ static const std::string kBALANCE_UPDATE_STATEMENT = "UPDATE wallet_coin set bal
 static const std::string kSHARD_SELECT = "shard_select";
 static const std::string kSHARD_SELECT_STATEMENT = "select shard_id from shard where shard_name = $1;";
 static const std::string kDELETE_PENDING_TX = "delete_pending_tx";
-static const std::string kDELETE_PENDING_TX_STATEMENT = "delete from pending_tx_id where pending_tx_id = cast($1 as uuid);";
+static const std::string kDELETE_PENDING_TX_STATEMENT = "delete from pending_tx where pending_tx_id = cast($1 as uuid);";
 static const std::string kDELETE_PENDING_RX = "delete_pending_rx";
-static const std::string kDELETE_PENDING_RX_STATEMENT = "delete from pending_rx_id where pending_rx_id = cast($1 as uuid);";
+static const std::string kDELETE_PENDING_RX_STATEMENT = "delete from pending_rx where pending_rx_id = cast($1 as uuid);";
 
 /**
  * Parse command-line options
