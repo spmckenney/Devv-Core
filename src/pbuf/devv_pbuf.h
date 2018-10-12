@@ -76,9 +76,12 @@ TransactionPtr CreateTransaction(const Devv::proto::Transaction& transaction, co
   std::vector<Transfer> transfers;
   EC_KEY* key = nullptr;
   for (auto const& xfer : pb_xfers) {
-    LOG_INFO << "Received Transfer: "+xfer.getJSON();
     std::vector<byte> bytes(xfer.address().begin(), xfer.address().end());
     auto address = Address(bytes);
+    LOG_INFO << "Transfer addr: "+ToHex(xfer.address());
+    LOG_INFO << "Coin: "+std::toString(xfer.coin());
+    LOG_INFO << "Amount: "+std::toString(xfer.amount());
+    LOG_INFO << "Delay: "+std::toString(xfer.delay());
     transfers.emplace_back(address, xfer.coin(), xfer.amount(), xfer.delay());
     if (xfer.amount() < 0) {
       if (key != nullptr) {

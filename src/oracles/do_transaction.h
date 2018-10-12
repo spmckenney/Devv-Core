@@ -24,7 +24,7 @@ class DoTransaction : public oracleInterface {
  public:
 
 
-CoinRequest(std::string data) : oracleInterface(data) {};
+DoTransaction(std::string data) : oracleInterface(data) {};
 
 /**
  *  @return the string name that invokes this oracle
@@ -58,7 +58,7 @@ CoinRequest(std::string data) : oracleInterface(data) {};
     std::vector<byte> serial = Hex2Bin(hex);
     InputBuffer buffer(serial);
     Tier2Transaction tx = Tier2Transaction::QuickCreate(buffer);
-    return ;
+    return true;
   }
 
 /** Checks if this proposal is valid according to this oracle
@@ -150,7 +150,7 @@ CoinRequest(std::string data) : oracleInterface(data) {};
  * @return the internal state of this oracle in JSON.
  */
   std::string getJSON() override {
-    std::string json("{\"hex\":\""+Hex2Bin(Bin2Str(raw_data_))+"\"}";
+    std::string json("{\"hex\":\""+Hex2Bin(raw_data_)+"\"}";
     return json;
   }
 
