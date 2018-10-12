@@ -30,7 +30,7 @@ DoTransaction(std::string data) : oracleInterface(data) {};
  *  @return the string name that invokes this oracle
  */
   static std::string getOracleName() {
-    return("io.devv.hex_transaction");
+    return("io.devv.do_transaction");
   }
 
 /**
