@@ -169,4 +169,4 @@ private:
 
 };
 
-#endif /* ORACLES_DATA_H_ */
+#endif /* ORACLES_REQUEST_H_ */

@@ -16,6 +16,7 @@
 #include "oracles/coin_request.h"
 #include "oracles/data.h"
 #include "oracles/dcash.h"
+#include "oracles/do_transaction.h"
 #include "oracles/dnero.h"
 #include "oracles/dneroavailable.h"
 #include "oracles/dnerowallet.h"
@@ -75,6 +76,7 @@ TransactionPtr CreateTransaction(const Devv::proto::Transaction& transaction, co
   std::vector<Transfer> transfers;
   EC_KEY* key = nullptr;
   for (auto const& xfer : pb_xfers) {
+    LOG_INFO << "Received Transfer: "+xfer.getJSON();
     std::vector<byte> bytes(xfer.address().begin(), xfer.address().end());
     auto address = Address(bytes);
     transfers.emplace_back(address, xfer.coin(), xfer.amount(), xfer.delay());
@@ -174,6 +176,10 @@ std::vector<TransactionPtr> DecomposeProposal(const Devv::proto::Proposal& propo
   std::string oracle_name = proposal.oraclename();
   if (oracle_name == CoinRequest::getOracleName()) {
     CoinRequest oracle(proposal.data());
+    std::vector<TransactionPtr> actions = validateOracle(oracle, chain, keys);
+    ptrs.insert(ptrs.end(), std::make_move_iterator(actions.begin()), std::make_move_iterator(actions.end()));
+  }else if (oracle_name == DoTransaction::getOracleName()) {
+    DoTransaction oracle(proposal.data());
     std::vector<TransactionPtr> actions = validateOracle(oracle, chain, keys);
     ptrs.insert(ptrs.end(), std::make_move_iterator(actions.begin()), std::make_move_iterator(actions.end()));
   } else if (oracle_name == api::getOracleName()) {
