@@ -79,9 +79,9 @@ TransactionPtr CreateTransaction(const Devv::proto::Transaction& transaction, co
     std::vector<byte> bytes(xfer.address().begin(), xfer.address().end());
     auto address = Address(bytes);
     LOG_INFO << "Transfer addr: "+ToHex(xfer.address());
-    LOG_INFO << "Coin: "+std::toString(xfer.coin());
-    LOG_INFO << "Amount: "+std::toString(xfer.amount());
-    LOG_INFO << "Delay: "+std::toString(xfer.delay());
+    LOG_INFO << "Coin: "+std::to_string(xfer.coin());
+    LOG_INFO << "Amount: "+std::to_string(xfer.amount());
+    LOG_INFO << "Delay: "+std::to_string(xfer.delay());
     transfers.emplace_back(address, xfer.coin(), xfer.amount(), xfer.delay());
     if (xfer.amount() < 0) {
       if (key != nullptr) {
