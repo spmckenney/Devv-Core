@@ -150,7 +150,7 @@ DoTransaction(std::string data) : oracleInterface(data) {};
  * @return the internal state of this oracle in JSON.
  */
   std::string getJSON() override {
-    std::string json("{\"hex\":\""+Bin2Str(getCanonical())+"\"}";
+    std::string json("{\"hex\":\""+Bin2Str(getCanonical())+"\"}");
     return json;
   }
 
