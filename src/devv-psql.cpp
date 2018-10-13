@@ -78,8 +78,6 @@ static const std::string kBALANCE_SELECT = "balance_select";
 static const std::string kBALANCE_SELECT_STATEMENT = "select balance from wallet_coin where wallet_id = cast($1 as uuid) and coin_id = $2;";
 static const std::string kWALLET_SELECT = "wallet_select";
 static const std::string kWALLET_SELECT_STATEMENT = "select wallet_id from wallet where wallet_addr = upper($1);";
-static const std::string kWALLET_INSERT = "wallet_insert";
-static const std::string kWALLET_INSERT_STATEMENT = "INSERT INTO wallet (wallet_id, wallet_addr, account_id, wallet_name, shard_id) (select cast($1 as uuid), upper($2), cast('"+kNIL_UUID+"' as uuid), 'None', $3);";
 static const std::string kBALANCE_INSERT = "balance_insert";
 static const std::string kBALANCE_INSERT_STATEMENT = "INSERT INTO wallet_coin (wallet_coin_id, wallet_id, block_height, coin_id, balance) (select devv_uuid(), cast($1 as uuid), $2, $3, $4);";
 static const std::string kBALANCE_UPDATE = "balance_update";
@@ -124,22 +122,6 @@ int64_t update_balance(pqxx::nontransaction& stmt, std::string hex_addr
         LOG_INFO << "!uuid_result.empty():";
         wallet_id = uuid_result[0][0].as<std::string>();
         LOG_INFO << "UUID is: " + wallet_id;
-        try {
-          LOG_WARNING << "one";
-          stmt.prepared(kWALLET_INSERT)(wallet_id)(hex_addr)(shard).exec();
-          LOG_WARNING << "two";
-          stmt.exec("commit;");
-          LOG_WARNING << "three";
-        } catch (const pqxx::pqxx_exception& e) {
-          LOG_ERROR << e.base().what() << std::endl;
-          const pqxx::sql_error* s = dynamic_cast<const pqxx::sql_error*>(&e.base());
-          if (s) LOG_ERROR << "Query was: " << s->query() << std::endl;
-        } catch (const std::exception& e) {
-          LOG_WARNING << FormatException(&e, "Exception inserting new wallet");
-        } catch (...) {
-          LOG_WARNING << "caught (...)";
-        }
-        LOG_INFO << "Inserted wallet.";
       } else {
         LOG_WARNING << "Failed to generate a UUID for new wallet!";
         return 0;
@@ -287,7 +269,6 @@ int main(int argc, char* argv[]) {
       db_link->prepare(kRX_INSERT_COMMENT, kRX_INSERT_COMMENT_STATEMENT);
       db_link->prepare(kRX_CONFIRM, kRX_CONFIRM_STATEMENT);
       db_link->prepare(kWALLET_SELECT, kWALLET_SELECT_STATEMENT);
-      db_link->prepare(kWALLET_INSERT, kWALLET_INSERT_STATEMENT);
       db_link->prepare(kBALANCE_SELECT, kBALANCE_SELECT_STATEMENT);
       db_link->prepare(kBALANCE_INSERT, kBALANCE_INSERT_STATEMENT);
       db_link->prepare(kBALANCE_UPDATE, kBALANCE_UPDATE_STATEMENT);
