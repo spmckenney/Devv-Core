@@ -35,7 +35,14 @@ class data : public oracleInterface {
 /**
  *  @return the string name that invokes this oracle
  */
-  static std::string getOracleName() {
+  virtual std::string getOracleName() override {
+    return(data::GetOracleName());
+  }
+
+/**
+ *  @return the string name that invokes this oracle
+ */
+  static std::string GetOracleName() {
     return("io.devv.data");
   }
 

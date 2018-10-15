@@ -28,7 +28,14 @@ CoinRequest(std::string data) : oracleInterface(data) {};
 /**
  *  @return the string name that invokes this oracle
  */
-  static std::string getOracleName() {
+  virtual std::string getOracleName() override {
+    return(CoinRequest::GetOracleName());
+  }
+
+/**
+ *  @return the string name that invokes this oracle
+ */
+  static std::string GetOracleName() {
     return("io.devv.coin_request");
   }
 
@@ -169,4 +176,4 @@ private:
 
 };
 
-#endif /* ORACLES_DATA_H_ */
+#endif /* ORACLES_REQUEST_H_ */
