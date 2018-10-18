@@ -88,10 +88,12 @@ TEST_F(ChainStateTest, addCoin_0) {
 class UnrecordedTransactionPoolTest : public ::testing::Test {
  protected:
   UnrecordedTransactionPoolTest()
-      : t1_context_(0, 0, eAppMode::T1, "", "", "")
-      , keys_(t1_context_)
+      : t2_context_(0, 0, eAppMode::T2, "", "", "")
+      , keys_(t2_context_)
+      , blockchain_("test-chain")
       , chain_state_()
-      , pool_ptr_() {
+      , utx_pool_ptr_()
+      , tcm_(t2_context_.get_app_mode()){
     for (int i = 0; i < 4; ++i) {
       keys_.addWalletKeyPair(kADDRs.at(i), kADDR_KEYs.at(i), "password");
     }
@@ -99,6 +101,7 @@ class UnrecordedTransactionPoolTest : public ::testing::Test {
     for (int i = 0; i < 3; ++i) {
       keys_.addNodeKeyPair(kNODE_ADDRs.at(i), kNODE_KEYs.at(i), "password");
     }
+    utx_pool_ptr_ = std::make_unique<UnrecordedTransactionPool>(chain_state_, eAppMode::T2, 100);
   }
 
   ~UnrecordedTransactionPoolTest() override = default;
@@ -113,12 +116,21 @@ class UnrecordedTransactionPoolTest : public ::testing::Test {
     // before the destructor).
   }
 
+  std::vector<byte> createTestProposal() {
+    return CreateNextProposal(keys_,
+                              blockchain_,
+                              *utx_pool_ptr_,
+                              t2_context_);
+  }
+
   // Create a default context
-  DevvContext t1_context_;
+  DevvContext t2_context_;
   KeyRing keys_;
+  Blockchain blockchain_;
 
   ChainState chain_state_;
-  std::unique_ptr<UnrecordedTransactionPool> pool_ptr_;
+  std::unique_ptr<UnrecordedTransactionPool> utx_pool_ptr_;
+  TransactionCreationManager tcm_;
 };
 
 Tier2TransactionPtr CreateInnTransaction(KeyRing& keys, int64_t amount) {
@@ -153,9 +165,9 @@ TEST_F(UnrecordedTransactionPoolTest, constructor_0) {
 
   EXPECT_EQ(chain_state.getStateMap().size(), 0);
 
-  pool_ptr_ = std::make_unique<UnrecordedTransactionPool>(chain_state, eAppMode::T2, 100);
+  //utx_pool_ptr_ = std::make_unique<UnrecordedTransactionPool>(chain_state, eAppMode::T2, 100);
 
-  EXPECT_EQ(pool_ptr_->getMode(), eAppMode::T2);
+  EXPECT_EQ(utx_pool_ptr_->getMode(), eAppMode::T2);
 }
 
 TEST_F(UnrecordedTransactionPoolTest, addTransaction_0) {
@@ -167,23 +179,138 @@ TEST_F(UnrecordedTransactionPoolTest, addTransaction_0) {
 
   EXPECT_EQ(chain_state.getStateMap().size(), 0);
 
-  pool_ptr_ = std::make_unique<UnrecordedTransactionPool>(chain_state, eAppMode::T2, 100);
-
   std::unique_ptr<Tier2Transaction> inn_tx = CreateInnTransaction(keys_, 100);
   EXPECT_EQ(inn_tx->getOperation(), eOpType::Create);
 
   std::vector<TransactionPtr> inn_tx_vector;
   inn_tx_vector.push_back(std::move(inn_tx));
 
-  pool_ptr_->AddTransactions(inn_tx_vector, keys_);
+  utx_pool_ptr_->AddTransactions(inn_tx_vector, keys_);
 
-  EXPECT_EQ(pool_ptr_->numPendingTransactions(), 1);
+  EXPECT_EQ(utx_pool_ptr_->numPendingTransactions(), 1);
 
-  Blockchain blockchain("test-chain");
-  std::vector<byte> proposal = CreateNextProposal(keys_,
-                                                  blockchain,
-                                                  *pool_ptr_,
-                                                  t1_context_);
+  auto proposal = createTestProposal();
+}
+
+/**
+ * Create a vector of txes with a single
+ * @param keys
+ * @return
+ */
+Tier2TransactionPtr CreateTestTransaction(const KeyRing& keys, int send_amount = -1, int recv_amount = 1) {
+  std::vector<TransactionPtr> txs;
+
+  Transfer receiver(keys.getWalletAddr(0), 0, recv_amount, 0);
+  Transfer sender(keys.getWalletAddr(1), 0, send_amount, 0);
+
+  std::vector<Transfer> xfers;
+  xfers.push_back(sender);
+  xfers.push_back(receiver);
+
+  uint64_t nonce = 101101101;
+  std::vector<byte> nonce_bin;
+  Uint64ToBin(nonce, nonce_bin);
+  auto t2x = std::make_unique<Tier2Transaction>(
+      eOpType::Exchange, xfers,
+      nonce_bin,
+      keys.getWalletKey(1), keys);
+
+  return t2x;
+}
+
+TEST_F(UnrecordedTransactionPoolTest, isNullProposal_0) {
+  auto t2x = CreateTestTransaction(keys_);
+
+  std::vector<TransactionPtr> inn_tx_vector;
+  inn_tx_vector.push_back(std::move(t2x));
+
+  utx_pool_ptr_->AddTransactions(inn_tx_vector, keys_);
+
+  EXPECT_EQ(utx_pool_ptr_->numPendingTransactions(), 1);
+
+  auto proposal = createTestProposal();
+
+  EXPECT_EQ(ProposedBlock::isNullProposal(proposal), false);
+}
+
+TEST_F(UnrecordedTransactionPoolTest, validate_0) {
+  auto t2x = CreateTestTransaction(keys_);
+
+  std::vector<TransactionPtr> inn_tx_vector;
+  inn_tx_vector.push_back(std::move(t2x));
+
+  utx_pool_ptr_->AddTransactions(inn_tx_vector, keys_);
+
+  EXPECT_EQ(utx_pool_ptr_->numPendingTransactions(), 1);
+
+  auto proposal = createTestProposal();
+
+  EXPECT_EQ(ProposedBlock::isNullProposal(proposal), false);
+
+  InputBuffer buffer(proposal);
+  ProposedBlock to_validate(ProposedBlock::Create(buffer,
+                                                  chain_state_,
+                                                  keys_,
+                                                  tcm_));
+  auto valid = to_validate.validate(keys_);
+
+  EXPECT_TRUE(valid);
+}
+
+
+TEST_F(UnrecordedTransactionPoolTest, validate_1) {
+  auto t2x = CreateTestTransaction(keys_, -2, 2);
+
+  std::vector<TransactionPtr> inn_tx_vector;
+  inn_tx_vector.push_back(std::move(t2x));
+
+  utx_pool_ptr_->AddTransactions(inn_tx_vector, keys_);
+
+  EXPECT_EQ(utx_pool_ptr_->numPendingTransactions(), 1);
+
+  auto proposal = createTestProposal();
+
+  EXPECT_EQ(ProposedBlock::isNullProposal(proposal), false);
+
+  InputBuffer buffer(proposal);
+  ProposedBlock to_validate(ProposedBlock::Create(buffer, chain_state_, keys_, tcm_));
+  auto valid = to_validate.validate(keys_);
+  auto sign = to_validate.signBlock(keys_, t2_context_);
+  EXPECT_TRUE(valid);
+  EXPECT_TRUE(sign);
+}
+
+TEST_F(UnrecordedTransactionPoolTest, assymetric_0) {
+  EXPECT_THROW(CreateTestTransaction(keys_, 2, 2), std::runtime_error);
+}
+
+TEST_F(UnrecordedTransactionPoolTest, finalize_0) {
+  auto t2x = CreateTestTransaction(keys_, -2, 2);
+
+  std::vector<TransactionPtr> inn_tx_vector;
+  inn_tx_vector.push_back(std::move(t2x));
+
+  utx_pool_ptr_->AddTransactions(inn_tx_vector, keys_);
+
+  EXPECT_EQ(utx_pool_ptr_->numPendingTransactions(), 1);
+
+  auto proposal = createTestProposal();
+
+  EXPECT_EQ(ProposedBlock::isNullProposal(proposal), false);
+
+  InputBuffer buffer(proposal);
+  ProposedBlock to_validate(ProposedBlock::Create(buffer, chain_state_, keys_, tcm_));
+  auto valid = to_validate.validate(keys_);
+  auto sign = to_validate.signBlock(keys_, t2_context_);
+  EXPECT_TRUE(valid);
+  EXPECT_TRUE(sign);
+
+  EXPECT_TRUE(utx_pool_ptr_->CheckValidation(buffer, t2_context_));
+
+    //block can be finalized, so finalize
+    LOG_DEBUG << "Ready to finalize block.";
+    FinalPtr top_block = std::make_shared<FinalBlock>(utx_pool_ptr_->FinalizeLocalBlock());
+    blockchain_.push_back(top_block);
 }
 
 } // namespace
