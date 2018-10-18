@@ -407,9 +407,12 @@ class UnrecordedTransactionPool {
         if (num_txs > 0) break;
         //if no valid transactions, clean pool, collect again
         //clean
-        while (!RemoveInvalidTransactions(state, keys, Summary::Copy(pre_sum))) {}
+        Summary sum_clone(Summary::Copy(pre_sum));
+        while (!RemoveInvalidTransactions(state, keys, sum_clone)) {
+          sum_clone = Summary::Copy(pre_sum);
+        }
         //collect again
-        return CollectValidTransactions(state, keys, pre-sum, context);
+        return CollectValidTransactions(state, keys, pre_sum, context);
 	  }
     }
 
@@ -446,13 +449,11 @@ class UnrecordedTransactionPool {
    */
   bool RemoveTransaction(const Signature& sig) {
     size_t txs_size = txs_.size();
-    for (auto const& item : tx_.getTransactions()) {
-      if (txs_.erase(sig) == 0) {
-        LOG_WARNING << "RemoveTransaction(): ret = 0, transaction not found: "
-                    << sig.getJSON();
-      } else {
-        LOG_TRACE << "RemoveTransaction() removes: " << sig.getJSON();
-      }
+    if (txs_.erase(sig) == 0) {
+      LOG_WARNING << "RemoveTransaction(): ret = 0, transaction not found: "
+                  << sig.getJSON();
+    } else {
+      LOG_TRACE << "RemoveTransaction() removes: " << sig.getJSON();
     }
     LOG_DEBUG << "RemoveTransactions: (size pre/size post) ("
               << txs_size << "/"
@@ -468,6 +469,7 @@ class UnrecordedTransactionPool {
   bool RemoveInvalidTransactions(ChainState& state
       , const KeyRing& keys, Summary& summary) {
     std::map<Address, SmartCoin> aggregate;
+    ChainState prior(state);
     for (auto iter = txs_.begin(); iter != txs_.end(); ++iter) {
 	  if (!iter->second.second->isValidInAggregate(state, keys, summary
                                                  , aggregate, prior)) {
