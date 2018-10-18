@@ -55,7 +55,7 @@ class UnrecordedTransactionPool {
       auto tx = CreateTransaction(buffer, keys, mode_);
       temp.push_back(std::move(tx));
     }
-    return AddTransactions(std::move(temp), keys);
+    return AddTransactions(temp, keys);
   }
 
   /** Adds Transactions to this pool.
@@ -66,7 +66,7 @@ class UnrecordedTransactionPool {
    *  @params keys a KeyRing that provides keys for signature verification
    *  @return true iff all Transactions are valid and in the pool
   */
-  bool AddTransactions(std::vector<TransactionPtr> txs, const KeyRing& keys) {
+  bool AddTransactions(std::vector<TransactionPtr>& txs, const KeyRing& keys) {
     LOG_DEBUG << "AddTransactions(std::vector<Transaction> txs, const KeyRing& keys)";
     MTR_SCOPE_FUNC();
     std::lock_guard<std::mutex> guard(txs_mutex_);
