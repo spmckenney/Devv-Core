@@ -391,10 +391,10 @@ class UnrecordedTransactionPool {
     unsigned int num_txs = 0;
     Summary post_sum(Summary::Copy(pre_sum));
     std::map<Address, SmartCoin> aggregate;
-    ChainState prior(ChainState::Copy(state));
+    ChainState post_state(ChainState::Copy(state));
     for (auto iter = txs_.begin(); iter != txs_.end(); ++iter) {
-      if (iter->second.second->isValidInAggregate(state, keys, post_sum
-                                                  , aggregate, prior)) {
+      if (iter->second.second->isValidInAggregate(post_state, keys,
+                                         post_sum, aggregate, state)) {
         valid.push_back(std::move(iter->second.second->clone()));
         iter->second.first++;
         num_txs++;
@@ -409,8 +409,7 @@ class UnrecordedTransactionPool {
         Summary sum_clone(Summary::Copy(pre_sum));
         ChainState pre_state(ChainState::Copy(state));
         while (!RemoveInvalidTransactions(pre_state, keys, sum_clone)) {
-          sum_clone = Summary::Copy(pre_sum);
-          pre_state = ChainState(state);
+          //do nothing
         }
         //collect again
         return CollectValidTransactions(state, keys, pre_sum, context);
@@ -467,12 +466,13 @@ class UnrecordedTransactionPool {
    *  @return true if all transactions in the block were removed
    *  @return false if possible that not all invalid transactions removed
    */
-  bool RemoveInvalidTransactions(ChainState& state
-      , const KeyRing& keys, Summary& summary) {
+  bool RemoveInvalidTransactions(const ChainState& state
+      , const KeyRing& keys, const Summary& summary) {
     std::map<Address, SmartCoin> aggregate;
-    ChainState prior(state);
+    ChainState state_clone(ChainState::Copy(state));
+    Summary sum_clone(Summary::Copy(summary));
     for (auto iter = txs_.begin(); iter != txs_.end(); ++iter) {
-	  if (!iter->second.second->isValidInAggregate(state, keys, summary
+	  if (!iter->second.second->isValidInAggregate(state_clone, keys, sum_clone
                                                  , aggregate, prior)) {
         RemoveTransaction(iter->second.second->getSignature());
         return false;
