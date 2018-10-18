@@ -4,9 +4,7 @@
  *
  * @copywrite  2018 Devvio Inc
  */
-
-#ifndef CONSENSUS_UNRECORDEDTRANSACTIONPOOL_H_
-#define CONSENSUS_UNRECORDEDTRANSACTIONPOOL_H_
+#pragma once
 
 #include <map>
 #include <vector>
@@ -14,16 +12,18 @@
 #include "concurrency/TransactionCreationManager.h"
 #include "primitives/FinalBlock.h"
 #include "primitives/factories.h"
+#include "common/logger.h"
 
 namespace Devv
 {
+
 typedef std::pair<uint8_t, TransactionPtr> SharedTransaction;
 typedef std::map<Signature, SharedTransaction> TxMap;
 
 class UnrecordedTransactionPool {
  public:
 
-  /** Constrcutors */
+  /** Constructors */
   UnrecordedTransactionPool(const ChainState& prior, eAppMode mode
      , size_t max_tx_per_block)
      : txs_()
@@ -46,26 +46,26 @@ class UnrecordedTransactionPool {
    *  @params keys a KeyRing that provides keys for signature verification
    *  @return true iff all Transactions are valid and in the pool
   */
-    bool AddTransactions(const std::vector<byte>& serial, const KeyRing& keys) {
-      LOG_DEBUG << "AddTransactions(const std::vector<byte>& serial, const KeyRing& keys)";
-      MTR_SCOPE_FUNC();
-      std::vector<TransactionPtr> temp;
-      InputBuffer buffer(serial);
-      while (buffer.getOffset() < buffer.size()) {
-        auto tx = CreateTransaction(buffer, keys, mode_);
-        temp.push_back(std::move(tx));
-      }
-      return AddTransactions(std::move(temp), keys);
+  bool AddTransactions(const std::vector<byte>& serial, const KeyRing& keys) {
+    LOG_DEBUG << "AddTransactions(const std::vector<byte>& serial, const KeyRing& keys)";
+    MTR_SCOPE_FUNC();
+    std::vector<TransactionPtr> temp;
+    InputBuffer buffer(serial);
+    while (buffer.getOffset() < buffer.size()) {
+      auto tx = CreateTransaction(buffer, keys, mode_);
+      temp.push_back(std::move(tx));
     }
+    return AddTransactions(std::move(temp), keys);
+  }
 
-/** Adds Transactions to this pool.
- *  @note if the Transaction is invalid it will not be added,
- *    but other valid transactions will be added.
- *  @note if the Transaction is valid, but is already in the pool,
- *  @param txs a vector of Transactions to add.
- *  @params keys a KeyRing that provides keys for signature verification
- *  @return true iff all Transactions are valid and in the pool
-*/
+  /** Adds Transactions to this pool.
+   *  @note if the Transaction is invalid it will not be added,
+   *    but other valid transactions will be added.
+   *  @note if the Transaction is valid, but is already in the pool,
+   *  @param txs a vector of Transactions to add.
+   *  @params keys a KeyRing that provides keys for signature verification
+   *  @return true iff all Transactions are valid and in the pool
+  */
   bool AddTransactions(std::vector<TransactionPtr> txs, const KeyRing& keys) {
     LOG_DEBUG << "AddTransactions(std::vector<Transaction> txs, const KeyRing& keys)";
     MTR_SCOPE_FUNC();
@@ -116,39 +116,10 @@ class UnrecordedTransactionPool {
    *  @return true iff all Transactions are valid and in the pool
    *  @return false if any of the Transactions are invalid or unsound
   */
-  bool AddAndVerifyTransactions(std::vector<TransactionPtr> txs, ChainState& state
-      , const KeyRing& keys, Summary& summary) {
-    LOG_DEBUG << "AddAndVerifyTransactions()";
-    MTR_SCOPE_FUNC();
-    std::lock_guard<std::mutex> guard(txs_mutex_);
-    for (TransactionPtr& item : txs) {
-      Signature sig = item->getSignature();
-      auto it = txs_.find(sig);
-      bool valid = it->second.second->isValid(state, keys, summary);
-      if (!valid) { return false; } //tx is invalid
-      if (it != txs_.end()) {
-        if (valid) {
-          it->second.first++;
-        }
-      } else if (item->isSound(keys)) {
-        SharedTransaction pair((uint8_t) 0, std::move(item));
-        if (valid) { pair.first++; }
-        txs_.insert(std::pair<Signature, SharedTransaction>(sig, std::move(pair)));
-        if (num_cum_txs_ == 0) {
-          LOG_NOTICE << "AddTransactions(): First transaction added to TxMap";
-          timer_.reset();
-#ifdef MTR_ENABLED
-          trace_ = std::make_unique<MTRScopedTrace>("timer", "lifetime2");
-#endif
-        }
-        num_cum_txs_++;
-
-      } else { //tx is unsound
-        return false;
-      }
-    }
-    return true;
-  }
+  bool addAndVerifyTransactions(std::vector<TransactionPtr> txs,
+                                ChainState& state,
+                                const KeyRing& keys,
+                                Summary& summary);
 
 /** Returns a JSON string representing these Transactions
  *  @note pointer counts are not preserved.
@@ -200,7 +171,7 @@ class UnrecordedTransactionPool {
   /**
    *  @return the number of pending Transactions in this pool
    */
-  size_t NumPendingTransactions() const {
+  size_t numPendingTransactions() const {
     std::lock_guard<std::mutex> guard(txs_mutex_);
     auto size = txs_.size();
     return(size);
@@ -352,6 +323,10 @@ class UnrecordedTransactionPool {
     return(tcm_);
   }
 
+  eAppMode getMode() const {
+    return mode_;
+  }
+
  private:
   TxMap txs_;
   mutable std::mutex txs_mutex_;
@@ -480,6 +455,3 @@ class UnrecordedTransactionPool {
 };
 
 } //end namespace Devv
-
-
-#endif /* CONSENSUS_UNRECORDEDTRANSACTIONPOOL_H_ */
