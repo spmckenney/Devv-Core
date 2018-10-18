@@ -34,6 +34,8 @@ public:
    */
   ChainState(ChainState&& other) noexcept = default;
 
+  static ChainState Copy(const ChainState& state);
+
   ChainState& operator=(const ChainState&& other)
   {
     if (this != &other) {
@@ -65,7 +67,7 @@ public:
   long getAmount(uint64_t type, const Address& addr) const;
 
 /** Get the map describing this chain state
- *  @return tre map describing this chain state
+ *  @return the map describing this chain state
 */
   std::map<Address, std::map<uint64_t, int64_t>> getStateMap() {
     return state_map_;
@@ -73,7 +75,13 @@ public:
 
 private:
  std::map<Address, std::map<uint64_t, int64_t>> state_map_;
+
 };
+
+inline ChainState ChainState::Copy(const ChainState& state) {
+  ChainState new_state(state);
+  return new_state;
+}
 
 } //namespace Devv
 

@@ -98,7 +98,8 @@ class ProposedBlock {
                 std::vector<TransactionPtr>& txs,
                 const Summary& summary,
                 const Validation& validations,
-                const ChainState& prior_state)
+                const ChainState& prior_state,
+                const KeyRing& keys)
       : num_bytes_(0)
       , prev_hash_(prev_hash)
       , tx_size_(0)

@@ -227,7 +227,7 @@ class UnrecordedTransactionPool {
 
     auto validated = CollectValidTransactions(prior_state, keys, summary, context);
     ProposedBlock new_proposal(prev_hash, validated, summary, validation
-        , new_state);
+        , new_state, keys);
     new_proposal.signBlock(keys, context);
     std::lock_guard<std::mutex> proposal_guard(pending_proposal_mutex_);
     LOG_WARNING << "ProposeBlock(): canon size: " << new_proposal.getCanonical().size();
@@ -391,7 +391,7 @@ class UnrecordedTransactionPool {
     unsigned int num_txs = 0;
     Summary post_sum(Summary::Copy(pre_sum));
     std::map<Address, SmartCoin> aggregate;
-    ChainState prior(state);
+    ChainState prior(ChainState::Copy(state));
     for (auto iter = txs_.begin(); iter != txs_.end(); ++iter) {
       if (iter->second.second->isValidInAggregate(state, keys, post_sum
                                                   , aggregate, prior)) {
@@ -407,7 +407,7 @@ class UnrecordedTransactionPool {
         //if no valid transactions, clean pool, collect again
         //clean
         Summary sum_clone(Summary::Copy(pre_sum));
-        ChainState pre_state(state);
+        ChainState pre_state(ChainState::Copy(state));
         while (!RemoveInvalidTransactions(pre_state, keys, sum_clone)) {
           sum_clone = Summary::Copy(pre_sum);
           pre_state = ChainState(state);
