@@ -693,7 +693,7 @@ Tier1TransactionPtr CreateTestT1_3(const KeyRing& keys) {
   Summary sum_test = Summary::Create();
   sum_test.addTransfer(sender);
   sum_test.addTransfer(receiver);
-  Summary clean = Sumamry::Create();
+  Summary clean = Summary::Create();
 
   auto node_sig = SignBinary(keys.getNodeKey(0),
       DevvHash(sum_test.getCanonical()));
