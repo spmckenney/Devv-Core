@@ -473,7 +473,7 @@ class UnrecordedTransactionPool {
     Summary sum_clone(Summary::Copy(summary));
     for (auto iter = txs_.begin(); iter != txs_.end(); ++iter) {
 	  if (!iter->second.second->isValidInAggregate(state_clone, keys, sum_clone
-                                                 , aggregate, prior)) {
+                                                 , aggregate, state)) {
         RemoveTransaction(iter->second.second->getSignature());
         return false;
       }
