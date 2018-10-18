@@ -4,8 +4,6 @@
  * @copywrite  2018 Devvio Inc
  */
 
-#include <stdlib.h>
-#include <stdio.h>
 #include <string>
 #include <iostream>
 #include <fstream>
@@ -55,9 +53,9 @@ int main(int argc, char* argv[])
     // Create loopback client to subscribe to simulator transactions
     std::unique_ptr<io::TransactionClient> loopback_client(new io::TransactionClient(zmq_context));
     auto be = options->bind_endpoint;
-    std::string this_uri = "";
+    std::string this_uri;
     try {
-      this_uri = "tcp://localhost" + be.substr(be.rfind(":"));
+      this_uri = "tcp://localhost" + be.substr(be.rfind(':'));
     } catch (std::range_error& e) {
       LOG_ERROR << "Extracting bind number failed: " << be;
     }
