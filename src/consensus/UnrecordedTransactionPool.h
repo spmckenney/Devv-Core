@@ -225,8 +225,7 @@ class UnrecordedTransactionPool {
     Summary summary = Summary::Create();
     Validation validation = Validation::Create();
 
-    auto validated = CollectValidTransactions(new_state, keys, summary, context);
-
+    auto validated = CollectValidTransactions(prior_state, keys, summary, context);
     ProposedBlock new_proposal(prev_hash, validated, summary, validation
         , new_state);
     new_proposal.signBlock(keys, context);
@@ -379,8 +378,8 @@ class UnrecordedTransactionPool {
    *  @params summary the Summary to update
    *  @return a vector of unrecorded valid transactions
    */
-  std::vector<TransactionPtr> CollectValidTransactions(ChainState& state
-      , const KeyRing& keys, Summary& pre_sum, const DevvContext& context) {
+  std::vector<TransactionPtr> CollectValidTransactions(const ChainState& state
+      , const KeyRing& keys, const Summary& pre_sum, const DevvContext& context) {
     LOG_DEBUG << "CollectValidTransactions()";
     std::vector<TransactionPtr> valid;
     MTR_SCOPE_FUNC();
@@ -408,8 +407,10 @@ class UnrecordedTransactionPool {
         //if no valid transactions, clean pool, collect again
         //clean
         Summary sum_clone(Summary::Copy(pre_sum));
-        while (!RemoveInvalidTransactions(state, keys, sum_clone)) {
+        ChainState pre_state(state);
+        while (!RemoveInvalidTransactions(pre_state, keys, sum_clone)) {
           sum_clone = Summary::Copy(pre_sum);
+          pre_state = ChainState(state);
         }
         //collect again
         return CollectValidTransactions(state, keys, pre_sum, context);
