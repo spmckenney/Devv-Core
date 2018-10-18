@@ -117,6 +117,7 @@ class ProposedBlock {
         LOG_ERROR << "Invalid Proposal generated!";
 	  }
     }
+    sum_size_ = summary_.getByteSize();
 
     num_bytes_ = MinSize() + tx_size_ + sum_size_ + val_count_ * vals_.pairSize();
   }
