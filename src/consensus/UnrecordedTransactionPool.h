@@ -463,7 +463,7 @@ class UnrecordedTransactionPool {
 
   /** Removes invalid transactions from this pool
    *  @pre not thread-safe, call from within a mutex guard
-   *  @return true if all transactions in the block were removed
+   *  @return true if all invalid transactions in the block were removed
    *  @return false if possible that not all invalid transactions removed
    */
   bool RemoveInvalidTransactions(const ChainState& state
