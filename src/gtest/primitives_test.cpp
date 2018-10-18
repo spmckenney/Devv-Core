@@ -693,6 +693,7 @@ Tier1TransactionPtr CreateTestT1_3(const KeyRing& keys) {
   Summary sum_test = Summary::Create();
   sum_test.addTransfer(sender);
   sum_test.addTransfer(receiver);
+  Summary clean = Sumamry::Create();
 
   auto node_sig = SignBinary(keys.getNodeKey(0),
       DevvHash(sum_test.getCanonical()));
@@ -701,7 +702,7 @@ Tier1TransactionPtr CreateTestT1_3(const KeyRing& keys) {
   val_test.addValidation(keys.getNodeAddr(0), SignSummary(sum_test, keys));
   ChainState state;
 
-  ProposedBlock proposal_test(prev_hash, txs, sum_test, val_test, state, keys);
+  ProposedBlock proposal_test(prev_hash, txs, clean, val_test, state, keys);
   FinalBlock final_block(proposal_test);
   //Validation val_test(final_block.getValidation());
 
