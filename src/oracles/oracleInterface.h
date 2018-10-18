@@ -12,11 +12,10 @@
  * @copywrite  2018 Devvio Inc
  *
  */
-
-#ifndef ORACLE_INTERFACE_H_
-#define ORACLE_INTERFACE_H_
+#pragma once
 
 #include <string>
+
 #include "common/binary_converters.h"
 #include "consensus/blockchain.h"
 #include "primitives/Tier2Transaction.h"
@@ -157,5 +156,3 @@ std::string GetOracleName<T>() {
 */
 
 } //end namespace Devv
-
-#endif /* ORACLE_INTERFACE_H_ */

@@ -17,8 +17,6 @@
 #include "primitives/buffers.h"
 #include "primitives/factories.h"
 
-using namespace Devv;
-
 namespace Devv
 {
 

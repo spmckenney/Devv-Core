@@ -34,8 +34,6 @@
 #include "consensus/KeyRing.h"
 #include "consensus/chainstate.h"
 
-using namespace Devv;
-
 namespace Devv {
 
 /**

@@ -13,8 +13,6 @@
 #include "common/devv_exceptions.h"
 #include "Transaction.h"
 
-using namespace Devv;
-
 namespace Devv {
 
 /**

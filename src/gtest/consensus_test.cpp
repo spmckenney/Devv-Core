@@ -14,6 +14,7 @@
 
 #include "consensus/chainstate.h"
 
+namespace Devv {
 namespace {
 
 #define TEST_DESCRIPTION(desc) RecordProperty("consensus algorithm unit tests", desc)
@@ -26,8 +27,7 @@ namespace {
 class ChainStateTest : public ::testing::Test {
  protected:
   ChainStateTest() : t1_context_0_(0, 0, Devv::eAppMode::T1,
-                                   "", "", "")
-  , keys_(t1_context_0_) {
+                                   "", "", ""), keys_(t1_context_0_) {
     for (int i = 0; i < 4; ++i) {
       keys_.addWalletKeyPair(kADDRs.at(i), kADDR_KEYs.at(i), "password");
     }
@@ -78,3 +78,4 @@ TEST_F(ChainStateTest, addCoin_0) {
 }
 
 } // namespace
+} // namespace Devv

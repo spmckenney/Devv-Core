@@ -10,8 +10,6 @@
 #include "common/devv_exceptions.h"
 #include "primitives/ProposedBlock.h"
 
-using namespace Devv;
-
 namespace Devv {
 
 /**

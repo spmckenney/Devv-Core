@@ -16,6 +16,7 @@
 #include "primitives/json_interface.h"
 #include "primitives/block_tools.h"
 
+namespace Devv {
 namespace {
 
 #define TEST_DESCRIPTION(desc) RecordProperty("primitive data type unit tests", desc)
@@ -1158,7 +1159,8 @@ TEST(Primitives, getCanonical0) {
   EXPECT_EQ(final_test.getCanonical(), final_id.getCanonical());
 }
 
-}  // namespace
+} // namespace
+} // namespace Devv
 
 int main(int argc, char **argv) {
   ::testing::InitGoogleTest(&argc, argv);

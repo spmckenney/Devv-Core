@@ -6,17 +6,15 @@
  * @copywrite  2018 Devvio Inc
  *
  */
-
-#ifndef ORACLES_REQUEST_H_
-#define ORACLES_REQUEST_H_
+#pragma once
 
 #include <string>
 
-#include "oracleInterface.h"
+#include "oracles/oracleInterface.h"
 #include "consensus/chainstate.h"
 #include "consensus/KeyRing.h"
 
-using namespace Devv;
+namespace Devv {
 
 class CoinRequest : public oracleInterface {
 
@@ -176,4 +174,4 @@ private:
 
 };
 
-#endif /* ORACLES_REQUEST_H_ */
+} // namespace Devv

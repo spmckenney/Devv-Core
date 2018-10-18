@@ -7,9 +7,7 @@
  * @copywrite  2018 Devvio Inc
  *
  */
-
-#ifndef ORACLES_HEX_TRANSACTION_H_
-#define ORACLES_HEX_TRANSACTION_H_
+#pragma once
 
 #include <string>
 
@@ -17,41 +15,39 @@
 #include "consensus/chainstate.h"
 #include "consensus/KeyRing.h"
 
-using namespace Devv;
+namespace Devv {
 
 class DoTransaction : public oracleInterface {
 
  public:
-
-
-DoTransaction(std::string data) : oracleInterface(data) {};
+  DoTransaction(std::string data) : oracleInterface(data) {};
 
 /**
  *  @return the string name that invokes this oracle
  */
   virtual std::string getOracleName() override {
-    return(DoTransaction::GetOracleName());
+    return (DoTransaction::GetOracleName());
   }
 
 /**
  *  @return the string name that invokes this oracle
  */
   static std::string GetOracleName() {
-    return("io.devv.do_transaction");
+    return ("io.devv.do_transaction");
   }
 
 /**
  *  @return the shard used by this oracle
  */
   static uint64_t getShardIndex() {
-    return(1);
+    return (1);
   }
 
 /**
  *  @return the coin type used by this oracle
  */
   static uint64_t getCoinIndex() {
-    return(0);
+    return (0);
   }
 
 /** Checks if this proposal is objectively sound according to this oracle.
@@ -76,33 +72,33 @@ DoTransaction(std::string data) : oracleInterface(data) {};
  */
   bool isValid(const Blockchain& context) override {
     if (!isSound()) {
-		error_msg_ = "Transaction is not sound: hex data: "+Bin2Str(getCanonical());
-		return false;
-	}
-	return true;
+      error_msg_ = "Transaction is not sound: hex data: " + Bin2Str(getCanonical());
+      return false;
+    }
+    return true;
   }
 
 /**
  *  @return if not valid or not sound, return an error message
  */
   std::string getErrorMessage() override {
-    return(error_msg_);
+    return (error_msg_);
   }
 
   //always empty for now
   std::map<uint64_t, std::vector<Tier2Transaction>>
-      getTrace(const Blockchain& context) override {
+  getTrace(const Blockchain& context) override {
     std::map<uint64_t, std::vector<Tier2Transaction>> out;
     return out;
   }
 
   uint64_t getCurrentDepth(const Blockchain& context) override {
     //@TODO(nick) scan pre-existing chain for this oracle instance.
-    return(0);
+    return (0);
   }
 
   std::map<uint64_t, std::vector<Tier2Transaction>>
-      getNextTransactions(const Blockchain& context, const KeyRing& keys) override {
+  getNextTransactions(const Blockchain& context, const KeyRing& keys) override {
     std::map<uint64_t, std::vector<Tier2Transaction>> out;
     if (!isValid(context)) return out;
     std::string hex = Bin2Str(getCanonical());
@@ -123,7 +119,7 @@ DoTransaction(std::string data) : oracleInterface(data) {};
  * @return a map of oracles to data
  */
   std::map<std::string, std::vector<byte>>
-      getDecompositionMap(const Blockchain& context) override {
+  getDecompositionMap(const Blockchain& context) override {
     std::map<std::string, std::vector<byte>> out;
     std::vector<byte> data(Str2Bin(raw_data_));
     std::pair<std::string, std::vector<byte>> p(getOracleName(), data);
@@ -138,7 +134,7 @@ DoTransaction(std::string data) : oracleInterface(data) {};
  * @return a map of oracles to data encoded in JSON
  */
   std::map<std::string, std::string>
-      getDecompositionMapJSON(const Blockchain& context) override {
+  getDecompositionMapJSON(const Blockchain& context) override {
     std::map<std::string, std::string> out;
     std::pair<std::string, std::string> p(getOracleName(), getJSON());
     out.insert(p);
@@ -157,13 +153,13 @@ DoTransaction(std::string data) : oracleInterface(data) {};
  * @return the internal state of this oracle in JSON.
  */
   std::string getJSON() override {
-    std::string json("{\"hex\":\""+Bin2Str(getCanonical())+"\"}");
+    std::string json("{\"hex\":\"" + Bin2Str(getCanonical()) + "\"}");
     return json;
   }
 
-private:
- std::string error_msg_;
+ private:
+  std::string error_msg_;
 
 };
 
-#endif /* ORACLES_DO_TRANSACTION_H_ */
+} // namespace Devv
