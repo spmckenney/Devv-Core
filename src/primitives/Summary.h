@@ -1,14 +1,10 @@
 /*
  * Summary.h
  *
- * Serial form is Address count (uint64_t),...
- * [Address count times]:
- *   Address,delayed coin count (uint64_t), coin count (uint64_t)...
- *     coin, delay, delta [delayed coin count times]
- *     coin, delta [coin count times]
+ * UnrecordedTransactionPool.h
+ * tracks Transactions that have not yet been encoded in the blockchain.
  *
- *  Created on: Apr 18, 2018
- *      Author: Nick Williams
+ * @copywrite  2018 Devvio Inc
  */
 
 #ifndef PRIMITIVES_SUMMARY_H_

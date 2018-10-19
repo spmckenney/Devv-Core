@@ -211,8 +211,11 @@ class ProposedBlock {
   bool checkValidationData(InputBuffer& buffer, const DevvContext& context) {
     MTR_SCOPE_FUNC();
     if (buffer.size() < MinValidationSize()) {
-      LOG_WARNING << "Invalid validation data, too small!";
-      return false;
+      std::ostringstream err;
+      err << "Invalid validation data, too small: buffer("
+             << buffer.size() << ") < min_size(" << MinValidationSize() << ")";
+      LOG_ERROR << err.str();
+      throw std::runtime_error(err.str());
     }
     Hash incoming_hash;
     buffer.copy(incoming_hash);
@@ -414,6 +417,8 @@ inline ProposedBlock ProposedBlock::Create(InputBuffer &buffer,
   MTR_SCOPE_FUNC();
   ProposedBlock new_block(prior);
 
+  // FIXME(spm): Debugging number for profiling
+  // Still shouldn't be a magic number
   int proposed_block_int = 123;
   MTR_START("proposed_block", "proposed_block", &proposed_block_int);
 

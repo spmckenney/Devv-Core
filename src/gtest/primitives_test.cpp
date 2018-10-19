@@ -573,17 +573,17 @@ class Tier1TransactionTest : public ::testing::Test {
       : t1_context_0_(0, 0, Devv::eAppMode::T1, "", "", "")
       , keys_(t1_context_0_)
   {
-    for (int i = 0; i < 4; ++i) {
+    for (uint64_t i = 0; i < 4; ++i) {
       keys_.addWalletKeyPair(kADDRs.at(i), kADDR_KEYs.at(i), "password");
     }
     keys_.setInnKeyPair(kINN_ADDR, kINN_KEY, "password");
-    for (int i = 0; i < 3; ++i) {
+    for (uint64_t i = 0; i < 3; ++i) {
       keys_.addNodeKeyPair(kNODE_ADDRs.at(i), kNODE_KEYs.at(i), "password");
     }
   }
 
   // You can do clean-up work that doesn't throw exceptions here.
-  ~Tier1TransactionTest()  = default;
+  ~Tier1TransactionTest() override = default;
 
   // If the constructor and destructor are not enough for setting up
   // and cleaning up each test, you can define the following methods:
@@ -795,13 +795,13 @@ class Tier2TransactionTest : public ::testing::Test {
       , transfers_()
       , keys_(t1_context_0_)
   {
-    for (int i = 0; i < 4; ++i) {
+    for (uint64_t i = 0; i < 4; ++i) {
       keys_.addWalletKeyPair(kADDRs[i], kADDR_KEYs[i], "password");
     }
 
     keys_.setInnKeyPair(kINN_ADDR, kINN_KEY, "password");
 
-    for (int i = 0; i < 3; ++i) {
+    for (uint64_t i = 0; i < 3; ++i) {
       keys_.addNodeKeyPair(kNODE_ADDRs.at(i), kNODE_KEYs.at(i), "password");
     }
 
@@ -812,7 +812,7 @@ class Tier2TransactionTest : public ::testing::Test {
   }
 
   // You can do clean-up work that doesn't throw exceptions here.
-  ~Tier2TransactionTest()  = default;
+  ~Tier2TransactionTest() override = default;
 
   // If the constructor and destructor are not enough for setting up
   // and cleaning up each test, you can define the following methods:

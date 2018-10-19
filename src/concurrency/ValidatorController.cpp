@@ -65,6 +65,9 @@ void ValidatorController::validatorCallback(DevvMessageUniquePtr ptr) {
     DevvMessage msg(*ptr.get());
     utx_pool_.AddTransactions(msg.data, keys_);
     size_t block_height = final_chain_.size();
+    LOG_DEBUG << "current_node(" << context_.get_current_node() << ")" \
+              <<" peer_count(" << context_.get_peer_count() << ")" \
+              << " block_height (" << block_height << ")";
     if (block_height%context_.get_peer_count() == context_.get_current_node()%context_.get_peer_count()) {
       LOG_INFO << "Received txs: CreateNextProposal? utx_pool.HasProposal(): " << utx_pool_.HasProposal();
       if (!utx_pool_.HasProposal()) {

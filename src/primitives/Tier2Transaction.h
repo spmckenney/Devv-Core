@@ -34,6 +34,8 @@ class Tier2Transaction : public Transaction {
 
   /**
    * Constructor
+   * The constructor will sign this transaction after creation
+   *
    * @param oper Operation of this transaction
    * @param xfers
    * @param nonce
@@ -81,11 +83,14 @@ class Tier2Transaction : public Transaction {
 
   /**
    * Constructor
+   * This constructor will use the provided signature
+   *
    * @param oper Operation of this transaction
    * @param xfers
    * @param nonce
    * @param eckey
    * @param keys
+   * @param signature
    */
   Tier2Transaction(byte oper,
                    const std::vector<Transfer>& xfers,

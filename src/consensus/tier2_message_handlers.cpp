@@ -93,12 +93,20 @@ bool HandleFinalBlock(DevvMessageUniquePtr ptr,
         LogDevvMessageSummary(*propose_msg, "CreateNextProposal");
         callback(std::move(propose_msg));
         sent_message = true;
+      } else {
+        LOG_WARNING << "HandleFinalBlock: proposal is null ;; ProposedBlock::isNullProposal(proposal) == NULL";
       }
     } else {
-      LOG_DEBUG << "Already sent a proposal?";
+      LOG_DEBUG << "HandleFinalBlock: Sent proposal, utx_pool has no more proposals";
     }
   } else {
-    LOG_DEBUG << "Pending transactions but not my turn";
+    LOG_DEBUG << "if (block_height % context.get_peer_count() == context.get_current_node() % context.get_peer_count())";
+    LOG_DEBUG << "Pending transactions but not my turn: " <<
+              "("<< block_height<<"%"<< context.get_peer_count()<< ") != " <<
+              "(" << context.get_current_node() << "%" << context.get_peer_count() << ") " <<
+              ": (" << block_height % context.get_peer_count() << " != " <<
+              context.get_current_node() % context.get_peer_count() <<
+              ") pending: " << utx_pool.HasPendingTransactions();
   }
   return sent_message;
 }
@@ -110,14 +118,11 @@ bool HandleProposalBlock(DevvMessageUniquePtr ptr,
                          TransactionCreationManager& tcm,
                          std::function<void(DevvMessageUniquePtr)> callback) {
   MTR_SCOPE_FUNC();
-  //validate block
-  //if valid, push VALID message
-  DevvMessage msg(*ptr.get());
 
   LogDevvMessageSummary(*ptr, "HandleProposalBlock() -> Incoming");
 
   ChainState prior = final_chain.getHighestChainState();
-  InputBuffer buffer(msg.data);
+  InputBuffer buffer(ptr->data);
   ProposedBlock to_validate(ProposedBlock::Create(buffer, prior, keys, tcm));
   if (!to_validate.validate(keys)) {
     LOG_WARNING << "ProposedBlock is invalid!";
