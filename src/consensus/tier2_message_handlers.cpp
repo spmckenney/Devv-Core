@@ -106,7 +106,7 @@ bool HandleFinalBlock(DevvMessageUniquePtr ptr,
 bool HandleProposalBlock(DevvMessageUniquePtr ptr,
                          const DevvContext& context,
                          const KeyRing& keys,
-                         Blockchain& final_chain,
+                         const Blockchain& final_chain,
                          TransactionCreationManager& tcm,
                          std::function<void(DevvMessageUniquePtr)> callback) {
   MTR_SCOPE_FUNC();
