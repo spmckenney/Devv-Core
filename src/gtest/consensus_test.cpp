@@ -65,9 +65,6 @@ TEST_F(ChainStateTest, constructor_0) {
   ChainState chain_state;
 
   EXPECT_EQ(chain_state.getStateMap().size(), 0);
-  //CoinMap inner(coin.getCoin(), coin.getAmount());
-  //std::pair<Address, CoinMap> outer(coin.getAddress(),inner);
-  //auto result = state_map_.insert(outer);
 }
 
 TEST_F(ChainStateTest, addCoin_0) {
@@ -88,12 +85,12 @@ TEST_F(ChainStateTest, addCoin_0) {
 class UnrecordedTransactionPoolTest : public ::testing::Test {
  protected:
   UnrecordedTransactionPoolTest()
-      : t2_context_(0, 0, eAppMode::T2, "", "", "")
+      : t2_context_(1, 0, eAppMode::T2, "", "", "")
       , keys_(t2_context_)
-      , blockchain_("test-chain")
+      , proposal_chain_("prop-chain")
+      , final_chain_("final-chain")
       , chain_state_()
-      , utx_pool_ptr_()
-      , tcm_(t2_context_.get_app_mode()){
+      , utx_pool_ptr_() {
     for (int i = 0; i < 4; ++i) {
       keys_.addWalletKeyPair(kADDRs.at(i), kADDR_KEYs.at(i), "password");
     }
@@ -118,28 +115,39 @@ class UnrecordedTransactionPoolTest : public ::testing::Test {
 
   std::vector<byte> createTestProposal() {
     return CreateNextProposal(keys_,
-                              blockchain_,
+                              proposal_chain_,
                               *utx_pool_ptr_,
                               t2_context_);
+  }
+
+  void handleValidationBlock(DevvMessageUniquePtr message) {
+    LogDevvMessageSummary(*message, "UnrecordedTransactionPoolTest::handleValidationBlock");
+
+    DevvMessageCallback cb = [this](DevvMessageUniquePtr p) { this->handleFinalBlock(std::move(p)); };
+
+    HandleValidationBlock(std::move(message), t2_context_, final_chain_, *utx_pool_ptr_, cb);
+  }
+
+  void handleFinalBlock(DevvMessageUniquePtr message) {
+    LogDevvMessageSummary(*message, "UnrecordedTransactionPoolTest::handleFinalBlock");
   }
 
   // Create a default context
   DevvContext t2_context_;
   KeyRing keys_;
-  Blockchain blockchain_;
+  Blockchain proposal_chain_;
+  Blockchain final_chain_;
 
   ChainState chain_state_;
   std::unique_ptr<UnrecordedTransactionPool> utx_pool_ptr_;
-  TransactionCreationManager tcm_;
 };
 
 Tier2TransactionPtr CreateInnTransaction(KeyRing& keys, int64_t amount) {
   size_t addr_count = keys.CountWallets();
   Address inn_addr = keys.getInnAddr();
 
-  uint64_t nonce_num = GetMillisecondsSinceEpoch() + 1000011;
-  std::vector<byte> nonce_bin;
-  Uint64ToBin(nonce_num, nonce_bin);
+  std::string nonce_str = "Here is a very big test nonce for the UnrecordedTransactionPool class.";
+  std::vector<byte> nonce_bin(nonce_str.begin(), nonce_str.end());
 
   std::vector<Transfer> xfers;
   Transfer inn_transfer(inn_addr, 0, -1 * addr_count * amount, 0);
@@ -153,43 +161,6 @@ Tier2TransactionPtr CreateInnTransaction(KeyRing& keys, int64_t amount) {
                                                                   keys.getKey(inn_addr), keys);
 
   return inn_tx;
-}
-
-
-TEST_F(UnrecordedTransactionPoolTest, constructor_0) {
-  CoinMap coin_map;
-  DelayedItem delayed_item;
-  AddToCoinMap(10, delayed_item, coin_map);
-
-  ChainState chain_state;
-
-  EXPECT_EQ(chain_state.getStateMap().size(), 0);
-
-  //utx_pool_ptr_ = std::make_unique<UnrecordedTransactionPool>(chain_state, eAppMode::T2, 100);
-
-  EXPECT_EQ(utx_pool_ptr_->getMode(), eAppMode::T2);
-}
-
-TEST_F(UnrecordedTransactionPoolTest, addTransaction_0) {
-  CoinMap coin_map;
-  DelayedItem delayed_item;
-  AddToCoinMap(10, delayed_item, coin_map);
-
-  ChainState chain_state;
-
-  EXPECT_EQ(chain_state.getStateMap().size(), 0);
-
-  std::unique_ptr<Tier2Transaction> inn_tx = CreateInnTransaction(keys_, 100);
-  EXPECT_EQ(inn_tx->getOperation(), eOpType::Create);
-
-  std::vector<TransactionPtr> inn_tx_vector;
-  inn_tx_vector.push_back(std::move(inn_tx));
-
-  utx_pool_ptr_->AddTransactions(inn_tx_vector, keys_);
-
-  EXPECT_EQ(utx_pool_ptr_->numPendingTransactions(), 1);
-
-  auto proposal = createTestProposal();
 }
 
 /**
@@ -218,6 +189,34 @@ Tier2TransactionPtr CreateTestTransaction(const KeyRing& keys, int send_amount =
   return t2x;
 }
 
+TEST_F(UnrecordedTransactionPoolTest, constructor_0) {
+  CoinMap coin_map;
+  DelayedItem delayed_item;
+  AddToCoinMap(10, delayed_item, coin_map);
+
+  ChainState chain_state;
+
+  EXPECT_EQ(chain_state.getStateMap().size(), 0);
+
+  //utx_pool_ptr_ = std::make_unique<UnrecordedTransactionPool>(chain_state, eAppMode::T2, 100);
+
+  EXPECT_EQ(utx_pool_ptr_->getMode(), eAppMode::T2);
+}
+
+TEST_F(UnrecordedTransactionPoolTest, addTransaction_0) {
+  std::unique_ptr<Tier2Transaction> inn_tx = CreateInnTransaction(keys_, 100);
+  EXPECT_EQ(inn_tx->getOperation(), eOpType::Create);
+
+  std::vector<TransactionPtr> inn_tx_vector;
+  inn_tx_vector.push_back(std::move(inn_tx));
+
+  utx_pool_ptr_->AddTransactions(inn_tx_vector, keys_);
+
+  EXPECT_EQ(utx_pool_ptr_->numPendingTransactions(), 1);
+
+  auto proposal = createTestProposal();
+}
+
 TEST_F(UnrecordedTransactionPoolTest, isNullProposal_0) {
   auto t2x = CreateTestTransaction(keys_);
 
@@ -236,10 +235,10 @@ TEST_F(UnrecordedTransactionPoolTest, isNullProposal_0) {
 TEST_F(UnrecordedTransactionPoolTest, validate_0) {
   auto t2x = CreateTestTransaction(keys_);
 
-  std::vector<TransactionPtr> inn_tx_vector;
-  inn_tx_vector.push_back(std::move(t2x));
+  std::vector<TransactionPtr> tx_vector;
+  tx_vector.push_back(std::move(t2x));
 
-  utx_pool_ptr_->AddTransactions(inn_tx_vector, keys_);
+  utx_pool_ptr_->AddTransactions(tx_vector, keys_);
 
   EXPECT_EQ(utx_pool_ptr_->numPendingTransactions(), 1);
 
@@ -251,7 +250,9 @@ TEST_F(UnrecordedTransactionPoolTest, validate_0) {
   ProposedBlock to_validate(ProposedBlock::Create(buffer,
                                                   chain_state_,
                                                   keys_,
-                                                  tcm_));
+                                                  utx_pool_ptr_->get_transaction_creation_manager()));
+  EXPECT_EQ(to_validate.getVersion(), 0);
+
   auto valid = to_validate.validate(keys_);
 
   EXPECT_TRUE(valid);
@@ -273,7 +274,7 @@ TEST_F(UnrecordedTransactionPoolTest, validate_1) {
   EXPECT_EQ(ProposedBlock::isNullProposal(proposal), false);
 
   InputBuffer buffer(proposal);
-  ProposedBlock to_validate(ProposedBlock::Create(buffer, chain_state_, keys_, tcm_));
+  ProposedBlock to_validate(ProposedBlock::Create(buffer, chain_state_, keys_, utx_pool_ptr_->get_transaction_creation_manager()));
   auto valid = to_validate.validate(keys_);
   auto sign = to_validate.signBlock(keys_, t2_context_);
   EXPECT_TRUE(valid);
@@ -299,18 +300,125 @@ TEST_F(UnrecordedTransactionPoolTest, finalize_0) {
   EXPECT_EQ(ProposedBlock::isNullProposal(proposal), false);
 
   InputBuffer buffer(proposal);
-  ProposedBlock to_validate(ProposedBlock::Create(buffer, chain_state_, keys_, tcm_));
+  ProposedBlock to_validate(ProposedBlock::Create(buffer, chain_state_, keys_, utx_pool_ptr_->get_transaction_creation_manager()));
   auto valid = to_validate.validate(keys_);
   auto sign = to_validate.signBlock(keys_, t2_context_);
   EXPECT_TRUE(valid);
   EXPECT_TRUE(sign);
 
   EXPECT_TRUE(utx_pool_ptr_->CheckValidation(buffer, t2_context_));
-
+/*
     //block can be finalized, so finalize
     LOG_DEBUG << "Ready to finalize block.";
     FinalPtr top_block = std::make_shared<FinalBlock>(utx_pool_ptr_->FinalizeLocalBlock());
-    blockchain_.push_back(top_block);
+    proposal_chain_.push_back(top_block);
+*/
+}
+
+TEST_F(UnrecordedTransactionPoolTest, finalize_inn_tx) {
+  std::unique_ptr<Tier2Transaction> inn_tx = CreateInnTransaction(keys_, 100);
+  EXPECT_EQ(inn_tx->getOperation(), eOpType::Create);
+
+  std::vector<TransactionPtr> inn_tx_vector;
+  inn_tx_vector.push_back(std::move(inn_tx));
+
+  utx_pool_ptr_->AddTransactions(inn_tx_vector, keys_);
+
+  EXPECT_EQ(utx_pool_ptr_->numPendingTransactions(), 1);
+
+  auto proposal = createTestProposal();
+
+  EXPECT_EQ(ProposedBlock::isNullProposal(proposal), false);
+
+  InputBuffer buffer(proposal);
+  ProposedBlock to_validate(ProposedBlock::Create(buffer, chain_state_, keys_, utx_pool_ptr_->get_transaction_creation_manager()));
+
+  EXPECT_EQ(to_validate.getVersion(), 0);
+
+  std::cout << "VERSION: " << int(to_validate.getVersion()) << " -- " << std::endl;
+
+  auto valid = to_validate.validate(keys_);
+  auto sign = to_validate.signBlock(keys_, t2_context_);
+  EXPECT_TRUE(valid);
+  EXPECT_TRUE(sign);
+
+  size_t block_height = final_chain_.size();
+
+  EXPECT_EQ(final_chain_.size(), 0);
+  EXPECT_EQ(proposal_chain_.size(), 0);
+
+  // Create message
+  auto propose_msg =
+      std::make_unique<DevvMessage>(t2_context_.get_shard_uri(),
+                                    PROPOSAL_BLOCK,
+                                    proposal,
+                                    ((block_height + 1) + (t2_context_.get_current_node() + 1) * 1000000));
+
+  DevvMessageCallback cb = [this](DevvMessageUniquePtr p) { this->handleValidationBlock(std::move(p)); };
+
+  HandleProposalBlock(std::move(propose_msg),
+                      t2_context_,
+                      keys_,
+                      proposal_chain_,
+                      utx_pool_ptr_->get_transaction_creation_manager(), cb);
+}
+
+TEST_F(UnrecordedTransactionPoolTest, finalize_tx_1) {
+auto t2x = CreateTestTransaction(keys_, -2, 2);
+std::unique_ptr<Tier2Transaction> inn_tx = CreateInnTransaction(keys_, 100);
+EXPECT_EQ(inn_tx->getOperation(), eOpType::Create);
+
+std::vector<TransactionPtr> inn_tx_vector;
+inn_tx_vector.push_back(std::move(inn_tx));
+
+utx_pool_ptr_->AddTransactions(inn_tx_vector, keys_);
+
+EXPECT_EQ(utx_pool_ptr_->numPendingTransactions(), 1);
+
+auto proposal = createTestProposal();
+
+EXPECT_EQ(ProposedBlock::isNullProposal(proposal), false);
+
+InputBuffer buffer(proposal);
+ProposedBlock to_validate(ProposedBlock::Create(buffer, chain_state_, keys_, utx_pool_ptr_->get_transaction_creation_manager()));
+auto valid = to_validate.validate(keys_);
+auto sign = to_validate.signBlock(keys_, t2_context_);
+EXPECT_TRUE(valid);
+EXPECT_TRUE(sign);
+
+size_t block_height = final_chain_.size();
+
+EXPECT_EQ(final_chain_.size(), 0);
+EXPECT_EQ(proposal_chain_.size(), 0);
+
+// Create message
+auto propose_msg =
+    std::make_unique<DevvMessage>(t2_context_.get_shard_uri(),
+                                  PROPOSAL_BLOCK,
+                                  proposal,
+                                  ((block_height + 1) + (t2_context_.get_current_node() + 1) * 1000000));
+
+DevvMessageCallback cb = [this](DevvMessageUniquePtr p) { this->handleValidationBlock(std::move(p)); };
+
+HandleProposalBlock(std::move(propose_msg), t2_context_, keys_, proposal_chain_, utx_pool_ptr_->get_transaction_creation_manager(), cb);
+}
+
+TEST_F(UnrecordedTransactionPoolTest, proposal_stream_0) {
+  auto t2x = CreateTestTransaction(keys_, -2, 2);
+
+  std::vector<TransactionPtr> inn_tx_vector;
+  inn_tx_vector.push_back(std::move(t2x));
+
+  utx_pool_ptr_->AddTransactions(inn_tx_vector, keys_);
+
+  EXPECT_EQ(utx_pool_ptr_->numPendingTransactions(), 1);
+
+  auto proposal = createTestProposal();
+
+  InputBuffer buffer(proposal);
+  auto proposal2 = ProposedBlock::Create(buffer, chain_state_, keys_, utx_pool_ptr_->get_transaction_creation_manager());
+
+  EXPECT_EQ(proposal, proposal2.getCanonical());
 }
 
 } // namespace
