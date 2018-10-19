@@ -24,11 +24,14 @@
 #include <cstdint>
 #include <string>
 #include <vector>
+#include <memory>
 
 #include "Summary.h"
 #include "Transfer.h"
 #include "Validation.h"
 #include "common/devv_constants.h"
+#include "common/dynamic_pointer_cast.h"
+
 #include "primitives/buffers.h"
 
 #include "consensus/KeyRing.h"
@@ -239,6 +242,33 @@ class Transaction {
 };
 
 typedef std::unique_ptr<Transaction> TransactionPtr;
+
+// Helper to dynamic cast Transactions
+template <class T_SRC, class T_DEST>
+std::unique_ptr<T_DEST> unique_cast(std::unique_ptr<T_SRC> &&src)
+{
+    //if (!src) return std::unique_ptr<T_DEST>();
+    if (!src) throw std::bad_cast();
+
+    // Throws a std::bad_cast() if this doesn't work out
+    T_DEST *dest_ptr = &dynamic_cast<T_DEST &>(*src.get());
+
+    src.release();
+    auto ret = std::make_unique<T_DEST>(dest_ptr);
+    return ret;
+}
+
+template <typename To, typename From, typename Deleter>
+std::unique_ptr<To, Deleter> dynamic_unique_cast(std::unique_ptr<From, Deleter>&& p) {
+  if (To* cast = dynamic_cast<To*>(p.get()))
+  {
+    std::unique_ptr<To, Deleter> result(cast, std::move(p.get_deleter()));
+    p.release();
+    return result;
+  }
+  return std::unique_ptr<To, Deleter>(nullptr); // or throw std::bad_cast() if you prefer
+}
+
 
 }  // end namespace Devv
 
