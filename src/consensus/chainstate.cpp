@@ -29,6 +29,8 @@ bool ChainState::addCoin(const SmartCoin& coin) {
     auto result = state_map_.insert(outer);
     no_error = result.second && no_error;
   }
+  LOG_DEBUG << "ChainState::AddCoin(): addr(" <<
+            coin.getAddress().getHexString() << ") coin(" << coin.getCoin() << ") amount("<<coin.getAmount()<<") result("<<no_error<<")";
   return(no_error);
 }
 
