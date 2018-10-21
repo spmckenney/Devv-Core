@@ -73,6 +73,10 @@ public:
     return state_map_;
   }
 
+  size_t size() const {
+    return state_map_.size();
+  }
+
 private:
  std::map<Address, std::map<uint64_t, int64_t>> state_map_;
 
