@@ -702,6 +702,8 @@ Tier1TransactionPtr CreateTestT1_3(const KeyRing& keys) {
   Validation val_test = Validation::Create();
   val_test.addValidation(keys.getNodeAddr(0), SignSummary(sum_test, keys));
   ChainState state;
+  SmartCoin make_valid(keys.getWalletAddr(1), 0, 1);
+  state.addCoin(make_valid);
 
   ProposedBlock proposal_test(prev_hash, txs, clean, val_test, state, keys);
   FinalBlock final_block(proposal_test);
