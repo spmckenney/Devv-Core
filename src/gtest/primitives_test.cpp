@@ -622,7 +622,7 @@ Tier1TransactionPtr CreateTestT1_0(const KeyRing& keys) {
   Validation val_test = Validation::Create();
   ChainState state;
 
-  ProposedBlock proposal_test(prev_hash, txs, sum_test, val_test, state);
+  ProposedBlock proposal_test(prev_hash, txs, sum_test, val_test, state, keys);
   FinalBlock final_block(proposal_test);
 
   return(CreateTier1Transaction(final_block, keys));
@@ -694,6 +694,7 @@ Tier1TransactionPtr CreateTestT1_3(const KeyRing& keys) {
   Summary sum_test = Summary::Create();
   sum_test.addTransfer(sender);
   sum_test.addTransfer(receiver);
+  Summary clean = Summary::Create();
 
   auto node_sig = SignBinary(keys.getNodeKey(0),
       DevvHash(sum_test.getCanonical()));
@@ -702,7 +703,7 @@ Tier1TransactionPtr CreateTestT1_3(const KeyRing& keys) {
   val_test.addValidation(keys.getNodeAddr(0), SignSummary(sum_test, keys));
   ChainState state;
 
-  ProposedBlock proposal_test(prev_hash, txs, sum_test, val_test, state);
+  ProposedBlock proposal_test(prev_hash, txs, clean, val_test, state, keys);
   FinalBlock final_block(proposal_test);
   //Validation val_test(final_block.getValidation());
 
@@ -723,7 +724,7 @@ TEST_F(Tier1TransactionTest, serdes_getValidationThrow) {
   Validation val_test = Validation::Create();
   ChainState state;
 
-  ProposedBlock proposal_test(prev_hash, txs, sum_test, val_test, state);
+  ProposedBlock proposal_test(prev_hash, txs, sum_test, val_test, state, keys_);
   FinalBlock final_block(proposal_test);
 
   EXPECT_THROW(CreateTier1Transaction(final_block, keys_), std::range_error);
@@ -1144,7 +1145,7 @@ TEST(Primitives, getCanonical0) {
   std::vector<TransactionPtr> txs;
   txs.push_back(std::move(txptr));
   ChainState state;
-  ProposedBlock proposal_test(prev_hash, txs, sum_test, val_test, state);
+  ProposedBlock proposal_test(prev_hash, txs, sum_test, val_test, state, keys);
   InputBuffer buffer5(proposal_test.getCanonical());
   ProposedBlock proposal_id = ProposedBlock::Create(buffer5, state, keys, txm);
 

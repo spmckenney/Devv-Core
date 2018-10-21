@@ -98,7 +98,8 @@ class ProposedBlock {
                 std::vector<TransactionPtr>& txs,
                 const Summary& summary,
                 const Validation& validations,
-                const ChainState& prior_state)
+                const ChainState& prior_state,
+                const KeyRing& keys)
       : num_bytes_(0)
       , prev_hash_(prev_hash)
       , tx_size_(0)
@@ -109,9 +110,14 @@ class ProposedBlock {
       , vals_(validations)
       , block_state_(prior_state) {
     MTR_SCOPE_FUNC();
+	std::map<Address, SmartCoin> aggregate;
     for (auto const& item : transaction_vector_) {
       tx_size_ += item->getByteSize();
+      if (!item->isValidInAggregate(block_state_, keys, summary_, aggregate, prior_state)) {
+        LOG_ERROR << "Invalid Proposal generated!";
+	  }
     }
+    sum_size_ = summary_.getByteSize();
 
     num_bytes_ = MinSize() + tx_size_ + sum_size_ + val_count_ * vals_.pairSize();
   }

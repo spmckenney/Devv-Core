@@ -196,10 +196,9 @@ class UnrecordedTransactionPool {
     Summary summary = Summary::Create();
     Validation validation = Validation::Create();
 
-    auto validated = CollectValidTransactions(new_state, keys, summary, context);
-
+    auto validated = CollectValidTransactions(prior_state, keys, summary, context);
     ProposedBlock new_proposal(prev_hash, validated, summary, validation
-        , new_state);
+        , new_state, keys);
     new_proposal.signBlock(keys, context);
     std::lock_guard<std::mutex> proposal_guard(pending_proposal_mutex_);
     LOG_WARNING << "ProposeBlock(): canon size: " << new_proposal.getCanonical().size();
@@ -354,8 +353,8 @@ class UnrecordedTransactionPool {
    *  @params summary the Summary to update
    *  @return a vector of unrecorded valid transactions
    */
-  std::vector<TransactionPtr> CollectValidTransactions(ChainState& state
-      , const KeyRing& keys, Summary& summary, const DevvContext& context) {
+  std::vector<TransactionPtr> CollectValidTransactions(const ChainState& state
+      , const KeyRing& keys, const Summary& pre_sum, const DevvContext& context) {
     LOG_DEBUG << "CollectValidTransactions()";
     std::vector<TransactionPtr> valid;
     MTR_SCOPE_FUNC();
@@ -365,16 +364,31 @@ class UnrecordedTransactionPool {
       sleep(context.get_max_wait());
     }
     unsigned int num_txs = 0;
+    Summary post_sum(Summary::Copy(pre_sum));
     std::map<Address, SmartCoin> aggregate;
-    ChainState prior(state);
+    ChainState post_state(ChainState::Copy(state));
     for (auto iter = txs_.begin(); iter != txs_.end(); ++iter) {
-      if (iter->second.second->isValidInAggregate(state, keys, summary
-                                                  , aggregate, prior)) {
+      if (iter->second.second->isValidInAggregate(post_state, keys,
+                                         post_sum, aggregate, state)) {
         valid.push_back(std::move(iter->second.second->clone()));
         iter->second.first++;
         num_txs++;
         if (num_txs >= max_tx_per_block_) { break; }
-      }
+      } else {
+        LOG_INFO << "CollectValidTransactions: Invalid transaction in pool.";
+        RemoveTransaction(iter->second.second->getSignature());
+        //if valid transactions, propose them
+        if (num_txs > 0) break;
+        //if no valid transactions, clean pool, collect again
+        //clean
+        Summary sum_clone(Summary::Copy(pre_sum));
+        ChainState pre_state(ChainState::Copy(state));
+        while (!RemoveInvalidTransactions(pre_state, keys, sum_clone)) {
+          //do nothing
+        }
+        //collect again
+        return CollectValidTransactions(state, keys, pre_sum, context);
+	  }
     }
 
     return valid;
@@ -397,6 +411,45 @@ class UnrecordedTransactionPool {
     ChainState state(prior);
     for (auto const& tx : pending_proposal_.getTransactions()) {
       if (!tx->isValidInAggregate(state, keys, summary, aggregate, prior)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  /** Removes Transaction from this pool
+   *  @pre not thread-safe, call from within a mutex guard
+   *  @return true if Transaction was removed
+   *  @return false otherwise
+   */
+  bool RemoveTransaction(const Signature& sig) {
+    size_t txs_size = txs_.size();
+    if (txs_.erase(sig) == 0) {
+      LOG_WARNING << "RemoveTransaction(): ret = 0, transaction not found: "
+                  << sig.getJSON();
+    } else {
+      LOG_TRACE << "RemoveTransaction() removes: " << sig.getJSON();
+    }
+    LOG_DEBUG << "RemoveTransactions: (size pre/size post) ("
+              << txs_size << "/"
+              << txs_.size() << ")";
+    return true;
+  }
+
+  /** Removes invalid transactions from this pool
+   *  @pre not thread-safe, call from within a mutex guard
+   *  @return true if all invalid transactions in the block were removed
+   *  @return false if possible that not all invalid transactions removed
+   */
+  bool RemoveInvalidTransactions(const ChainState& state
+      , const KeyRing& keys, const Summary& summary) {
+    std::map<Address, SmartCoin> aggregate;
+    ChainState state_clone(ChainState::Copy(state));
+    Summary sum_clone(Summary::Copy(summary));
+    for (auto iter = txs_.begin(); iter != txs_.end(); ++iter) {
+	  if (!iter->second.second->isValidInAggregate(state_clone, keys, sum_clone
+                                                 , aggregate, state)) {
+        RemoveTransaction(iter->second.second->getSignature());
         return false;
       }
     }
