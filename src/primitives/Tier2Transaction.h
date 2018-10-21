@@ -430,10 +430,13 @@ class Tier2Transaction : public Transaction {
         Address addr = it->getAddress();
         //LOG_DEBUG << "STATE (amt/coin/tot/address): " << amount << "/" << coin << "/" << state.getAmount(coin, addr)<< "/"<< addr.getHexString();
         if (amount < 0) {
-          if ((oper == eOpType::Exchange) && ((amount) > state.getAmount(coin, addr))) {
+          if ((oper == eOpType::Exchange) && (std::abs(amount) > state.getAmount(coin, addr))) {
             LOG_WARNING << "Coins not available at addr: amount(" << amount
                         << "), state.getAmount()(" << state.getAmount(coin, addr) << ")";
             return false;
+          } else {
+            LOG_INFO << "eOpType::Exchange: amount: " << amount << " state.getAmount(): "
+                                                                   << state.getAmount(coin, addr);
           }
         }
         SmartCoin next_flow(addr, coin, amount);
@@ -477,10 +480,13 @@ class Tier2Transaction : public Transaction {
         uint64_t coin = it->getCoin();
         Address addr = it->getAddress();
         if (amount < 0) {
-          if ((oper == eOpType::Exchange) && (amount > state.getAmount(coin, addr))) {
-            LOG_WARNING << "Coins not available at addr: amount(" << amount
+          if ((oper == eOpType::Exchange) && (std::abs(amount) > state.getAmount(coin, addr))) {
+            LOG_WARNING << "Coins not available at addr("<<addr.getHexString()<<"): amount(" << amount
                         << "), state.getAmount()(" << state.getAmount(coin, addr) << ")";
             return false;
+          } else {
+            LOG_INFO << "eOpType::Exchange: addr("<<addr.getHexString()<<"): amount: " << amount
+                     << " state.getAmount(): " << state.getAmount(coin, addr);
           }
           auto it = aggregate.find(addr);
           if (it != aggregate.end()) {
