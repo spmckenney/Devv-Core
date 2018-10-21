@@ -49,6 +49,11 @@ bool HandleFinalBlock(DevvMessageUniquePtr ptr,
                       Blockchain& final_chain,
                       UnrecordedTransactionPool& utx_pool,
                       std::function<void(DevvMessageUniquePtr)> callback) {
+
+  if (ptr->message_type != eMessageType::FINAL_BLOCK) {
+    throw std::runtime_error("HandleFinalBlock: message != eMessageType::FINAL_BLOCK");
+  }
+
   MTR_SCOPE_FUNC();
   //Make the incoming block final
   //if pending proposal, makes sure it is still valid
@@ -117,6 +122,11 @@ bool HandleProposalBlock(DevvMessageUniquePtr ptr,
                          const Blockchain& final_chain,
                          TransactionCreationManager& tcm,
                          std::function<void(DevvMessageUniquePtr)> callback) {
+
+  if (ptr->message_type != eMessageType::PROPOSAL_BLOCK) {
+    throw std::runtime_error("HandleProposalBlock: message != eMessageType::PROPOSAL_BLOCK");
+  }
+
   MTR_SCOPE_FUNC();
 
   LogDevvMessageSummary(*ptr, "HandleProposalBlock() -> Incoming");
@@ -149,6 +159,11 @@ bool HandleValidationBlock(DevvMessageUniquePtr ptr,
                            Blockchain& final_chain,
                            UnrecordedTransactionPool& utx_pool,
                            std::function<void(DevvMessageUniquePtr)> callback) {
+
+  if (ptr->message_type != eMessageType::VALID) {
+    throw std::runtime_error("HandleValidationBlock: message != eMessageType::VALID");
+  }
+
   MTR_SCOPE_FUNC();
   bool sent_message = false;
   InputBuffer buffer(ptr->data);
