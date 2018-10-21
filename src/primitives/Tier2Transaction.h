@@ -485,7 +485,7 @@ class Tier2Transaction : public Transaction {
                         << "), state.getAmount()(" << state.getAmount(coin, addr) << ")";
             return false;
           } else {
-            LOG_INFO << "eOpType::Exchange: addr("<<addr.getHexString()<<"): amount: " << amount
+            LOG_INFO << "eOpType(" << oper << "): addr(" << addr.getHexString() << "): amount: " << amount
                      << " state.getAmount(): " << state.getAmount(coin, addr);
           }
           auto it = aggregate.find(addr);
