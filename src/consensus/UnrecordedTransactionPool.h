@@ -6,6 +6,7 @@
  */
 #pragma once
 
+#include <atomic>
 #include <map>
 #include <vector>
 
@@ -204,6 +205,7 @@ class UnrecordedTransactionPool {
     std::lock_guard<std::mutex> proposal_guard(pending_proposal_mutex_);
     LOG_WARNING << "ProposeBlock(): canon size: " << new_proposal.getCanonical().size();
     pending_proposal_.shallowCopy(new_proposal);
+    has_proposal_ = true;
     return true;
   }
 
@@ -212,8 +214,8 @@ class UnrecordedTransactionPool {
    */
   bool HasProposal() {
     LOG_DEBUG << "HasProposal()";
-    std::lock_guard<std::mutex> proposal_guard(pending_proposal_mutex_);
-    return(!pending_proposal_.isNull());
+    //std::lock_guard<std::mutex> proposal_guard(pending_proposal_mutex_);
+    return(has_proposal_);
   }
 
   /**
@@ -281,6 +283,7 @@ class UnrecordedTransactionPool {
     std::lock_guard<std::mutex> proposal_guard(pending_proposal_mutex_);
     const FinalBlock final_block(FinalizeBlock(pending_proposal_));
     pending_proposal_.setNull();
+    has_proposal_ = false;
     return final_block;
   }
 
@@ -330,6 +333,7 @@ class UnrecordedTransactionPool {
  private:
   TxMap txs_;
   mutable std::mutex txs_mutex_;
+  std::atomic<bool> has_proposal_ = ATOMIC_VAR_INIT(false);
 
   ProposedBlock pending_proposal_;
   mutable std::mutex pending_proposal_mutex_;
