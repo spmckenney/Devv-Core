@@ -97,6 +97,7 @@ bool HandleFinalBlock(DevvMessageUniquePtr ptr,
 
   if (!utx_pool.hasPendingTransactions()) {
     LOG_INFO << "All pending transactions processed.";
+    utx_pool.UnlockProposals();
   } else if (block_height % context.get_peer_count() == context.get_current_node() % context.get_peer_count()) {
     if (!utx_pool.HasProposal()) {
       std::vector<byte> proposal;
