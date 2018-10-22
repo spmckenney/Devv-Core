@@ -69,7 +69,11 @@ public:
 /** Get the map describing this chain state
  *  @return the map describing this chain state
 */
-  std::map<Address, std::map<uint64_t, int64_t>> getStateMap() {
+  const std::map<Address, std::map<uint64_t, int64_t>>& getStateMap() const {
+    return state_map_;
+  }
+
+  std::map<Address, std::map<uint64_t, int64_t>>& getStateMap() {
     return state_map_;
   }
 
