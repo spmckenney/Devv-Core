@@ -202,7 +202,7 @@ int main(int argc, char* argv[])
               }
               auto ret = dupe_check.insert(item->getSignature());
               if (ret.second==false) {
-                LOG_WARNING << "DUPLICATE TRANSACTION detected: "+ToHex(item->getSignature());
+                LOG_WARNING << "DUPLICATE TRANSACTION detected: "+item->getSignature().getJSON();
               }
             }
             if (block_summary.getCanonical() != one_block.getSummary().getCanonical()) {
