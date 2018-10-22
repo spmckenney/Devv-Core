@@ -72,6 +72,7 @@ bool HandleFinalBlock(DevvMessageUniquePtr ptr,
 
   ChainState prior = final_chain.getHighestChainState();
   LOG_DEBUG << "prior.size(): " << prior.size();
+  utx_pool.LockProposals();
   FinalPtr top_block = std::make_shared<FinalBlock>(utx_pool.FinalizeRemoteBlock(
                                                buffer, prior, keys));
   final_chain.push_back(top_block);
@@ -103,6 +104,7 @@ bool HandleFinalBlock(DevvMessageUniquePtr ptr,
         proposal = CreateNextProposal(keys, final_chain, utx_pool, context);
       } catch (std::runtime_error err) {
         LOG_INFO << "NOT PROPOSING: " << err.what();
+        utx_pool.UnlockProposals();
         return false;
       }
       if (!ProposedBlock::isNullProposal(proposal)) {

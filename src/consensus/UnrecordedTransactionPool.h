@@ -339,10 +339,23 @@ class UnrecordedTransactionPool {
     return mode_;
   }
 
+  void LockProposals() {
+    ready_to_propose_ = false;
+  }
+
+  void UnlockProposals() {
+    ready_to_propose_ = true;
+  }
+
+  bool ReadyToPropose() {
+    return ready_to_propose_;
+  }
+
  private:
   TxMap txs_;
   mutable std::mutex txs_mutex_;
   std::atomic<bool> has_proposal_ = ATOMIC_VAR_INIT(false);
+  std::atomic<bool> ready_to_propose_ = ATOMIC_VAR_INIT(false);
 
   ProposedBlock pending_proposal_;
   mutable std::mutex pending_proposal_mutex_;

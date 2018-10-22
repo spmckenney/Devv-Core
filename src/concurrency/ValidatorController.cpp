@@ -71,6 +71,10 @@ void ValidatorController::validatorCallback(DevvMessageUniquePtr ptr) {
     if (block_height%context_.get_peer_count() == context_.get_current_node()%context_.get_peer_count()) {
       LOG_INFO << "Received txs: CreateNextProposal? utx_pool.HasProposal(): " << utx_pool_.HasProposal();
       if (!utx_pool_.HasProposal()) {
+        if (block_height > context_.get_current_node() && !utx_pool_.ReadyToPropose()) {
+          LOG_INFO << "Proposals locked.  Another thread should propose.";
+          return;
+        }
         std::vector<byte> proposal;
         try {
           proposal = CreateNextProposal(keys_, final_chain_, utx_pool_, context_);
