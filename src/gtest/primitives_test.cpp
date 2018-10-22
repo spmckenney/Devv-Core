@@ -524,7 +524,7 @@ TEST(address, constructor_1) {
  * TEST_F(TransferTest, getAddress_2) {
   Devv::Transfer test0(addr_0_, 0, 1, 0);
   std::vector<Devv::byte> tmp(Devv::Hex2Bin(""));
-  std::vector<byte> bin_addr(addr_0_.getCanonical());
+  std::vector<byte> bin_addr(addr_0_.getCanonicalTransactions());
   std::copy_n(tmp.begin(), Devv::kWALLET_ADDR_SIZE, bin_addr.begin());
   EXPECT_THROW(Address a(tmp), std::runtime_error);
 }
@@ -773,7 +773,7 @@ TEST_F(Tier1TransactionTest, getCanonicalIdentity) {
   Devv::Transfer test_transfer(addr_0_, 0, 1, 0);
   Devv::Transfer identity(test_transfer.getCanonical());
 
-  EXPECT_EQ(test_transfer.getCanonical(), identity.getCanonical());
+  EXPECT_EQ(test_transfer.getCanonical(), identity.getCanonicalTransactions());
 }
 */
 

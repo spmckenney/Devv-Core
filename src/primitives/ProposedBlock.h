@@ -331,6 +331,12 @@ class ProposedBlock {
   const ChainState& getBlockState() const { return block_state_; }
 
   /**
+   *
+   * @return
+   */
+  ChainState& getBlockState() { return block_state_; }
+
+  /**
    * Performs a shallow copy. Moves the transactions from the other ProposedBlock
    * to this block.
    * @param other the ProposedBlock from which to move transactions from
@@ -411,6 +417,7 @@ class ProposedBlock {
 
 
 inline ProposedBlock ProposedBlock::Create(const ChainState& prior) {
+  LOG_DEBUG << "ProposedBlock::Create(): prior.size(): " << prior.size();
   ProposedBlock new_block(prior);
   return new_block;
 }
@@ -454,6 +461,7 @@ inline ProposedBlock ProposedBlock::Create(InputBuffer &buffer,
   new_block.tx_size_ = buffer.getNextUint64();
   new_block.sum_size_ = buffer.getNextUint64();
   new_block.val_count_ = buffer.getNextUint32();
+
   MTR_STEP("proposed_block", "construct", &proposed_block_int, "transaction list");
   tcm.set_keys(&keys);
   tcm.CreateTransactions(buffer, new_block.transaction_vector_, MinSize(), new_block.tx_size_);

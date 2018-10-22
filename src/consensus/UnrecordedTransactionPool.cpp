@@ -27,7 +27,7 @@ bool UnrecordedTransactionPool::addAndVerifyTransactions(std::vector<Transaction
       pair.first++;
       txs_.insert(std::pair<Signature, SharedTransaction>(sig, std::move(pair)));
       if (num_cum_txs_ == 0) {
-        LOG_NOTICE << "AddTransactions(): First transaction added to transaction map";
+        LOG_NOTICE << "addTransactions(): First transaction added to transaction map";
         timer_.reset();
 #ifdef MTR_ENABLED
         trace_ = std::make_unique<MTRScopedTrace>("timer", "lifetime2");

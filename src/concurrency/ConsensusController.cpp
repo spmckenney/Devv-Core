@@ -25,13 +25,12 @@ ConsensusController::ConsensusController(const KeyRing &keys,
     , validation_block_cb_(HandleValidationBlock)
 {
 }
-
 void ConsensusController::consensusCallback(DevvMessageUniquePtr ptr) {
   std::lock_guard<std::mutex> guard(mutex_);
   MTR_SCOPE_FUNC();
   try {
     switch (ptr->message_type) {
-      case eMessageType::FINAL_BLOCK:LOG_DEBUG << "ValidatorController()::consensusCallback(): FINAL_BLOCK";
+      case eMessageType::FINAL_BLOCK:LOG_DEBUG << "ConsensusController()::consensusCallback(): FINAL_BLOCK";
         final_block_cb_(std::move(ptr),
                                           context_,
                                           keys_,
@@ -42,7 +41,7 @@ void ConsensusController::consensusCallback(DevvMessageUniquePtr ptr) {
                                           });
         break;
 
-      case eMessageType::PROPOSAL_BLOCK:LOG_DEBUG << "ValidatorController()::consensusCallback(): PROPOSAL_BLOCK";
+      case eMessageType::PROPOSAL_BLOCK:LOG_DEBUG << "ConsensusController()::consensusCallback(): PROPOSAL_BLOCK";
         utx_pool_.get_transaction_creation_manager().set_keys(&keys_);
         proposal_block_cb_(std::move(ptr),
                                              context_,
@@ -51,7 +50,7 @@ void ConsensusController::consensusCallback(DevvMessageUniquePtr ptr) {
                                              utx_pool_.get_transaction_creation_manager(),
                                              [this](DevvMessageUniquePtr p) { this->outgoing_callback_(std::move(p)); });
         break;
-      case eMessageType::VALID:LOG_DEBUG << "ValidatorController()::consensusCallback(): VALIDATION";
+      case eMessageType::VALID:LOG_DEBUG << "ConsensusController()::consensusCallback(): VALIDATION";
         validation_block_cb_(std::move(ptr),
                                                context_,
                                                final_chain_,

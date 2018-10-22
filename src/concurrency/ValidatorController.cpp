@@ -63,7 +63,7 @@ void ValidatorController::validatorCallback(DevvMessageUniquePtr ptr) {
   MTR_SCOPE_FUNC();
   if (ptr->message_type == TRANSACTION_ANNOUNCEMENT) {
     DevvMessage msg(*ptr.get());
-    utx_pool_.AddTransactions(msg.data, keys_);
+    utx_pool_.addTransactions(msg.data, keys_);
     size_t block_height = final_chain_.size();
     LOG_DEBUG << "current_node(" << context_.get_current_node() << ")" \
               <<" peer_count(" << context_.get_peer_count() << ")" \

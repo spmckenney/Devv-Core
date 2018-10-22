@@ -24,10 +24,12 @@ std::vector<byte> CreateNextProposal(const KeyRing& keys,
     LOG_NOTICE << "Processing @ final_chain_.size: (" << std::to_string(block_height) << ")";
   }
 
-  if (!utx_pool.HasProposal() && utx_pool.HasPendingTransactions()) {
+  if (!utx_pool.HasProposal() && utx_pool.hasPendingTransactions()) {
+    LOG_DEBUG << "block_height: " << block_height;
     if (block_height > 0) {
       Hash prev_hash = DevvHash(final_chain.back()->getCanonical());
       ChainState prior = final_chain.getHighestChainState();
+      LOG_DEBUG << "ChainState prior.size(): " << prior.size();
       utx_pool.ProposeBlock(prev_hash, prior, keys, context);
     } else {
       Hash prev_hash = DevvHash({'G', 'e', 'n', 'e', 's', 'i', 's'});
@@ -35,7 +37,9 @@ std::vector<byte> CreateNextProposal(const KeyRing& keys,
       utx_pool.ProposeBlock(prev_hash, prior, keys, context);
     }
   } else {
-    LOG_ERROR << "Creating a proposal with no pending transactions!!";
+    std::string err = "Creating a proposal with no pending transactions!!";
+    LOG_ERROR << err;
+    throw std::runtime_error(err);
   }
 
   LOG_INFO << "Proposal #"+std::to_string(block_height+1)+".";
@@ -63,6 +67,7 @@ bool HandleFinalBlock(DevvMessageUniquePtr ptr,
   LogDevvMessageSummary(*ptr, "HandleFinalBlock()");
 
   ChainState prior = final_chain.getHighestChainState();
+  LOG_DEBUG << "prior.size(): " << prior.size();
   FinalPtr top_block = std::make_shared<FinalBlock>(utx_pool.FinalizeRemoteBlock(
                                                buffer, prior, keys));
   final_chain.push_back(top_block);
@@ -111,7 +116,7 @@ bool HandleFinalBlock(DevvMessageUniquePtr ptr,
               "(" << context.get_current_node() << "%" << context.get_peer_count() << ") " <<
               ": (" << block_height % context.get_peer_count() << " != " <<
               context.get_current_node() % context.get_peer_count() <<
-              ") pending: " << utx_pool.HasPendingTransactions();
+              ") pending: " << utx_pool.hasPendingTransactions();
   }
   return sent_message;
 }
@@ -134,6 +139,7 @@ bool HandleProposalBlock(DevvMessageUniquePtr ptr,
   ChainState prior = final_chain.getHighestChainState();
   InputBuffer buffer(ptr->data);
   ProposedBlock to_validate(ProposedBlock::Create(buffer, prior, keys, tcm));
+
   if (!to_validate.validate(keys)) {
     LOG_WARNING << "ProposedBlock is invalid!";
     return false;
@@ -144,6 +150,8 @@ bool HandleProposalBlock(DevvMessageUniquePtr ptr,
     return false;
   }
   LOG_DEBUG << "Proposed block is valid.";
+  LOG_DEBUG << "Proposed ChainState size: " << to_validate.getBlockState().size();
+
   std::vector<byte> validation(to_validate.getValidationData());
 
   auto valid = std::make_unique<DevvMessage>(context.get_shard_uri(),

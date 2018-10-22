@@ -230,7 +230,7 @@ class TestTransactionHandler : public TestHandler {
 
     inn_tx_vector.push_back(std::move(inn_tx));
 
-    utx_pool_ptr_->AddTransactions(inn_tx_vector, *keys_);
+    utx_pool_ptr_->addTransactions(inn_tx_vector, *keys_);
 
     EXPECT_EQ(utx_pool_ptr_->numPendingTransactions(), 1);
 
@@ -605,7 +605,7 @@ TEST_F(UnrecordedTransactionPoolTest, addTransaction_0) {
   std::vector<TransactionPtr> inn_tx_vector;
   inn_tx_vector.push_back(std::move(inn_tx));
 
-  utx_pool_ptr_->AddTransactions(inn_tx_vector, keys_);
+  utx_pool_ptr_->addTransactions(inn_tx_vector, keys_);
 
   EXPECT_EQ(utx_pool_ptr_->numPendingTransactions(), 1);
 
@@ -618,7 +618,7 @@ TEST_F(UnrecordedTransactionPoolTest, isNullProposal_0) {
   std::vector<TransactionPtr> inn_tx_vector;
   inn_tx_vector.push_back(std::move(t2x));
 
-  utx_pool_ptr_->AddTransactions(inn_tx_vector, keys_);
+  utx_pool_ptr_->addTransactions(inn_tx_vector, keys_);
 
   EXPECT_EQ(utx_pool_ptr_->numPendingTransactions(), 1);
 
@@ -633,7 +633,7 @@ TEST_F(UnrecordedTransactionPoolTest, validate_0) {
   std::vector<TransactionPtr> tx_vector;
   tx_vector.push_back(std::move(t2x));
 
-  utx_pool_ptr_->AddTransactions(tx_vector, keys_);
+  utx_pool_ptr_->addTransactions(tx_vector, keys_);
 
   EXPECT_EQ(utx_pool_ptr_->numPendingTransactions(), 1);
 
@@ -660,7 +660,7 @@ TEST_F(UnrecordedTransactionPoolTest, validate_1) {
   std::vector<TransactionPtr> inn_tx_vector;
   inn_tx_vector.push_back(std::move(t2x));
 
-  utx_pool_ptr_->AddTransactions(inn_tx_vector, keys_);
+  utx_pool_ptr_->addTransactions(inn_tx_vector, keys_);
 
   EXPECT_EQ(utx_pool_ptr_->numPendingTransactions(), 1);
 
@@ -687,7 +687,7 @@ TEST_F(UnrecordedTransactionPoolTest, finalize_0) {
   std::vector<TransactionPtr> inn_tx_vector;
   inn_tx_vector.push_back(std::move(t2x));
 
-  utx_pool_ptr_->AddTransactions(inn_tx_vector, keys_);
+  utx_pool_ptr_->addTransactions(inn_tx_vector, keys_);
 
   EXPECT_EQ(utx_pool_ptr_->numPendingTransactions(), 1);
 
@@ -723,7 +723,7 @@ TEST_F(UnrecordedTransactionPoolTest, finalize_inn_tx) {
 
   inn_tx_vector.push_back(std::move(inn_tx));
 
-  utx_pool_ptr_->AddTransactions(inn_tx_vector, keys_);
+  utx_pool_ptr_->addTransactions(inn_tx_vector, keys_);
 
   EXPECT_EQ(utx_pool_ptr_->numPendingTransactions(), 1);
 
@@ -774,7 +774,7 @@ EXPECT_EQ(inn_tx->getOperation(), eOpType::Create);
 std::vector<TransactionPtr> inn_tx_vector;
 inn_tx_vector.push_back(std::move(inn_tx));
 
-utx_pool_ptr_->AddTransactions(inn_tx_vector, keys_);
+  utx_pool_ptr_->addTransactions(inn_tx_vector, keys_);
 
 EXPECT_EQ(utx_pool_ptr_->numPendingTransactions(), 1);
 
@@ -813,7 +813,7 @@ TEST_F(UnrecordedTransactionPoolTest, proposal_stream_0) {
   std::vector<TransactionPtr> inn_tx_vector;
   inn_tx_vector.push_back(std::move(t2x));
 
-  utx_pool_ptr_->AddTransactions(inn_tx_vector, keys_);
+  utx_pool_ptr_->addTransactions(inn_tx_vector, keys_);
 
   EXPECT_EQ(utx_pool_ptr_->numPendingTransactions(), 1);
 
