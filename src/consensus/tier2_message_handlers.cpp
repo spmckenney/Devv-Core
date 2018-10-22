@@ -138,7 +138,7 @@ bool HandleProposalBlock(DevvMessageUniquePtr ptr,
     LOG_WARNING << "ProposedBlock is invalid!";
     return false;
   }
-  size_t node_num = context.get_current_node() % context.get_peer_count();
+  size_t node_num = context.get_current_node();
   if (!to_validate.signBlock(keys, node_num)) {
     LOG_WARNING << "ProposedBlock.signBlock failed!";
     return false;
