@@ -1,9 +1,6 @@
 /*
  * Summary.h
  *
- * UnrecordedTransactionPool.h
- * tracks Transactions that have not yet been encoded in the blockchain.
- *
  * @copywrite  2018 Devvio Inc
  */
 
