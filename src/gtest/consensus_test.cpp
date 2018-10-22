@@ -218,7 +218,7 @@ TEST_F(UnrecordedTransactionPoolTest, addTransaction_0) {
 }
 
 TEST_F(UnrecordedTransactionPoolTest, isNullProposal_0) {
-  auto t2x = CreateTestTransaction(keys_);
+  auto t2x = CreateInnTransaction(keys_, 100);
 
   std::vector<TransactionPtr> inn_tx_vector;
   inn_tx_vector.push_back(std::move(t2x));
@@ -233,7 +233,7 @@ TEST_F(UnrecordedTransactionPoolTest, isNullProposal_0) {
 }
 
 TEST_F(UnrecordedTransactionPoolTest, validate_0) {
-  auto t2x = CreateTestTransaction(keys_);
+  auto t2x = CreateInnTransaction(keys_, 100);
 
   std::vector<TransactionPtr> tx_vector;
   tx_vector.push_back(std::move(t2x));
@@ -260,7 +260,7 @@ TEST_F(UnrecordedTransactionPoolTest, validate_0) {
 
 
 TEST_F(UnrecordedTransactionPoolTest, validate_1) {
-  auto t2x = CreateTestTransaction(keys_, -2, 2);
+  auto t2x = CreateInnTransaction(keys_, 100);
 
   std::vector<TransactionPtr> inn_tx_vector;
   inn_tx_vector.push_back(std::move(t2x));
@@ -286,7 +286,7 @@ TEST_F(UnrecordedTransactionPoolTest, assymetric_0) {
 }
 
 TEST_F(UnrecordedTransactionPoolTest, finalize_0) {
-  auto t2x = CreateTestTransaction(keys_, -2, 2);
+  auto t2x = CreateInnTransaction(keys_, 100);
 
   std::vector<TransactionPtr> inn_tx_vector;
   inn_tx_vector.push_back(std::move(t2x));
