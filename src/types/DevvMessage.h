@@ -48,7 +48,7 @@ struct DevvMessage {
       , data()
       , index(message_index) {}
 
-  DevvMessage(URI message_uri,
+  DevvMessage(const URI& message_uri,
                  eMessageType msgType,
                  const std::vector<uint8_t>& message_data,
                  uint32_t message_index)
