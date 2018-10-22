@@ -194,11 +194,10 @@ class ProposedBlock {
    * @return true iff the block was signed.
    * @return false otherwise
    */
-  bool signBlock(const KeyRing &keys, const DevvContext& context) {
+  bool signBlock(const KeyRing &keys, size_t node_num) {
     MTR_SCOPE_FUNC();
     std::vector<byte> md = summary_.getCanonical();
     /// @todo (mckenney) need another solution for node_num with dynamic shards
-    size_t node_num = context.get_current_node() % context.get_peer_count();
     Address node_addr = keys.getNodeAddr(node_num);
     Signature node_sig = SignBinary(keys.getNodeKey(node_num), DevvHash(md));
     vals_.addValidation(node_addr, node_sig);

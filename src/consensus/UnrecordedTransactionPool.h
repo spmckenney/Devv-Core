@@ -199,7 +199,8 @@ class UnrecordedTransactionPool {
     auto validated = LockAndCollectValidTransactions(prior_state, keys, summary, context);
     ProposedBlock new_proposal(prev_hash, validated, summary, validation
         , new_state, keys);
-    new_proposal.signBlock(keys, context);
+    size_t node_num = context.get_current_node() % context.get_peer_count();
+    new_proposal.signBlock(keys, node_num);
     std::lock_guard<std::mutex> proposal_guard(pending_proposal_mutex_);
     LOG_WARNING << "ProposeBlock(): canon size: " << new_proposal.getCanonical().size();
     pending_proposal_.shallowCopy(new_proposal);

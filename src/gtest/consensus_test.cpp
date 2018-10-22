@@ -276,7 +276,8 @@ TEST_F(UnrecordedTransactionPoolTest, validate_1) {
   InputBuffer buffer(proposal);
   ProposedBlock to_validate(ProposedBlock::Create(buffer, chain_state_, keys_, utx_pool_ptr_->get_transaction_creation_manager()));
   auto valid = to_validate.validate(keys_);
-  auto sign = to_validate.signBlock(keys_, t2_context_);
+  size_t node_num = 2;
+  auto sign = to_validate.signBlock(keys_, node_num);
   EXPECT_TRUE(valid);
   EXPECT_TRUE(sign);
 }
@@ -302,11 +303,15 @@ TEST_F(UnrecordedTransactionPoolTest, finalize_0) {
   InputBuffer buffer(proposal);
   ProposedBlock to_validate(ProposedBlock::Create(buffer, chain_state_, keys_, utx_pool_ptr_->get_transaction_creation_manager()));
   auto valid = to_validate.validate(keys_);
-  auto sign = to_validate.signBlock(keys_, t2_context_);
+  size_t node_num = 2;
+  auto sign = to_validate.signBlock(keys_, node_num);
+  LOG_INFO << "Proposal: "+GetJSON(to_validate);
   EXPECT_TRUE(valid);
   EXPECT_TRUE(sign);
 
-  EXPECT_TRUE(utx_pool_ptr_->CheckValidation(buffer, t2_context_));
+  InputBuffer validation(to_validate.getValidationData());
+
+  EXPECT_TRUE(utx_pool_ptr_->CheckValidation(validation, t2_context_));
 /*
     //block can be finalized, so finalize
     LOG_DEBUG << "Ready to finalize block.";
@@ -338,7 +343,8 @@ TEST_F(UnrecordedTransactionPoolTest, finalize_inn_tx) {
   std::cout << "VERSION: " << int(to_validate.getVersion()) << " -- " << std::endl;
 
   auto valid = to_validate.validate(keys_);
-  auto sign = to_validate.signBlock(keys_, t2_context_);
+  size_t node_num = 2;
+  auto sign = to_validate.signBlock(keys_, node_num);
   EXPECT_TRUE(valid);
   EXPECT_TRUE(sign);
 
@@ -356,8 +362,9 @@ TEST_F(UnrecordedTransactionPoolTest, finalize_inn_tx) {
 
   DevvMessageCallback cb = [this](DevvMessageUniquePtr p) { this->handleValidationBlock(std::move(p)); };
 
+  DevvContext sign_context(2, 1, Devv::eAppMode::T2, "", "", "");
   HandleProposalBlock(std::move(propose_msg),
-                      t2_context_,
+                      sign_context,
                       keys_,
                       proposal_chain_,
                       utx_pool_ptr_->get_transaction_creation_manager(), cb);
@@ -382,7 +389,8 @@ EXPECT_EQ(ProposedBlock::isNullProposal(proposal), false);
 InputBuffer buffer(proposal);
 ProposedBlock to_validate(ProposedBlock::Create(buffer, chain_state_, keys_, utx_pool_ptr_->get_transaction_creation_manager()));
 auto valid = to_validate.validate(keys_);
-auto sign = to_validate.signBlock(keys_, t2_context_);
+size_t node_num = 2;
+auto sign = to_validate.signBlock(keys_, node_num);
 EXPECT_TRUE(valid);
 EXPECT_TRUE(sign);
 
@@ -399,8 +407,8 @@ auto propose_msg =
                                   ((block_height + 1) + (t2_context_.get_current_node() + 1) * 1000000));
 
 DevvMessageCallback cb = [this](DevvMessageUniquePtr p) { this->handleValidationBlock(std::move(p)); };
-
-HandleProposalBlock(std::move(propose_msg), t2_context_, keys_, proposal_chain_, utx_pool_ptr_->get_transaction_creation_manager(), cb);
+DevvContext sign_context(2, 1, Devv::eAppMode::T2, "", "", "");
+HandleProposalBlock(std::move(propose_msg), sign_context, keys_, proposal_chain_, utx_pool_ptr_->get_transaction_creation_manager(), cb);
 }
 
 TEST_F(UnrecordedTransactionPoolTest, proposal_stream_0) {
