@@ -26,15 +26,19 @@ std::vector<byte> CreateNextProposal(const KeyRing& keys,
 
   if (!utx_pool.HasProposal() && utx_pool.hasPendingTransactions()) {
     LOG_DEBUG << "block_height: " << block_height;
+    bool result = true;
     if (block_height > 0) {
       Hash prev_hash = DevvHash(final_chain.back()->getCanonical());
       ChainState prior = final_chain.getHighestChainState();
       LOG_DEBUG << "ChainState prior.size(): " << prior.size();
-      utx_pool.ProposeBlock(prev_hash, prior, keys, context);
+      result = utx_pool.proposeBlock(prev_hash, prior, keys, context);
     } else {
       Hash prev_hash = DevvHash({'G', 'e', 'n', 'e', 's', 'i', 's'});
       ChainState prior;
-      utx_pool.ProposeBlock(prev_hash, prior, keys, context);
+      result = utx_pool.proposeBlock(prev_hash, prior, keys, context);
+    }
+    if (!result) {
+      throw std::runtime_error("proposeBlock returned false, not proposing");
     }
   } else {
     std::string err = "Creating a proposal with no pending transactions!!";
@@ -80,18 +84,27 @@ bool HandleFinalBlock(DevvMessageUniquePtr ptr,
   bool sent_message = false;
 
   if (utx_pool.HasProposal()) {
+    LOG_DEBUG << "HandleFinalBlock: utx_pool.HasProposal: " << utx_pool.HasProposal();
     ChainState current = top_block->getChainState();
     Hash prev_hash = DevvHash(top_block->getCanonical());
     utx_pool.ReverifyProposal(prev_hash, current, keys, context);
+  } else {
+    LOG_DEBUG << "HandleFinalBlock: utx_pool.HasProposal: " << utx_pool.HasProposal();
   }
 
   size_t block_height = final_chain.size();
 
-  if (!utx_pool.HasPendingTransactions()) {
+  if (!utx_pool.hasPendingTransactions()) {
     LOG_INFO << "All pending transactions processed.";
   } else if (block_height % context.get_peer_count() == context.get_current_node() % context.get_peer_count()) {
     if (!utx_pool.HasProposal()) {
-      std::vector<byte> proposal = CreateNextProposal(keys, final_chain, utx_pool, context);
+      std::vector<byte> proposal;
+      try {
+        proposal = CreateNextProposal(keys, final_chain, utx_pool, context);
+      } catch (std::runtime_error err) {
+        LOG_INFO << "NOT PROPOSING: " << err.what();
+        return false;
+      }
       if (!ProposedBlock::isNullProposal(proposal)) {
         // Create message
         auto propose_msg =
@@ -144,7 +157,7 @@ bool HandleProposalBlock(DevvMessageUniquePtr ptr,
     LOG_WARNING << "ProposedBlock is invalid!";
     return false;
   }
-  size_t node_num = context.get_current_node();
+  size_t node_num = context.get_current_node() % context.get_peer_count();
   if (!to_validate.signBlock(keys, node_num)) {
     LOG_WARNING << "ProposedBlock.signBlock failed!";
     return false;

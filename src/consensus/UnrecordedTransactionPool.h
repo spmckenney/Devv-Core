@@ -198,15 +198,20 @@ class UnrecordedTransactionPool {
     Validation validation = Validation::Create();
 
     auto validated = LockAndCollectValidTransactions(prior_state, keys, summary, context);
-    ProposedBlock new_proposal(prev_hash, validated, summary, validation
-        , new_state, keys);
-    size_t node_num = context.get_current_node() % context.get_peer_count();
-    new_proposal.signBlock(keys, node_num);
-    std::lock_guard<std::mutex> proposal_guard(pending_proposal_mutex_);
-    LOG_WARNING << "ProposeBlock(): canon size: " << new_proposal.getCanonical().size();
-    pending_proposal_.shallowCopy(new_proposal);
-    has_proposal_ = true;
-    return true;
+    if (!validated.empty()) {
+      LOG_DEBUG << "Creating new proposal with " << validated.size() << " transactions";
+      ProposedBlock new_proposal(prev_hash, validated, summary, validation, new_state, keys);
+      size_t node_num = context.get_current_node() % context.get_peer_count();
+      new_proposal.signBlock(keys, node_num);
+      std::lock_guard<std::mutex> proposal_guard(pending_proposal_mutex_);
+      LOG_WARNING << "proposeBlock(): canon size: " << new_proposal.getCanonical().size();
+      pending_proposal_.shallowCopy(new_proposal);
+      has_proposal_ = true;
+      return true;
+    } else {
+      LOG_INFO << "CollectValidTransactions returned 0 transactions - not proposing";
+      return false;
+    }
   }
 
   /**
@@ -267,7 +272,10 @@ class UnrecordedTransactionPool {
   bool CheckValidation(InputBuffer& buffer, const DevvContext& context) {
     LOG_DEBUG << "CheckValidation()";
     std::lock_guard<std::mutex> proposal_guard(pending_proposal_mutex_);
-    if (pending_proposal_.isNull()) { return false; }
+    if (pending_proposal_.isNull()) {
+      LOG_WARNING << "CheckValidation(): pending_proposal_.isNull()";
+      return false;
+    }
     return pending_proposal_.checkValidationData(buffer, context);
   }
 

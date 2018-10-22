@@ -71,7 +71,13 @@ void ValidatorController::validatorCallback(DevvMessageUniquePtr ptr) {
     if (block_height%context_.get_peer_count() == context_.get_current_node()%context_.get_peer_count()) {
       LOG_INFO << "Received txs: CreateNextProposal? utx_pool.HasProposal(): " << utx_pool_.HasProposal();
       if (!utx_pool_.HasProposal()) {
-        std::vector<byte> proposal = CreateNextProposal(keys_,final_chain_,utx_pool_,context_);
+        std::vector<byte> proposal;
+        try {
+          proposal = CreateNextProposal(keys_, final_chain_, utx_pool_, context_);
+        } catch (std::runtime_error err) {
+          LOG_INFO << "NOT PROPOSING: " << err.what();
+          return;
+        }
         if (!ProposedBlock::isNullProposal(proposal)) {
           // Create message
            auto propose_msg = std::make_unique<DevvMessage>(context_.get_shard_uri()
@@ -82,7 +88,11 @@ void ValidatorController::validatorCallback(DevvMessageUniquePtr ptr) {
           // FIXME (spm): define index value somewhere
           LogDevvMessageSummary(*propose_msg, "CreateNextProposal");
           outgoing_callback_(std::move(propose_msg));
+        } else {
+          LOG_INFO << "NOT PROPOSING: ProposedBlock::isNullProposal()";
         }
+      } else {
+        LOG_INFO << "utx_pool_.HasProposal() == true - not proposing";
       }
     } else {
       LOG_INFO << "NOT PROPOSING! (" << block_height%context_.get_peer_count() << ")" <<
