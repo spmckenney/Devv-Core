@@ -196,7 +196,7 @@ class UnrecordedTransactionPool {
     Summary summary = Summary::Create();
     Validation validation = Validation::Create();
 
-    auto validated = CollectValidTransactions(prior_state, keys, summary, context);
+    auto validated = LockAndCollectValidTransactions(prior_state, keys, summary, context);
     ProposedBlock new_proposal(prev_hash, validated, summary, validation
         , new_state, keys);
     new_proposal.signBlock(keys, context);
@@ -346,6 +346,14 @@ class UnrecordedTransactionPool {
   TransactionCreationManager tcm_;
   eAppMode mode_;
 
+
+
+  std::vector<TransactionPtr> LockAndCollectValidTransactions(const ChainState& state
+      , const KeyRing& keys, const Summary& pre_sum, const DevvContext& context) {
+    std::lock_guard<std::mutex> guard(txs_mutex_);
+    return CollectValidTransactions(state, keys, pre_sum, context);
+  }
+
   /** Verifies Transactions for this pool.
    *  @note this implementation is greedy in selecting Transactions
    *  @params state the chain state to validate against
@@ -358,7 +366,6 @@ class UnrecordedTransactionPool {
     LOG_DEBUG << "CollectValidTransactions()";
     std::vector<TransactionPtr> valid;
     MTR_SCOPE_FUNC();
-    std::lock_guard<std::mutex> guard(txs_mutex_);
     if (txs_.size() < max_tx_per_block_) {
       LOG_DEBUG << "low incoming transaction volume: sleeping";
       sleep(context.get_max_wait());
@@ -388,9 +395,8 @@ class UnrecordedTransactionPool {
         }
         //collect again
         return CollectValidTransactions(state, keys, pre_sum, context);
-	  }
+      }
     }
-
     return valid;
   }
 
