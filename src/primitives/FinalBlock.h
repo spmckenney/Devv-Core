@@ -10,8 +10,6 @@
 #include "common/devv_exceptions.h"
 #include "primitives/ProposedBlock.h"
 
-using namespace Devv;
-
 namespace Devv {
 
 /**
@@ -76,6 +74,11 @@ class FinalBlock {
     tcm.set_keys(&keys);
     raw_transactions_ = tcm.CreateTransactions(buffer, transaction_vector_, MinSize(), tx_size_);
 
+    for (auto& tx : transaction_vector_) {
+      auto summary = Summary::Create();
+      tx->isValid(block_state_, keys, summary);
+    }
+
     summary_ = Summary::Create(buffer);
     vals_ = Validation::Create(buffer);
   }
@@ -122,6 +125,10 @@ class FinalBlock {
         Tier2TransactionPtr one_tx = Tier2Transaction::CreateUniquePtr(buffer, keys);
         raw_transactions_.push_back(one_tx->getCanonical());
         transaction_vector_.push_back(std::move(one_tx));
+        for (auto& tx : transaction_vector_) {
+          auto summary = Summary::Create();
+          tx->isValid(block_state_, keys, summary);
+        }
       } else {
         throw std::runtime_error("Unsupported mode: "+std::to_string(mode));
       }

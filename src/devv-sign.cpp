@@ -57,6 +57,8 @@ void TestSign(EC_KEY& ec_key) {
 }
 
 int main(int argc, char* argv[]) {
+  init_log();
+
   std::unique_ptr<struct devvsign_options> options;
   try {
     options = ParseDevvsignOptions(argc, argv);

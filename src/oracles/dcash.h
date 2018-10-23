@@ -4,18 +4,16 @@
  * @copywrite  2018 Devvio Inc
  *
  */
-
-#ifndef ORACLES_DCASH_H_
-#define ORACLES_DCASH_H_
+#pragma once
 
 #include <string>
 
-#include "dnerowallet.h"
-#include "oracleInterface.h"
+#include "oracles/dnerowallet.h"
+#include "oracles/oracleInterface.h"
 #include "common/logger.h"
 #include "consensus/blockchain.h"
 
-using namespace Devv;
+namespace Devv {
 
 class dcash : public oracleInterface {
 
@@ -26,22 +24,29 @@ class dcash : public oracleInterface {
 /**
  *  @return the string name that invokes this oracle
  */
-  static std::string getOracleName() {
-    return("io.devv.dcash");
+  virtual std::string getOracleName() override {
+    return (dcash::GetOracleName());
+  }
+
+/**
+ *  @return the string name that invokes this oracle
+ */
+  static std::string GetOracleName() {
+    return ("io.devv.dcash");
   }
 
 /**
  *  @return the shard used by this oracle
  */
   static uint64_t getShardIndex() {
-    return(0);
+    return (0);
   }
 
 /**
  *  @return the coin type used by this oracle
  */
   static uint64_t getCoinIndex() {
-    return(0);
+    return (0);
   }
 
 /** Checks if this proposal is objectively sound according to this oracle.
@@ -58,7 +63,7 @@ class dcash : public oracleInterface {
         error_msg_ = "Dcash transactions may not have a delay.";
         return false;
       }
-	}
+    }
     return true;
   }
 
@@ -77,12 +82,12 @@ class dcash : public oracleInterface {
       if (xfer->getAmount() < 0) {
         Address addr = xfer->getAddress();
         if (last_state.getAmount(dnerowallet::getCoinIndex(), addr) > 0) {
-          error_msg_ =  "Error: Dnerowallets may not send dcash.";
+          error_msg_ = "Error: Dnerowallets may not send dcash.";
           return false;
         } //endif has dnerowallet
         break;
       }
-	}
+    }
     return true;
   }
 
@@ -90,22 +95,22 @@ class dcash : public oracleInterface {
  *  @return if not valid or not sound, return an error message
  */
   std::string getErrorMessage() override {
-    return(error_msg_);
+    return (error_msg_);
   }
 
   std::map<uint64_t, std::vector<Tier2Transaction>>
-      getTrace(const Blockchain& context) override {
+  getTrace(const Blockchain& context) override {
     std::map<uint64_t, std::vector<Tier2Transaction>> out;
     return out;
   }
 
   uint64_t getCurrentDepth(const Blockchain& context) override {
     //@TODO(nick) scan pre-existing chain for this oracle instance.
-    return(0);
+    return (0);
   }
 
   std::map<uint64_t, std::vector<Tier2Transaction>>
-      getNextTransactions(const Blockchain& context, const KeyRing& keys) override {
+  getNextTransactions(const Blockchain& context, const KeyRing& keys) override {
     std::map<uint64_t, std::vector<Tier2Transaction>> out;
     if (!isValid(context)) return out;
     InputBuffer buffer(Str2Bin(raw_data_));
@@ -124,7 +129,7 @@ class dcash : public oracleInterface {
  * @return a map of oracles to data
  */
   std::map<std::string, std::vector<byte>>
-      getDecompositionMap(const Blockchain& context) override {
+  getDecompositionMap(const Blockchain& context) override {
     std::map<std::string, std::vector<byte>> out;
     std::vector<byte> data(Str2Bin(raw_data_));
     std::pair<std::string, std::vector<byte>> p(getOracleName(), data);
@@ -139,7 +144,7 @@ class dcash : public oracleInterface {
  * @return a map of oracles to data encoded in JSON
  */
   virtual std::map<std::string, std::string>
-      getDecompositionMapJSON(const Blockchain& context) override {
+  getDecompositionMapJSON(const Blockchain& context) override {
     std::map<std::string, std::string> out;
     std::pair<std::string, std::string> p(getOracleName(), getJSON());
     out.insert(p);
@@ -159,9 +164,9 @@ class dcash : public oracleInterface {
     return getCanonical();
   }
 
-private:
- std::string error_msg_;
+ private:
+  std::string error_msg_;
 
 };
 
-#endif /* ORACLES_DCASH_H_ */
+} // namespace Devv

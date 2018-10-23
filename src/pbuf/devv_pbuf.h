@@ -16,6 +16,7 @@
 #include "oracles/coin_request.h"
 #include "oracles/data.h"
 #include "oracles/dcash.h"
+#include "oracles/do_transaction.h"
 #include "oracles/dnero.h"
 #include "oracles/dneroavailable.h"
 #include "oracles/dnerowallet.h"
@@ -77,6 +78,10 @@ TransactionPtr CreateTransaction(const Devv::proto::Transaction& transaction, co
   for (auto const& xfer : pb_xfers) {
     std::vector<byte> bytes(xfer.address().begin(), xfer.address().end());
     auto address = Address(bytes);
+    LOG_INFO << "Transfer addr: "+ToHex(xfer.address());
+    LOG_INFO << "Coin: "+std::to_string(xfer.coin());
+    LOG_INFO << "Amount: "+std::to_string(xfer.amount());
+    LOG_INFO << "Delay: "+std::to_string(xfer.delay());
     transfers.emplace_back(address, xfer.coin(), xfer.amount(), xfer.delay());
     if (xfer.amount() < 0) {
       if (key != nullptr) {
@@ -160,6 +165,7 @@ std::vector<TransactionPtr> validateOracle(oracleInterface& oracle
     for (auto& it : oracle_actions) {
       //TODO (nick) forward transactions for other shards to those shards
       for (auto& tx : it.second) {
+        LOG_INFO << "Oracle: "+oracle.getOracleName()+" creates transaction: "+tx.getJSON();
         TransactionPtr t2tx_ptr = tx.clone();
         out.push_back(std::move(t2tx_ptr));
       }
@@ -172,39 +178,43 @@ std::vector<TransactionPtr> DecomposeProposal(const Devv::proto::Proposal& propo
                                              , const KeyRing& keys) {
   std::vector<TransactionPtr> ptrs;
   std::string oracle_name = proposal.oraclename();
-  if (oracle_name == CoinRequest::getOracleName()) {
+  if (oracle_name == CoinRequest::GetOracleName()) {
     CoinRequest oracle(proposal.data());
     std::vector<TransactionPtr> actions = validateOracle(oracle, chain, keys);
     ptrs.insert(ptrs.end(), std::make_move_iterator(actions.begin()), std::make_move_iterator(actions.end()));
-  } else if (oracle_name == api::getOracleName()) {
+  }else if (oracle_name == DoTransaction::GetOracleName()) {
+    DoTransaction oracle(proposal.data());
+    std::vector<TransactionPtr> actions = validateOracle(oracle, chain, keys);
+    ptrs.insert(ptrs.end(), std::make_move_iterator(actions.begin()), std::make_move_iterator(actions.end()));
+  } else if (oracle_name == api::GetOracleName()) {
     api oracle(proposal.data());
     std::vector<TransactionPtr> actions = validateOracle(oracle, chain, keys);
     ptrs.insert(ptrs.end(), std::make_move_iterator(actions.begin()), std::make_move_iterator(actions.end()));
-  } else if (oracle_name == data::getOracleName()) {
+  } else if (oracle_name == data::GetOracleName()) {
     data oracle(proposal.data());
     std::vector<TransactionPtr> actions = validateOracle(oracle, chain, keys);
     ptrs.insert(ptrs.end(), std::make_move_iterator(actions.begin()), std::make_move_iterator(actions.end()));
-  } else if (oracle_name == dcash::getOracleName()) {
+  } else if (oracle_name == dcash::GetOracleName()) {
     dcash oracle(proposal.data());
     std::vector<TransactionPtr> actions = validateOracle(oracle, chain, keys);
     ptrs.insert(ptrs.end(), std::make_move_iterator(actions.begin()), std::make_move_iterator(actions.end()));
-  } else if (oracle_name == dnero::getOracleName()) {
+  } else if (oracle_name == dnero::GetOracleName()) {
     dnero oracle(proposal.data());
     std::vector<TransactionPtr> actions = validateOracle(oracle, chain, keys);
     ptrs.insert(ptrs.end(), std::make_move_iterator(actions.begin()), std::make_move_iterator(actions.end()));
-  } else if (oracle_name == dneroavailable::getOracleName()) {
+  } else if (oracle_name == dneroavailable::GetOracleName()) {
     dneroavailable oracle(proposal.data());
     std::vector<TransactionPtr> actions = validateOracle(oracle, chain, keys);
     ptrs.insert(ptrs.end(), std::make_move_iterator(actions.begin()), std::make_move_iterator(actions.end()));
-  } else if (oracle_name == dnerowallet::getOracleName()) {
+  } else if (oracle_name == dnerowallet::GetOracleName()) {
     dnerowallet oracle(proposal.data());
     std::vector<TransactionPtr> actions = validateOracle(oracle, chain, keys);
     ptrs.insert(ptrs.end(), std::make_move_iterator(actions.begin()), std::make_move_iterator(actions.end()));
-  } else if (oracle_name == id::getOracleName()) {
+  } else if (oracle_name == id::GetOracleName()) {
     id oracle(proposal.data());
     std::vector<TransactionPtr> actions = validateOracle(oracle, chain, keys);
     ptrs.insert(ptrs.end(), std::make_move_iterator(actions.begin()), std::make_move_iterator(actions.end()));
-  } else if (oracle_name == vote::getOracleName()) {
+  } else if (oracle_name == vote::GetOracleName()) {
     vote oracle(proposal.data());
     std::vector<TransactionPtr> actions = validateOracle(oracle, chain, keys);
     ptrs.insert(ptrs.end(), std::make_move_iterator(actions.begin()), std::make_move_iterator(actions.end()));

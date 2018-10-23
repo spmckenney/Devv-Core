@@ -5,6 +5,9 @@
  */
 #pragma once
 
+#include <cstdlib>
+#include <string>
+
 namespace Devv {
 
 static const unsigned int kDEFAULT_WORKERS = 8;

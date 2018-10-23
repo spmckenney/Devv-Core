@@ -35,22 +35,23 @@ struct DevvContext {
   /**
    * Constructor
    */
-  DevvContext(unsigned int current_node, unsigned int current_shard
-    , eAppMode mode
-    , const std::string& inn_key_path
-    , const std::string& node_key_path
-    , const std::string& key_pass
-    , unsigned int batch_size=10000
-    , unsigned int max_wait=0)
-    : current_node_(current_node)
-    , current_shard_(current_shard)
-    , app_mode_(mode)
-    , uri_(get_uri_from_index(current_node+current_shard*peer_count_))
-    , inn_keys_(inn_key_path)
-    , node_keys_(node_key_path)
-    , key_pass_(key_pass)
-    , batch_size_(batch_size)
-    , max_wait_(max_wait)
+  DevvContext(unsigned int current_node,
+              unsigned int current_shard,
+              eAppMode mode,
+              const std::string& inn_key_path,
+              const std::string& node_key_path,
+              const std::string& key_pass,
+              unsigned int batch_size=10000,
+              unsigned int max_wait=0)
+      : current_node_(current_node)
+      , current_shard_(current_shard)
+      , app_mode_(mode)
+      , uri_(get_uri_from_index(current_node+current_shard*peer_count_))
+      , inn_keys_(inn_key_path)
+      , node_keys_(node_key_path)
+      , key_pass_(key_pass)
+      , batch_size_(batch_size)
+      , max_wait_(max_wait)
   {
   }
 

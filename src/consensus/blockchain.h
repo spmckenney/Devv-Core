@@ -86,10 +86,12 @@ public:
    * @return the highest chain state of this chain
    */
   ChainState getHighestChainState() const {
+    LOG_DEBUG << " chain_size: " << chain_size_;
     if (chain_size_ < 1) {
       ChainState state;
       return state;
     }
+    LOG_DEBUG << "back()->getChainState().size(): " << back()->getChainState().size();
     return back()->getChainState();
   }
 

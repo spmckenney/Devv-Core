@@ -4,9 +4,7 @@
  * @copywrite  2018 Devvio Inc
  *
  */
-
-#ifndef ORACLES_ID_H_
-#define ORACLES_ID_H_
+#pragma once
 
 #include <string>
 
@@ -15,7 +13,7 @@
 #include "consensus/chainstate.h"
 #include "primitives/Transaction.h"
 
-using namespace Devv;
+namespace Devv {
 
 class id : public oracleInterface {
 
@@ -28,11 +26,18 @@ class id : public oracleInterface {
 /**
  *  @return the string name that invokes this oracle
  */
-  static std::string getOracleName() {
-    return("io.devv.id");
+  virtual std::string getOracleName() override {
+    return(id::GetOracleName());
   }
 
 /**
+ *  @return the string name that invokes this oracle
+ */
+  static std::string GetOracleName() {
+    return("io.devv.id");
+  }
+
+  /**
  *  @return the shard used by this oracle
  */
   static uint64_t getShardIndex() {
@@ -134,4 +139,4 @@ class id : public oracleInterface {
 
 };
 
-#endif /* ORACLES_ID_H_ */
+} // namespace Devv

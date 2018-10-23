@@ -9,11 +9,9 @@
 #ifndef PRIMITIVES_TIER2TRANSACTION_H_
 #define PRIMITIVES_TIER2TRANSACTION_H_
 
-#include "common/logger.h"
-#include "common/devv_exceptions.h"
 #include "Transaction.h"
-
-using namespace Devv;
+#include "common/devv_exceptions.h"
+#include "common/logger.h"
 
 namespace Devv {
 
@@ -36,6 +34,8 @@ class Tier2Transaction : public Transaction {
 
   /**
    * Constructor
+   * The constructor will sign this transaction after creation
+   *
    * @param oper Operation of this transaction
    * @param xfers
    * @param nonce
@@ -83,11 +83,14 @@ class Tier2Transaction : public Transaction {
 
   /**
    * Constructor
+   * This constructor will use the provided signature
+   *
    * @param oper Operation of this transaction
    * @param xfers
    * @param nonce
    * @param eckey
    * @param keys
+   * @param signature
    */
   Tier2Transaction(byte oper,
                    const std::vector<Transfer>& xfers,
@@ -427,15 +430,20 @@ class Tier2Transaction : public Transaction {
         Address addr = it->getAddress();
         //LOG_DEBUG << "STATE (amt/coin/tot/address): " << amount << "/" << coin << "/" << state.getAmount(coin, addr)<< "/"<< addr.getHexString();
         if (amount < 0) {
-          if ((oper == eOpType::Exchange) && ((amount) > state.getAmount(coin, addr))) {
+          if ((oper == eOpType::Exchange) && (std::abs(amount) > state.getAmount(coin, addr))) {
             LOG_WARNING << "Coins not available at addr: amount(" << amount
                         << "), state.getAmount()(" << state.getAmount(coin, addr) << ")";
             return false;
+          } else {
+            LOG_INFO << "eOpType(" << int(oper) << "): addr(" << addr.getHexString() << "): amount: " << amount
+                     << " state.getAmount(): " << state.getAmount(coin, addr);
           }
         }
         SmartCoin next_flow(addr, coin, amount);
         state.addCoin(next_flow);
         summary.addItem(addr, coin, amount, it->getDelay());
+        LOG_INFO << "New balance: wallet address: " << addr.getHexString()
+                 << "; coin: " << coin << "; balance: " << state.getAmount(coin, addr);
       }
       return true;
     } catch (const std::exception& e) {
@@ -469,15 +477,19 @@ class Tier2Transaction : public Transaction {
       byte oper = getOperation();
       std::vector<TransferPtr> xfers = getTransfers();
       bool no_error = true;
+      LOG_DEBUG << "do_isValidInAggregate() state.getStateMap().size():  " << state.getStateMap().size();
       for (auto& it : xfers) {
         int64_t amount = it->getAmount();
         uint64_t coin = it->getCoin();
         Address addr = it->getAddress();
         if (amount < 0) {
-          if ((oper == eOpType::Exchange) && (amount > state.getAmount(coin, addr))) {
-            LOG_WARNING << "Coins not available at addr: amount(" << amount
+          if ((oper == eOpType::Exchange) && (std::abs(amount) > state.getAmount(coin, addr))) {
+            LOG_WARNING << "Coins not available at addr("<<addr.getHexString()<<"): amount(" << amount
                         << "), state.getAmount()(" << state.getAmount(coin, addr) << ")";
             return false;
+          } else {
+            LOG_DEBUG << "eOpType(" << int(oper) << "): addr(" << addr.getHexString() << "): amount: " << amount
+                     << " state.getAmount(): " << state.getAmount(coin, addr);
           }
           auto it = aggregate.find(addr);
           if (it != aggregate.end()) {
@@ -496,6 +508,8 @@ class Tier2Transaction : public Transaction {
         SmartCoin next_flow(addr, coin, amount);
         state.addCoin(next_flow);
         summary.addItem(addr, coin, amount, it->getDelay());
+        LOG_INFO << "New balance: wallet address: " << addr.getHexString()
+                 << "; coin: " << coin << "; balance: " << state.getAmount(coin, addr);
       }
       return no_error;
     } catch (const std::exception& e) {
@@ -508,7 +522,7 @@ class Tier2Transaction : public Transaction {
    * Returns a JSON string representing this transaction.
    * @return a JSON string representing this transaction.
    */
-  std::string do_getJSON() const {
+  std::string do_getJSON() const override {
     std::string json("{\"" + kXFER_SIZE_TAG + "\":");
     json += std::to_string(xfer_size_) + ",";
     json += "\"" + kNONCE_SIZE_TAG + "\":"+std::to_string(nonce_size_)+",";

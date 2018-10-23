@@ -122,6 +122,7 @@ int main(int argc, char* argv[])
 
     bpt::ptree block_array;
     std::vector<std::string> files;
+    std::set<Signature> dupe_check;
     for(auto& entry : boost::make_iterator_range(fs::directory_iterator(p), {})) {
       files.push_back(entry.path().string());
     }
@@ -198,6 +199,10 @@ int main(int argc, char* argv[])
               if (!item->isValid(posteri, keys, block_summary)) {
                 LOG_WARNING << "A transaction is invalid. TX details: ";
                 LOG_WARNING << item->getJSON();
+              }
+              auto ret = dupe_check.insert(item->getSignature());
+              if (ret.second==false) {
+                LOG_WARNING << "DUPLICATE TRANSACTION detected: "+item->getSignature().getJSON();
               }
             }
             if (block_summary.getCanonical() != one_block.getSummary().getCanonical()) {

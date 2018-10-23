@@ -12,11 +12,10 @@
  * @copywrite  2018 Devvio Inc
  *
  */
-
-#ifndef ORACLE_INTERFACE_H_
-#define ORACLE_INTERFACE_H_
+#pragma once
 
 #include <string>
+
 #include "common/binary_converters.h"
 #include "consensus/blockchain.h"
 #include "primitives/Tier2Transaction.h"
@@ -37,7 +36,7 @@ class oracleInterface {
 /**
  *  @return the string name that invokes this oracle
  */
-  static std::string getOracleName();
+  virtual std::string getOracleName() = 0;
 
 /**
  *  @return the shard used by this oracle
@@ -149,6 +148,11 @@ class oracleInterface {
 
 };
 
-} //end namespace Devv
+/*
+template <typename T>
+std::string GetOracleName<T>() {
+  return T::getOracleName();
+}
+*/
 
-#endif /* ORACLE_INTERFACE_H_ */
+} //end namespace Devv

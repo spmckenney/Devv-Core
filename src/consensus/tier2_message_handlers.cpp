@@ -24,18 +24,26 @@ std::vector<byte> CreateNextProposal(const KeyRing& keys,
     LOG_NOTICE << "Processing @ final_chain_.size: (" << std::to_string(block_height) << ")";
   }
 
-  if (!utx_pool.HasProposal() && utx_pool.HasPendingTransactions()) {
+  if (!utx_pool.HasProposal() && utx_pool.hasPendingTransactions()) {
+    LOG_DEBUG << "block_height: " << block_height;
+    bool result = true;
     if (block_height > 0) {
       Hash prev_hash = DevvHash(final_chain.back()->getCanonical());
       ChainState prior = final_chain.getHighestChainState();
-      utx_pool.ProposeBlock(prev_hash, prior, keys, context);
+      LOG_DEBUG << "ChainState prior.size(): " << prior.size();
+      result = utx_pool.proposeBlock(prev_hash, prior, keys, context);
     } else {
       Hash prev_hash = DevvHash({'G', 'e', 'n', 'e', 's', 'i', 's'});
       ChainState prior;
-      utx_pool.ProposeBlock(prev_hash, prior, keys, context);
+      result = utx_pool.proposeBlock(prev_hash, prior, keys, context);
+    }
+    if (!result) {
+      throw std::runtime_error("proposeBlock returned false, not proposing");
     }
   } else {
-    LOG_ERROR << "Creating a proposal with no pending transactions!!";
+    std::string err = "Creating a proposal with no pending transactions!!";
+    LOG_ERROR << err;
+    throw std::runtime_error(err);
   }
 
   LOG_INFO << "Proposal #"+std::to_string(block_height+1)+".";
@@ -49,6 +57,11 @@ bool HandleFinalBlock(DevvMessageUniquePtr ptr,
                       Blockchain& final_chain,
                       UnrecordedTransactionPool& utx_pool,
                       std::function<void(DevvMessageUniquePtr)> callback) {
+
+  if (ptr->message_type != eMessageType::FINAL_BLOCK) {
+    throw std::runtime_error("HandleFinalBlock: message != eMessageType::FINAL_BLOCK");
+  }
+
   MTR_SCOPE_FUNC();
   //Make the incoming block final
   //if pending proposal, makes sure it is still valid
@@ -58,6 +71,8 @@ bool HandleFinalBlock(DevvMessageUniquePtr ptr,
   LogDevvMessageSummary(*ptr, "HandleFinalBlock()");
 
   ChainState prior = final_chain.getHighestChainState();
+  LOG_DEBUG << "prior.size(): " << prior.size();
+  utx_pool.LockProposals();
   FinalPtr top_block = std::make_shared<FinalBlock>(utx_pool.FinalizeRemoteBlock(
                                                buffer, prior, keys));
   final_chain.push_back(top_block);
@@ -70,18 +85,29 @@ bool HandleFinalBlock(DevvMessageUniquePtr ptr,
   bool sent_message = false;
 
   if (utx_pool.HasProposal()) {
+    LOG_DEBUG << "HandleFinalBlock: utx_pool.HasProposal: " << utx_pool.HasProposal();
     ChainState current = top_block->getChainState();
     Hash prev_hash = DevvHash(top_block->getCanonical());
     utx_pool.ReverifyProposal(prev_hash, current, keys, context);
+  } else {
+    LOG_DEBUG << "HandleFinalBlock: utx_pool.HasProposal: " << utx_pool.HasProposal();
   }
 
   size_t block_height = final_chain.size();
 
-  if (!utx_pool.HasPendingTransactions()) {
+  if (!utx_pool.hasPendingTransactions()) {
     LOG_INFO << "All pending transactions processed.";
+    utx_pool.UnlockProposals();
   } else if (block_height % context.get_peer_count() == context.get_current_node() % context.get_peer_count()) {
     if (!utx_pool.HasProposal()) {
-      std::vector<byte> proposal = CreateNextProposal(keys, final_chain, utx_pool, context);
+      std::vector<byte> proposal;
+      try {
+        proposal = CreateNextProposal(keys, final_chain, utx_pool, context);
+      } catch (std::runtime_error err) {
+        LOG_INFO << "NOT PROPOSING: " << err.what();
+        utx_pool.UnlockProposals();
+        return false;
+      }
       if (!ProposedBlock::isNullProposal(proposal)) {
         // Create message
         auto propose_msg =
@@ -93,12 +119,20 @@ bool HandleFinalBlock(DevvMessageUniquePtr ptr,
         LogDevvMessageSummary(*propose_msg, "CreateNextProposal");
         callback(std::move(propose_msg));
         sent_message = true;
+      } else {
+        LOG_WARNING << "HandleFinalBlock: proposal is null ;; ProposedBlock::isNullProposal(proposal) == NULL";
       }
     } else {
-      LOG_DEBUG << "Already sent a proposal?";
+      LOG_DEBUG << "HandleFinalBlock: Sent proposal, utx_pool has no more proposals";
     }
   } else {
-    LOG_DEBUG << "Pending transactions but not my turn";
+    LOG_DEBUG << "if (block_height % context.get_peer_count() == context.get_current_node() % context.get_peer_count())";
+    LOG_DEBUG << "Pending transactions but not my turn: " <<
+              "("<< block_height<<"%"<< context.get_peer_count()<< ") != " <<
+              "(" << context.get_current_node() << "%" << context.get_peer_count() << ") " <<
+              ": (" << block_height % context.get_peer_count() << " != " <<
+              context.get_current_node() % context.get_peer_count() <<
+              ") pending: " << utx_pool.hasPendingTransactions();
   }
   return sent_message;
 }
@@ -106,28 +140,34 @@ bool HandleFinalBlock(DevvMessageUniquePtr ptr,
 bool HandleProposalBlock(DevvMessageUniquePtr ptr,
                          const DevvContext& context,
                          const KeyRing& keys,
-                         Blockchain& final_chain,
+                         const Blockchain& final_chain,
                          TransactionCreationManager& tcm,
                          std::function<void(DevvMessageUniquePtr)> callback) {
+
+  if (ptr->message_type != eMessageType::PROPOSAL_BLOCK) {
+    throw std::runtime_error("HandleProposalBlock: message != eMessageType::PROPOSAL_BLOCK");
+  }
+
   MTR_SCOPE_FUNC();
-  //validate block
-  //if valid, push VALID message
-  DevvMessage msg(*ptr.get());
 
   LogDevvMessageSummary(*ptr, "HandleProposalBlock() -> Incoming");
 
   ChainState prior = final_chain.getHighestChainState();
-  InputBuffer buffer(msg.data);
+  InputBuffer buffer(ptr->data);
   ProposedBlock to_validate(ProposedBlock::Create(buffer, prior, keys, tcm));
+
   if (!to_validate.validate(keys)) {
     LOG_WARNING << "ProposedBlock is invalid!";
     return false;
   }
-  if (!to_validate.signBlock(keys, context)) {
+  size_t node_num = context.get_current_node() % context.get_peer_count();
+  if (!to_validate.signBlock(keys, node_num)) {
     LOG_WARNING << "ProposedBlock.signBlock failed!";
     return false;
   }
   LOG_DEBUG << "Proposed block is valid.";
+  LOG_DEBUG << "Proposed ChainState size: " << to_validate.getBlockState().size();
+
   std::vector<byte> validation(to_validate.getValidationData());
 
   auto valid = std::make_unique<DevvMessage>(context.get_shard_uri(),
@@ -144,6 +184,11 @@ bool HandleValidationBlock(DevvMessageUniquePtr ptr,
                            Blockchain& final_chain,
                            UnrecordedTransactionPool& utx_pool,
                            std::function<void(DevvMessageUniquePtr)> callback) {
+
+  if (ptr->message_type != eMessageType::VALID) {
+    throw std::runtime_error("HandleValidationBlock: message != eMessageType::VALID");
+  }
+
   MTR_SCOPE_FUNC();
   bool sent_message = false;
   InputBuffer buffer(ptr->data);
