@@ -179,7 +179,8 @@ class UnrecordedTransactionPool {
   }
 
   /**
-   *  Create a new ProposedBlock based on pending Transaction in this pool
+   *  Create a new ProposedBlock based on pending Transaction in this pool.
+   *  Locks this pool for proposals.
    *  @param prev_hash - the hash of the previous block
    *  @param prior_state - the chainstate prior to this proposal
    *  @param keys - the directory of Addresses and EC keys
@@ -191,35 +192,16 @@ class UnrecordedTransactionPool {
                     const ChainState& prior_state,
                     const KeyRing& keys,
                     const DevvContext& context) {
-    LOG_DEBUG << "proposeBlock(): prior_state.size(): " << prior_state.size();
-    MTR_SCOPE_FUNC();
-    ChainState new_state(prior_state);
-    Summary summary = Summary::Create();
-    Validation validation = Validation::Create();
-
-    auto validated = LockAndCollectValidTransactions(prior_state, keys, summary, context);
-    if (!validated.empty()) {
-      LOG_DEBUG << "Creating new proposal with " << validated.size() << " transactions";
-      ProposedBlock new_proposal(prev_hash, validated, summary, validation, new_state, keys);
-      size_t node_num = context.get_current_node() % context.get_peer_count();
-      new_proposal.signBlock(keys, node_num);
-      std::lock_guard<std::mutex> proposal_guard(pending_proposal_mutex_);
-      LOG_WARNING << "proposeBlock(): canon size: " << new_proposal.getCanonical().size();
-      pending_proposal_.shallowCopy(new_proposal);
-      has_proposal_ = true;
-      return true;
-    } else {
-      LOG_INFO << "CollectValidTransactions returned 0 transactions - not proposing";
-      return false;
-    }
+    std::lock_guard<std::mutex> guard(txs_mutex_);
+    return proposeBlock_Internal(prev_hash, prior_state, keys, context);
   }
 
   /**
+   *  Note: uses atomic<bool> indicator
    *  @return true, iff this pool has a ProposedBlock
    */
   bool HasProposal() {
     LOG_DEBUG << "HasProposal()";
-    //std::lock_guard<std::mutex> proposal_guard(pending_proposal_mutex_);
     return(has_proposal_);
   }
 
@@ -328,25 +310,42 @@ class UnrecordedTransactionPool {
   double getElapsedTime() {
     return timer_.elapsed();
   }
-  /**
-   *  @return the tool to create Transactions in parallel
-   */
+
+ /**
+  *  @return the tool to create Transactions in parallel
+  */
   TransactionCreationManager& get_transaction_creation_manager() {
     return(tcm_);
   }
 
+ /**
+  *  @return the validator mode, which determines the type of Transactions handled.
+  */
   eAppMode getMode() const {
     return mode_;
   }
 
+/**
+ *  Indicate that no proposals are needed at this time.
+ *  FinalBlock handler will or has proposed.
+ */
   void LockProposals() {
     ready_to_propose_ = false;
   }
 
+/**
+ * Indicate that this shard needs to propose.
+ */
   void UnlockProposals() {
     ready_to_propose_ = true;
   }
 
+
+/**
+ *  Is the shard waiting on a transaction for this validator to propose?
+ *  Note: uses atomic<bool> indicator
+ *  @return true, if the most recent FinalBlock thread proposal failed or genesis proposal
+ */
   bool ReadyToPropose() {
     return ready_to_propose_;
   }
@@ -373,12 +372,40 @@ class UnrecordedTransactionPool {
   TransactionCreationManager tcm_;
   eAppMode mode_;
 
+  /**
+   *  Create a new ProposedBlock based on pending Transaction in this pool
+   *  @param prev_hash - the hash of the previous block
+   *  @param prior_state - the chainstate prior to this proposal
+   *  @param keys - the directory of Addresses and EC keys
+   *  @param context - the Devv context of this shard
+   *  @return true, iff this pool created a new ProposedBlock
+   *  @return false, if anything went wrong
+   */
+  bool proposeBlock_Internal(const Hash& prev_hash,
+                    const ChainState& prior_state,
+                    const KeyRing& keys,
+                    const DevvContext& context) {
+    LOG_DEBUG << "proposeBlock(): prior_state.size(): " << prior_state.size();
+    MTR_SCOPE_FUNC();
+    ChainState new_state(prior_state);
+    Summary summary = Summary::Create();
+    Validation validation = Validation::Create();
 
-
-  std::vector<TransactionPtr> LockAndCollectValidTransactions(const ChainState& state
-      , const KeyRing& keys, const Summary& pre_sum, const DevvContext& context) {
-    std::lock_guard<std::mutex> guard(txs_mutex_);
-    return CollectValidTransactions(state, keys, pre_sum, context);
+    auto validated = CollectValidTransactions(prior_state, keys, summary, context);
+    if (!validated.empty()) {
+      LOG_DEBUG << "Creating new proposal with " << validated.size() << " transactions";
+      ProposedBlock new_proposal(prev_hash, validated, summary, validation, new_state, keys);
+      size_t node_num = context.get_current_node() % context.get_peer_count();
+      new_proposal.signBlock(keys, node_num);
+      std::lock_guard<std::mutex> proposal_guard(pending_proposal_mutex_);
+      LOG_WARNING << "proposeBlock(): canon size: " << new_proposal.getCanonical().size();
+      pending_proposal_.shallowCopy(new_proposal);
+      has_proposal_ = true;
+      return true;
+    } else {
+      LOG_INFO << "CollectValidTransactions returned 0 transactions - not proposing";
+      return false;
+    }
   }
 
   /** Verifies Transactions for this pool.
