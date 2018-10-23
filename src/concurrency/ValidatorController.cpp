@@ -53,6 +53,7 @@ ValidatorController::~ValidatorController() {
 
 void ValidatorController::validatorCallback(DevvMessageUniquePtr ptr) {
   LOG_DEBUG << "ValidatorController::validatorCallback()";
+  //Do not remove lock_guard, function may use atomic<bool> as concurrency signal
   std::lock_guard<std::mutex> guard(mutex_);
   if (ptr == nullptr) {
     throw DevvMessageError("validatorCallback(): ptr == nullptr, ignoring");
@@ -71,15 +72,20 @@ void ValidatorController::validatorCallback(DevvMessageUniquePtr ptr) {
     if (block_height%context_.get_peer_count() == context_.get_current_node()%context_.get_peer_count()) {
       LOG_INFO << "Received txs: CreateNextProposal? utx_pool.HasProposal(): " << utx_pool_.HasProposal();
       if (!utx_pool_.HasProposal()) {
+
         if (block_height > context_.get_current_node() && !utx_pool_.ReadyToPropose()) {
           LOG_INFO << "Proposals locked.  Another thread should propose.";
           return;
         }
+        //claim the proposal, unlock if fail
+        utx_pool_.LockProposals();
+
         std::vector<byte> proposal;
         try {
           proposal = CreateNextProposal(keys_, final_chain_, utx_pool_, context_);
         } catch (std::runtime_error err) {
-          LOG_INFO << "NOT PROPOSING: " << err.what();
+          utx_pool_.UnlockProposals();
+          LOG_INFO << "Proposal failed, lock released: " << err.what();
           return;
         }
         if (!ProposedBlock::isNullProposal(proposal)) {
@@ -93,7 +99,8 @@ void ValidatorController::validatorCallback(DevvMessageUniquePtr ptr) {
           LogDevvMessageSummary(*propose_msg, "CreateNextProposal");
           outgoing_callback_(std::move(propose_msg));
         } else {
-          LOG_INFO << "NOT PROPOSING: ProposedBlock::isNullProposal()";
+          if (!utx_pool_.ReadyToPropose()) utx_pool_.UnlockProposals();
+          LOG_INFO << "Proposal failed: ProposedBlock::isNullProposal(), unlock proposals";
         }
       } else {
         LOG_INFO << "utx_pool_.HasProposal() == true - not proposing";
