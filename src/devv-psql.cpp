@@ -389,7 +389,7 @@ int main(int argc, char* argv[]) {
                       std::string pending_rx_id = rx_result[0][0].as<std::string>();
                       LOG_INFO << "Insert rx row.";
                       stmt.prepared(kRX_CONFIRM)(options->shard_index)(chain_height)(blocktime)(pending_rx_id).exec();
-		      stmt.exec("commit;");
+                      stmt.exec("commit;");
                       LOG_INFO << "Deleting pending_rx with pending_rx_id : " << pending_rx_id;
                       stmt.prepared(kDELETE_PENDING_RX)(pending_rx_id).exec();
                       stmt.exec("commit;");

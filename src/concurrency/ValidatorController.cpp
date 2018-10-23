@@ -53,6 +53,7 @@ ValidatorController::~ValidatorController() {
 
 void ValidatorController::validatorCallback(DevvMessageUniquePtr ptr) {
   LOG_DEBUG << "ValidatorController::validatorCallback()";
+  //Do not remove lock_guard, function may use atomic<bool> as concurrency signal
   std::lock_guard<std::mutex> guard(mutex_);
   if (ptr == nullptr) {
     throw DevvMessageError("validatorCallback(): ptr == nullptr, ignoring");
@@ -63,12 +64,30 @@ void ValidatorController::validatorCallback(DevvMessageUniquePtr ptr) {
   MTR_SCOPE_FUNC();
   if (ptr->message_type == TRANSACTION_ANNOUNCEMENT) {
     DevvMessage msg(*ptr.get());
-    utx_pool_.AddTransactions(msg.data, keys_);
+    utx_pool_.addTransactions(msg.data, keys_);
     size_t block_height = final_chain_.size();
+    LOG_DEBUG << "current_node(" << context_.get_current_node() << ")" \
+              <<" peer_count(" << context_.get_peer_count() << ")" \
+              << " block_height (" << block_height << ")";
     if (block_height%context_.get_peer_count() == context_.get_current_node()%context_.get_peer_count()) {
       LOG_INFO << "Received txs: CreateNextProposal? utx_pool.HasProposal(): " << utx_pool_.HasProposal();
       if (!utx_pool_.HasProposal()) {
-        std::vector<byte> proposal = CreateNextProposal(keys_,final_chain_,utx_pool_,context_);
+
+        if (block_height > context_.get_current_node() && !utx_pool_.ReadyToPropose()) {
+          LOG_INFO << "Proposals locked.  Another thread should propose.";
+          return;
+        }
+        //claim the proposal, unlock if fail
+        utx_pool_.LockProposals();
+
+        std::vector<byte> proposal;
+        try {
+          proposal = CreateNextProposal(keys_, final_chain_, utx_pool_, context_);
+        } catch (std::runtime_error err) {
+          utx_pool_.UnlockProposals();
+          LOG_INFO << "Proposal failed, lock released: " << err.what();
+          return;
+        }
         if (!ProposedBlock::isNullProposal(proposal)) {
           // Create message
            auto propose_msg = std::make_unique<DevvMessage>(context_.get_shard_uri()
@@ -79,7 +98,12 @@ void ValidatorController::validatorCallback(DevvMessageUniquePtr ptr) {
           // FIXME (spm): define index value somewhere
           LogDevvMessageSummary(*propose_msg, "CreateNextProposal");
           outgoing_callback_(std::move(propose_msg));
+        } else {
+          if (!utx_pool_.ReadyToPropose()) utx_pool_.UnlockProposals();
+          LOG_INFO << "Proposal failed: ProposedBlock::isNullProposal(), unlock proposals";
         }
+      } else {
+        LOG_INFO << "utx_pool_.HasProposal() == true - not proposing";
       }
     } else {
       LOG_INFO << "NOT PROPOSING! (" << block_height%context_.get_peer_count() << ")" <<

@@ -98,7 +98,8 @@ class ProposedBlock {
                 std::vector<TransactionPtr>& txs,
                 const Summary& summary,
                 const Validation& validations,
-                const ChainState& prior_state)
+                const ChainState& prior_state,
+                const KeyRing& keys)
       : num_bytes_(0)
       , prev_hash_(prev_hash)
       , tx_size_(0)
@@ -109,9 +110,14 @@ class ProposedBlock {
       , vals_(validations)
       , block_state_(prior_state) {
     MTR_SCOPE_FUNC();
+	std::map<Address, SmartCoin> aggregate;
     for (auto const& item : transaction_vector_) {
       tx_size_ += item->getByteSize();
+      if (!item->isValidInAggregate(block_state_, keys, summary_, aggregate, prior_state)) {
+        LOG_ERROR << "Invalid Proposal generated!";
+	  }
     }
+    sum_size_ = summary_.getByteSize();
 
     num_bytes_ = MinSize() + tx_size_ + sum_size_ + val_count_ * vals_.pairSize();
   }
@@ -188,11 +194,10 @@ class ProposedBlock {
    * @return true iff the block was signed.
    * @return false otherwise
    */
-  bool signBlock(const KeyRing &keys, const DevvContext& context) {
+  bool signBlock(const KeyRing &keys, size_t node_num) {
     MTR_SCOPE_FUNC();
     std::vector<byte> md = summary_.getCanonical();
     /// @todo (mckenney) need another solution for node_num with dynamic shards
-    size_t node_num = context.get_current_node() % context.get_peer_count();
     Address node_addr = keys.getNodeAddr(node_num);
     Signature node_sig = SignBinary(keys.getNodeKey(node_num), DevvHash(md));
     vals_.addValidation(node_addr, node_sig);
@@ -211,8 +216,11 @@ class ProposedBlock {
   bool checkValidationData(InputBuffer& buffer, const DevvContext& context) {
     MTR_SCOPE_FUNC();
     if (buffer.size() < MinValidationSize()) {
-      LOG_WARNING << "Invalid validation data, too small!";
-      return false;
+      std::ostringstream err;
+      err << "Invalid validation data, too small: buffer("
+             << buffer.size() << ") < min_size(" << MinValidationSize() << ")";
+      LOG_ERROR << err.str();
+      throw std::runtime_error(err.str());
     }
     Hash incoming_hash;
     buffer.copy(incoming_hash);
@@ -323,6 +331,12 @@ class ProposedBlock {
   const ChainState& getBlockState() const { return block_state_; }
 
   /**
+   *
+   * @return
+   */
+  ChainState& getBlockState() { return block_state_; }
+
+  /**
    * Performs a shallow copy. Moves the transactions from the other ProposedBlock
    * to this block.
    * @param other the ProposedBlock from which to move transactions from
@@ -403,6 +417,7 @@ class ProposedBlock {
 
 
 inline ProposedBlock ProposedBlock::Create(const ChainState& prior) {
+  LOG_DEBUG << "ProposedBlock::Create(): prior.size(): " << prior.size();
   ProposedBlock new_block(prior);
   return new_block;
 }
@@ -414,6 +429,8 @@ inline ProposedBlock ProposedBlock::Create(InputBuffer &buffer,
   MTR_SCOPE_FUNC();
   ProposedBlock new_block(prior);
 
+  // FIXME(spm): Debugging number for profiling
+  // Still shouldn't be a magic number
   int proposed_block_int = 123;
   MTR_START("proposed_block", "proposed_block", &proposed_block_int);
 
@@ -444,6 +461,7 @@ inline ProposedBlock ProposedBlock::Create(InputBuffer &buffer,
   new_block.tx_size_ = buffer.getNextUint64();
   new_block.sum_size_ = buffer.getNextUint64();
   new_block.val_count_ = buffer.getNextUint32();
+
   MTR_STEP("proposed_block", "construct", &proposed_block_int, "transaction list");
   tcm.set_keys(&keys);
   tcm.CreateTransactions(buffer, new_block.transaction_vector_, MinSize(), new_block.tx_size_);

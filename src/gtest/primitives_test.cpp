@@ -16,6 +16,7 @@
 #include "primitives/json_interface.h"
 #include "primitives/block_tools.h"
 
+namespace Devv {
 namespace {
 
 #define TEST_DESCRIPTION(desc) RecordProperty("primitive data type unit tests", desc)
@@ -523,7 +524,7 @@ TEST(address, constructor_1) {
  * TEST_F(TransferTest, getAddress_2) {
   Devv::Transfer test0(addr_0_, 0, 1, 0);
   std::vector<Devv::byte> tmp(Devv::Hex2Bin(""));
-  std::vector<byte> bin_addr(addr_0_.getCanonical());
+  std::vector<byte> bin_addr(addr_0_.getCanonicalTransactions());
   std::copy_n(tmp.begin(), Devv::kWALLET_ADDR_SIZE, bin_addr.begin());
   EXPECT_THROW(Address a(tmp), std::runtime_error);
 }
@@ -572,17 +573,17 @@ class Tier1TransactionTest : public ::testing::Test {
       : t1_context_0_(0, 0, Devv::eAppMode::T1, "", "", "")
       , keys_(t1_context_0_)
   {
-    for (int i = 0; i < 4; ++i) {
+    for (uint64_t i = 0; i < 4; ++i) {
       keys_.addWalletKeyPair(kADDRs.at(i), kADDR_KEYs.at(i), "password");
     }
     keys_.setInnKeyPair(kINN_ADDR, kINN_KEY, "password");
-    for (int i = 0; i < 3; ++i) {
+    for (uint64_t i = 0; i < 3; ++i) {
       keys_.addNodeKeyPair(kNODE_ADDRs.at(i), kNODE_KEYs.at(i), "password");
     }
   }
 
   // You can do clean-up work that doesn't throw exceptions here.
-  ~Tier1TransactionTest()  = default;
+  ~Tier1TransactionTest() override = default;
 
   // If the constructor and destructor are not enough for setting up
   // and cleaning up each test, you can define the following methods:
@@ -621,7 +622,7 @@ Tier1TransactionPtr CreateTestT1_0(const KeyRing& keys) {
   Validation val_test = Validation::Create();
   ChainState state;
 
-  ProposedBlock proposal_test(prev_hash, txs, sum_test, val_test, state);
+  ProposedBlock proposal_test(prev_hash, txs, sum_test, val_test, state, keys);
   FinalBlock final_block(proposal_test);
 
   return(CreateTier1Transaction(final_block, keys));
@@ -693,6 +694,7 @@ Tier1TransactionPtr CreateTestT1_3(const KeyRing& keys) {
   Summary sum_test = Summary::Create();
   sum_test.addTransfer(sender);
   sum_test.addTransfer(receiver);
+  Summary clean = Summary::Create();
 
   auto node_sig = SignBinary(keys.getNodeKey(0),
       DevvHash(sum_test.getCanonical()));
@@ -700,8 +702,10 @@ Tier1TransactionPtr CreateTestT1_3(const KeyRing& keys) {
   Validation val_test = Validation::Create();
   val_test.addValidation(keys.getNodeAddr(0), SignSummary(sum_test, keys));
   ChainState state;
+  SmartCoin make_valid(keys.getWalletAddr(1), 0, 1);
+  state.addCoin(make_valid);
 
-  ProposedBlock proposal_test(prev_hash, txs, sum_test, val_test, state);
+  ProposedBlock proposal_test(prev_hash, txs, clean, val_test, state, keys);
   FinalBlock final_block(proposal_test);
   //Validation val_test(final_block.getValidation());
 
@@ -722,7 +726,7 @@ TEST_F(Tier1TransactionTest, serdes_getValidationThrow) {
   Validation val_test = Validation::Create();
   ChainState state;
 
-  ProposedBlock proposal_test(prev_hash, txs, sum_test, val_test, state);
+  ProposedBlock proposal_test(prev_hash, txs, sum_test, val_test, state, keys_);
   FinalBlock final_block(proposal_test);
 
   EXPECT_THROW(CreateTier1Transaction(final_block, keys_), std::range_error);
@@ -769,7 +773,7 @@ TEST_F(Tier1TransactionTest, getCanonicalIdentity) {
   Devv::Transfer test_transfer(addr_0_, 0, 1, 0);
   Devv::Transfer identity(test_transfer.getCanonical());
 
-  EXPECT_EQ(test_transfer.getCanonical(), identity.getCanonical());
+  EXPECT_EQ(test_transfer.getCanonical(), identity.getCanonicalTransactions());
 }
 */
 
@@ -794,13 +798,13 @@ class Tier2TransactionTest : public ::testing::Test {
       , transfers_()
       , keys_(t1_context_0_)
   {
-    for (int i = 0; i < 4; ++i) {
+    for (uint64_t i = 0; i < 4; ++i) {
       keys_.addWalletKeyPair(kADDRs[i], kADDR_KEYs[i], "password");
     }
 
     keys_.setInnKeyPair(kINN_ADDR, kINN_KEY, "password");
 
-    for (int i = 0; i < 3; ++i) {
+    for (uint64_t i = 0; i < 3; ++i) {
       keys_.addNodeKeyPair(kNODE_ADDRs.at(i), kNODE_KEYs.at(i), "password");
     }
 
@@ -811,7 +815,7 @@ class Tier2TransactionTest : public ::testing::Test {
   }
 
   // You can do clean-up work that doesn't throw exceptions here.
-  ~Tier2TransactionTest()  = default;
+  ~Tier2TransactionTest() override = default;
 
   // If the constructor and destructor are not enough for setting up
   // and cleaning up each test, you can define the following methods:
@@ -1143,7 +1147,7 @@ TEST(Primitives, getCanonical0) {
   std::vector<TransactionPtr> txs;
   txs.push_back(std::move(txptr));
   ChainState state;
-  ProposedBlock proposal_test(prev_hash, txs, sum_test, val_test, state);
+  ProposedBlock proposal_test(prev_hash, txs, sum_test, val_test, state, keys);
   InputBuffer buffer5(proposal_test.getCanonical());
   ProposedBlock proposal_id = ProposedBlock::Create(buffer5, state, keys, txm);
 
@@ -1158,7 +1162,8 @@ TEST(Primitives, getCanonical0) {
   EXPECT_EQ(final_test.getCanonical(), final_id.getCanonical());
 }
 
-}  // namespace
+} // namespace
+} // namespace Devv
 
 int main(int argc, char **argv) {
   ::testing::InitGoogleTest(&argc, argv);

@@ -144,8 +144,8 @@ class KeyRing {
   std::vector<Address> getDesignatedWallets(int index) const;
 
  private:
-  KeyRing& operator=(KeyRing&);
-  KeyRing(KeyRing&);
+  KeyRing& operator=(const KeyRing&);
+  KeyRing(const KeyRing&);
 
   std::map<Address, EC_KEY*> key_map_;
   std::vector<Address> node_list_;
