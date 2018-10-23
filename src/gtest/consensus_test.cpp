@@ -807,7 +807,7 @@ DevvContext sign_context(2, 1, Devv::eAppMode::T2, "", "", "");
 HandleProposalBlock(std::move(propose_msg), sign_context, keys_, proposal_chain_, utx_pool_ptr_->get_transaction_creation_manager(), cb);
 }
 
-TEST_F(UnrecordedTransactionPoolTest, proposal_stream_0) {
+TEST_F(UnrecordedTransactionPoolTest, DISABLED_proposal_stream_0) {
   auto t2x = CreateTestTransaction(keys_, -2, 2);
 
   std::vector<TransactionPtr> inn_tx_vector;
