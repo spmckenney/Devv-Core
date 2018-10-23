@@ -1,7 +1,9 @@
 /*
  * coin_request.h is a testnet oracle to request coins from the INN.
  *
- * Proposal format is coin|addr
+ * Proposal format is coin|amount|addr
+ * Amount must be positive.
+ * Coin type must be Devv.
  *
  * @copywrite  2018 Devvio Inc
  *
@@ -59,7 +61,8 @@ CoinRequest(std::string data) : oracleInterface(data) {};
  */
   bool isSound() override {
     coin_ = BinToUint64(Str2Bin(raw_data_), 0);
-    addr_ = Str2Bin(raw_data_.substr(8));
+    amount_ = BinToInt64(Str2Bin(raw_data_), 8);
+    addr_ = Str2Bin(raw_data_.substr(16));
     return true;
   }
 
@@ -79,6 +82,10 @@ CoinRequest(std::string data) : oracleInterface(data) {};
       error_msg_ = "Only allowed to request Devv.";
       return false;
     }
+    if ((amount_ < 1) || (amount_ > 1000000)) {
+      error_msg_ = "May only request positive amounts less than 1,000,000.";
+      return false;
+	}
 	return true;
   }
 
@@ -105,10 +112,9 @@ CoinRequest(std::string data) : oracleInterface(data) {};
       getNextTransactions(const Blockchain& context, const KeyRing& keys) override {
     std::map<uint64_t, std::vector<Tier2Transaction>> out;
     if (!isValid(context)) return out;
-    int64_t coins = 50;
     std::vector<Transfer> xfers;
-    Transfer pay(keys.getInnAddr(), coin_, -1*coins, 0);
-    Transfer settle(addr_, coin_, coins, 0);
+    Transfer pay(keys.getInnAddr(), coin_, -1*amount_, 0);
+    Transfer settle(addr_, coin_, amount_, 0);
     xfers.push_back(pay);
     xfers.push_back(settle);
     std::vector<byte> nonce(Str2Bin(raw_data_));
@@ -163,6 +169,7 @@ CoinRequest(std::string data) : oracleInterface(data) {};
  */
   std::string getJSON() override {
     std::string json("{\"addr\":\""+addr_.getJSON()+"\",");
+    json += "\"amount\":"+std::to_string(amount_)+",";
     json += "\"coin\":"+std::to_string(coin_)+"}";
     return json;
   }
@@ -171,6 +178,7 @@ private:
  std::string error_msg_;
  uint64_t coin_;
  Address addr_;
+ int64_t amount_;
 
 };
 
