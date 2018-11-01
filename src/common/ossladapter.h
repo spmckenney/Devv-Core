@@ -346,18 +346,22 @@ static bool VerifyByteSig(EC_KEY* ecKey, const Devv::Hash& msg
     }
     Devv::Hash temp = msg;
     std::vector<unsigned char> raw_sig(sig.getRawSignature());
-    unsigned char* copy_sig = (unsigned char*) malloc(raw_sig.size()+1);
+    std::vector<unsigned char> copy_sig(raw_sig.size()+1);
     for (size_t i=0; i<raw_sig.size(); ++i) {
       copy_sig[i] = raw_sig[i];
     }
-    ECDSA_SIG *signature = d2i_ECDSA_SIG(NULL
-        , (const unsigned char**) &copy_sig
-        , raw_sig.size());
-    int state = ECDSA_do_verify((const unsigned char*) &temp[0]
-        , SHA256_DIGEST_LENGTH, signature, ecKey);
+    auto p = &copy_sig[0];
+
+    ECDSA_SIG *signature = d2i_ECDSA_SIG(NULL,
+                                         const_cast<const unsigned char**>(&p),
+					 raw_sig.size());
+
+    int state = ECDSA_do_verify((const unsigned char*) &temp[0],
+                                SHA256_DIGEST_LENGTH,
+                                signature,
+                                ecKey);
     ECDSA_SIG_free(signature);
     EVP_MD_CTX_free(ctx);
-    //free(copy_sig);
     return(1 == state);
   } catch (const std::exception& e) {
     LOG_WARNING << Devv::FormatException(&e, "Crypto.verifySignature");

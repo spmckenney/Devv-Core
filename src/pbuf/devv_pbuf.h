@@ -104,6 +104,7 @@ TransactionPtr CreateTransaction(const Devv::proto::Transaction& transaction, co
         nonce,
         key,
         keys);
+    EC_KEY_free(key);
     return t2tx.clone();
   } else {
     std::vector<byte> sig(transaction.sig().begin(), transaction.sig().end());
@@ -116,6 +117,7 @@ TransactionPtr CreateTransaction(const Devv::proto::Transaction& transaction, co
         key,
         keys,
         signature);
+    EC_KEY_free(key);
     return t2tx.clone();
   }
 }
