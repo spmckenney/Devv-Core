@@ -76,7 +76,9 @@ static EC_KEY* GenerateEcKey(std::string& publicKey, std::string& pk
     state = EC_KEY_generate_key(eckey);
     if (1 != state) { LOG_ERROR << "Failed to generate EC key."; }
 
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
     OpenSSL_add_all_algorithms();
+#endif
     EVP_PKEY* pkey = EVP_PKEY_new();
     if (!EVP_PKEY_set1_EC_KEY(pkey, eckey)) {
       LOG_ERROR << "Could not export private key";
@@ -102,8 +104,9 @@ static EC_KEY* GenerateEcKey(std::string& publicKey, std::string& pk
       memset(buffer, 0, 1024);
     }
     BIO_free(fOut);
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
     EVP_cleanup();
-
+#endif
     const EC_POINT *pubKey = EC_KEY_get0_public_key(eckey);
     publicKey = EC_POINT_point2hex(ecGroup, pubKey, POINT_CONVERSION_COMPRESSED, NULL);
 
@@ -156,7 +159,7 @@ static bool ValidateKey(EC_KEY* key) {
   }
 
   int ret = EC_KEY_check_key(key);
-  //LOG_DEBUG << "ossl version: " << OPENSSL_VERSION_NUMBER;
+  LOG_DEBUG << "OpenSSL version: " << OPENSSL_VERSION_NUMBER;
   if (ret != 1) {
 	auto ossl_ver = OPENSSL_VERSION_NUMBER;
 	auto err = ERR_get_error();
@@ -168,10 +171,10 @@ static bool ValidateKey(EC_KEY* key) {
 	 * code and only throw if it not a private key error.
 	 *
 	 * if ((ossl_ver == 1.0.2) and (err == invalid private key) or
-	 *     (ossl_ver == 1.1.0) and (err == invalid private key))
+	 *     (ossl_ver >= 1.1.0) and (err == invalid private key))
 	 */
 	if ((ossl_ver == 268443775 && err == 269160571) ||
-		(ossl_ver == 269484159 && err == 269492347)) {
+		(ossl_ver >= 269484159 && err == 269492347)) {
 	  // error because private key is not set - ignore
 	  return false;
 	} else {
